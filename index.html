@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考古学データ分析ポータル</title>
+    <style>
+        /* ベース設定：地層や古い紙を思わせる落ち着いた色合い */
+        :root {
+            --bg-color: #f7f5f0;       /* 背景色：温かみのあるオフホワイト */
+            --text-main: #332f2c;      /* 主テキスト：深みのあるチャコールブラウン */
+            --text-light: #665f58;     /* 副テキスト：少し明るめのブラウン */
+            --accent-color: #8c6a53;   /* アクセント：くすんだテラコッタ（陶器）色 */
+            --card-bg: #ffffff;        /* カード背景：白 */
+            --border-color: #dcd6ce;   /* 境界線：薄いグレーブラウン */
+        }
+
+        body {
+            font-family: "Noto Serif JP", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ヘッダー */
+        header {
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: normal;
+            letter-spacing: 0.1em;
+            color: var(--text-main);
+        }
+
+        header p {
+            margin: 10px 0 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            font-family: "Helvetica Neue", Arial, "Hiragino Sans", "Meiryo", sans-serif;
+            letter-spacing: 0.05em;
+        }
+
+        /* メインコンテンツ（リンクを並べるグリッド） */
+        main {
+            flex: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 50px 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        /* ツールリンクのカード */
+        .tool-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 25px;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        /* ホバー時の控えめなエフェクト */
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(140, 106, 83, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        /* オフラインバッジ */
+        .badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 0.7rem;
+            background-color: #e8e3dc;
+            color: var(--text-light);
+            padding: 3px 8px;
+            border-radius: 2px;
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            letter-spacing: 0.05em;
+        }
+
+        .tool-card h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.25rem;
+            font-weight: normal;
+            color: var(--accent-color);
+            border-bottom: 1px dotted var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .tool-card p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            font-family: "Helvetica Neue", Arial, "Hiragino Sans", "Meiryo", sans-serif;
+            line-height: 1.7;
+        }
+
+        /* フッター */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            border-top: 1px solid var(--border-color);
+            font-family: "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>考古学分析ツールポータル</h1>
+        <p>Archaeological Data Analysis Toolkit</p>
+    </header>
+
+    <main>
+        <div class="tool-grid">
+            
+            <!-- ▼▼ ここからツールを追加・編集してください ▼▼ -->
+
+            <!-- ツール1 -->
+            <a href="./tools/stratigraphy.html" class="tool-card">
+                <span class="badge">Offline App</span>
+                <h2>層位図作成ツール</h2>
+                <p>発掘調査の記録に基づく土層図をブラウザ上で描画・保存します。完全オフライン環境で動作し、SVG形式での出力に対応しています。</p>
+            </a>
+
+            <!-- ツール2 -->
+            <a href="./tools/artifact-plotter.html" class="tool-card">
+                <span class="badge">Offline App</span>
+                <h2>遺物分布散布図ジェネレータ</h2>
+                <p>測量データ（CSV）を読み込み、グリッド上に遺物の出土位置をプロットします。土器や石器など、遺物種別ごとの色分け表示が可能です。</p>
+            </a>
+
+            <!-- ツール3 -->
+            <a href="./tools/radiocarbon.html" class="tool-card">
+                <span class="badge">Offline App</span>
+                <h2>年代測定データ管理</h2>
+                <p>放射性炭素年代測定のデータを一覧化・グラフ化して比較検討するための簡易データベースツールです。ローカルストレージにデータを保存します。</p>
+            </a>
+
+            <!-- ツールを追加する場合は、上記の <a>〜</a> のブロックをコピーして増やしてください -->
+
+            <!-- ▲▲ ここまで ▲▲ -->
+
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 Archaeological Analysis Tools
+    </footer>
+
+</body>
+</html>
