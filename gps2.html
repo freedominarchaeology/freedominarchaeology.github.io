@@ -7,31 +7,72 @@
     <!-- jsPDFライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         html, body {
-            width: 100%; height: 100%; margin: 0; padding: 0;
-            background-color: #000; color: #fff;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
-            overflow: hidden; position: fixed; touch-action: none;
+            overflow: hidden;
+            position: fixed;
+            touch-action: none;
         }
+        
         .glass { 
-            background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(4px); 
-            border-bottom: 1px solid #333; padding: 10px 12px; position: absolute; 
-            top: 0; left: 0; width: 100%; z-index: 20; max-height: 50vh; overflow-y: auto; touch-action: pan-y; 
+            background: rgba(0, 0, 0, 0.95); 
+            backdrop-filter: blur(4px); 
+            border-bottom: 1px solid #333; 
+            padding: 10px 12px; 
+            position: absolute; 
+            top: 0; 
+            left: 0;
+            width: 100%; 
+            z-index: 20;
+            max-height: 50vh; 
+            overflow-y: auto; 
+            touch-action: pan-y; 
         }
+        
         .crosshair { position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }
         .crosshair-h { width: 40px; height: 2px; background: red; position: absolute; left: -20px; top: -1px; }
         .crosshair-v { width: 2px; height: 40px; background: red; position: absolute; top: -20px; left: -1px; }
 
         #register-panel {
-            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
-            width: 95%; max-width: 420px; background: rgba(15, 15, 15, 0.95);
-            border: 1px solid #444; border-radius: 8px; padding: 10px 12px; z-index: 15;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.7); max-height: 45vh; overflow-y: auto; touch-action: pan-y; 
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 420px;
+            background: rgba(15, 15, 15, 0.95);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px 12px;
+            z-index: 15;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+            max-height: 45vh; 
+            overflow-y: auto; 
+            touch-action: pan-y; 
         }
         #register-panel input { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; font-size: 13px; }
         .flex-row { display: flex; gap: 6px; margin-top: 6px; }
-        .data-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px; flex-wrap: wrap; word-break: break-word; gap: 4px; }
+
+        .data-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 4px; 
+            font-size: 12px; 
+            flex-wrap: wrap; 
+            word-break: break-word;
+            gap: 4px;
+        }
         
         button { background: #222; color: #fff; border: 1px solid #555; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
         button:disabled { background: #555; color: #aaa; cursor: not-allowed; border-color: #666; }
@@ -45,6 +86,7 @@
         .modal-content { background: #111; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 380px; max-width: 95%; text-align: left; max-height: 90vh; overflow-y: auto; touch-action: pan-y; }
         .modal-content label { display: block; font-size: 12px; margin-top: 10px; color: #aaa; }
         .modal-content select { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 4px; margin-top: 4px; font-size: 13px; }
+        
         .point-item { background: #1a1a1a; border: 1px solid #333; padding: 6px 8px; margin-top: 6px; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
     </style>
 </head>
@@ -84,14 +126,16 @@
     </div>
 
     <div id="register-panel">
+        <!-- 遺物・遺構点（黄色）登録領域 -->
         <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🟡 遺物・遺構記録点（任意測位点）の登録</div>
         <div class="flex-row">
-            <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 点1)">
+            <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 須恵器片01)">
             <button id="add-rec-btn" class="record" style="white-space: nowrap; padding: 6px 12px;">📍 現在地を記録</button>
         </div>
 
         <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">
 
+        <!-- 既知点（基準点）登録領域 -->
         <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🎯 基準点（既知点）の学習登録</div>
         <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">
         <div class="flex-row">
@@ -150,7 +194,7 @@
 
             <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">
 
-            <!-- 化けた旧データをクリアする安全ボタン -->
+            <button id="sensor-permission-btn" class="primary" style="width: 100%; padding: 8px; margin-bottom: 8px;">📱 スマホセンサー（PDR）有効化</button>
             <button id="clear-all-data-btn" class="danger" style="width: 100%; padding: 8px; font-size: 12px;">🗑️ 化けた旧データを全消去・初期化</button>
 
             <div style="margin-top: 12px;">
@@ -173,7 +217,9 @@
                 const val = localStorage.getItem(key);
                 if (val === null) return defaultVal;
                 return isFloat ? parseFloat(val) || defaultVal : val;
-            } catch (e) { return defaultVal; }
+            } catch (e) {
+                return defaultVal;
+            }
         };
 
         let config = {
@@ -204,10 +250,23 @@
         } catch (e) { recordedPoints = []; }
 
         const SMOOTHING_SIZE = 4;
-        let latHistory = [], lonHistory = [], altHistory = [];
-        let latestLat = 0, latestLon = 0, latestRawAlt = null;
-        let watchId = null, isPaused = false;
-        let pdrX = 0, pdrY = 0, lastHeading = 0, samplingTimer = null;
+        let latHistory = [];
+        let lonHistory = [];
+        let altHistory = [];
+
+        let latestLat = 0;
+        let latestLon = 0;
+        let latestRawAlt = null;
+        
+        let watchId = null;
+        let isPaused = false;
+
+        let pdrX = 0;
+        let pdrY = 0;
+        let lastHeading = 0;
+        let samplingTimer = null;
+        let orientationHandler = null;
+        let motionHandler = null;
 
         document.getElementById('zone-select').value = config.selectedZone;
         document.getElementById('in-invertalt').checked = config.invertAlt;
@@ -237,7 +296,7 @@
             return { x: finalX, y: finalY, z: finalZ };
         }
 
-        // 記録点の追加（文字化けしない直接文字列保持）
+        // 入力文字列の無変換保持による記録点追加
         document.getElementById('add-rec-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('rec-name');
             const userEnteredName = nameInput.value ? String(nameInput.value).trim() : '';
@@ -262,7 +321,7 @@
             saveRecordedPoints();
             nameInput.value = '';
             renderRecordedPointsList();
-            alert(`🟡 記録点「${name}」を正常に登録しました！`);
+            alert(`🟡 記録点「${name}」を記録しました！`);
         });
 
         function saveRecordedPoints() {
@@ -277,26 +336,47 @@
             if (countEl) countEl.innerText = recordedPoints.length + '箇所';
             
             if (!container) return;
+            container.innerHTML = '';
+            
             if (recordedPoints.length === 0) {
                 container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">記録された点はありません</div>';
                 return;
             }
-            let html = '';
+
             recordedPoints.forEach((pt) => {
                 const zStr = pt.z !== null && pt.z !== undefined ? pt.z.toFixed(2) : '---';
-                html += `<div class="point-item">
-                    <div style="flex: 1; min-width: 140px;">
-                        <div style="color: #eab308; font-weight: bold; margin-bottom: 2px;">${escapeHtml(pt.name)}</div>
-                        <div style="color: #aaa; font-size: 10px;">X: ${pt.x.toFixed(2)}, Y: ${pt.y.toFixed(2)}, Z: ${zStr}</div>
-                    </div>
-                    <button class="danger" style="font-size:10px; padding:3px 6px;" onclick="deleteRecordedPoint(${pt.id})">削除</button>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
+                const div = document.createElement('div');
+                div.className = 'point-item';
 
-        function escapeHtml(str) {
-            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                const infoDiv = document.createElement('div');
+                infoDiv.style.flex = '1';
+                infoDiv.style.minWidth = '140px';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.style.color = '#eab308';
+                titleDiv.style.fontWeight = 'bold';
+                titleDiv.style.marginBottom = '2px';
+                titleDiv.textContent = pt.name;
+
+                const detailDiv = document.createElement('div');
+                detailDiv.style.color = '#aaa';
+                detailDiv.style.fontSize = '10px';
+                detailDiv.textContent = `X: ${pt.x.toFixed(2)}, Y: ${pt.y.toFixed(2)}, Z: ${zStr}`;
+
+                infoDiv.appendChild(titleDiv);
+                infoDiv.appendChild(detailDiv);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'danger';
+                delBtn.style.fontSize = '10px';
+                delBtn.style.padding = '3px 6px';
+                delBtn.textContent = '削除';
+                delBtn.onclick = () => deleteRecordedPoint(pt.id);
+
+                div.appendChild(infoDiv);
+                div.appendChild(delBtn);
+                container.appendChild(div);
+            });
         }
 
         window.deleteRecordedPoint = function(id) {
@@ -306,12 +386,12 @@
             renderRecordedPointsList();
         };
 
-        // CSV出力機能（BOM付きUTF-8でExcel等の文字化けを100%防止）
+        // BOM付きUTF-8 CSV出力機能
         document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
 
         function exportCSV() {
-            if (recordedPoints.length === 0 && routeLog.length === 0) {
-                alert("出力するログデータがありません。");
+            if (recordedPoints.length === 0 && routeLog.length === 0 && knownPoints.length === 0) {
+                alert("出力する測量データがありません。");
                 return;
             }
 
@@ -319,7 +399,12 @@
 
             recordedPoints.forEach(p => {
                 const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : '';
-                csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
+                csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ''},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
+            });
+
+            knownPoints.forEach(p => {
+                const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : '';
+                csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
             });
 
             routeLog.forEach((p, idx) => {
@@ -336,21 +421,24 @@
             URL.revokeObjectURL(url);
         }
 
-        // リセット機能（化けた旧データ消去）
+        // 破綻データの完全一括消去機能
         document.getElementById('clear-all-data-btn').addEventListener('click', () => {
-            if (confirm("これまでに保存された記録点・基準点のデータがすべて削除されます。\n文字化けデータを破棄して初期化しますか？")) {
-                localStorage.removeItem('conf_recorded_points');
-                localStorage.removeItem('conf_known_points');
+            if (confirm("これまでに保存された「S\":P1 1」などの破綻データや、全記録点・基準点が完全に消去されます。\nデータを一括リセットしますか？")) {
+                localStorage.clear();
                 recordedPoints = [];
                 knownPoints = [];
+                routeLog = [];
+                config.shiftX = 0;
+                config.shiftY = 0;
+                config.hasCalibrated = false;
                 renderRecordedPointsList();
                 renderKnownPointsList();
                 updateGrowthUI();
-                alert("データを初期化しました。新しく「点1」を登録してお試しください。");
+                alert("旧データおよび全記録を正常に初期化・消去しました。");
             }
         });
 
-        // ログ記録トグル
+        // ログ記録 & PDF出力
         const logToggleBtn = document.getElementById('log-toggle-btn');
         logToggleBtn.addEventListener('click', () => {
             if (!isLogging) {
@@ -365,11 +453,17 @@
                         routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
                     }
                 }, 1000);
+
             } else {
                 isLogging = false;
                 logToggleBtn.innerText = "🔴 ログ記録開始";
                 logToggleBtn.className = "primary";
-                if (logTimer !== null) clearInterval(logTimer);
+                
+                if (logTimer !== null) {
+                    clearInterval(logTimer);
+                    logTimer = null;
+                }
+
                 exportCSV();
                 generatePDFReport();
             }
@@ -378,9 +472,10 @@
         function generatePDFReport() {
             try {
                 if (typeof window.jspdf === 'undefined') return;
-                const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
-                const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
+
                 const validLog = routeLog.filter(p => !isNaN(p.x) && !isNaN(p.y));
+                const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
+                const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
 
                 if (validLog.length === 0 && validKnown.length === 0 && validRec.length === 0) return;
 
@@ -481,22 +576,30 @@
             } catch (err) {}
         }
 
-        document.getElementById('settings-btn').addEventListener('click', () => { document.getElementById('settings-modal').style.display = 'flex'; });
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-modal').style.display = 'flex';
+        });
+
         document.getElementById('close-settings').addEventListener('click', () => {
-            config.selectedZone = document.getElementById('zone-select').value;
-            config.invertAlt = document.getElementById('in-invertalt').checked;
-            localStorage.setItem('conf_zone', config.selectedZone);
-            localStorage.setItem('conf_invertalt', config.invertAlt);
+            try {
+                config.selectedZone = document.getElementById('zone-select').value;
+                config.invertAlt = document.getElementById('in-invertalt').checked;
+                localStorage.setItem('conf_zone', config.selectedZone);
+                localStorage.setItem('conf_invertalt', config.invertAlt);
+            } catch (e) {}
             document.getElementById('settings-modal').style.display = 'none';
         });
 
         const pauseBtn = document.getElementById('pause-btn');
         pauseBtn.addEventListener('click', () => {
             if (!isPaused) {
-                if (watchId !== null && 'geolocation' in navigator) navigator.geolocation.clearWatch(watchId);
+                releaseResources();
                 isPaused = true;
                 pauseBtn.innerText = "▶️ 測定再開";
                 pauseBtn.className = "success";
+                document.getElementById('gps-status').innerText = "⏸️ 測定一時停止中";
+                document.getElementById('gps-status').style.color = "#9ca3af";
+                latHistory = []; lonHistory = []; altHistory = [];
             } else {
                 isPaused = false;
                 pauseBtn.innerText = "⏸️ 一時停止";
@@ -505,6 +608,25 @@
             }
         });
 
+        function releaseResources() {
+            if (watchId !== null && 'geolocation' in navigator) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (samplingTimer !== null) {
+                clearInterval(samplingTimer);
+                samplingTimer = null;
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            releaseResources();
+            if (logTimer !== null) clearInterval(logTimer);
+            if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
+            if (motionHandler) window.removeEventListener('devicemotion', motionHandler);
+        });
+
+        // 基準点（既知点）学習登録
         document.getElementById('add-kp-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('kp-name');
             const xInput = document.getElementById('kp-x');
@@ -518,56 +640,194 @@
             const targetZ = parseFloat(zInput.value);
 
             if (isNaN(targetX) || isNaN(targetY)) {
-                alert('有効なX, Y座標を入力してください。');
+                alert('有効な既知の X 座標および Y 座標を入力してください。');
+                return;
+            }
+            if (latestLat === 0 || latestLon === 0) {
+                alert('現在地のGPS信号がまだ取得できていません。');
                 return;
             }
 
-            const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
-            const rawPlane = calculatePlaneRectangular(latestLat, latestLon, activeZone);
+            const btn = document.getElementById('add-kp-btn');
+            btn.disabled = true; 
+            let samplesLat = [];
+            let samplesLon = [];
+            let samplesAlt = [];
+            let secondsLeft = 5;
+            
+            if (samplingTimer !== null) clearInterval(samplingTimer);
+            btn.innerText = `⏳ 座標取得中... 残り${secondsLeft}秒`;
 
-            const newPoint = {
-                id: Date.now(),
-                name: name,
-                lat: latestLat, lon: latestLon,
-                targetX: targetX, targetY: targetY, targetZ: !isNaN(targetZ) ? targetZ : null,
-                shiftX: targetX - rawPlane.x, shiftY: targetY - rawPlane.y, shiftZ: 0
-            };
+            samplingTimer = setInterval(() => {
+                try {
+                    if (latestLat !== 0) {
+                        samplesLat.push(latestLat);
+                        samplesLon.push(latestLon);
+                        if (latestRawAlt !== null) samplesAlt.push(latestRawAlt);
+                    }
+                    secondsLeft--;
+                    btn.innerText = `⏳ 座標取得中... 残り${secondsLeft}秒`;
 
-            knownPoints.push(newPoint);
-            localStorage.setItem('conf_known_points', JSON.stringify(knownPoints));
-            nameInput.value = ''; xInput.value = ''; yInput.value = ''; zInput.value = '';
-            renderKnownPointsList(); updateGrowthUI();
-            alert(`🌱 既知点「${name}」を登録しました！`);
+                    if (secondsLeft <= 0) {
+                        clearInterval(samplingTimer);
+                        samplingTimer = null;
+                        btn.disabled = false;
+                        btn.innerText = '➕ 基準点として学習・登録';
+
+                        if (samplesLat.length === 0) {
+                            alert('GPSデータの取得に失敗しました。');
+                            return;
+                        }
+
+                        const avgLat = samplesLat.reduce((a, b) => a + b, 0) / samplesLat.length;
+                        const avgLon = samplesLon.reduce((a, b) => a + b, 0) / samplesLon.length;
+                        const avgAlt = samplesAlt.length > 0 ? samplesAlt.reduce((a, b) => a + b, 0) / samplesAlt.length : null;
+
+                        const activeZone = config.selectedZone === 'auto' ? getAutoZone(avgLat, avgLon) : parseInt(config.selectedZone);
+                        const rawPlane = calculatePlaneRectangular(avgLat, avgLon, activeZone);
+
+                        const diffX = targetX - rawPlane.x;
+                        const diffY = targetY - rawPlane.y;
+                        let diffZ = 0;
+                        if (!isNaN(targetZ) && avgAlt !== null) {
+                            let rawProc = avgAlt;
+                            if (config.invertAlt) rawProc = -rawProc;
+                            diffZ = targetZ - rawProc;
+                        }
+
+                        const newPoint = {
+                            id: Date.now(),
+                            name: name,
+                            lat: avgLat, lon: avgLon, 
+                            targetX: targetX, targetY: targetY, targetZ: !isNaN(targetZ) ? targetZ : null,
+                            shiftX: diffX, shiftY: diffY, shiftZ: diffZ
+                        };
+
+                        knownPoints.push(newPoint);
+                        saveKnownPoints();
+
+                        nameInput.value = ''; xInput.value = ''; yInput.value = ''; zInput.value = '';
+                        renderKnownPointsList();
+                        updateGrowthUI();
+
+                        alert(`🌱 既知点「${name}」を学習登録しました！`);
+                    }
+                } catch (e) {
+                    if (samplingTimer) {
+                        clearInterval(samplingTimer);
+                        samplingTimer = null;
+                        btn.disabled = false;
+                        btn.innerText = '➕ 基準点として学習・登録';
+                    }
+                }
+            }, 1000);
         });
+
+        function saveKnownPoints() {
+            try {
+                localStorage.setItem('conf_known_points', JSON.stringify(knownPoints));
+            } catch (e) {}
+        }
 
         function renderKnownPointsList() {
             const container = document.getElementById('kp-list-container');
             const countEl = document.getElementById('growth-count');
             if (countEl) countEl.innerText = knownPoints.length + '箇所';
             if (!container) return;
+            container.innerHTML = '';
+
             if (knownPoints.length === 0) {
                 container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">登録された既知点はありません</div>';
                 return;
             }
-            let html = '';
+
             knownPoints.forEach((kp) => {
                 const zStr = kp.targetZ !== null && kp.targetZ !== undefined ? kp.targetZ.toFixed(2) : '---';
-                html += `<div class="point-item">
-                    <div style="flex: 1; min-width: 140px;">
-                        <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">${escapeHtml(kp.name)}</div>
-                        <div style="color: #888; font-size: 10px;">X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}, Z: ${zStr}</div>
-                    </div>
-                    <button class="danger" style="font-size:10px; padding:3px 6px;" onclick="deleteKnownPoint(${kp.id})">削除</button>
-                </div>`;
+                const div = document.createElement('div');
+                div.className = 'point-item';
+
+                const infoDiv = document.createElement('div');
+                infoDiv.style.flex = '1';
+                infoDiv.style.minWidth = '140px';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.style.color = '#fff';
+                titleDiv.style.fontWeight = 'bold';
+                titleDiv.style.marginBottom = '2px';
+                titleDiv.textContent = kp.name;
+
+                const detailDiv = document.createElement('div');
+                detailDiv.style.color = '#888';
+                detailDiv.style.fontSize = '10px';
+                detailDiv.textContent = `X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}, Z: ${zStr}`;
+
+                infoDiv.appendChild(titleDiv);
+                infoDiv.appendChild(detailDiv);
+
+                const btnGroup = document.createElement('div');
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'primary';
+                editBtn.style.fontSize = '10px';
+                editBtn.style.padding = '3px 6px';
+                editBtn.style.marginRight = '2px';
+                editBtn.textContent = '編集';
+                editBtn.onclick = () => editKnownPoint(kp.id);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'danger';
+                delBtn.style.fontSize = '10px';
+                delBtn.style.padding = '3px 6px';
+                delBtn.textContent = '削除';
+                delBtn.onclick = () => deleteKnownPoint(kp.id);
+
+                btnGroup.appendChild(editBtn);
+                btnGroup.appendChild(delBtn);
+
+                div.appendChild(infoDiv);
+                div.appendChild(btnGroup);
+                container.appendChild(div);
             });
-            container.innerHTML = html;
         }
+
+        window.editKnownPoint = function(id) {
+            const kp = knownPoints.find(p => p.id === id);
+            if (!kp) return;
+
+            const newName = prompt("既知点名を変更", kp.name);
+            if (newName === null) return;
+            const newXStr = prompt("X座標 (北進) を変更", kp.targetX);
+            if (newXStr === null) return;
+            const newYStr = prompt("Y座標 (東進) を変更", kp.targetY);
+            if (newYStr === null) return;
+            
+            const newX = parseFloat(newXStr);
+            const newY = parseFloat(newYStr);
+            if (isNaN(newX) || isNaN(newY)) {
+                alert("有効な数値を入力してください。");
+                return;
+            }
+
+            const rawX = kp.targetX - kp.shiftX;
+            const rawY = kp.targetY - kp.shiftY;
+
+            kp.name = newName.trim() || kp.name;
+            kp.targetX = newX;
+            kp.targetY = newY;
+            kp.shiftX = newX - rawX;
+            kp.shiftY = newY - rawY;
+
+            saveKnownPoints();
+            renderKnownPointsList();
+            updateGrowthUI();
+        };
 
         window.deleteKnownPoint = function(id) {
             if(!confirm("この既知点を削除しますか？")) return;
             knownPoints = knownPoints.filter(p => p.id !== id);
-            localStorage.setItem('conf_known_points', JSON.stringify(knownPoints));
-            renderKnownPointsList(); updateGrowthUI();
+            saveKnownPoints();
+            renderKnownPointsList();
+            updateGrowthUI();
         };
 
         function updateGrowthUI() {
@@ -578,6 +838,9 @@
             if (count >= 3) {
                 if (levelEl) { levelEl.innerText = "Lv.3 (面補正)"; levelEl.style.color = "#4ade80"; }
                 if (statusEl) { statusEl.innerText = "📐 ヘルメルト変換"; statusEl.style.color = "#4ade80"; }
+            } else if (count === 2) {
+                if (levelEl) { levelEl.innerText = "Lv.2 (線補正)"; levelEl.style.color = "#38bdf8"; }
+                if (statusEl) { statusEl.innerText = "📐 ヘルメルト変換"; statusEl.style.color = "#38bdf8"; }
             } else if (count === 1) {
                 if (levelEl) { levelEl.innerText = "Lv.1 (点補正)"; levelEl.style.color = "#facc15"; }
                 if (statusEl) { statusEl.innerText = "📌 単純平行移動"; statusEl.style.color = "#facc15"; }
@@ -587,13 +850,16 @@
             }
         }
 
+        // 最小二乗ヘルメルト変換
         function applyHelmertTransformation(rawX, rawY) {
-            if (knownPoints.length === 0) return { x: rawX + config.shiftX, y: rawY + config.shiftY };
-            if (knownPoints.length === 1) return { x: rawX + knownPoints[0].shiftX, y: rawY + knownPoints[0].shiftY };
+            const n = knownPoints.length;
+            if (n === 0) return { x: rawX + config.shiftX, y: rawY + config.shiftY };
+            if (n === 1) return { x: rawX + knownPoints[0].shiftX, y: rawY + knownPoints[0].shiftY };
 
-            let sum_x = 0, sum_y = 0, sum_X = 0, sum_Y = 0, n = knownPoints.length;
+            let sum_x = 0, sum_y = 0, sum_X = 0, sum_Y = 0;
             const points = knownPoints.map(kp => {
-                const rX = kp.targetX - kp.shiftX, rY = kp.targetY - kp.shiftY;
+                const rX = kp.targetX - kp.shiftX; 
+                const rY = kp.targetY - kp.shiftY; 
                 sum_x += rX; sum_y += rY; sum_X += kp.targetX; sum_Y += kp.targetY;
                 return { x: rX, y: rY, X: kp.targetX, Y: kp.targetY };
             });
@@ -611,67 +877,251 @@
             return { x: a * rawX - b * rawY + c, y: b * rawX + a * rawY + d };
         }
 
+        // 5秒間スタティック平均化処理（PDR相殺機能付き）
+        document.getElementById('sync-auto-btn').addEventListener('click', () => {
+            if (latestLat === 0 || latestLon === 0) {
+                alert('GPS信号をまだ取得できていません。');
+                return;
+            }
+            if (samplingTimer !== null) clearInterval(samplingTimer);
+
+            let samplesLat = [];
+            let samplesLon = [];
+            let secondsLeft = 5;
+            const btn = document.getElementById('sync-auto-btn');
+            btn.innerText = `⏳ 測定中... 残り${secondsLeft}秒`;
+            
+            samplingTimer = setInterval(() => {
+                try {
+                    if (latestLat !== 0) {
+                        samplesLat.push(latestLat);
+                        samplesLon.push(latestLon);
+                    }
+                    secondsLeft--;
+                    btn.innerText = `⏳ 測定中... 残り${secondsLeft}秒`;
+
+                    if (secondsLeft <= 0) {
+                        clearInterval(samplingTimer);
+                        samplingTimer = null;
+                        btn.innerText = '⏱️ 5秒間スタティック平均化（ブレ除去）';
+
+                        if (samplesLat.length === 0) return;
+                        const avgLat = samplesLat.reduce((a, b) => a + b, 0) / samplesLat.length;
+                        const avgLon = samplesLon.reduce((a, b) => a + b, 0) / samplesLon.length;
+
+                        const zoneToUse = config.selectedZone === 'auto' ? getAutoZone(avgLat, avgLon) : parseInt(config.selectedZone);
+                        const staticRes = calculatePlaneRectangular(avgLat, avgLon, zoneToUse);
+                        const instantRes = calculatePlaneRectangular(latestLat, latestLon, zoneToUse);
+
+                        config.shiftX = staticRes.x - instantRes.x;
+                        config.shiftY = staticRes.y - instantRes.y;
+                        config.hasCalibrated = true;
+                        
+                        // 平均化時にPDRの相対歩行誤差をリセット
+                        pdrX = 0; pdrY = 0;
+
+                        localStorage.setItem('conf_shiftx', config.shiftX);
+                        localStorage.setItem('conf_shifty', config.shiftY);
+                        localStorage.setItem('conf_hascalibrated', 'true');
+
+                        alert('✅ 平均化による補正が完了しました。（PDRの歩行誤差もリセットされました）');
+                    }
+                } catch (e) {
+                    if (samplingTimer) {
+                        clearInterval(samplingTimer);
+                        samplingTimer = null;
+                        btn.innerText = '⏱️ 5秒間スタティック平均化（ブレ除去）';
+                    }
+                }
+            }, 1000);
+        });
+
+        // スマホセンサー (PDR) 有効化処理
+        document.getElementById('sensor-permission-btn').addEventListener('click', async () => {
+            try {
+                if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                    const response = await DeviceMotionEvent.requestPermission();
+                    if (response === 'granted') initSensors();
+                    else alert('センサー権限が拒否されました。');
+                } else {
+                    initSensors();
+                }
+            } catch (e) {
+                initSensors();
+            }
+        });
+
+        function initSensors() {
+            const btn = document.getElementById('sensor-permission-btn');
+            if (btn) {
+                btn.style.background = '#16a34a';
+                btn.innerText = '📱 センサー有効化済み';
+            }
+            orientationHandler = (e) => {
+                if (e && typeof e.alpha === 'number') {
+                    lastHeading = e.alpha * (Math.PI / 180);
+                }
+            };
+            window.addEventListener('deviceorientation', orientationHandler);
+
+            let lastAccZ = 0;
+            motionHandler = (e) => {
+                try {
+                    const acc = e && e.accelerationIncludingGravity;
+                    if (!acc) return;
+                    const curZ = typeof acc.z === 'number' ? acc.z : 0;
+                    if (Math.abs(curZ - lastAccZ) > 2.5) {
+                        const heading = isNaN(lastHeading) ? 0 : lastHeading;
+                        pdrX += Math.cos(heading) * 0.65 * 0.05;
+                        pdrY += Math.sin(heading) * 0.65 * 0.05;
+                    }
+                    lastAccZ = curZ;
+                } catch (err) {}
+            };
+            window.addEventListener('devicemotion', motionHandler);
+        }
+
         function toDMS(deg) {
             if (isNaN(deg)) return '---';
-            const abs = Math.abs(deg), d = Math.floor(abs), mNot = (abs - d) * 60, m = Math.floor(mNot), s = ((mNot - m) * 60).toFixed(5);
+            const abs = Math.abs(deg);
+            const d = Math.floor(abs);
+            const mNot = (abs - d) * 60;
+            const m = Math.floor(mNot);
+            const s = ((mNot - m) * 60).toFixed(5);
             return `${d}°${String(m).padStart(2, '0')}′${String(s).padStart(5, '0')}″`;
         }
 
         function getAutoZone(lat, lon) {
-            if (lat < 28) return 15;
-            if (lat > 42) return 12;
-            if (lon < 130.25) return 1;
-            if (lon < 131.75) return 2;
-            if (lon < 132.85) return 3;
-            if (lon < 133.85) return 4;
-            if (lon < 135.2) return 5;
-            if (lon < 136.6) return 6;
-            if (lon < 137.8) return 7;
-            if (lon < 139.2) return 8;
-            if (lon < 140.175) return 9;
-            return 10;
+            let zone = 9;
+            if (lat < 28) {
+                if (lon < 125.5) zone = 16;
+                else if (lon < 129.0) zone = 15;
+                else if (lon < 133.0) zone = 17;
+                else zone = 14;
+            } else if (lat > 42) {
+                if (lon < 141.75) zone = 11;
+                else if (lon < 143.075) zone = 12;
+                else zone = 13;
+            } else {
+                if (lon < 130.25) zone = 1;
+                else if (lon < 131.75) zone = 2;
+                else if (lon < 132.85) zone = 3;
+                else if (lon < 133.85) zone = 4;
+                else if (lon < 135.2) zone = 5;
+                else if (lon < 136.6) zone = 6;
+                else if (lon < 137.8) zone = 7;
+                else if (lon < 139.2) zone = 8;
+                else if (lon < 140.175) zone = 9;
+                else zone = 10;
+            }
+            return zone;
         }
 
         function calculatePlaneRectangular(lat, lon, zone) {
-            const zones = { 1:{phi0:33.166666667,lam0:129.5}, 9:{phi0:36.0,lam0:139.833333333} };
+            const zones = {
+                1:  { phi0: 33.166666667, lam0: 129.5 },
+                2:  { phi0: 33.0,          lam0: 131.0 },
+                3:  { phi0: 36.0,          lam0: 132.166666667 },
+                4:  { phi0: 33.0,          lam0: 133.5 },
+                5:  { phi0: 36.0,          lam0: 134.333333333 },
+                6:  { phi0: 36.0,          lam0: 136.0 },
+                7:  { phi0: 36.0,          lam0: 137.166666667 },
+                8:  { phi0: 36.0,          lam0: 138.5 },
+                9:  { phi0: 36.0,          lam0: 139.833333333 },
+                10: { phi0: 40.0,          lam0: 140.75 },
+                11: { phi0: 44.0,          lam0: 141.333333333 },
+                12: { phi0: 44.0,          lam0: 142.25 },
+                13: { phi0: 44.0,          lam0: 144.0 },
+                14: { phi0: 26.0,          lam0: 142.0 },
+                15: { phi0: 26.0,          lam0: 127.5 },
+                16: { phi0: 26.0,          lam0: 124.0 },
+                17: { phi0: 26.0,          lam0: 131.0 }
+            };
             const zConfig = zones[zone] || zones[9];
-            const phi0 = zConfig.phi0 * Math.PI / 180, lam0 = zConfig.lam0 * Math.PI / 180;
-            const φ = lat * Math.PI / 180, λ = lon * Math.PI / 180;
+            const phi0 = zConfig.phi0 * Math.PI / 180;
+            const lam0 = zConfig.lam0 * Math.PI / 180;
+            const m0 = 0.9999;
+            const φ = lat * Math.PI / 180;
+            const λ = lon * Math.PI / 180;
             const a = 6378137.0, f = 1 / 298.257222101, b = a * (1 - f);
-            const e2 = (a*a - b*b) / (a*a);
+            const e2 = (a*a - b*b) / (a*a), e2_prime = (a*a - b*b) / (b*b);
 
-            function m(l) {
-                const n = f / (2 - f), A = (a / (1 + n)) * (1 + n*n/4);
-                return A * (l - (3*n/2)*Math.sin(2*l) + (15*n*n/16)*Math.sin(4*l));
+            function m(latRad) {
+                const n_val = f / (2 - f);
+                const A_val = (a / (1 + n_val)) * (1 + n_val*n_val/4 + Math.pow(n_val,4)/64);
+                const b_val = (3 * n_val / 2) - (9 * Math.pow(n_val, 3) / 16);
+                const c_val = (15 * Math.pow(n_val, 2) / 16) - (15 * Math.pow(n_val, 4) / 32);
+                const d_val = (35 * Math.pow(n_val, 3) / 48);
+                const e_val = (315 * Math.pow(n_val, 4) / 512);
+                return A_val * (latRad - b_val * Math.sin(2*latRad) + c_val * Math.sin(4*latRad) - d_val * Math.sin(6*latRad) + e_val * Math.sin(8*latRad));
             }
             const S = m(φ), S0 = m(phi0);
             const N = a / Math.sqrt(1 - e2 * Math.sin(φ)*Math.sin(φ));
-            const A_diff = (λ - lam0) * Math.cos(φ);
-            return { x: (S - S0 + N * Math.tan(φ) * (A_diff*A_diff/2)) * 0.9999, y: (N * A_diff) * 0.9999 };
+            const T = Math.tan(φ)*Math.tan(φ), C = e2_prime * Math.cos(φ)*Math.cos(φ), A_diff = (λ - lam0) * Math.cos(φ);
+            const xCalc = S - S0 + N * Math.tan(φ) * (A_diff*A_diff/2 + (5 - T + 9*C + 4*C*C) * Math.pow(A_diff, 4)/24);
+            const yCalc = N * (A_diff + (1 - T + C) * Math.pow(A_diff, 3)/6);
+            return { x: xCalc * m0, y: yCalc * m0 };
         }
 
         function startGeolocation() {
-            if (!('geolocation' in navigator)) return;
+            if (!('geolocation' in navigator)) {
+                const statusEl = document.getElementById('gps-status');
+                if (statusEl) statusEl.innerText = "GPS非対応";
+                return;
+            }
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
                     if (isPaused || !pos || !pos.coords) return;
-                    latestLat = pos.coords.latitude;
-                    latestLon = pos.coords.longitude;
-                    latestRawAlt = pos.coords.altitude;
+                    try {
+                        const curLat = pos.coords.latitude;
+                        const curLon = pos.coords.longitude;
+                        const curAlt = pos.coords.altitude;
+                        
+                        latHistory.push(curLat);
+                        lonHistory.push(curLon);
+                        if (latHistory.length > SMOOTHING_SIZE) latHistory.shift();
+                        if (lonHistory.length > SMOOTHING_SIZE) lonHistory.shift();
+                        
+                        latestLat = latHistory.reduce((a, b) => a + b, 0) / latHistory.length;
+                        latestLon = lonHistory.reduce((a, b) => a + b, 0) / lonHistory.length;
 
-                    document.getElementById('lat-display').innerText = toDMS(latestLat);
-                    document.getElementById('lon-display').innerText = toDMS(latestLon);
+                        if (curAlt !== null) {
+                            altHistory.push(curAlt);
+                            if (altHistory.length > SMOOTHING_SIZE) altHistory.shift();
+                            latestRawAlt = altHistory.reduce((a, b) => a + b, 0) / altHistory.length;
+                        } else {
+                            latestRawAlt = null;
+                        }
+                        
+                        document.getElementById('lat-display').innerText = toDMS(latestLat);
+                        document.getElementById('lon-display').innerText = toDMS(latestLon);
 
-                    const coords = getCurrentTransformedCoords();
-                    if (coords) {
-                        document.getElementById('grid-x').innerText = coords.x.toFixed(3) + ' m';
-                        document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';
-                        document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';
-                    }
-                    document.getElementById('gps-status').innerText = "測位中";
-                    document.getElementById('gps-status').style.color = "#4ade80";
+                        const coords = getCurrentTransformedCoords();
+                        const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
+                        document.getElementById('zone-display').innerText = config.selectedZone === 'auto' ? `自動 (第${activeZone}系)` : `手動 (第${activeZone}系)`;
+
+                        if (coords) {
+                            document.getElementById('grid-x').innerText = coords.x.toFixed(3) + ' m';
+                            document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';
+                            document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';
+                        }
+                        
+                        const statusEl = document.getElementById('gps-status');
+                        if (statusEl) {
+                            statusEl.innerText = "測位中";
+                            statusEl.style.color = "#4ade80";
+                        }
+                    } catch (err) {}
                 },
-                () => {},
+                (err) => {
+                    if (!isPaused) {
+                        const statusEl = document.getElementById('gps-status');
+                        if (statusEl) {
+                            statusEl.innerText = "GPS待機/エラー (" + (err.code) + ")";
+                            statusEl.style.color = "#ef4444";
+                        }
+                    }
+                },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
             );
         }
