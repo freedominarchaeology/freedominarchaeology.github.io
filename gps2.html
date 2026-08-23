@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>高精度平面直角座標測位アプリ（PDFダイレクト出力版）</title>
-    <!-- jsPDFライブラリの読み込み（PDF出力用） -->
+    <title>高精度平面直角座標測位アプリ（考古学フィールドワーク対応版）</title>
+    <!-- jsPDFライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         *, *::before, *::after {
@@ -34,7 +34,7 @@
             left: 0;
             width: 100%; 
             z-index: 20;
-            max-height: 55vh; 
+            max-height: 50vh; 
             overflow-y: auto; 
             touch-action: pan-y; 
         }
@@ -49,26 +49,26 @@
             left: 50%;
             transform: translateX(-50%);
             width: 95%;
-            max-width: 400px;
+            max-width: 420px;
             background: rgba(15, 15, 15, 0.95);
             border: 1px solid #444;
             border-radius: 8px;
-            padding: 12px;
+            padding: 10px 12px;
             z-index: 15;
             box-shadow: 0 4px 15px rgba(0,0,0,0.7);
-            max-height: 40vh; 
+            max-height: 45vh; 
             overflow-y: auto; 
             touch-action: pan-y; 
         }
-        #register-panel input { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 14px; }
+        #register-panel input { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; font-family: monospace; font-size: 13px; }
         .flex-row { display: flex; gap: 6px; margin-top: 6px; }
 
         .data-row { 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
-            margin-bottom: 5px; 
-            font-size: 13px; 
+            margin-bottom: 4px; 
+            font-size: 12px; 
             flex-wrap: wrap; 
             word-break: break-word;
             gap: 4px;
@@ -80,13 +80,14 @@
         button.primary { background: #2563eb; border-color: #3b82f6; }
         button.warning { background: #d97706; border-color: #f59e0b; }
         button.danger { background: #dc2626; border-color: #ef4444; }
+        button.record { background: #ca8a04; border-color: #eab308; color: #fff; }
 
         #settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; touch-action: auto; }
-        .modal-content { background: #111; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 360px; max-width: 95%; text-align: left; max-height: 90vh; overflow-y: auto; touch-action: pan-y; }
+        .modal-content { background: #111; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 380px; max-width: 95%; text-align: left; max-height: 90vh; overflow-y: auto; touch-action: pan-y; }
         .modal-content label { display: block; font-size: 12px; margin-top: 10px; color: #aaa; }
         .modal-content select { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 4px; margin-top: 4px; font-family: monospace; font-size: 13px; }
         
-        .known-point-item { background: #1a1a1a; border: 1px solid #333; padding: 8px; margin-top: 6px; border-radius: 4px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .point-item { background: #1a1a1a; border: 1px solid #333; padding: 6px 8px; margin-top: 6px; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
     </style>
 </head>
 <body>
@@ -99,13 +100,13 @@
                 <button id="settings-btn">⚙️ 管理/設定</button>
             </div>
         </div>
-        <hr style="border:0; border-top:1px solid #333; margin: 6px 0;">
-        <div class="data-row"><span>緯度:</span> <span id="lat-display" style="color: #22d3ee; font-size: 12px;">---</span></div>
-        <div class="data-row"><span>経度:</span> <span id="lon-display" style="color: #22d3ee; font-size: 12px;">---</span></div>
+        <hr style="border:0; border-top:1px solid #333; margin: 4px 0;">
+        <div class="data-row"><span>緯度:</span> <span id="lat-display" style="color: #22d3ee;">---</span></div>
+        <div class="data-row"><span>経度:</span> <span id="lon-display" style="color: #22d3ee;">---</span></div>
         <div class="data-row"><span>適用座標系:</span> <span id="zone-display" style="color: #38bdf8; font-weight: bold;">自動判定中...</span></div>
-        <div class="data-row"><span>平面 X (北進):</span> <span id="grid-x" style="color: #4ade80; font-weight: bold; font-size: 15px;">---</span></div>
-        <div class="data-row"><span>平面 Y (東進):</span> <span id="grid-y" style="color: #4ade80; font-weight: bold; font-size: 15px;">---</span></div>
-        <div class="data-row"><span>標高 Z (補正後):</span> <span id="alt-display" style="color: #facc15; font-weight: bold; font-size: 15px;">---</span></div>
+        <div class="data-row"><span>平面 X (北進):</span> <span id="grid-x" style="color: #4ade80; font-weight: bold; font-size: 14px;">---</span></div>
+        <div class="data-row"><span>平面 Y (東進):</span> <span id="grid-y" style="color: #4ade80; font-weight: bold; font-size: 14px;">---</span></div>
+        <div class="data-row"><span>標高 Z (補正後):</span> <span id="alt-display" style="color: #facc15; font-weight: bold; font-size: 14px;">---</span></div>
         
         <hr style="border:0; border-top:1px solid #222; margin: 4px 0;">
         <div class="data-row" style="font-size: 11px;">
@@ -113,7 +114,7 @@
             <span>補正状態: <span id="training-status" style="color: #fca5a5;">標準測位</span></span>
         </div>
         
-        <div style="margin-top: 8px;">
+        <div style="margin-top: 6px;">
             <button id="log-toggle-btn" class="primary" style="width: 100%; padding: 8px; font-size: 13px;">🔴 ログ記録開始</button>
         </div>
     </header>
@@ -124,19 +125,29 @@
     </div>
 
     <div id="register-panel">
-        <div style="color: #facc15; font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 8px;">🎯 十字位置を既知点として登録</div>
-        <input type="text" id="kp-name" placeholder="既知点名 (例: 現場基準点A)">
+        <!-- 遺物・遺構点（黄色）登録領域 -->
+        <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🟡 遺物・遺構記録点（任意測位点）の登録</div>
+        <div class="flex-row">
+            <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 須恵器片01)">
+            <button id="add-rec-btn" class="record" style="white-space: nowrap; padding: 6px 12px;">📍 現在地を記録</button>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">
+
+        <!-- 既知点（基準点）登録領域 -->
+        <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🎯 基準点（既知点）の学習登録</div>
+        <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">
         <div class="flex-row">
             <input type="number" id="kp-x" placeholder="X座標(m)" step="0.001">
             <input type="number" id="kp-y" placeholder="Y座標(m)" step="0.001">
             <input type="number" id="kp-z" placeholder="Z(任意)" step="0.001" style="width: 70px;">
         </div>
-        <button id="add-kp-btn" class="primary" style="width: 100%; padding: 10px; margin-top: 8px; font-size: 14px;">➕ 現在地を学習・登録</button>
+        <button id="add-kp-btn" class="primary" style="width: 100%; padding: 8px; margin-top: 6px; font-size: 12px;">➕ 基準点として学習・登録</button>
     </div>
 
     <div id="settings-modal">
         <div class="modal-content">
-            <h3 style="font-size: 14px; margin-bottom: 10px; color: #fff; text-align: center;">⚙️ 設定 ＆ 既知点管理</h3>
+            <h3 style="font-size: 14px; margin-bottom: 10px; color: #fff; text-align: center;">⚙️ 設定 ＆ データ管理</h3>
             
             <label>平面直角座標系の選択</label>
             <select id="zone-select">
@@ -148,7 +159,7 @@
                 <option value="5">第5系 (中国地方)</option>
                 <option value="6">第6系 (近畿地方)</option>
                 <option value="7">第7系 (中部西側)</option>
-                <option value="8">第8系 (中部東側・関東西部)</option>
+                <option value="8">第8系 (中部東側・関関東部)</option>
                 <option value="9">第9系 (関東地方)</option>
                 <option value="10">第10系 (東北南部)</option>
                 <option value="11">第11系 (北海道道南)</option>
@@ -157,27 +168,34 @@
                 <option value="14">第14系以降 (島嶼部)</option>
             </select>
 
-            <label style="display: flex; align-items: center; color: #fca5a5; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 12px;">
+            <label style="display: flex; align-items: center; color: #fca5a5; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;">
                 <input type="checkbox" id="in-invertalt" style="width: 16px; height: 16px; margin-right: 8px;">
                 標高の上下逆転現象を直す
             </label>
 
-            <button id="sync-auto-btn" class="success" style="width: 100%; padding: 8px; margin-top: 12px;">⏱️ 5秒間スタティック平均化（ブレ除去）</button>
+            <button id="sync-auto-btn" class="success" style="width: 100%; padding: 8px; margin-top: 10px;">⏱️ 5秒間スタティック平均化（ブレ除去）</button>
 
-            <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
+            <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">
 
             <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <label style="color: #facc15; font-weight: bold;">🌱 登録済み既知点の管理</label>
+                <label style="color: #eab308; font-weight: bold;">🟡 登録済み遺物・記録点</label>
+                <span id="rec-count" style="color: #eab308; font-size: 11px;">0箇所</span>
+            </div>
+            <div style="margin-top: 6px; max-height: 120px; overflow-y: auto; touch-action: pan-y;" id="rec-list-container"></div>
+
+            <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">
+
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label style="color: #38bdf8; font-weight: bold;">🌱 登録済み既知点（基準点）</label>
                 <span id="growth-count" style="color: #4ade80; font-size: 11px;">0箇所</span>
             </div>
-            
-            <div style="margin-top: 10px; max-height: 180px; overflow-y: auto; touch-action: pan-y;" id="kp-list-container"></div>
+            <div style="margin-top: 6px; max-height: 120px; overflow-y: auto; touch-action: pan-y;" id="kp-list-container"></div>
 
-            <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
+            <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">
 
             <button id="sensor-permission-btn" class="primary" style="width: 100%; padding: 8px;">📱 スマホセンサー（PDR）有効化</button>
 
-            <div style="margin-top: 15px;">
+            <div style="margin-top: 12px;">
                 <button id="close-settings" class="success" style="width: 100%; padding: 10px; font-size: 14px;">保存して閉じる</button>
             </div>
         </div>
@@ -191,7 +209,7 @@
         // ==========================================
         let isLogging = false;
         let routeLog = [];
-        let logTimer = null; // 確実な定周期ログ記録用タイマー
+        let logTimer = null;
 
         const safeGetStorage = (key, defaultVal, isFloat = false) => {
             try {
@@ -219,9 +237,17 @@
                 const parsed = JSON.parse(savedKp);
                 if (Array.isArray(parsed)) knownPoints = parsed;
             }
-        } catch (e) {
-            knownPoints = [];
-        }
+        } catch (e) { knownPoints = []; }
+
+        // 任意記録点（遺物・遺構点）データ管理
+        let recordedPoints = [];
+        try {
+            const savedRec = localStorage.getItem('conf_recorded_points');
+            if (savedRec) {
+                const parsed = JSON.parse(savedRec);
+                if (Array.isArray(parsed)) recordedPoints = parsed;
+            }
+        } catch (e) { recordedPoints = []; }
 
         const SMOOTHING_SIZE = 4;
         let latHistory = [];
@@ -245,10 +271,100 @@
         document.getElementById('zone-select').value = config.selectedZone;
         document.getElementById('in-invertalt').checked = config.invertAlt;
         renderKnownPointsList();
+        renderRecordedPointsList();
         updateGrowthUI();
 
+        // 現在の補正後座標（X, Y, Z）を安全に計算するユーティリティ
+        function getCurrentTransformedCoords() {
+            if (latestLat === 0 || latestLon === 0) return null;
+            const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
+            const rawPlane = calculatePlaneRectangular(latestLat, latestLon, activeZone);
+            const transformed = applyHelmertTransformation(rawPlane.x, rawPlane.y);
+            
+            const safePdrX = isNaN(pdrX) ? 0 : pdrX;
+            const safePdrY = isNaN(pdrY) ? 0 : pdrY;
+            
+            let finalX = transformed.x + safePdrX;
+            let finalY = transformed.y + safePdrY;
+            let finalZ = null;
+
+            if (latestRawAlt !== null && !isNaN(latestRawAlt)) {
+                let altProc = latestRawAlt;
+                if (config.invertAlt) altProc = -altProc;
+                finalZ = altProc + config.altOff;
+            }
+
+            return { x: finalX, y: finalY, z: finalZ };
+        }
+
         // ==========================================
-        // ログ記録 ＆ PDF出力制御ロジック
+        // 任意記録点（黄色）登録処理
+        // ==========================================
+        document.getElementById('add-rec-btn').addEventListener('click', () => {
+            const nameInput = document.getElementById('rec-name');
+            const name = (nameInput.value || '').trim() || `記録点_${recordedPoints.length + 1}`;
+
+            const coords = getCurrentTransformedCoords();
+            if (!coords) {
+                alert('⚠️ 現在地のGPS信号が取得できていません。');
+                return;
+            }
+
+            const newPoint = {
+                id: Date.now(),
+                name: name,
+                x: coords.x,
+                y: coords.y,
+                z: coords.z,
+                time: Date.now()
+            };
+
+            recordedPoints.push(newPoint);
+            saveRecordedPoints();
+            nameInput.value = '';
+            renderRecordedPointsList();
+            alert(`🟡 記録点「${name}」を記録しました！\n(X: ${coords.x.toFixed(3)}, Y: ${coords.y.toFixed(3)}, Z: ${coords.z !== null ? coords.z.toFixed(3) : '---'})`);
+        });
+
+        function saveRecordedPoints() {
+            try {
+                localStorage.setItem('conf_recorded_points', JSON.stringify(recordedPoints));
+            } catch (e) {}
+        }
+
+        function renderRecordedPointsList() {
+            const container = document.getElementById('rec-list-container');
+            const countEl = document.getElementById('rec-count');
+            if (countEl) countEl.innerText = recordedPoints.length + '箇所';
+            
+            if (!container) return;
+            if (recordedPoints.length === 0) {
+                container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">記録された点はありません</div>';
+                return;
+            }
+            let html = '';
+            recordedPoints.forEach((pt) => {
+                const zStr = pt.z !== null && pt.z !== undefined ? pt.z.toFixed(2) : '---';
+                html += `<div class="point-item">
+                    <div style="flex: 1; min-width: 140px;">
+                        <div style="color: #eab308; font-weight: bold; margin-bottom: 2px;">${pt.name}</div>
+                        <div style="color: #aaa; font-size: 10px;">X: ${pt.x.toFixed(2)}, Y: ${pt.y.toFixed(2)}, Z: ${zStr}</div>
+                    </div>
+                    <button class="danger" style="font-size:10px; padding:3px 6px;" onclick="deleteRecordedPoint(${pt.id})">削除</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        window.deleteRecordedPoint = function(id) {
+            if(!confirm("この記録点を削除しますか？")) return;
+            recordedPoints = recordedPoints.filter(p => p.id !== id);
+            saveRecordedPoints();
+            renderRecordedPointsList();
+        };
+
+        // ==========================================
+        // ログ記録 ＆ PDF出力制御（引き出し線・黄色点追加）
         // ==========================================
         const logToggleBtn = document.getElementById('log-toggle-btn');
         logToggleBtn.addEventListener('click', () => {
@@ -257,25 +373,12 @@
                 isLogging = true;
                 logToggleBtn.innerText = "⏹️ 記録停止＆PDF出力";
                 logToggleBtn.className = "danger";
-                alert("🔴 ログ記録を開始しました。\n※1秒ごとに現在地を自動記録します。");
+                alert("🔴 ログ記録を開始しました。\n※1秒ごとに軌跡を自動記録します。");
 
-                // 静止していても確実にログが蓄積されるように1秒周期で記録
                 logTimer = setInterval(() => {
-                    if (latestLat !== 0) {
-                        const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
-                        const rawPlane = calculatePlaneRectangular(latestLat, latestLon, activeZone);
-                        const transformed = applyHelmertTransformation(rawPlane.x, rawPlane.y);
-                        
-                        // 万が一PDR変数がNaNになってもクラッシュを回避する保護処理
-                        const safePdrX = isNaN(pdrX) ? 0 : pdrX;
-                        const safePdrY = isNaN(pdrY) ? 0 : pdrY;
-                        
-                        let finalX = transformed.x + safePdrX;
-                        let finalY = transformed.y + safePdrY;
-                        
-                        if (!isNaN(finalX) && !isNaN(finalY)) {
-                            routeLog.push({ x: finalX, y: finalY, time: Date.now() });
-                        }
+                    const coords = getCurrentTransformedCoords();
+                    if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
+                        routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
                     }
                 }, 1000);
 
@@ -309,43 +412,42 @@
 
                 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
                 
-                // エラー値（NaN）を除外した安全なデータのみ抽出
+                // 有効データの抽出
                 const validLog = routeLog.filter(p => !isNaN(p.x) && !isNaN(p.y));
-                const validPoints = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
+                const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
+                const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
 
-                if (validLog.length === 0 && validPoints.length === 0) {
-                    alert("⚠️ 描画可能な有効データがありません。GPS情報を正常に取得できてから再度お試しください。");
+                if (validLog.length === 0 && validKnown.length === 0 && validRec.length === 0) {
+                    alert("⚠️ 描画可能なデータ（軌跡・既知点・記録点）がありません。");
                     return;
                 }
 
-                validLog.forEach(p => {
+                // 範囲計算
+                const allPoints = [
+                    ...validLog.map(p => ({ x: p.x, y: p.y })),
+                    ...validKnown.map(p => ({ x: p.targetX, y: p.targetY })),
+                    ...validRec.map(p => ({ x: p.x, y: p.y }))
+                ];
+
+                allPoints.forEach(p => {
                     if (p.x < minX) minX = p.x;
                     if (p.x > maxX) maxX = p.x;
                     if (p.y < minY) minY = p.y;
                     if (p.y > maxY) maxY = p.y;
                 });
 
-                validPoints.forEach(kp => {
-                    if (kp.targetX < minX) minX = kp.targetX;
-                    if (kp.targetX > maxX) maxX = kp.targetX;
-                    if (kp.targetY < minY) minY = kp.targetY;
-                    if (kp.targetY > maxY) maxY = kp.targetY;
-                });
-
-                // 要素が1点のみ、あるいは完全に同一座標しか無い場合のクラッシュ防止
                 if (minX === maxX) { minX -= 10; maxX += 10; }
                 if (minY === maxY) { minY -= 10; maxY += 10; }
 
                 const rangeX = maxX - minX;
                 const rangeY = maxY - minY;
                 
-                // バグによる異常な広域値（100km以上など）のフィルタリング
                 if (rangeX > 100000 || rangeY > 100000) {
-                    alert("⚠️ 座標の範囲が広すぎる（異常値が含まれている）ため、PDFを生成できません。");
+                    alert("⚠️ 座標の範囲が広すぎるためPDFを生成できません。");
                     return;
                 }
 
-                const maxRange = Math.max(rangeX, rangeY, 20); // 最小20mスケール
+                const maxRange = Math.max(rangeX, rangeY, 20);
                 const scale = Math.min(drawWidth / maxRange, drawHeight / maxRange);
 
                 function toPDFCoord(x, y) {
@@ -354,30 +456,36 @@
                     return { x: px, y: py };
                 }
 
-                // --- 1. 10mメッシュグリッドライン ---
-                doc.setDrawColor(0, 0, 0); 
+                // --- 1. グリッドライン ---
+                doc.setDrawColor(220, 220, 220); 
                 doc.setLineWidth(0.1);
+                
+                let gridStep = 10;
+                if (maxRange > 50000) gridStep = 5000;
+                else if (maxRange > 10000) gridStep = 1000;
+                else if (maxRange > 2000) gridStep = 100;
+                else if (maxRange > 500) gridStep = 50;
 
-                const startGridX = Math.floor(minX / 10) * 10;
-                const endGridX = Math.ceil(maxX / 10) * 10;
-                const startGridY = Math.floor(minY / 10) * 10;
-                const endGridY = Math.ceil(maxY / 10) * 10;
+                const startGridX = Math.floor(minX / gridStep) * gridStep;
+                const endGridX = Math.ceil(maxX / gridStep) * gridStep;
+                const startGridY = Math.floor(minY / gridStep) * gridStep;
+                const endGridY = Math.ceil(maxY / gridStep) * gridStep;
 
-                for (let gx = startGridX; gx <= endGridX; gx += 10) {
+                for (let gx = startGridX; gx <= endGridX; gx += gridStep) {
                     const p1 = toPDFCoord(gx, minY);
                     const p2 = toPDFCoord(gx, maxY);
                     doc.line(p1.x, p1.y, p2.x, p2.y);
                 }
-                for (let gy = startGridY; gy <= endGridY; gy += 10) {
+                for (let gy = startGridY; gy <= endGridY; gy += gridStep) {
                     const p1 = toPDFCoord(minX, gy);
                     const p2 = toPDFCoord(maxX, gy);
                     doc.line(p1.x, p1.y, p2.x, p2.y);
                 }
 
-                // --- 2. ログライン（赤色） ---
+                // --- 2. 軌跡（赤色ライン） ---
                 if (validLog.length > 1) {
                     doc.setDrawColor(220, 38, 38); 
-                    doc.setLineWidth(0.5);
+                    doc.setLineWidth(0.4);
                     for (let i = 0; i < validLog.length - 1; i++) {
                         const p1 = toPDFCoord(validLog[i].x, validLog[i].y);
                         const p2 = toPDFCoord(validLog[i+1].x, validLog[i+1].y);
@@ -385,31 +493,84 @@
                     }
                 }
 
-                // --- 3. 既知点（青色の極小点） ---
-                doc.setFillColor(37, 99, 235); 
-                validPoints.forEach(kp => {
-                    const pt = toPDFCoord(kp.targetX, kp.targetY);
-                    doc.circle(pt.x, pt.y, 0.125, 'F');
+                // 引き出し線の重複防止用インデックスカウンター
+                let labelCounter = 0;
+
+                // 注記付き点描画用共通関数
+                function drawAnnotatedPoint(ptX, ptY, ptZ, name, pointColor, labelPrefix) {
+                    const pdfPt = toPDFCoord(ptX, ptY);
+
+                    // 点の描画
+                    doc.setFillColor(pointColor.r, pointColor.g, pointColor.b);
+                    doc.setDrawColor(0, 0, 0);
+                    doc.setLineWidth(0.15);
+                    doc.circle(pdfPt.x, pdfPt.y, 0.8, 'FD');
+
+                    // 引き出し線のオフセット方向算出（4方向にばらして重なり低減）
+                    const angleDir = labelCounter % 4;
+                    let offsetX = 8, offsetY = -8;
+                    if (angleDir === 1) { offsetX = -25; offsetY = -8; }
+                    else if (angleDir === 2) { offsetX = 8; offsetY = 12; }
+                    else if (angleDir === 3) { offsetX = -25; offsetY = 12; }
+                    labelCounter++;
+
+                    const textX = pdfPt.x + offsetX;
+                    const textY = pdfPt.y + offsetY;
+
+                    // 引き出し線描画
+                    doc.setDrawColor(80, 80, 80);
+                    doc.setLineWidth(0.2);
+                    doc.line(pdfPt.x, pdfPt.y, textX > pdfPt.x ? textX : textX + 20, textY + (offsetY < 0 ? 3 : -1));
+
+                    // 注記テキストの描画
+                    doc.setFontSize(6);
+                    doc.setTextColor(0, 0, 0);
+
+                    const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
+                    const line1 = `${labelPrefix}${name}`;
+                    const line2 = `X: ${ptX.toFixed(3)}`;
+                    const line3 = `Y: ${ptY.toFixed(3)}`;
+                    const line4 = `Z: ${zText}`;
+
+                    doc.setFont(undefined, 'bold');
+                    doc.text(line1, textX, textY);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(line2, textX, textY + 2.2);
+                    doc.text(line3, textX, textY + 4.4);
+                    doc.text(line4, textX, textY + 6.6);
+                }
+
+                // --- 3. 既知点（青色点 ＋ 引き出し線注記） ---
+                validKnown.forEach(kp => {
+                    drawAnnotatedPoint(kp.targetX, kp.targetY, kp.targetZ, kp.name, { r: 37, g: 99, b: 235 }, "基準: ");
                 });
 
-                // --- 4. 縮尺スケールバー ---
-                const scaleBarLenMM = 10 * scale; // 10m分
+                // --- 4. 任意記録点（黄色点 ＋ 引き出し線注記） ---
+                validRec.forEach(rp => {
+                    drawAnnotatedPoint(rp.x, rp.y, rp.z, rp.name, { r: 234, g: 179, b: 8 }, "記録: ");
+                });
+
+                // --- 5. 縮尺スケールバー ---
+                const scaleBarLenMM = gridStep * scale; 
                 const barX = 210 - margin - scaleBarLenMM;
                 const barY = 297 - margin - 5;
 
                 doc.setDrawColor(0, 0, 0);
-                doc.setLineWidth(0.2);
+                doc.setLineWidth(0.3);
                 doc.line(barX, barY, barX + scaleBarLenMM, barY);
                 doc.line(barX, barY - 1, barX, barY + 1); 
                 doc.line(barX + scaleBarLenMM, barY - 1, barX + scaleBarLenMM, barY + 1);
                 doc.setFontSize(8);
-                doc.text('Scale: 10m', barX, barY - 2);
+                doc.setFont(undefined, 'normal');
+                
+                const scaleText = gridStep >= 1000 ? `Scale: ${gridStep/1000}km` : `Scale: ${gridStep}m`;
+                doc.text(scaleText, barX, barY - 2);
 
-                // 保存（スマホの制約回避を考慮）
-                const filename = `survey_log_${Date.now()}.pdf`;
+                // 保存
+                const filename = `archaeology_survey_${Date.now()}.pdf`;
                 try {
                     doc.save(filename);
-                    alert("✅ PDFの出力を実行しました。\n\n※LINE等のアプリ内ブラウザをお使いで保存されない場合は、右上のメニューから「Safari(またはChrome)で開く」を選択し、再度実行してください。");
+                    alert("✅ 引き出し線・座標値入りPDFの出力を実行しました。");
                 } catch (e) {
                     const pdfDataUrl = doc.output('datauristring');
                     window.location.href = pdfDataUrl;
@@ -417,7 +578,7 @@
 
             } catch (err) {
                 console.error("PDF生成エラー:", err);
-                alert("PDFの生成中に予期せぬエラーが発生しました。\n" + err.message);
+                alert("PDFの生成中にエラーが発生しました。\n" + err.message);
             }
         }
         // ==========================================
@@ -474,6 +635,7 @@
             if (motionHandler) window.removeEventListener('devicemotion', motionHandler);
         });
 
+        // 基準点（既知点）登録ボタン
         document.getElementById('add-kp-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('kp-name');
             const xInput = document.getElementById('kp-x');
@@ -518,7 +680,7 @@
                         clearInterval(samplingTimer);
                         samplingTimer = null;
                         btn.disabled = false;
-                        btn.innerText = '➕ 現在地を学習・登録';
+                        btn.innerText = '➕ 基準点として学習・登録';
 
                         if (samplesLat.length === 0) {
                             alert('GPSデータの取得に失敗しました。');
@@ -548,6 +710,7 @@
                             lon: avgLon, 
                             targetX: targetX,
                             targetY: targetY,
+                            targetZ: !isNaN(targetZ) ? targetZ : null,
                             shiftX: diffX, 
                             shiftY: diffY, 
                             shiftZ: diffZ
@@ -570,7 +733,7 @@
                         clearInterval(samplingTimer);
                         samplingTimer = null;
                         btn.disabled = false;
-                        btn.innerText = '➕ 現在地を学習・登録';
+                        btn.innerText = '➕ 基準点として学習・登録';
                     }
                 }
             }, 1000);
@@ -589,19 +752,20 @@
             
             if (!container) return;
             if (knownPoints.length === 0) {
-                container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:10px;">登録された既知点はありません</div>';
+                container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">登録された既知点はありません</div>';
                 return;
             }
             let html = '';
             knownPoints.forEach((kp) => {
-                html += `<div class="known-point-item">
-                    <div style="flex: 1; min-width: 150px;">
+                const zStr = kp.targetZ !== null && kp.targetZ !== undefined ? kp.targetZ.toFixed(2) : '---';
+                html += `<div class="point-item">
+                    <div style="flex: 1; min-width: 140px;">
                         <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">${kp.name}</div>
-                        <div style="color: #888; font-size: 10px;">X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}</div>
+                        <div style="color: #888; font-size: 10px;">X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}, Z: ${zStr}</div>
                     </div>
-                    <div style="white-space: nowrap;">
-                        <button class="primary" style="font-size:11px; padding:4px 8px; margin-right:4px;" onclick="editKnownPoint(${kp.id})">編集</button>
-                        <button class="danger" style="font-size:11px; padding:4px 8px;" onclick="deleteKnownPoint(${kp.id})">削除</button>
+                    <div>
+                        <button class="primary" style="font-size:10px; padding:3px 6px; margin-right:2px;" onclick="editKnownPoint(${kp.id})">編集</button>
+                        <button class="danger" style="font-size:10px; padding:3px 6px;" onclick="deleteKnownPoint(${kp.id})">削除</button>
                     </div>
                 </div>`;
             });
@@ -792,7 +956,6 @@
                 btn.innerText = '📱 センサー有効化済み';
             }
             orientationHandler = (e) => {
-                // コンパス非対応スマホで e.alpha が undefined になり NaN が発生するバグを防止
                 if (e && typeof e.alpha === 'number') {
                     lastHeading = e.alpha * (Math.PI / 180);
                 }
@@ -806,7 +969,6 @@
                     if (!acc) return;
                     const curZ = typeof acc.z === 'number' ? acc.z : 0;
                     if (Math.abs(curZ - lastAccZ) > 2.5) {
-                        // lastHeadingが取得できない環境でも確実に計算できるように保護
                         const heading = isNaN(lastHeading) ? 0 : lastHeading;
                         pdrX += Math.cos(heading) * 0.65 * 0.05;
                         pdrY += Math.sin(heading) * 0.65 * 0.05;
@@ -932,31 +1094,15 @@
                         document.getElementById('lat-display').innerText = toDMS(latestLat);
                         document.getElementById('lon-display').innerText = toDMS(latestLon);
 
+                        const coords = getCurrentTransformedCoords();
                         const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
                         document.getElementById('zone-display').innerText = config.selectedZone === 'auto' ? `自動 (第${activeZone}系)` : `手動 (第${activeZone}系)`;
 
-                        const rawPlane = calculatePlaneRectangular(latestLat, latestLon, activeZone);
-                        
-                        const transformed = applyHelmertTransformation(rawPlane.x, rawPlane.y);
-                        
-                        const safePdrX = isNaN(pdrX) ? 0 : pdrX;
-                        const safePdrY = isNaN(pdrY) ? 0 : pdrY;
-                        
-                        let finalX = transformed.x + safePdrX;
-                        let finalY = transformed.y + safePdrY;
-
-                        let finalAlt = "未取得";
-                        if (latestRawAlt !== null && !isNaN(latestRawAlt)) {
-                            let altProc = latestRawAlt;
-                            if (config.invertAlt) altProc = -altProc;
-                            finalAlt = (altProc + config.altOff).toFixed(3) + ' m';
+                        if (coords) {
+                            document.getElementById('grid-x').innerText = coords.x.toFixed(3) + ' m';
+                            document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';
+                            document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';
                         }
-                        
-                        if (!isNaN(finalX) && !isNaN(finalY)) {
-                            document.getElementById('grid-x').innerText = finalX.toFixed(3) + ' m';
-                            document.getElementById('grid-y').innerText = finalY.toFixed(3) + ' m';
-                        }
-                        document.getElementById('alt-display').innerText = finalAlt;
                         
                         const statusEl = document.getElementById('gps-status');
                         if (statusEl) {
