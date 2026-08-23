@@ -159,7 +159,7 @@
                 <option value="5">第5系 (中国地方)</option>
                 <option value="6">第6系 (近畿地方)</option>
                 <option value="7">第7系 (中部西側)</option>
-                <option value="8">第8系 (中部東側・関関東部)</option>
+                <option value="8">第8系 (中部東側・関東部)</option>
                 <option value="9">第9系 (関東地方)</option>
                 <option value="10">第10系 (東北南部)</option>
                 <option value="11">第11系 (北海道道南)</option>
@@ -204,9 +204,6 @@
     <script>
         'use strict';
 
-        // ==========================================
-        // グローバル変数の宣言
-        // ==========================================
         let isLogging = false;
         let routeLog = [];
         let logTimer = null;
@@ -239,7 +236,6 @@
             }
         } catch (e) { knownPoints = []; }
 
-        // 任意記録点（遺物・遺構点）データ管理
         let recordedPoints = [];
         try {
             const savedRec = localStorage.getItem('conf_recorded_points');
@@ -274,7 +270,6 @@
         renderRecordedPointsList();
         updateGrowthUI();
 
-        // 現在の補正後座標（X, Y, Z）を安全に計算するユーティリティ
         function getCurrentTransformedCoords() {
             if (latestLat === 0 || latestLon === 0) return null;
             const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
@@ -364,7 +359,7 @@
         };
 
         // ==========================================
-        // ログ記録 ＆ PDF出力制御（引き出し線・黄色点追加）
+        // ログ記録 ＆ Canvas高解像度PDF出力（日本語文字化け完全防止版）
         // ==========================================
         const logToggleBtn = document.getElementById('log-toggle-btn');
         logToggleBtn.addEventListener('click', () => {
@@ -403,16 +398,6 @@
                     return;
                 }
 
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-                const margin = 20;
-                const drawWidth = 210 - (margin * 2);  
-                const drawHeight = 297 - (margin * 2); 
-
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                
-                // 有効データの抽出
                 const validLog = routeLog.filter(p => !isNaN(p.x) && !isNaN(p.y));
                 const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
                 const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
@@ -422,7 +407,24 @@
                     return;
                 }
 
-                // 範囲計算
+                // A4高精度解像度設定 (1240 x 1754 px)
+                const canvas = document.createElement('canvas');
+                const W = 1240;
+                const H = 1754;
+                canvas.width = W;
+                canvas.height = H;
+                const ctx = canvas.getContext('2d');
+
+                // 背景色（白）
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, W, H);
+
+                const margin = 120;
+                const drawWidth = W - (margin * 2);
+                const drawHeight = H - (margin * 2);
+
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
                 const allPoints = [
                     ...validLog.map(p => ({ x: p.x, y: p.y })),
                     ...validKnown.map(p => ({ x: p.targetX, y: p.targetY })),
@@ -442,24 +444,16 @@
                 const rangeX = maxX - minX;
                 const rangeY = maxY - minY;
                 
-                if (rangeX > 100000 || rangeY > 100000) {
-                    alert("⚠️ 座標の範囲が広すぎるためPDFを生成できません。");
-                    return;
-                }
-
                 const maxRange = Math.max(rangeX, rangeY, 20);
                 const scale = Math.min(drawWidth / maxRange, drawHeight / maxRange);
 
-                function toPDFCoord(x, y) {
+                function toCanvasCoord(x, y) {
                     const px = margin + (y - minY) * scale + (drawWidth - rangeY * scale) / 2;
                     const py = margin + drawHeight - ((x - minX) * scale + (drawHeight - rangeX * scale) / 2);
                     return { x: px, y: py };
                 }
 
-                // --- 1. グリッドライン ---
-                doc.setDrawColor(220, 220, 220); 
-                doc.setLineWidth(0.1);
-                
+                // --- 1. グリッド線 ---
                 let gridStep = 10;
                 if (maxRange > 50000) gridStep = 5000;
                 else if (maxRange > 10000) gridStep = 1000;
@@ -471,106 +465,121 @@
                 const startGridY = Math.floor(minY / gridStep) * gridStep;
                 const endGridY = Math.ceil(maxY / gridStep) * gridStep;
 
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
                 for (let gx = startGridX; gx <= endGridX; gx += gridStep) {
-                    const p1 = toPDFCoord(gx, minY);
-                    const p2 = toPDFCoord(gx, maxY);
-                    doc.line(p1.x, p1.y, p2.x, p2.y);
+                    const p1 = toCanvasCoord(gx, minY);
+                    const p2 = toCanvasCoord(gx, maxY);
+                    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
                 }
                 for (let gy = startGridY; gy <= endGridY; gy += gridStep) {
-                    const p1 = toPDFCoord(minX, gy);
-                    const p2 = toPDFCoord(maxX, gy);
-                    doc.line(p1.x, p1.y, p2.x, p2.y);
+                    const p1 = toCanvasCoord(minX, gy);
+                    const p2 = toCanvasCoord(maxX, gy);
+                    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
                 }
+                ctx.stroke();
 
-                // --- 2. 軌跡（赤色ライン） ---
+                // --- 2. 軌跡描画 ---
                 if (validLog.length > 1) {
-                    doc.setDrawColor(220, 38, 38); 
-                    doc.setLineWidth(0.4);
+                    ctx.strokeStyle = '#dc2626';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
                     for (let i = 0; i < validLog.length - 1; i++) {
-                        const p1 = toPDFCoord(validLog[i].x, validLog[i].y);
-                        const p2 = toPDFCoord(validLog[i+1].x, validLog[i+1].y);
-                        doc.line(p1.x, p1.y, p2.x, p2.y);
+                        const p1 = toCanvasCoord(validLog[i].x, validLog[i].y);
+                        const p2 = toCanvasCoord(validLog[i+1].x, validLog[i+1].y);
+                        if (i === 0) ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
                     }
+                    ctx.stroke();
                 }
 
-                // 引き出し線の重複防止用インデックスカウンター
+                // 引き出し線用インデックス
                 let labelCounter = 0;
 
-                // 注記付き点描画用共通関数
-                function drawAnnotatedPoint(ptX, ptY, ptZ, name, pointColor, labelPrefix) {
-                    const pdfPt = toPDFCoord(ptX, ptY);
+                function drawAnnotatedPointCanvas(ptX, ptY, ptZ, name, pointColorHex, labelPrefix) {
+                    const cvPt = toCanvasCoord(ptX, ptY);
 
-                    // 点の描画
-                    doc.setFillColor(pointColor.r, pointColor.g, pointColor.b);
-                    doc.setDrawColor(0, 0, 0);
-                    doc.setLineWidth(0.15);
-                    doc.circle(pdfPt.x, pdfPt.y, 0.8, 'FD');
+                    // 点描画
+                    ctx.fillStyle = pointColorHex;
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(cvPt.x, cvPt.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
 
-                    // 引き出し線のオフセット方向算出（4方向にばらして重なり低減）
+                    // 引き出し線の方向決定
                     const angleDir = labelCounter % 4;
-                    let offsetX = 8, offsetY = -8;
-                    if (angleDir === 1) { offsetX = -25; offsetY = -8; }
-                    else if (angleDir === 2) { offsetX = 8; offsetY = 12; }
-                    else if (angleDir === 3) { offsetX = -25; offsetY = 12; }
+                    let offsetX = 50, offsetY = -50;
+                    if (angleDir === 1) { offsetX = -180; offsetY = -50; }
+                    else if (angleDir === 2) { offsetX = 50; offsetY = 70; }
+                    else if (angleDir === 3) { offsetX = -180; offsetY = 70; }
                     labelCounter++;
 
-                    const textX = pdfPt.x + offsetX;
-                    const textY = pdfPt.y + offsetY;
+                    const textX = cvPt.x + offsetX;
+                    const textY = cvPt.y + offsetY;
 
-                    // 引き出し線描画
-                    doc.setDrawColor(80, 80, 80);
-                    doc.setLineWidth(0.2);
-                    doc.line(pdfPt.x, pdfPt.y, textX > pdfPt.x ? textX : textX + 20, textY + (offsetY < 0 ? 3 : -1));
+                    // 引き出し線
+                    ctx.strokeStyle = '#4b5563';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(cvPt.x, cvPt.y);
+                    ctx.lineTo(textX > cvPt.x ? textX : textX + 130, textY + (offsetY < 0 ? 15 : -5));
+                    ctx.stroke();
 
-                    // 注記テキストの描画
-                    doc.setFontSize(6);
-                    doc.setTextColor(0, 0, 0);
-
+                    // 日本語テキスト描画（システムフォント直接指定）
+                    ctx.fillStyle = '#000000';
                     const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
-                    const line1 = `${labelPrefix}${name}`;
-                    const line2 = `X: ${ptX.toFixed(3)}`;
-                    const line3 = `Y: ${ptY.toFixed(3)}`;
-                    const line4 = `Z: ${zText}`;
 
-                    doc.setFont(undefined, 'bold');
-                    doc.text(line1, textX, textY);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(line2, textX, textY + 2.2);
-                    doc.text(line3, textX, textY + 4.4);
-                    doc.text(line4, textX, textY + 6.6);
+                    ctx.font = 'bold 15px sans-serif';
+                    ctx.fillText(`${labelPrefix}${name}`, textX, textY);
+                    
+                    ctx.font = '13px sans-serif';
+                    ctx.fillText(`X: ${ptX.toFixed(3)}`, textX, textY + 16);
+                    ctx.fillText(`Y: ${ptY.toFixed(3)}`, textX, textY + 32);
+                    ctx.fillText(`Z: ${zText}`, textX, textY + 48);
                 }
 
                 // --- 3. 既知点（青色点 ＋ 引き出し線注記） ---
                 validKnown.forEach(kp => {
-                    drawAnnotatedPoint(kp.targetX, kp.targetY, kp.targetZ, kp.name, { r: 37, g: 99, b: 235 }, "基準: ");
+                    drawAnnotatedPointCanvas(kp.targetX, kp.targetY, kp.targetZ, kp.name, "#2563eb", "基準: ");
                 });
 
                 // --- 4. 任意記録点（黄色点 ＋ 引き出し線注記） ---
                 validRec.forEach(rp => {
-                    drawAnnotatedPoint(rp.x, rp.y, rp.z, rp.name, { r: 234, g: 179, b: 8 }, "記録: ");
+                    drawAnnotatedPointCanvas(rp.x, rp.y, rp.z, rp.name, "#eab308", "記録: ");
                 });
 
                 // --- 5. 縮尺スケールバー ---
-                const scaleBarLenMM = gridStep * scale; 
-                const barX = 210 - margin - scaleBarLenMM;
-                const barY = 297 - margin - 5;
+                const scaleBarLenPX = gridStep * scale;
+                const barX = W - margin - scaleBarLenPX;
+                const barY = H - margin - 20;
 
-                doc.setDrawColor(0, 0, 0);
-                doc.setLineWidth(0.3);
-                doc.line(barX, barY, barX + scaleBarLenMM, barY);
-                doc.line(barX, barY - 1, barX, barY + 1); 
-                doc.line(barX + scaleBarLenMM, barY - 1, barX + scaleBarLenMM, barY + 1);
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'normal');
-                
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(barX, barY); ctx.lineTo(barX + scaleBarLenPX, barY);
+                ctx.moveTo(barX, barY - 6); ctx.lineTo(barX, barY + 6);
+                ctx.moveTo(barX + scaleBarLenPX, barY - 6); ctx.lineTo(barX + scaleBarLenPX, barY + 6);
+                ctx.stroke();
+
+                ctx.font = 'bold 14px sans-serif';
+                ctx.fillStyle = '#000000';
                 const scaleText = gridStep >= 1000 ? `Scale: ${gridStep/1000}km` : `Scale: ${gridStep}m`;
-                doc.text(scaleText, barX, barY - 2);
+                ctx.fillText(scaleText, barX, barY - 10);
 
-                // 保存
+                // --- jsPDFにCanvas画像を埋め込んで出力 ---
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                doc.addImage(imgData, 'PNG', 0, 0, 210, 297);
+
                 const filename = `archaeology_survey_${Date.now()}.pdf`;
                 try {
                     doc.save(filename);
-                    alert("✅ 引き出し線・座標値入りPDFの出力を実行しました。");
+                    alert("✅ 日本語表記・引き出し線入りの高解像度PDFを出力しました。");
                 } catch (e) {
                     const pdfDataUrl = doc.output('datauristring');
                     window.location.href = pdfDataUrl;
@@ -635,7 +644,6 @@
             if (motionHandler) window.removeEventListener('devicemotion', motionHandler);
         });
 
-        // 基準点（既知点）登録ボタン
         document.getElementById('add-kp-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('kp-name');
             const xInput = document.getElementById('kp-x');
