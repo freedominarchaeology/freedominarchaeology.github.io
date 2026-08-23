@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">考古学遺物 パーツ別比率・本格系統樹分析システム（サイズサブクラスター対応版）</title>
+    <!-- SheetJS (xlsx) for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- PDF.js for PDF file parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+    <style>
+        body {
+            font-family: "MS Mincho", "MS Gothic", sans-serif;
+            background-color: #f4f6f9;
+            color: #222;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2b6cb0;
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .header-top h1 {
+            font-size: 22px;
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .lang-select-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .lang-select-box select {
+            padding: 6px 10px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-family: "MS Gothic", sans-serif;
+            background-color: #fff;
+        }
+        h2 {
+            font-family: "MS Gothic", sans-serif;
+            color: #1a202c;
+            font-size: 16px;
+            border-left: 4px solid #2b6cb0;
+            padding-left: 10px;
+            margin-top: 35px;
+        }
+        .upload-box {
+            border: 2px dashed #cbd5e1;
+            padding: 30px;
+            text-align: center;
+            border-radius: 6px;
+            background: #fafafa;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #2b6cb0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: "MS Gothic", sans-serif;
+        }
+        button:hover { background-color: #2c5282; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #edf2f7;
+            font-family: "MS Gothic", sans-serif;
+        }
+        td img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+            vertical-align: middle;
+        }
+        
+        .results { display: none; margin-top: 20px; }
+        .tree-container { 
+            text-align: center; 
+            margin: 20px 0; 
+            overflow-x: auto; 
+            background: #fff; 
+            padding: 15px; 
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+        canvas { background: #fff; display: block; margin: 0 auto; }
+        
+        .export-box {
+            margin-top: 20px;
+            background: #f7fafc;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .export-box select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-family: "MS Gothic", sans-serif;
+        }
+        
+        .pdf-btn {
+            background-color: #2f855a;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: "MS Gothic", sans-serif;
+            display: block;
+            margin: 30px auto 0 auto;
+        }
+        .pdf-btn:hover { background-color: #276749; }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .upload-box, .export-box, .pdf-btn, .lang-select-box { display: none; }
+            .container { box-shadow: none; padding: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-top">
+            <h1 id="mainTitle">考古学遺物 パーツ別比率・本格系統樹分析システム</h1>
+            <div class="lang-select-box">
+                <label for="langSelect" id="langLabel" style="font-size: 13px; font-weight: bold;">言語 / Language:</label>
+                <select id="langSelect" onchange="changeLanguage(this.value)">
+                    <option value="ja" selected>日本語 (Japanese)</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文 (Chinese)</option>
+                    <option value="ko">한국어 (Korean)</option>
+                    <option value="fr">Français (French)</option>
+                    <option value="es">Español (Spanish)</option>
+                </select>
+            </div>
+        </div>
+        <p id="subTitle">形状比率および絶対的サイズ（大きさ）の違いによるサブクラスター分析に対応。画像・PDFファイル一括処理＆省メモリ設計。</p>
+        
+        <div class="upload-box">
+            <input type="file" id="fileInput" multiple accept=".png,.jpg,.jpeg,.svg,.pdf,image/*,application/pdf">
+            <p id="uploadNote" style="font-size: 12px; color: #666; margin-top: 10px;">※複数の画像、またはPDFファイルを複数選択できます</p>
+            <button id="analyzeBtn" onclick="runAnalysis()">系統樹分析を実行する</button>
+        </div>
+
+        <div class="results" id="resultSection">
+            <h2 id="section1Title">1. パーツ別器形計測・比率およびサイズ一覧表</h2>
+            <table id="ratioTable">
+                <thead>
+                    <tr>
+                        <th id="thPreview">プレビュー</th>
+                        <th id="thName">遺物名</th>
+                        <th id="thStatus">残存状態</th>
+                        <th id="thSize">絶対サイズ (幅×高 px)</th>
+                        <th id="thNeck">頸部くびれ具合</th>
+                        <th id="thBelly">胴部膨らみ具合</th>
+                        <th id="thTaper">底部すぼまり方</th>
+                        <th id="thDate">解析日時 (ISO 8601)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <!-- エクスポートセクション -->
+            <div class="export-box">
+                <label for="exportFormat" id="exportLabel" style="font-weight: bold; font-family: 'MS Gothic';">分析データのエクスポート:</label>
+                <select id="exportFormat">
+                    <option value="csv">CSV (UTF-8)</option>
+                    <option value="tsv">TSV (UTF-8)</option>
+                    <option value="json">JSON</option>
+                    <option value="xlsx">Excel (XLSX)</option>
+                    <option value="xml">XML</option>
+                </select>
+                <button id="exportBtn" onclick="exportTableData()">データをダウンロード</button>
+            </div>
+
+            <h2 id="section2Title">2. 形状・サイズ統合サブクラスター系統樹（デンドログラム）</h2>
+            <p id="treeNote" style="font-size: 11px; color: #4a5568;">※ 形状比率と絶対的な大きさの違いを反映したサブクラスター系統樹を表示します。</p>
+            <div class="tree-container">
+                <canvas id="treeCanvas"></canvas>
+            </div>
+
+            <button class="pdf-btn" id="pdfPrintBtn" onclick="window.print()">分析レポートをPDFとして保存 / 印刷</button>
+        </div>
+    </div>
+
+    <script>
+        // 多言語辞書データ
+        const i18n = {
+            ja: {
+                pageTitle: "考古学遺物 パーツ別比率・本格系統樹分析システム（サイズサブクラスター対応版）",
+                mainTitle: "考古学遺物 パーツ別比率・本格系統樹分析システム",
+                subTitle: "形状比率および絶対的サイズ（大きさ）の違いによるサブクラスター分析に対応。画像・PDFファイル一括処理＆省メモリ設計。",
+                uploadNote: "※複数の画像、またはPDFファイルを複数選択できます",
+                analyzeBtn: "系統樹分析を実行する",
+                section1Title: "1. パーツ別器形計測・比率およびサイズ一覧表",
+                thPreview: "プレビュー",
+                thName: "遺物名",
+                thStatus: "残存状態",
+                thSize: "絶対サイズ (幅×高 px)",
+                thNeck: "頸部くびれ具合",
+                thBelly: "胴部膨らみ具合",
+                thTaper: "底部すぼまり方",
+                thDate: "解析日時 (ISO 8601)",
+                exportLabel: "分析データのエクスポート:",
+                exportBtn: "データをダウンロード",
+                section2Title: "2. 形状・サイズ統合サブクラスター系統樹（デンドログラム）",
+                treeNote: "※ 形状比率と絶対的な大きさの違いを反映したサブクラスター系統樹を表示します。",
+                pdfPrintBtn: "分析レポートをPDFとして保存 / 印刷",
+                alertNoFiles: "ファイルを選択してください。",
+                alertError: "ファイルの読み込み中にエラーが発生しました。ファイル形式を確認してください。",
+                alertMinFiles: "有効な画像またはPDFページが2つ以上必要です（現在: ",
+                alertNoExport: "エクスポートするデータがありません。",
+                rimPresent: "口有",
+                rimAbsent: "口欠",
+                basePresent: "底有",
+                baseAbsent: "底欠",
+                neckLabel: "位置:",
+                depthLabel: "深さ:",
+                bellyLabel: "位置:",
+                widthLabel: "膨らみ:",
+                taperLabel: "すぼまり:"
+            },
+            en: {
+                pageTitle: "Archaeological Artifact Part Ratio & Dendrogram Analysis System (Size Subcluster Edition)",
+                mainTitle: "Archaeological Artifact Part Ratio & Dendrogram Analysis System",
+                subTitle: "Supports subcluster analysis based on shape ratios and absolute size differences. Batch image/PDF processing & memory-optimized.",
+                uploadNote: "* You can select multiple image files or PDF files simultaneously.",
+                analyzeBtn: "Run Dendrogram Analysis",
+                section1Title: "1. Part Measurement, Ratios & Size Summary Table",
+                thPreview: "Preview",
+                thName: "Artifact Name",
+                thStatus: "Condition",
+                thSize: "Absolute Size (WxH px)",
+                thNeck: "Neck Constriction",
+                thBelly: "Belly Swelling",
+                thTaper: "Base Taper Rate",
+                thDate: "Analysis Time (ISO 8601)",
+                exportLabel: "Export Analysis Data:",
+                exportBtn: "Download Data",
+                section2Title: "2. Shape & Size Integrated Subcluster Dendrogram",
+                treeNote: "* Displays a subcluster dendrogram reflecting both shape ratios and absolute size variations.",
+                pdfPrintBtn: "Save Report as PDF / Print",
+                alertNoFiles: "Please select files.",
+                alertError: "An error occurred while loading files. Please check the file format.",
+                alertMinFiles: "At least 2 valid images or PDF pages are required (Current: ",
+                alertNoExport: "No data available for export.",
+                rimPresent: "Rim+",
+                rimAbsent: "Rim-",
+                basePresent: "Base+",
+                baseAbsent: "Base-",
+                neckLabel: "Pos:",
+                depthLabel: "Depth:",
+                bellyLabel: "Pos:",
+                widthLabel: "Width:",
+                taperLabel: "Taper:"
+            },
+            zh: {
+                pageTitle: "考古学器物 部位比例与系统树分析系统（尺寸子聚类版）",
+                mainTitle: "考古学器物 部位比例与系统树分析系统",
+                subTitle: "支持基于形状比例及绝对尺寸差异的子聚类分析。支持图像与PDF文件批量处理及内存优化设计。",
+                uploadNote: "* 可同时选择多个图像文件或PDF文件。",
+                analyzeBtn: "执行系统树分析",
+                section1Title: "1. 部位形态测量、比例及尺寸汇总表",
+                thPreview: "预览",
+                thName: "器物名称",
+                thStatus: "保存状态",
+                thSize: "绝对尺寸 (宽×高 px)",
+                thNeck: "颈部收缩度",
+                thBelly: "腹部膨胀度",
+                thTaper: "底部收分率",
+                thDate: "分析时间 (ISO 8601)",
+                exportLabel: "导出分析数据:",
+                exportBtn: "下载数据",
+                section2Title: "2. 形状与尺寸综合子聚类系统树（树状图）",
+                treeNote: "* 显示反映形状比例与绝对大小差异的子聚类系统树。",
+                pdfPrintBtn: "保存分析报告为PDF / 打印",
+                alertNoFiles: "请选择文件。",
+                alertError: "加载文件时发生错误，请检查文件格式。",
+                alertMinFiles: "至少需要2个有效的图像或PDF页面（当前: ",
+                alertNoExport: "没有可导出的数据。",
+                rimPresent: "有口",
+                rimAbsent: "缺口",
+                basePresent: "有底",
+                baseAbsent: "缺底",
+                neckLabel: "位置:",
+                depthLabel: "深度:",
+                bellyLabel: "位置:",
+                widthLabel: "膨胀:",
+                taperLabel: "收分:"
+            },
+            ko: {
+                pageTitle: "고고학 유물 부위별 비율 및 계통수 분석 시스템 (사이즈 서브클러스터 대응판)",
+                mainTitle: "고고학 유물 부위별 비율 및 계통수 분석 시스템",
+                subTitle: "형상 비율 및 절대적 크기의 차이에 따른 서브클러스터 분석 지원. 이미지·PDF 일괄 처리 및 메모리 최적화 설계.",
+                uploadNote: "* 여러 개의 이미지 또는 PDF 파일을 동시에 선택할 수 있습니다.",
+                analyzeBtn: "계통수 분석 실행",
+                section1Title: "1. 부위별 기형 계측·비율 및 사이즈 요약표",
+                thPreview: "미리보기",
+                thName: "유물명",
+                thStatus: "잔존 상태",
+                thSize: "절대 사이즈 (폭×높이 px)",
+                thNeck: "경부 수축도",
+                thBelly: "동체 팽창도",
+                thTaper: "저부 좁아짐 정도",
+                thDate: "분석 일시 (ISO 8601)",
+                exportLabel: "분석 데이터 내보내기:",
+                exportBtn: "데이터 다운로드",
+                section2Title: "2. 형상·사이즈 통합 서브클러스터 계통수 (덴드로그램)",
+                treeNote: "* 형상 비율과 절대적 크기의 차이를 반영한 서브클러스터 계통수를 표시합니다.",
+                pdfPrintBtn: "분석 리포트를 PDF로 저장 / 인쇄",
+                alertNoFiles: "파일을 선택해 주세요.",
+                alertError: "파일을 읽는 중 오류가 발생했습니다. 파일 형식을 확인해 주세요.",
+                alertMinFiles: "유효한 이미지 또는 PDF 페이지가 2개 이상 필요합니다 (현재: ",
+                alertNoExport: "내보낼 데이터가 없습니다.",
+                rimPresent: "구연있음",
+                rimAbsent: "구연결손",
+                basePresent: "저부있음",
+                baseAbsent: "저부결손",
+                neckLabel: "위치:",
+                depthLabel: "깊이:",
+                bellyLabel: "위치:",
+                widthLabel: "확대:",
+                taperLabel: "테이퍼:"
+            },
+            fr: {
+                pageTitle: "Système d'analyse de dendrogramme et de ratio de pièces d'artefacts archéologiques",
+                mainTitle: "Système d'analyse de dendrogramme et de ratio d'artefacts",
+                subTitle: "Prend en charge l'analyse par sous-grappes basée sur les ratios de forme et les différences de taille absolue. Traitement par lot & optimisé.",
+                uploadNote: "* Vous pouvez sélectionner plusieurs fichiers image ou PDF simultanément.",
+                analyzeBtn: "Exécuter l'analyse du dendrogramme",
+                section1Title: "1. Tableau récapitulatif des mesures, ratios et tailles des pièces",
+                thPreview: "Aperçu",
+                thName: "Nom de l'artefact",
+                thStatus: "État",
+                thSize: "Taille absolue (LxH px)",
+                thNeck: "Rétrécissement du col",
+                thBelly: "Gonflement du corps",
+                thTaper: "Taux de rétrécissement de la base",
+                thDate: "Date d'analyse (ISO 8601)",
+                exportLabel: "Exporter les données d'analyse:",
+                exportBtn: "Télécharger les données",
+                section2Title: "2. Dendrogramme de sous-grappes intégré (Forme et Taille)",
+                treeNote: "* Affiche un dendrogramme de sous-grappes reflétant les ratios de forme et les variations de taille absolue.",
+                pdfPrintBtn: "Enregistrer le rapport en PDF / Imprimer",
+                alertNoFiles: "Veuillez sélectionner des fichiers.",
+                alertError: "Une erreur s'est produite lors du chargement. Veuillez vérifier le format.",
+                alertMinFiles: "Au moins 2 images ou pages PDF valides sont requises (Actuel : ",
+                alertNoExport: "Aucune donnée disponible pour l'exportation.",
+                rimPresent: "Bord+",
+                rimAbsent: "Bord-",
+                basePresent: "Base+",
+                baseAbsent: "Base-",
+                neckLabel: "Pos:",
+                depthLabel: "Prof:",
+                bellyLabel: "Pos:",
+                widthLabel: "Larg:",
+                taperLabel: "Pente:"
+            },
+            es: {
+                pageTitle: "Sistema de análisis de dendrograma y proporciones de piezas arqueológicas",
+                mainTitle: "Sistema de análisis de dendrograma y proporciones de artefactos",
+                subTitle: "Compatible con análisis de subgrupos basado en proporciones de forma y diferencias de tamaño absoluto. Procesamiento por lotes y optimizado.",
+                uploadNote: "* Puede seleccionar varios archivos de imagen o PDF simultáneamente.",
+                analyzeBtn: "Ejecutar análisis de dendrograma",
+                section1Title: "1. Tabla resumen de medidas, proporciones y tamaños de piezas",
+                thPreview: "Vista previa",
+                thName: "Nombre del artefacto",
+                thStatus: "Estado",
+                thSize: "Tamaño absoluto (Ancho x Alto px)",
+                thNeck: "Estrechamiento del cuello",
+                thBelly: "Abultamiento del cuerpo",
+                thTaper: "Tasa de estrechamiento de la base",
+                thDate: "Fecha de análisis (ISO 8601)",
+                exportLabel: "Exportar datos de análisis:",
+                exportBtn: "Descargar datos",
+                section2Title: "2. Dendrograma de subgrupos integrado (Forma y Tamaño)",
+                treeNote: "* Muestra un dendrograma de subgrupos que refleja las proporciones de forma y las variaciones de tamaño absoluto.",
+                pdfPrintBtn: "Guardar informe como PDF / Imprimir",
+                alertNoFiles: "Por favor, seleccione archivos.",
+                alertError: "Ocurrió un error al cargar los archivos. Verifique el formato.",
+                alertMinFiles: "Se requieren al menos 2 imágenes o páginas PDF válidas (Actual: ",
+                alertNoExport: "No hay datos disponibles para exportar.",
+                rimPresent: "Borde+",
+                rimAbsent: "Borde-",
+                basePresent: "Base+",
+                baseAbsent: "Base-",
+                neckLabel: "Pos:",
+                depthLabel: "Prof:",
+                bellyLabel: "Pos:",
+                widthLabel: "Ancho:",
+                taperLabel: "Taper:"
+            }
+        };
+
+        let currentLang = 'ja';
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = i18n[lang];
+
+            document.getElementById('pageTitle').innerText = t.pageTitle;
+            document.getElementById('mainTitle').innerText = t.mainTitle;
+            document.getElementById('subTitle').innerText = t.subTitle;
+            document.getElementById('uploadNote').innerText = t.uploadNote;
+            document.getElementById('analyzeBtn').innerText = t.analyzeBtn;
+            document.getElementById('section1Title').innerText = t.section1Title;
+            document.getElementById('thPreview').innerText = t.thPreview;
+            document.getElementById('thName').innerText = t.thName;
+            document.getElementById('thStatus').innerText = t.thStatus;
+            document.getElementById('thSize').innerText = t.thSize;
+            document.getElementById('thNeck').innerText = t.thNeck;
+            document.getElementById('thBelly').innerText = t.thBelly;
+            document.getElementById('thTaper').innerText = t.thTaper;
+            document.getElementById('thDate').innerText = t.thDate;
+            document.getElementById('exportLabel').innerText = t.exportLabel;
+            document.getElementById('exportBtn').innerText = t.exportBtn;
+            document.getElementById('section2Title').innerText = t.section2Title;
+            document.getElementById('treeNote').innerText = t.treeNote;
+            document.getElementById('pdfPrintBtn').innerText = t.pdfPrintBtn;
+
+            // すでに分析結果が表示されている場合はテーブルや系統樹のテキストも更新するために再描画
+            if (analyzedItemsData.length > 0) {
+                updateTableAndTreeUI();
+            }
+        }
+
+        let analyzedItemsData = [];
+
+        async function runAnalysis() {
+            const t = i18n[currentLang];
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert(t.alertNoFiles);
+                return;
+            }
+
+            let loadedImages = [];
+            try {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    let file = fileInput.files[i];
+                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                        let pdfImages = await extractImagesFromPDF(file);
+                        loadedImages.push(...pdfImages);
+                    } else {
+                        let dataUrl = await loadFileAsDataURL(file);
+                        let img = await loadImage(dataUrl);
+                        loadedImages.push({ name: file.name, dataUrl: dataUrl, img: img });
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                alert(t.alertError);
+                return;
+            }
+
+            if (loadedImages.length < 2) {
+                alert(t.alertMinFiles + loadedImages.length + '件)');
+                return;
+            }
+
+            analyzedItemsData = [];
+            let timestampIso = new Date().toISOString();
+
+            let rawAnalyses = loadedImages.map(item => {
+                let analysis = analyzeArtifactParts(item.img);
+                return { item, analysis };
+            });
+
+            let maxActualW = Math.max(...rawAnalyses.map(r => r.analysis.actualWidth), 1);
+            let maxActualH = Math.max(...rawAnalyses.map(r => r.analysis.actualHeight), 1);
+
+            rawAnalyses.forEach((raw, i) => {
+                let a = raw.analysis;
+                let sizeScaleW = a.actualWidth / maxActualW;
+                let sizeScaleH = a.actualHeight / maxActualH;
+
+                a.vector = [a.neckPos, a.neckDepth, a.bellyPos, a.bellyWidth, a.taperRate, sizeScaleW, sizeScaleH];
+
+                analyzedItemsData.push({
+                    id: i + 1,
+                    name: raw.item.name,
+                    dataUrl: raw.item.dataUrl,
+                    img: raw.item.img,
+                    analysis: a,
+                    timestamp: timestampIso
+                });
+            });
+
+            rawAnalyses = null;
+
+            updateTableAndTreeUI();
+            document.getElementById('resultSection').style.display = 'block';
+        }
+
+        function updateTableAndTreeUI() {
+            const t = i18n[currentLang];
+            let tbody = document.querySelector('#ratioTable tbody');
+            tbody.innerHTML = '';
+            analyzedItemsData.forEach((item) => {
+                let a = item.analysis;
+                let statusText = (a.hasRim ? t.rimPresent : t.rimAbsent) + " / " + (a.hasBase ? t.basePresent : t.baseAbsent);
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><img src="${item.dataUrl}" alt=""></td>
+                    <td style="text-align: left; word-break: break-all;"><b>No.${item.id}</b> ${item.name}</td>
+                    <td>${statusText}</td>
+                    <td>${a.actualWidth} × ${a.actualHeight} px</td>
+                    <td>${t.neckLabel}${(a.neckPos*100).toFixed(0)}% / ${t.depthLabel}${a.neckDepth.toFixed(2)}</td>
+                    <td>${t.bellyLabel}${(a.bellyPos*100).toFixed(0)}% / ${t.widthLabel}${a.bellyWidth.toFixed(2)}</td>
+                    <td>${t.taperLabel}${a.taperRate.toFixed(2)}</td>
+                    <td style="font-size: 10px; color: #555;">${item.timestamp}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            let rootCluster = buildHierarchicalTree(analyzedItemsData);
+            drawDendrogram(rootCluster, analyzedItemsData);
+        }
+
+        async function extractImagesFromPDF(file) {
+            let arrayBuffer = await file.arrayBuffer();
+            let loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            let pdfDoc = await loadingTask.promise;
+            let results = [];
+
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                let page = await pdfDoc.getPage(pageNum);
+                let viewport = page.getViewport({ scale: 1.2 });
+                let canvas = document.createElement('canvas');
+                let ctx = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                let dataUrl = canvas.toDataURL('image/png');
+                let img = await loadImage(dataUrl);
+
+                results.push({
+                    name: `${file.name} (P.${pageNum})`,
+                    dataUrl: dataUrl,
+                    img: img
+                });
+
+                canvas.width = 1;
+                canvas.height = 1;
+                ctx = null;
+                canvas = null;
+            }
+            return results;
+        }
+
+        function loadFileAsDataURL(file) {
+            return new Promise((resolve) => {
+                let reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function loadImage(src) {
+            return new Promise((resolve) => {
+                let img = new Image();
+                img.onload = () => resolve(img);
+                img.src = src;
+            });
+        }
+
+        function analyzeArtifactParts(img) {
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+            canvas.width = 100;
+            canvas.height = 100;
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 100, 100);
+            ctx.drawImage(img, 0, 0, 100, 100);
+            
+            let imgData = ctx.getImageData(0, 0, 100, 100);
+            let data = imgData.data;
+            
+            let rowWidths = new Array(100).fill(0);
+            let minY = 100, maxY = 0;
+
+            for (let y = 0; y < 100; y++) {
+                let left = 100, right = 0, count = 0;
+                for (let x = 0; x < 100; x++) {
+                    let idx = (y * 100 + x) * 4;
+                    if (data[idx] < 240 || data[idx+1] < 240 || data[idx+2] < 240) {
+                        count++;
+                        if (x < left) left = x;
+                        if (x > right) right = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+                if (count > 0) {
+                    rowWidths[y] = right - left + 1;
+                }
+            }
+
+            let height = maxY - minY + 1;
+            let hasRim = (minY <= 5);
+            let hasBase = (maxY >= 94);
+
+            let profile = new Array(100).fill(0);
+            for (let y = minY; y <= maxY; y++) {
+                let targetY = Math.floor(((y - minY) / (height || 1)) * 99);
+                profile[targetY] = rowWidths[y];
+            }
+
+            let maxW = 0, maxIdx = 50;
+            let minW = 999, minIdx = 20;
+            for (let i = 0; i < 100; i++) {
+                if (profile[i] > maxW) { maxW = profile[i]; maxIdx = i; }
+                if (i > 5 && i < 90 && profile[i] > 0 && profile[i] < minW) { minW = profile[i]; minIdx = i; }
+            }
+
+            let neckPos = minIdx / 100.0;
+            let neckDepth = minW / (maxW || 1);
+            let bellyPos = maxIdx / 100.0;
+            let bellyWidth = maxW / 100.0;
+            let taperRate = profile[90] / (maxW || 1);
+
+            let actualWidth = img.naturalWidth || img.width || 100;
+            let actualHeight = img.naturalHeight || img.height || 100;
+
+            canvas.width = 1;
+            canvas.height = 1;
+            ctx = null;
+            canvas = null;
+
+            return {
+                hasRim: hasRim,
+                hasBase: hasBase,
+                profile: profile,
+                neckPos: neckPos,
+                neckDepth: neckDepth,
+                bellyPos: bellyPos,
+                bellyWidth: bellyWidth,
+                taperRate: taperRate,
+                actualWidth: actualWidth,
+                actualHeight: actualHeight
+            };
+        }
+
+        function buildHierarchicalTree(items) {
+            let clusters = items.map((item, idx) => ({
+                id: 'leaf_' + idx,
+                items: [idx],
+                height: 0,
+                left: null,
+                right: null,
+                name: item.name
+            }));
+
+            let n = items.length;
+            let distMatrix = Array(n).fill(0).map(() => Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (i === j) {
+                        distMatrix[i][j] = 0;
+                    } else {
+                        let v1 = items[i].analysis.vector;
+                        let v2 = items[j].analysis.vector;
+                        let sum = 0;
+                        for (let k = 0; k < v1.length; k++) {
+                            sum += Math.pow(v1[k] - v2[k], 2);
+                        }
+                        distMatrix[i][j] = Math.sqrt(sum);
+                    }
+                }
+            }
+
+            while (clusters.length > 1) {
+                let minDist = Infinity;
+                let c1 = -1, c2 = -1;
+
+                for (let i = 0; i < clusters.length; i++) {
+                    for (let j = i + 1; j < clusters.length; j++) {
+                        let d = 0;
+                        let count = 0;
+                        for (let ii of clusters[i].items) {
+                            for (let jj of clusters[j].items) {
+                                d += distMatrix[ii][jj];
+                                count++;
+                            }
+                        }
+                        let avgDist = d / count;
+                        if (avgDist < minDist) {
+                            minDist = avgDist;
+                            c1 = i;
+                            c2 = j;
+                        }
+                    }
+                }
+
+                let leftCluster = clusters[c1];
+                let rightCluster = clusters[c2];
+                let newCluster = {
+                    id: 'node_' + Math.random(),
+                    items: [...leftCluster.items, ...rightCluster.items],
+                    height: minDist,
+                    left: leftCluster,
+                    right: rightCluster,
+                    name: null
+                };
+
+                clusters = clusters.filter((_, idx) => idx !== c1 && idx !== c2);
+                clusters.push(newCluster);
+            }
+
+            return clusters[0];
+        }
+
+        function drawDendrogram(root, items) {
+            let canvas = document.getElementById('treeCanvas');
+            let ctx = canvas.getContext('2d');
+
+            let paddingLeft = 60;
+            let paddingRight = 240;
+            let paddingTop = 50;
+            let paddingBottom = 50;
+            
+            let stepY = 80; 
+            let totalHeight = Math.max(650, items.length * stepY + paddingTop + paddingBottom);
+            let totalWidth = 1150;
+
+            canvas.width = totalWidth;
+            canvas.height = totalHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let drawWidth = canvas.width - paddingLeft - paddingRight;
+            let drawHeight = canvas.height - paddingTop - paddingBottom;
+
+            let leaves = [];
+            function getLeaves(node) {
+                if (!node.left && !node.right) {
+                    leaves.push(node);
+                } else {
+                    if (node.left) getLeaves(node.left);
+                    if (node.right) getLeaves(node.right);
+                }
+            }
+            getLeaves(root);
+
+            let leafStepY = drawHeight / (leaves.length + 1);
+            let leafYMap = {};
+            leaves.forEach((leaf, idx) => {
+                leafYMap[leaf.id] = paddingTop + leafStepY * (idx + 1);
+            });
+
+            let maxHeight = getMaxHeight(root);
+            if (maxHeight === 0) maxHeight = 1;
+
+            function drawNode(node) {
+                if (!node.left && !node.right) {
+                    let y = leafYMap[node.id];
+                    let x = paddingLeft + drawWidth;
+                    return { x: x, y: y };
+                }
+
+                let leftPos = drawNode(node.left);
+                let rightPos = drawNode(node.right);
+
+                let currentX = paddingLeft + (1.0 - (node.height / maxHeight)) * drawWidth;
+                let currentY = (leftPos.y + rightPos.y) / 2;
+
+                ctx.strokeStyle = '#2b6cb0';
+                ctx.lineWidth = 2.5;
+
+                ctx.beginPath();
+                ctx.moveTo(currentX, leftPos.y);
+                ctx.lineTo(currentX, rightPos.y);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(currentX, leftPos.y);
+                ctx.lineTo(leftPos.x, leftPos.y);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(currentX, rightPos.y);
+                ctx.lineTo(rightPos.x, rightPos.y);
+                ctx.stroke();
+
+                return { x: currentX, y: currentY };
+            }
+
+            drawNode(root);
+
+            leaves.forEach((leaf) => {
+                let y = leafYMap[leaf.id];
+                let itemIndex = parseInt(leaf.items[0]);
+                let item = items[itemIndex];
+                let tipX = paddingLeft + drawWidth;
+
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(tipX, y);
+                ctx.lineTo(tipX + 15, y);
+                ctx.stroke();
+
+                let thumbHeight = 55;
+                let imgAspect = item.img.width / (item.img.height || 1);
+                let thumbWidth = thumbHeight * imgAspect;
+
+                if (thumbWidth > 80) {
+                    thumbWidth = 80;
+                    thumbHeight = thumbWidth / imgAspect;
+                }
+
+                ctx.drawImage(item.img, tipX + 20, y - thumbHeight / 2, thumbWidth, thumbHeight);
+
+                ctx.fillStyle = '#1a202c';
+                ctx.font = '12px "MS Mincho", "MS Gothic", sans-serif';
+                ctx.fillText(`No.${item.id}: ${item.name} (${item.analysis.actualWidth}x${item.analysis.actualHeight}px)`, tipX + thumbWidth + 30, y + 4);
+            });
+        }
+
+        function getMaxHeight(node) {
+            if (!node.left && !node.right) return 0;
+            let hLeft = node.left ? getMaxHeight(node.left) : 0;
+            let hRight = node.right ? getMaxHeight(node.right) : 0;
+            return Math.max(node.height, hLeft, hRight);
+        }
+
+        function exportTableData() {
+            const t = i18n[currentLang];
+            if (analyzedItemsData.length === 0) {
+                alert(t.alertNoExport);
+                return;
+            }
+
+            let format = document.getElementById('exportFormat').value;
+
+            let exportRows = analyzedItemsData.map(item => ({
+                ID: item.id,
+                Name: item.name,
+                HasRim: item.analysis.hasRim ? "Yes" : "No",
+                HasBase: item.analysis.hasBase ? "Yes" : "No",
+                ActualWidth_px: item.analysis.actualWidth,
+                ActualHeight_px: item.analysis.actualHeight,
+                NeckPositionRatio: Number(item.analysis.neckPos.toFixed(3)),
+                NeckDepthDegree: Number(item.analysis.neckDepth.toFixed(3)),
+                BellyPositionRatio: Number(item.analysis.bellyPos.toFixed(3)),
+                BellyWidthRatio: Number(item.analysis.bellyWidth.toFixed(3)),
+                TaperRate: Number(item.analysis.taperRate.toFixed(3)),
+                Timestamp: item.timestamp
+            }));
+
+            if (format === 'csv' || format === 'tsv') {
+                let sep = format === 'csv' ? ',' : '\t';
+                let headers = Object.keys(exportRows[0]);
+                let csvContent = headers.join(sep) + '\r\n';
+                
+                exportRows.forEach(row => {
+                    let values = headers.map(h => `"${String(row[h]).replace(/"/g, '""')}"`);
+                    csvContent += values.join(sep) + '\r\n';
+                });
+
+                downloadFile(csvContent, `artifact_size_analysis.${format}`, format === 'csv' ? 'text/csv;charset=utf-8;' : 'text/tab-separated-values;charset=utf-8;');
+            
+            } else if (format === 'json') {
+                let jsonStr = JSON.stringify(exportRows, null, 4);
+                downloadFile(jsonStr, 'artifact_size_analysis.json', 'application/json;charset=utf-8;');
+
+            } else if (format === 'xlsx') {
+                let worksheet = XLSX.utils.json_to_sheet(exportRows);
+                let workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "SizeAnalysis");
+                XLSX.writeFile(workbook, 'artifact_size_analysis.xlsx');
+
+            } else if (format === 'xml') {
+                let xmlStr = '<?xml version="1.0" encoding="UTF-8"?>\n<ArtifactSizeAnalysisRecords>\n';
+                exportRows.forEach(row => {
+                    xmlStr += '  <Record>\n';
+                    for (let key in row) {
+                        xmlStr += `    <${key}>${escapeXml(String(row[key]))}</${key}>\n`;
+                    }
+                    xmlStr += '  </Record>\n';
+                });
+                xmlStr += '</ArtifactSizeAnalysisRecords>';
+                downloadFile(xmlStr, 'artifact_size_analysis.xml', 'application/xml;charset=utf-8;');
+            }
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            let blob = new Blob([content], { type: mimeType });
+            let link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function escapeXml(str) {
+            return str.replace(/[<>&'"]/g, function (c) {
+                switch (c) {
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '&': return '&amp;';
+                    case '\'': return '&apos;';
+                    case '"': return '&quot;';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
