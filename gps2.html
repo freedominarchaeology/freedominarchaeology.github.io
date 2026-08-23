@@ -18,7 +18,7 @@
             padding: 0;
             background-color: #000;
             color: #fff;
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
             overflow: hidden;
             position: fixed;
             touch-action: none;
@@ -125,16 +125,14 @@
     </div>
 
     <div id="register-panel">
-        <!-- 遺物・遺構点（黄色）登録領域 -->
         <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🟡 遺物・遺構記録点（任意測位点）の登録</div>
         <div class="flex-row">
-            <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 須恵器片01)">
+            <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 点1)">
             <button id="add-rec-btn" class="record" style="white-space: nowrap; padding: 6px 12px;">📍 現在地を記録</button>
         </div>
 
         <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">
 
-        <!-- 既知点（基準点）登録領域 -->
         <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🎯 基準点（既知点）の学習登録</div>
         <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">
         <div class="flex-row">
@@ -204,8 +202,8 @@
     <script>
         'use strict';
 
-        // 全OS対応の日本語システムフォントスタック定義
-        const JAPANESE_FONT_FAMILY = '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "TakaoPGothic", "Noto Sans JP", sans-serif';
+        // OS共通の日本語フォントスタック定義
+        const JAPANESE_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif';
 
         let isLogging = false;
         let routeLog = [];
@@ -300,7 +298,8 @@
         // ==========================================
         document.getElementById('add-rec-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('rec-name');
-            const name = String(nameInput.value || '').trim() || `記録点_${recordedPoints.length + 1}`;
+            const rawVal = nameInput.value ? String(nameInput.value).trim() : '';
+            const name = rawVal || `記録点_${recordedPoints.length + 1}`;
 
             const coords = getCurrentTransformedCoords();
             if (!coords) {
@@ -345,13 +344,17 @@
                 const zStr = pt.z !== null && pt.z !== undefined ? pt.z.toFixed(2) : '---';
                 html += `<div class="point-item">
                     <div style="flex: 1; min-width: 140px;">
-                        <div style="color: #eab308; font-weight: bold; margin-bottom: 2px;">${pt.name}</div>
+                        <div style="color: #eab308; font-weight: bold; margin-bottom: 2px;">${escapeHtml(pt.name)}</div>
                         <div style="color: #aaa; font-size: 10px;">X: ${pt.x.toFixed(2)}, Y: ${pt.y.toFixed(2)}, Z: ${zStr}</div>
                     </div>
                     <button class="danger" style="font-size:10px; padding:3px 6px;" onclick="deleteRecordedPoint(${pt.id})">削除</button>
                 </div>`;
             });
             container.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         window.deleteRecordedPoint = function(id) {
@@ -362,7 +365,7 @@
         };
 
         // ==========================================
-        // ログ記録 ＆ 高解像度Canvas PDF出力（完全文字化け防止版）
+        // ログ記録 ＆ 完全文字化け防止Canvas PDF出力
         // ==========================================
         const logToggleBtn = document.getElementById('log-toggle-btn');
         logToggleBtn.addEventListener('click', () => {
@@ -410,7 +413,7 @@
                     return;
                 }
 
-                // A4高解像度 Canvas Canvas (1240 x 1754 px)
+                // 高解像度Canvas (1240 x 1754 px: A4比率)
                 const canvas = document.createElement('canvas');
                 const W = 1240;
                 const H = 1754;
@@ -456,7 +459,7 @@
                     return { x: px, y: py };
                 }
 
-                // --- 1. グリッド線 ---
+                // グリッド線
                 let gridStep = 10;
                 if (maxRange > 50000) gridStep = 5000;
                 else if (maxRange > 10000) gridStep = 1000;
@@ -483,7 +486,7 @@
                 }
                 ctx.stroke();
 
-                // --- 2. 軌跡描画 ---
+                // 軌跡描画
                 if (validLog.length > 1) {
                     ctx.strokeStyle = '#dc2626';
                     ctx.lineWidth = 3;
@@ -497,15 +500,14 @@
                     ctx.stroke();
                 }
 
-                // 引き出し線用インデックス
                 let labelCounter = 0;
 
-                // 注記付き点描画関数（文字化け・線重なり完全防止）
+                // 注記ラベル描画（Canvasネイティブ描画により全日本語に対応）
                 function drawAnnotatedPointCanvas(ptX, ptY, ptZ, rawName, pointColorHex, labelPrefix) {
                     const cvPt = toCanvasCoord(ptX, ptY);
                     const nameStr = String(rawName || '名称未設定');
 
-                    // 点描画 (Circle)
+                    // 点描画
                     ctx.fillStyle = pointColorHex;
                     ctx.strokeStyle = '#000000';
                     ctx.lineWidth = 1.5;
@@ -514,7 +516,7 @@
                     ctx.fill();
                     ctx.stroke();
 
-                    // 引き出し線のオフセット角度決定
+                    // オフセット計算
                     const angleDir = labelCounter % 4;
                     let offsetX = 50, offsetY = -60;
                     if (angleDir === 1) { offsetX = -210; offsetY = -60; }
@@ -525,7 +527,7 @@
                     const textX = cvPt.x + offsetX;
                     const textY = cvPt.y + offsetY;
 
-                    // 引き出し線を描画
+                    // 引き出し線
                     ctx.strokeStyle = '#374151';
                     ctx.lineWidth = 1.5;
                     ctx.beginPath();
@@ -533,27 +535,25 @@
                     ctx.lineTo(textX > cvPt.x ? textX : textX + 160, textY + (offsetY < 0 ? 18 : -5));
                     ctx.stroke();
 
-                    // 表示用ラベル文字列の作成
                     const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
                     const titleText = `${labelPrefix}${nameStr}`;
                     const line2 = `X: ${ptX.toFixed(3)}`;
                     const line3 = `Y: ${ptY.toFixed(3)}`;
                     const line4 = `Z: ${zText}`;
 
-                    // フォントの適用（日本語対応システムフォントスタック）
                     ctx.font = `bold 15px ${JAPANESE_FONT_FAMILY}`;
                     const titleWidth = ctx.measureText(titleText).width;
                     const boxWidth = Math.max(titleWidth, 140) + 16;
                     const boxHeight = 74;
 
-                    // ★ 白背景カードの描画（背景線と被って文字が読めなくなる現象を防止）
+                    // ラベル背面カード（グリッド線被り防止）
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                     ctx.strokeStyle = '#9ca3af';
                     ctx.lineWidth = 1;
                     ctx.fillRect(textX - 6, textY - 16, boxWidth, boxHeight);
                     ctx.strokeRect(textX - 6, textY - 16, boxWidth, boxHeight);
 
-                    // ★ 日本語テキスト描画
+                    // 日本語テキストのCanvas描画
                     ctx.fillStyle = '#000000';
                     ctx.font = `bold 15px ${JAPANESE_FONT_FAMILY}`;
                     ctx.fillText(titleText, textX, textY);
@@ -564,17 +564,17 @@
                     ctx.fillText(line4, textX, textY + 50);
                 }
 
-                // --- 3. 既知点（青色点 ＋ 引き出し線注記） ---
+                // 基準点描画
                 validKnown.forEach(kp => {
                     drawAnnotatedPointCanvas(kp.targetX, kp.targetY, kp.targetZ, kp.name, "#2563eb", "基準: ");
                 });
 
-                // --- 4. 任意記録点（黄色点 ＋ 引き出し線注記） ---
+                // 記録点描画（「記録: 点1」などが正常出力されます）
                 validRec.forEach(rp => {
                     drawAnnotatedPointCanvas(rp.x, rp.y, rp.z, rp.name, "#eab308", "記録: ");
                 });
 
-                // --- 5. 縮尺スケールバー ---
+                // 縮尺バー
                 const scaleBarLenPX = gridStep * scale;
                 const barX = W - margin - scaleBarLenPX;
                 const barY = H - margin - 20;
@@ -592,7 +592,7 @@
                 const scaleText = gridStep >= 1000 ? `Scale: ${gridStep/1000}km` : `Scale: ${gridStep}m`;
                 ctx.fillText(scaleText, barX, barY - 10);
 
-                // --- Canvas画像をA4 PDFに埋め込んで出力 ---
+                // Canvasの画像変換とPDF保存
                 const imgData = canvas.toDataURL('image/png');
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -602,7 +602,7 @@
                 const filename = `archaeology_survey_${Date.now()}.pdf`;
                 try {
                     doc.save(filename);
-                    alert("✅ 日本語名称・引き出し線入りの高解像度PDFを出力しました。");
+                    alert("✅ 文字化けのない正確な日本語ラベルPDFを出力しました。");
                 } catch (e) {
                     const pdfDataUrl = doc.output('datauristring');
                     window.location.href = pdfDataUrl;
@@ -673,7 +673,8 @@
             const yInput = document.getElementById('kp-y');
             const zInput = document.getElementById('kp-z');
 
-            const name = String(nameInput.value || '').trim() || `既知点_${knownPoints.length + 1}`;
+            const rawVal = nameInput.value ? String(nameInput.value).trim() : '';
+            const name = rawVal || `既知点_${knownPoints.length + 1}`;
             const targetX = parseFloat(xInput.value);
             const targetY = parseFloat(yInput.value);
             const targetZ = parseFloat(zInput.value);
@@ -791,7 +792,7 @@
                 const zStr = kp.targetZ !== null && kp.targetZ !== undefined ? kp.targetZ.toFixed(2) : '---';
                 html += `<div class="point-item">
                     <div style="flex: 1; min-width: 140px;">
-                        <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">${kp.name}</div>
+                        <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">${escapeHtml(kp.name)}</div>
                         <div style="color: #888; font-size: 10px;">X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}, Z: ${zStr}</div>
                     </div>
                     <div>
