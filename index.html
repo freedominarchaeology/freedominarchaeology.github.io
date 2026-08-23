@@ -13,6 +13,7 @@
             --accent-color: #8c6a53;   /* アクセント：くすんだテラコッタ（陶器）色 */
             --card-bg: #ffffff;        /* カード背景：白 */
             --border-color: #dcd6ce;   /* 境界線：薄いグレーブラウン */
+            --hover-bg: #f0ece6;       /* ホバー時微調整用 */
         }
 
         body {
@@ -74,17 +75,15 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             padding: 25px;
-            text-decoration: none;
-            color: inherit;
-            display: block;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             position: relative;
             transition: all 0.3s ease;
         }
 
-        /* ホバー時の控えめなエフェクト */
         .tool-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(140, 106, 83, 0.1);
+            box-shadow: 0 8px 20px rgba(140, 106, 83, 0.08);
             border-color: var(--accent-color);
         }
 
@@ -102,6 +101,10 @@
             letter-spacing: 0.05em;
         }
 
+        .card-header {
+            padding-right: 70px; /* バッジとの重なり防止 */
+        }
+
         .tool-card h2 {
             margin: 0 0 15px 0;
             font-size: 1.25rem;
@@ -112,11 +115,58 @@
         }
 
         .tool-card p {
-            margin: 0;
+            margin: 0 0 25px 0;
             font-size: 0.9rem;
             color: var(--text-light);
             font-family: "Helvetica Neue", Arial, "Hiragino Sans", "Meiryo", sans-serif;
             line-height: 1.7;
+        }
+
+        /* アクションエリア（ボタン群） */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+            font-family: "Helvetica Neue", Arial, "Hiragino Sans", "Meiryo", sans-serif;
+        }
+
+        /* メインボタン（ツール起動） */
+        .btn-main {
+            flex: 2;
+            text-align: center;
+            background-color: var(--accent-color);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-main:hover {
+            background-color: #73543f;
+        }
+
+        /* サブボタン（取扱説明書） */
+        .btn-sub {
+            flex: 1.2;
+            text-align: center;
+            background-color: transparent;
+            color: var(--text-light);
+            text-decoration: none;
+            padding: 9px 10px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            letter-spacing: 0.03em;
+        }
+
+        .btn-sub:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-main);
+            border-color: var(--text-light);
         }
 
         /* フッター */
@@ -143,27 +193,46 @@
             <!-- ▼▼ ここからツールを追加・編集してください ▼▼ -->
 
             <!-- ツール1 -->
-            <a href="./gps2.html" class="tool-card">
+            <div class="tool-card">
                 <span class="badge">Offline App</span>
-                <h2>GPSツール</h2>
-                <p>スマートフォンで開くことで、スマートフォンをハンディGPSとして使用することができます。</p>
-            </a>
+                <div class="card-header">
+                    <h2>スマートフォンGPSツール</h2>
+                </div>
+                <p>スマートフォンをログ作成機能のあるハンディGPSとして使用するツールです。完全オフライン環境で動作します。</p>
+                
+                <div class="card-actions">
+                    <a href="./tools/gps2.html" class="btn-main">ツールを起動</a>
+                    <a href="./docs/gps_readme.txt" class="btn-sub">取扱説明書</a>
+                </div>
+            </div>
 
             <!-- ツール2 -->
-            <a href="./tools/artifact-plotter.html" class="tool-card">
+            <div class="tool-card">
                 <span class="badge">Offline App</span>
-                <h2>遺物図抽出ツール</h2>
-                <p>報告書等のPDFから遺物の図を抽出し、縮尺を揃えて書き出すためのツールです。</p>
-            </a>
+                <div class="card-header">
+                    <h2>準備中</h2>
+                </div>
+                <p>準備中</p>
+                
+                <div class="card-actions">
+                    <a href="./tools/artifact-plotter.html" class="btn-main">ツールを起動</a>
+                    <a href="./docs/artifact-plotter-manual.html" class="btn-sub">取扱説明書</a>
+                </div>
+            </div>
 
             <!-- ツール3 -->
-            <a href="./tools/radiocarbon.html" class="tool-card">
+            <div class="tool-card">
                 <span class="badge">Offline App</span>
-                <h2>形状比較ツール</h2>
-                <p>抽出した遺物の図のプロポーションを比較し、類似順に並べて表示することができます。あらかじめ器種分類をしておくことがおすすめ</p>
-            </a>
-
-            <!-- ツールを追加する場合は、上記の <a>〜</a> のブロックをコピーして増やしてください -->
+                <div class="card-header">
+                    <h2>準備中</h2>
+                </div>
+                <p>準備中</p>
+                
+                <div class="card-actions">
+                    <a href="./tools/radiocarbon.html" class="btn-main">ツールを起動</a>
+                    <a href="./docs/radiocarbon-manual.html" class="btn-sub">取扱説明書</a>
+                </div>
+            </div>
 
             <!-- ▲▲ ここまで ▲▲ -->
 
