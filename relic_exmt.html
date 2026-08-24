@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title id="docTitle">考古学報告書 遺物個別抽出・PDF縮尺出力ツール（マニュアル指定版）</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", "MS PMincho", "MS P明朝", serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2, h3, button, th, label {
+            font-family: "MS Gothic", "ＭＳ ゴシック", "MS PGothic", "ＭＳ Pゴシック", sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .lang-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background-color: #34495e;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 4px;
+        }
+        .lang-bar label { font-weight: bold; font-size: 13px; }
+        .lang-bar select { font-weight: bold; padding: 4px 8px; }
+        
+        .control-panel {
+            background-color: #eef2f5;
+            padding: 15px;
+            border: 1px solid #b8c4d0;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 13px; }
+        input[type="file"], input[type="number"], input[type="text"], select, button {
+            font-size: 13px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px;
+        }
+        
+        .suggestion-box {
+            grid-column: 1 / -1;
+            background: #e8f4fd;
+            border: 1px solid #b3d7ff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+        }
+        .suggestion-badge {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid #0056b3;
+            color: #0056b3;
+            padding: 2px 8px;
+            margin: 2px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .suggestion-badge:hover { background: #0056b3; color: #fff; }
+        
+        .scale-measure-box {
+            grid-column: 1 / -1;
+            background: #fff9e6;
+            border: 1px solid #ffeeba;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+        }
+        .scale-canvas-container {
+            margin-top: 10px;
+            overflow: auto;
+            max-height: 300px;
+            border: 1px solid #ccc;
+            background: #fff;
+            text-align: center;
+        }
+        #scaleMeasureCanvas { cursor: crosshair; max-width: 100%; }
+
+        .preview-section {
+            grid-column: 1 / -1;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .preview-instruction {
+            font-weight: bold;
+            color: #2980b9;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            background: #eaeaea;
+            padding: 15px;
+            border: 1px solid #ccc;
+        }
+        .preview-page-wrapper {
+            position: relative;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            user-select: none;
+        }
+        .preview-page-wrapper canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .action-area {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+            display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+        }
+        button {
+            background-color: #2c3e50; color: white; border: none; cursor: pointer;
+            padding: 10px 18px; font-weight: bold;
+        }
+        button:hover { background-color: #34495e; }
+        button#btnClearSelections { background-color: #c0392b; }
+        button#btnClearSelections:hover { background-color: #a93226; }
+        button#sortBtn { background-color: #8e44ad; }
+        button#sortBtn:hover { background-color: #732d91; }
+        button#downloadZipBtn { background-color: #27ae60; }
+        button#downloadZipBtn:hover { background-color: #219150; }
+        button.secondary-btn { background-color: #7f8c8d; padding: 6px 12px; font-size: 12px; }
+        button.secondary-btn:hover { background-color: #95a5a6; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        #status { margin-top: 10px; font-weight: bold; color: #d35400; grid-column: 1 / -1; }
+        
+        .results-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 20px; margin-top: 20px;
+        }
+        .card {
+            border: 1px solid #ccc; padding: 12px; background: #fafafa;
+            transition: all 0.2s ease;
+        }
+        .card.selected-card { border: 2px solid #3498db; background: #f4fafe; }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 10px;
+            gap: 8px;
+        }
+        .card-header .title-input {
+            flex-grow: 1; font-size: 14px; font-weight: bold; padding: 4px;
+            font-family: "MS Gothic", "ＭＳ ゴシック", sans-serif;
+        }
+        .card-header input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+        
+        .card-images { display: flex; gap: 10px; flex-wrap: wrap; }
+        .card-images > div { flex: 1; min-width: 180px; text-align: center; }
+        .card-images img, .card-images canvas { max-width: 100%; height: auto; border: 1px solid #ddd; background-color: #fff; }
+        
+        .trim-canvas-container {
+            position: relative;
+            display: inline-block;
+            cursor: crosshair;
+            margin-bottom: 5px;
+        }
+        .trim-controls {
+            background: #fff; border: 1px solid #e0e0e0; padding: 6px; border-radius: 3px;
+            font-size: 11px; text-align: left; margin-bottom: 6px; font-family: sans-serif;
+        }
+        .trim-controls label { font-size: 11px; margin-right: 4px; }
+        .trim-controls input[type="number"] { width: 50px; padding: 2px 4px; font-size: 11px; margin-right: 6px; }
+
+        .slider-container, .card-scale-container {
+            margin-top: 6px; font-size: 12px; font-family: sans-serif;
+            background: #fff; border: 1px solid #eee; padding: 6px; border-radius: 3px;
+        }
+        .slider-container input[type="range"] { width: 100%; box-sizing: border-box; cursor: pointer; }
+        
+        .eps-btn { margin-top: 4px; background-color: #34495e; padding: 4px 6px; font-size: 11px; width: 100%; }
+        .meta-info {
+            font-size: 12px; margin-top: 8px; line-height: 1.5; background: #fff; padding: 8px; border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="lang-bar">
+        <label for="languageSelect" data-i18n="langLabel">🌐 言語 / Language:</label>
+        <select id="languageSelect">
+            <option value="ja" selected>日本語 (Japanese)</option>
+            <option value="en">English</option>
+            <option value="zh">中文 (Chinese)</option>
+            <option value="ko">한국어 (Korean)</option>
+            <option value="fr">Français (French)</option>
+            <option value="es">Español (Spanish)</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="appTitle">考古学報告書 遺物個別抽出・PDF縮尺出力ツール（マニュアル範囲指定版）</h1>
+
+    <div class="control-panel">
+        <div class="control-group">
+            <label for="fileInput" data-i18n="lblFile">1. ファイル選択 (PDF / 画像):</label>
+            <input type="file" id="fileInput" accept="application/pdf,image/*">
+        </div>
+
+        <div class="control-group">
+            <label for="fileNamePrefix" data-i18n="lblPrefix">2. 出力ファイル名の接頭辞:</label>
+            <input type="text" id="fileNamePrefix" value="artifact" placeholder="例: siteA_trench1">
+        </div>
+
+        <div class="control-group">
+            <label for="pdfOriginalRatio" data-i18n="lblBaseScale">3. 基準掲載縮尺 (一括):</label>
+            <select id="pdfOriginalRatio">
+                <option value="0.5">1/2</option>
+                <option value="0.333333">1/3</option>
+                <option value="0.25">1/4</option>
+                <option value="0.2">1/5</option>
+                <option value="0.166667" selected>1/6</option>
+                <option value="0.125">1/8</option>
+                <option value="0.1">1/10</option>
+                <option value="scale-bar" data-i18n="optScaleBar">📐 図中スケールバーから算出</option>
+                <option value="custom" data-i18n="optCustom">任意（カスタム分母を指定）</option>
+            </select>
+            <div id="customRatioContainer" style="display: none; margin-top: 5px;">
+                <input type="number" id="customPdfDenominator" placeholder="分母を入力 (例: 7.5)" min="0.1" step="0.1" style="width: 100%; box-sizing: border-box;">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="targetRatioInput" data-i18n="lblTargetScale">4. 出力希望の縮尺:</label>
+            <select id="targetRatioInput">
+                <option value="0.1">1/10</option>
+                <option value="0.125">1/8</option>
+                <option value="0.166667" selected>1/6</option>
+                <option value="0.2">1/5</option>
+                <option value="0.25">1/4</option>
+                <option value="0.333333">1/3</option>
+                <option value="0.5">1/2</option>
+                <option value="1.0">1/1 (実寸法)</option>
+                <option value="custom" data-i18n="optCustom">任意（カスタム分母を指定）</option>
+            </select>
+            <div id="customTargetContainer" style="display: none; margin-top: 5px;">
+                <input type="number" id="customTargetDenominator" placeholder="分母を入力 (例: 7.5)" min="0.1" step="0.1" style="width: 100%; box-sizing: border-box;">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="renderQuality" data-i18n="lblRenderQuality">5. 処理モード（低性能PC向け軽量化）:</label>
+            <select id="renderQuality">
+                <option value="normal" selected data-i18n="optQualityNormal">標準 (高品質 8.0)</option>
+                <option value="light" data-i18n="optQualityLight">軽量 (低メモリ・高速 4.0)</option>
+            </select>
+        </div>
+
+        <div id="scaleSuggestionBox" class="suggestion-box">
+            <span data-i18n="scaleSuggestionText">💡 PDF内から縮尺表記の候補が見つかりました:</span> <div id="suggestionBadges" style="display:inline; margin-left: 5px;"></div>
+        </div>
+
+        <div id="scaleMeasureBox" class="scale-measure-box">
+            <strong data-i18n="measureBoxTitle">📐 図中スケールバー測距モード（縦・横対応）</strong>
+            <div style="font-size: 12px; margin: 5px 0;">
+                <span data-i18n="measureStep1">1. スケールバーの実寸を入力:</span> <input type="number" id="scaleBarCm" value="10" min="1" max="100" style="width: 60px;"> cm<br>
+                <span data-i18n="measureStep2">2. 下の画像で、スケールバーの「両端（または起点と終点）」を2回クリックしてください。</span>
+            </div>
+            <div style="font-size: 12px; color: #856404;" id="measureStatus" data-i18n="measureStatus1">状態: スケールバーの1点目をクリックしてください。</div>
+            <div class="scale-canvas-container">
+                <canvas id="scaleMeasureCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display:none;">
+            <div class="preview-instruction" data-i18n="msgSelectHint">🖱️ プレビュー上でマウスをドラッグし、抽出したい範囲を指定してください（囲んだ順番に取り込まれます）。</div>
+            <div class="preview-container" id="previewContainer"></div>
+        </div>
+
+        <div class="action-area">
+            <button id="processBtn" disabled data-i18n="btnProcess">指定範囲を取り込んで抽出・解析実行</button>
+            <button id="btnClearSelections" disabled data-i18n="btnClearSelections">指定範囲を全クリア</button>
+            <button id="sortBtn" disabled data-i18n="btnSort">形状類似度で並び替え</button>
+            <div style="flex-grow: 1;"></div>
+            <button id="selectAllBtn" class="secondary-btn" disabled data-i18n="btnSelectAll">全て選択</button>
+            <button id="deselectAllBtn" class="secondary-btn" disabled data-i18n="btnDeselectAll">全て解除</button>
+            <button id="downloadZipBtn" disabled data-i18n="btnDownloadZipNone">ZIP一括ダウンロード (選択なし)</button>
+        </div>
+        <div id="status" data-i18n="statusInitial">ファイルを選択してください（※完全ローカル処理）。</div>
+    </div>
+
+    <h2 data-i18n="headingResults">抽出結果（プレビュー・図番号編集・トリミング微調整）</h2>
+    <div id="results" class="results-grid"></div>
+</div>
+
+<script>
+"use strict";
+
+const translations = {
+    ja: {
+        appTitle: "考古学報告書 遺物個別抽出・PDF縮尺出力ツール（マニュアル範囲指定版）",
+        langLabel: "🌐 言語 / Language:",
+        lblFile: "1. ファイル選択 (PDF / 画像):",
+        lblPrefix: "2. 出力ファイル名の接頭辞:",
+        lblBaseScale: "3. 基準掲載縮尺 (一括):",
+        lblTargetScale: "4. 出力希望の縮尺:",
+        lblRenderQuality: "5. 処理モード（低性能PC向け軽量化）:",
+        optScaleBar: "📐 図中スケールバーから算出",
+        optCustom: "任意（カスタム分母を指定）",
+        optQualityNormal: "標準 (高品質 8.0)",
+        optQualityLight: "軽量 (低メモリ・高速 4.0)",
+        btnProcess: "指定範囲を取り込んで抽出・解析実行",
+        btnClearSelections: "指定範囲を全クリア",
+        btnSort: "形状類似度で並び替え",
+        btnSelectAll: "全て選択",
+        btnDeselectAll: "全て解除",
+        btnDownloadZip: "選択した {count} 件のPDF・JPG・EPSを一括ZIPダウンロード",
+        btnDownloadZipNone: "ZIP一括ダウンロード (選択なし)",
+        statusInitial: "ファイルを選択してください（※完全ローカル処理）。",
+        msgSelectHint: "🖱️ プレビュー上でマウスをドラッグし、抽出したい範囲を指定してください（囲んだ順番に取り込まれます）。",
+        headingResults: "抽出結果（プレビュー・図番号編集・トリミング微調整）",
+        scaleSuggestionText: "💡 PDF内から縮尺表記の候補が見つかりました:",
+        measureBoxTitle: "📐 図中スケールバー測距モード（縦・横対応）",
+        measureStep1: "1. スケールバーの実寸を入力:",
+        measureStep2: "2. 下の画像で、スケールバーの「両端（または起点と終点）」を2回クリックしてください。",
+        measureStatus1: "状態: スケールバーの1点目をクリックしてください。",
+        measureStatus2: "状態: 1点目が記録されました。次にスケールバーの2点目をクリックしてください。",
+        measureStatusComplete: "✅ 測距完了！ 検出ピクセル数: <strong>{px} px</strong> （算出された掲載縮尺: <strong>1 / {scale}</strong>）",
+        trimHeader: "✂️ トリミング調整:",
+        btnApply: "適用",
+        btnReset: "全域",
+        rawImgHint: "抽出図面（※上でマウスドラッグしてトリミング範囲を指定できます）",
+        lblSilhouette: "シルエット",
+        lblIndivScale: "個別掲載縮尺:",
+        btnRawPdf: "抽出図面 PDF出力",
+        btnRawJpg: "抽出図面 JPG出力",
+        btnScaledPdf: "希望縮尺図面 PDF出力",
+        btnScaledJpg: "希望縮尺図面 JPG出力",
+        btnSkeletonEps: "中心線ストローク線画 EPS出力",
+        lblDensity: "濃さ調整:",
+        btnSilPdf: "シルエット PDF出力",
+        btnSilJpg: "シルエット JPG出力",
+        btnSilEps: "シルエット EPS出力",
+        lblPixelSize: "保持ピクセルサイズ:",
+        lblSizeInfo: "サイズ情報:",
+        outputScaleRatio: "出力スケール比率:",
+        paperWidth: "紙面サイズ幅:",
+        msgLoading: "ファイルを読み込み中...",
+        msgPdfScaleFound: "PDFの縮尺候補が見つかりました。プレビュー画面で抽出範囲を指定してください。",
+        msgFileLoaded: "プレビューの読み込みが完了しました。マウスで範囲指定してください。",
+        msgProcessing: "選択領域の切り出しと解析を実行中...",
+        msgComplete: "処理完了: 計 {count} 点の遺物を抽出しました。",
+        msgNoSelection: "範囲が選択されていません。プレビュー上でマウスドラッグして範囲を指定してください。",
+        msgSorting: "形状を数学的に解析・並べ替え中...",
+        msgSorted: "類似度順に並べ替えが完了しました。",
+        msgZipping: "各ファイル群をZIPにパッケージング中...",
+        msgZipStart: "ZIPファイル（{count}件分）のダウンロードを開始しました。"
+    },
+    en: {
+        appTitle: "Archaeological Report Artifact Extraction & PDF Scale Tool (Manual Area Selection)",
+        langLabel: "🌐 Language / 言語:",
+        lblFile: "1. Select File (PDF / Image):",
+        lblPrefix: "2. Output Filename Prefix:",
+        lblBaseScale: "3. Base Publication Scale (Bulk):",
+        lblTargetScale: "4. Target Output Scale:",
+        lblRenderQuality: "5. Processing Mode (Lightweight):",
+        optScaleBar: "📐 Calculate from scale bar in figure",
+        optCustom: "Custom (Specify denominator)",
+        optQualityNormal: "Standard (High quality 8.0)",
+        optQualityLight: "Lightweight (Low memory & fast 4.0)",
+        btnProcess: "Extract & Analyze Selected Areas",
+        btnClearSelections: "Clear All Selections",
+        btnSort: "Sort by Shape Similarity",
+        btnSelectAll: "Select All",
+        btnDeselectAll: "Deselect All",
+        btnDownloadZip: "Download {count} selected items as ZIP (PDF/JPG/EPS)",
+        btnDownloadZipNone: "Download ZIP (No selection)",
+        statusInitial: "Select a file to begin (Runs completely locally).",
+        msgSelectHint: "🖱️ Drag mouse over the preview to select artifact areas (captured in order selected).",
+        headingResults: "Extraction Results (Preview, Edit Fig No., Fine-tune Trim)",
+        scaleSuggestionText: "💡 Scale candidates found in PDF:",
+        measureBoxTitle: "📐 Scale Bar Measurement Mode",
+        measureStep1: "1. Enter actual size of scale bar:",
+        measureStep2: "2. Click both ends of the scale bar in the image below.",
+        measureStatus1: "Status: Click the 1st point of the scale bar.",
+        measureStatus2: "Status: 1st point saved. Click the 2nd point.",
+        measureStatusComplete: "✅ Completed! Detected: <strong>{px} px</strong> (Calculated scale: <strong>1 / {scale}</strong>)",
+        trimHeader: "✂️ Trim Adjustment:",
+        btnApply: "Apply",
+        btnReset: "Reset",
+        rawImgHint: "Extracted drawing (*Drag mouse above to set trim box)",
+        lblSilhouette: "Silhouette",
+        lblIndivScale: "Individual Publication Scale:",
+        btnRawPdf: "Raw Drawing PDF",
+        btnRawJpg: "Raw Drawing JPG",
+        btnScaledPdf: "Scaled Drawing PDF",
+        btnScaledJpg: "Scaled Drawing JPG",
+        btnSkeletonEps: "Centerline Skeleton EPS",
+        lblDensity: "Density Adjustment:",
+        btnSilPdf: "Silhouette PDF",
+        btnSilJpg: "Silhouette JPG",
+        btnSilEps: "Silhouette EPS",
+        lblPixelSize: "Pixel Dimensions:",
+        lblSizeInfo: "Size Info:",
+        outputScaleRatio: "Output Scale Ratio:",
+        paperWidth: "Paper Width:",
+        msgLoading: "Loading file...",
+        msgPdfScaleFound: "PDF scale candidates found. Select areas on preview.",
+        msgFileLoaded: "Preview loaded. Drag mouse to select areas.",
+        msgProcessing: "Processing selected areas...",
+        msgComplete: "Processing complete: Extracted {count} artifacts.",
+        msgNoSelection: "No areas selected. Drag mouse on the preview to select areas.",
+        msgSorting: "Analyzing shapes and sorting...",
+        msgSorted: "Sorted by similarity.",
+        msgZipping: "Packaging files into ZIP...",
+        msgZipStart: "Download started for ZIP file ({count} items)."
+    }
+};
+
+let currentLang = 'ja';
+
+function t(key, vars = {}) {
+    let text = (translations[currentLang] && translations[currentLang][key]) || translations['ja'][key] || key;
+    for (const [k, v] of Object.entries(vars)) {
+        text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+    }
+    return text;
+}
+
+function updateLanguage(lang) {
+    currentLang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerHTML = translations[currentLang][key];
+        }
+    });
+    
+    document.title = t('appTitle');
+    updateDownloadBtnState();
+    if (extractedItems.length > 0) {
+        renderAllItems();
+    }
+}
+
+document.getElementById('languageSelect').addEventListener('change', (e) => {
+    updateLanguage(e.target.value);
+});
+
+if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+let extractedItems = [];
+let activeObjectUrls = [];
+let measuredPdfRatio = null;
+
+// 手動領域選択管理用オブジェクト
+let pageCanvases = []; // 各ページの高解像度キャンバス情報 { pageNum, canvas }
+let manualSelections = []; // 選択した範囲のリスト [{ id, pageNum, x, y, w, h, order }]
+
+function setStatus(text) {
+    document.getElementById('status').innerHTML = text;
+}
+
+function releaseMemory() {
+    try {
+        activeObjectUrls.forEach(url => URL.revokeObjectURL(url));
+        activeObjectUrls = [];
+
+        pageCanvases.forEach(item => {
+            if (item.canvas) { item.canvas.width = 0; item.canvas.height = 0; }
+        });
+        pageCanvases = [];
+
+        extractedItems.forEach(item => {
+            if (item.rawCanvas) { item.rawCanvas.width = 0; item.rawCanvas.height = 0; }
+            if (item.silCanvas) { item.silCanvas.width = 0; item.silCanvas.height = 0; }
+            if (item.highResRawCanvas) { item.highResRawCanvas.width = 0; item.highResRawCanvas.height = 0; }
+            item.fingerprint = null;
+            item.epsString = null;
+            item.fullLinesEpsString = null;
+        });
+    } catch(e) {
+        console.warn("Memory release warning:", e);
+    }
+}
+
+function clearPreviousData() {
+    releaseMemory();
+    extractedItems = [];
+    manualSelections = [];
+    document.getElementById('processBtn').disabled = true;
+    document.getElementById('btnClearSelections').disabled = true;
+    document.getElementById('sortBtn').disabled = true;
+    document.getElementById('downloadZipBtn').disabled = true;
+    document.getElementById('selectAllBtn').disabled = true;
+    document.getElementById('deselectAllBtn').disabled = true;
+    
+    const previewContainer = document.getElementById('previewContainer');
+    while(previewContainer.firstChild) previewContainer.removeChild(previewContainer.firstChild);
+    
+    const resultsContainer = document.getElementById('results');
+    while(resultsContainer.firstChild) resultsContainer.removeChild(resultsContainer.firstChild);
+}
+
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const suggestionBox = document.getElementById('scaleSuggestionBox');
+    const measureBox = document.getElementById('scaleMeasureBox');
+    const previewSection = document.getElementById('previewSection');
+    
+    suggestionBox.style.display = 'none';
+    measureBox.style.display = 'none';
+    previewSection.style.display = 'none';
+    document.getElementById('suggestionBadges').innerHTML = '';
+    measuredPdfRatio = null;
+
+    if (file && (file.type === 'application/pdf' || file.type.startsWith('image/'))) {
+        try {
+            clearPreviousData();
+            setStatus(t('msgLoading'));
+            
+            if (file.type === 'application/pdf') {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+                const detectedRatios = new Set();
+
+                for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    for (const item of textContent.items) {
+                        const matches = item.str.match(/1\s*[/／：:]\s*([0-9]+(?:\.[0-9]+)?)/g);
+                        if (matches) {
+                            matches.forEach(m => {
+                                const numMatch = m.match(/([0-9]+(?:\.[0-9]+)?)$/);
+                                if (numMatch) detectedRatios.add(parseFloat(numMatch[1]));
+                            });
+                        }
+                    }
+                }
+
+                if (detectedRatios.size > 0) {
+                    const badgeContainer = document.getElementById('suggestionBadges');
+                    detectedRatios.forEach(denom => {
+                        const badge = document.createElement('span');
+                        badge.className = 'suggestion-badge';
+                        badge.innerText = `1/${denom}`;
+                        badge.title = 'Click to apply';
+                        badge.addEventListener('click', () => applyCustomScale(denom));
+                        badgeContainer.appendChild(badge);
+                    });
+                    suggestionBox.style.display = 'block';
+                }
+
+                await buildPdfPreviews(pdf);
+            } else {
+                await buildImagePreview(file);
+            }
+
+            previewSection.style.display = 'block';
+            setStatus(t('msgFileLoaded'));
+        } catch (err) {
+            console.error(err);
+            setStatus('Error: ' + err.message);
+        }
+    }
+});
+
+async function buildPdfPreviews(pdf) {
+    const previewContainer = document.getElementById('previewContainer');
+    const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: renderScale });
+
+        const hrCanvas = document.createElement('canvas');
+        hrCanvas.width = viewport.width;
+        hrCanvas.height = viewport.height;
+        const hrCtx = hrCanvas.getContext('2d');
+        await page.render({ canvasContext: hrCtx, viewport: viewport }).promise;
+
+        pageCanvases.push({ pageNum, canvas: hrCanvas });
+
+        createPreviewCanvasUI(pageNum, hrCanvas, previewContainer);
+    }
+}
+
+async function buildImagePreview(file) {
+    const previewContainer = document.getElementById('previewContainer');
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    activeObjectUrls.push(url);
+    img.src = url;
+    await img.decode();
+
+    const hrCanvas = document.createElement('canvas');
+    hrCanvas.width = img.width;
+    hrCanvas.height = img.height;
+    const hrCtx = hrCanvas.getContext('2d');
+    hrCtx.drawImage(img, 0, 0);
+
+    pageCanvases.push({ pageNum: 1, canvas: hrCanvas });
+    createPreviewCanvasUI(1, hrCanvas, previewContainer);
+}
+
+function createPreviewCanvasUI(pageNum, hrCanvas, container) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'preview-page-wrapper';
+    
+    const displayWidth = Math.min(800, hrCanvas.width);
+    const displayScale = displayWidth / hrCanvas.width;
+    const displayHeight = hrCanvas.height * displayScale;
+
+    wrapper.style.width = displayWidth + 'px';
+    wrapper.style.height = displayHeight + 'px';
+
+    const pCanvas = document.createElement('canvas');
+    pCanvas.width = displayWidth;
+    pCanvas.height = displayHeight;
+    const pCtx = pCanvas.getContext('2d');
+
+    wrapper.appendChild(pCanvas);
+    container.appendChild(wrapper);
+
+    function drawPreview() {
+        pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+        pCtx.drawImage(hrCanvas, 0, 0, displayWidth, displayHeight);
+
+        // 選択された領域のオーバレイ描画（指定した順番で表示）
+        const pageSelections = manualSelections.filter(s => s.pageNum === pageNum);
+        pageSelections.forEach(sel => {
+            const rx = sel.x * displayScale;
+            const ry = sel.y * displayScale;
+            const rw = sel.w * displayScale;
+            const rh = sel.h * displayScale;
+
+            pCtx.strokeStyle = '#3498db';
+            pCtx.lineWidth = 2;
+            pCtx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+            pCtx.fillRect(rx, ry, rw, rh);
+            pCtx.strokeRect(rx, ry, rw, rh);
+
+            // 順番バッジ
+            pCtx.fillStyle = '#2980b9';
+            pCtx.fillRect(rx, ry, 24, 20);
+            pCtx.fillStyle = '#ffffff';
+            pCtx.font = 'bold 12px sans-serif';
+            pCtx.fillText(sel.order.toString(), rx + 6, ry + 14);
+        });
+    }
+
+    drawPreview();
+
+    // マウスドラッグで範囲指定
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let tempRect = null;
+
+    pCanvas.addEventListener('mousedown', (e) => {
+        const rect = pCanvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        isDragging = true;
+    });
+
+    pCanvas.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const rect = pCanvas.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+
+        tempRect = {
+            x: Math.min(startX, curX),
+            y: Math.min(startY, curY),
+            w: Math.abs(curX - startX),
+            h: Math.abs(curY - startY)
+        };
+
+        drawPreview();
+        if (tempRect) {
+            pCtx.strokeStyle = '#e74c3c';
+            pCtx.lineWidth = 2;
+            pCtx.setLineDash([4, 4]);
+            pCtx.strokeRect(tempRect.x, tempRect.y, tempRect.w, tempRect.h);
+            pCtx.setLineDash([]);
+        }
+    });
+
+    pCanvas.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+
+        if (tempRect && tempRect.w > 15 && tempRect.h > 15) {
+            const realX = Math.round(tempRect.x / displayScale);
+            const realY = Math.round(tempRect.y / displayScale);
+            const realW = Math.round(tempRect.w / displayScale);
+            const realH = Math.round(tempRect.h / displayScale);
+
+            manualSelections.push({
+                id: Date.now() + Math.random(),
+                pageNum: pageNum,
+                x: realX,
+                y: realY,
+                w: realW,
+                h: realH,
+                order: manualSelections.length + 1
+            });
+
+            document.getElementById('processBtn').disabled = false;
+            document.getElementById('btnClearSelections').disabled = false;
+        }
+
+        tempRect = null;
+        redrawAllPreviews();
+    });
+}
+
+function redrawAllPreviews() {
+    const wrappers = document.querySelectorAll('.preview-page-wrapper');
+    wrappers.forEach((wrapper, index) => {
+        const pageNum = index + 1;
+        const hrCanvasObj = pageCanvases.find(p => p.pageNum === pageNum);
+        if (!hrCanvasObj) return;
+
+        const pCanvas = wrapper.querySelector('canvas');
+        const pCtx = pCanvas.getContext('2d');
+        const displayWidth = pCanvas.width;
+        const displayHeight = pCanvas.height;
+        const displayScale = displayWidth / hrCanvasObj.canvas.width;
+
+        pCtx.clearRect(0, 0, displayWidth, displayHeight);
+        pCtx.drawImage(hrCanvasObj.canvas, 0, 0, displayWidth, displayHeight);
+
+        const pageSelections = manualSelections.filter(s => s.pageNum === pageNum);
+        pageSelections.forEach(sel => {
+            const rx = sel.x * displayScale;
+            const ry = sel.y * displayScale;
+            const rw = sel.w * displayScale;
+            const rh = sel.h * displayScale;
+
+            pCtx.strokeStyle = '#3498db';
+            pCtx.lineWidth = 2;
+            pCtx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+            pCtx.fillRect(rx, ry, rw, rh);
+            pCtx.strokeRect(rx, ry, rw, rh);
+
+            pCtx.fillStyle = '#2980b9';
+            pCtx.fillRect(rx, ry, 24, 20);
+            pCtx.fillStyle = '#ffffff';
+            pCtx.font = 'bold 12px sans-serif';
+            pCtx.fillText(sel.order.toString(), rx + 6, ry + 14);
+        });
+    });
+}
+
+document.getElementById('btnClearSelections').addEventListener('click', () => {
+    manualSelections = [];
+    redrawAllPreviews();
+    document.getElementById('processBtn').disabled = true;
+    document.getElementById('btnClearSelections').disabled = true;
+});
+
+function applyCustomScale(denom) {
+    const select = document.getElementById('pdfOriginalRatio');
+    const customContainer = document.getElementById('customRatioContainer');
+    const customInput = document.getElementById('customPdfDenominator');
+
+    select.value = 'custom';
+    customContainer.style.display = 'block';
+    customInput.value = denom;
+    setStatus(`1/${denom}`);
+}
+
+document.getElementById('pdfOriginalRatio').addEventListener('change', async (e) => {
+    const val = e.target.value;
+    document.getElementById('customRatioContainer').style.display = (val === 'custom') ? 'block' : 'none';
+    const measureBox = document.getElementById('scaleMeasureBox');
+    
+    if (val === 'scale-bar') {
+        measureBox.style.display = 'block';
+        await initScaleMeasureTool();
+    } else {
+        measureBox.style.display = 'none';
+    }
+});
+
+let measureStep = 0;
+let measureX1 = 0;
+let measureY1 = 0;
+
+async function initScaleMeasureTool() {
+    const canvas = document.getElementById('scaleMeasureCanvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files.length) {
+        alert('Please select a file first.');
+        return;
+    }
+    const file = fileInput.files[0];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let srcCanvas = document.createElement('canvas');
+    if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer(); 
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 });
+        srcCanvas.width = viewport.width; 
+        srcCanvas.height = viewport.height;
+        await page.render({ canvasContext: srcCanvas.getContext('2d'), viewport: viewport }).promise;
+    } else if (file.type.startsWith('image/')) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        activeObjectUrls.push(url);
+        img.src = url;
+        await img.decode();
+        srcCanvas.width = img.width; 
+        srcCanvas.height = img.height;
+        srcCanvas.getContext('2d').drawImage(img, 0, 0);
+    }
+
+    canvas.width = srcCanvas.width;
+    canvas.height = srcCanvas.height;
+    ctx.drawImage(srcCanvas, 0, 0);
+
+    measureStep = 0;
+    document.getElementById('measureStatus').innerText = t('measureStatus1');
+
+    canvas.onclick = (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (event.clientX - rect.left) * scaleX;
+        const y = (event.clientY - rect.top) * scaleY;
+
+        const mCtx = canvas.getContext('2d');
+
+        if (measureStep === 0) {
+            measureX1 = x;
+            measureY1 = y;
+            measureStep = 1;
+            document.getElementById('measureStatus').innerText = t('measureStatus2');
+            mCtx.fillStyle = 'red';
+            mCtx.beginPath(); mCtx.arc(x, y, 6, 0, Math.PI * 2); mCtx.fill();
+        } else if (measureStep === 1) {
+            const measureX2 = x;
+            const measureY2 = y;
+            
+            const pxLen = Math.hypot(measureX2 - measureX1, measureY2 - measureY1);
+            const scaleCm = parseFloat(document.getElementById('scaleBarCm').value) || 10;
+
+            const ptPerCm = 28.346457;
+            const expectedPxPerCmFor1_1 = ptPerCm * 2.0;
+            const actualPxPerCm = pxLen / scaleCm;
+            
+            const calculatedRatio = actualPxPerCm / expectedPxPerCmFor1_1;
+            measuredPdfRatio = calculatedRatio;
+
+            document.getElementById('measureStatus').innerHTML = t('measureStatusComplete', {
+                px: pxLen.toFixed(1),
+                scale: (1/calculatedRatio).toFixed(1)
+            });
+            
+            mCtx.fillStyle = 'blue';
+            mCtx.beginPath(); mCtx.arc(x, y, 6, 0, Math.PI * 2); mCtx.fill();
+            mCtx.strokeStyle = 'green'; mCtx.lineWidth = 3;
+            mCtx.beginPath(); mCtx.moveTo(measureX1, measureY1); mCtx.lineTo(measureX2, measureY2); mCtx.stroke();
+
+            measureStep = 0; 
+        }
+    };
+}
+
+document.getElementById('targetRatioInput').addEventListener('change', (e) => {
+    document.getElementById('customTargetContainer').style.display = (e.target.value === 'custom') ? 'block' : 'none';
+});
+
+function getPdfOriginalRatio() {
+    const select = document.getElementById('pdfOriginalRatio');
+    if (select.value === 'scale-bar') {
+        if (measuredPdfRatio) return measuredPdfRatio;
+        alert('Scale bar not measured yet.');
+        return 0.166667;
+    }
+    if (select.value === 'custom') {
+        const denom = parseFloat(document.getElementById('customPdfDenominator').value);
+        if (!denom || denom <= 0) return 0.166667;
+        return 1.0 / denom;
+    }
+    return parseFloat(select.value) || 0.166667;
+}
+
+function getTargetRatio() {
+    const select = document.getElementById('targetRatioInput');
+    if (select.value === 'custom') {
+        const denom = parseFloat(document.getElementById('customTargetDenominator').value);
+        if (!denom || denom <= 0) return 0.166667;
+        return 1.0 / denom;
+    }
+    return parseFloat(select.value) || 0.166667;
+}
+
+function getBaseFileName() {
+    const input = document.getElementById('fileNamePrefix').value.trim();
+    return input !== "" ? input : "artifact";
+}
+
+function updateDownloadBtnState() {
+    const selectedCount = extractedItems.filter(i => i.selected).length;
+    const btn = document.getElementById('downloadZipBtn');
+    if (selectedCount > 0) {
+        btn.disabled = false;
+        btn.innerText = t('btnDownloadZip', { count: selectedCount });
+    } else {
+        btn.disabled = true;
+        btn.innerText = t('btnDownloadZipNone');
+    }
+}
+
+document.getElementById('selectAllBtn').addEventListener('click', () => {
+    extractedItems.forEach(i => i.selected = true);
+    renderAllItems();
+    updateDownloadBtnState();
+});
+
+document.getElementById('deselectAllBtn').addEventListener('click', () => {
+    extractedItems.forEach(i => i.selected = false);
+    renderAllItems();
+    updateDownloadBtnState();
+});
+
+function getShapeFingerprint(canvas) {
+    const small = document.createElement('canvas');
+    small.width = 32; small.height = 32;
+    const ctx = small.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, 32, 32);
+    const imgData = ctx.getImageData(0, 0, 32, 32).data;
+    small.width = 0; small.height = 0;
+    return imgData;
+}
+
+function calculateSimilarity(fpA, fpB) {
+    let sum = 0;
+    for (let i = 0; i < fpA.length; i += 4) { sum += Math.pow(fpA[i] - fpB[i], 2); }
+    return sum;
+}
+
+document.getElementById('sortBtn').addEventListener('click', () => {
+    if (extractedItems.length < 2) return;
+    setStatus(t('msgSorting'));
+    extractedItems.forEach(item => {
+        if (!item.fingerprint) item.fingerprint = getShapeFingerprint(item.silCanvas);
+    });
+    const anchor = extractedItems[0];
+    extractedItems.sort((a, b) => {
+        return calculateSimilarity(anchor.fingerprint, a.fingerprint) - calculateSimilarity(anchor.fingerprint, b.fingerprint);
+    });
+    renderAllItems();
+    setStatus(t('msgSorted'));
+});
+
+function renderAllItems() {
+    const resultsContainer = document.getElementById('results');
+    resultsContainer.innerHTML = '';
+    extractedItems.forEach(item => {
+        resultsContainer.appendChild(createCardElement(item));
+    });
+}
+
+function generatePdfBuffer(canvas, scaleFactor) {
+    const { jsPDF } = window.jspdf;
+    const widthPt = canvas.width * scaleFactor;
+    const heightPt = canvas.height * scaleFactor;
+
+    const pdf = new jsPDF({
+        orientation: widthPt > heightPt ? 'l' : 'p',
+        unit: 'pt',
+        format: [widthPt, heightPt]
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    pdf.addImage(imgData, 'PNG', 0, 0, widthPt, heightPt);
+    return pdf.output('arraybuffer');
+}
+
+function generateJpgDataUrl(canvas, quality = 0.95) {
+    return canvas.toDataURL('image/jpeg', quality);
+}
+
+function dataUrlToBlob(dataUrl) {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+}
+
+function updateItemCropAndRefresh(item, tx, ty, tw, th) {
+    const maxW = item.highResRawCanvas.width;
+    const maxH = item.highResRawCanvas.height;
+
+    item.trimX = Math.max(0, Math.min(tx, maxW - 10));
+    item.trimY = Math.max(0, Math.min(ty, maxH - 10));
+    item.trimW = Math.max(10, Math.min(tw, maxW - item.trimX));
+    item.trimH = Math.max(10, Math.min(th, maxH - item.trimY));
+
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = item.trimW;
+    croppedCanvas.height = item.trimH;
+    const cCtx = croppedCanvas.getContext('2d');
+    cCtx.drawImage(item.highResRawCanvas, item.trimX, item.trimY, item.trimW, item.trimH, 0, 0, item.trimW, item.trimH);
+
+    item.rawCanvas = croppedCanvas;
+    item.scaleFactor = calculateScaleFactor(item.itemPdfOrigRatio, getTargetRatio());
+    item.silCanvas = generateSilhouetteCanvas(item.rawCanvas, item.threshold);
+    item.epsString = generateSolidPolygonEpsString(item.silCanvas, item.scaleFactor);
+    item.fullLinesEpsString = generateDetailedLineEpsString(item.rawCanvas, item.scaleFactor);
+    item.fingerprint = null;
+
+    const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+    const logicalWidthPt = item.rawCanvas.width / renderScale * (getTargetRatio() / item.itemPdfOrigRatio) * 72;
+    const logicalWidthMm = (logicalWidthPt * 0.352778).toFixed(1);
+    item.scaleMessage = `${t('outputScaleRatio')} <strong>${(getTargetRatio() / item.itemPdfOrigRatio).toFixed(3)}</strong> | ${t('paperWidth')} <strong>${logicalWidthMm} mm</strong>`;
+}
+
+function createCardElement(item) {
+    const card = document.createElement('div');
+    card.className = 'card' + (item.selected ? ' selected-card' : '');
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'title-input';
+    titleInput.value = item.title;
+    titleInput.addEventListener('input', (e) => {
+        item.title = e.target.value;
+    });
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = item.selected;
+    checkbox.addEventListener('change', (e) => {
+        item.selected = e.target.checked;
+        if(item.selected) {
+            card.classList.add('selected-card');
+        } else {
+            card.classList.remove('selected-card');
+        }
+        updateDownloadBtnState();
+    });
+    
+    header.appendChild(titleInput);
+    header.appendChild(checkbox);
+    card.appendChild(header);
+
+    const imagesDiv = document.createElement('div');
+    imagesDiv.className = 'card-images';
+
+    const rawDiv = document.createElement('div');
+    
+    const trimControls = document.createElement('div');
+    trimControls.className = 'trim-controls';
+    trimControls.innerHTML = `
+        <strong>${t('trimHeader')}</strong><br>
+        <label>X:</label><input type="number" class="trim-x" value="${item.trimX}" min="0">
+        <label>Y:</label><input type="number" class="trim-y" value="${item.trimY}" min="0">
+        <label>W:</label><input type="number" class="trim-w" value="${item.trimW}" min="10">
+        <label>H:</label><input type="number" class="trim-h" value="${item.trimH}" min="10">
+        <button type="button" class="trim-apply-btn" style="padding:2px 6px; font-size:11px; background:#2c3e50; color:#fff; border:none; cursor:pointer;">${t('btnApply')}</button>
+        <button type="button" class="trim-reset-btn" style="padding:2px 6px; font-size:11px; background:#7f8c8d; color:#fff; border:none; cursor:pointer; margin-left:2px;">${t('btnReset')}</button>
+    `;
+    rawDiv.appendChild(trimControls);
+
+    const canvasContainer = document.createElement('div');
+    canvasContainer.className = 'trim-canvas-container';
+    const trimCanvas = document.createElement('canvas');
+    canvasContainer.appendChild(trimCanvas);
+    rawDiv.appendChild(canvasContainer);
+
+    const rawImgLabel = document.createElement('div');
+    rawImgLabel.style.fontSize = '12px';
+    rawImgLabel.style.marginTop = '2px';
+    rawImgLabel.textContent = t('rawImgHint');
+    rawDiv.appendChild(rawImgLabel);
+
+    const tCtx = trimCanvas.getContext('2d');
+    const srcImg = item.highResRawCanvas;
+    trimCanvas.width = srcImg.width;
+    trimCanvas.height = srcImg.height;
+
+    function drawTrimPreview(activeRect = null) {
+        tCtx.clearRect(0, 0, trimCanvas.width, trimCanvas.height);
+        tCtx.drawImage(srcImg, 0, 0);
+
+        tCtx.strokeStyle = '#3498db';
+        tCtx.lineWidth = Math.max(2, Math.round(srcImg.width / 200));
+        tCtx.strokeRect(item.trimX, item.trimY, item.trimW, item.trimH);
+
+        if (activeRect) {
+            tCtx.strokeStyle = '#e74c3c';
+            tCtx.lineWidth = Math.max(2, Math.round(srcImg.width / 200));
+            tCtx.setLineDash([6, 4]);
+            tCtx.strokeRect(activeRect.x, activeRect.y, activeRect.w, activeRect.h);
+            tCtx.setLineDash([]);
+        }
+    }
+    drawTrimPreview();
+
+    const silDiv = document.createElement('div');
+    const silImg = document.createElement('img');
+    silImg.src = item.silCanvas.toDataURL('image/png');
+    silDiv.appendChild(silImg);
+    silDiv.appendChild(document.createElement('br'));
+    silDiv.appendChild(document.createTextNode(t('lblSilhouette')));
+
+    let isDragging = false;
+    let startX = 0, startY = 0;
+
+    trimCanvas.addEventListener('mousedown', (e) => {
+        const rect = trimCanvas.getBoundingClientRect();
+        const scaleX = trimCanvas.width / rect.width;
+        const scaleY = trimCanvas.height / rect.height;
+        startX = (e.clientX - rect.left) * scaleX;
+        startY = (e.clientY - rect.top) * scaleY;
+        isDragging = true;
+    });
+
+    trimCanvas.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const rect = trimCanvas.getBoundingClientRect();
+        const scaleX = trimCanvas.width / rect.width;
+        const scaleY = trimCanvas.height / rect.height;
+        const currentX = (e.clientX - rect.left) * scaleX;
+        const currentY = (e.clientY - rect.top) * scaleY;
+
+        const rx = Math.min(startX, currentX);
+        const ry = Math.min(startY, currentY);
+        const rw = Math.abs(currentX - startX);
+        const rh = Math.abs(currentY - startY);
+
+        drawTrimPreview({ x: rx, y: ry, w: rw, h: rh });
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+    });
+
+    trimCanvas.addEventListener('mouseup', (e) => {
+        const rect = trimCanvas.getBoundingClientRect();
+        const scaleX = trimCanvas.width / rect.width;
+        const scaleY = trimCanvas.height / rect.height;
+        const endX = (e.clientX - rect.left) * scaleX;
+        const endY = (e.clientY - rect.top) * scaleY;
+
+        const rx = Math.round(Math.min(startX, endX));
+        const ry = Math.round(Math.min(startY, endY));
+        const rw = Math.round(Math.abs(endX - startX));
+        const rh = Math.round(Math.abs(endY - startY));
+
+        if (rw > 20 && rh > 20) {
+            updateItemCropAndRefresh(item, rx, ry, rw, rh);
+            renderAllItems();
+        } else {
+            drawTrimPreview();
+        }
+    });
+
+    const inputX = trimControls.querySelector('.trim-x');
+    const inputY = trimControls.querySelector('.trim-y');
+    const inputW = trimControls.querySelector('.trim-w');
+    const inputH = trimControls.querySelector('.trim-h');
+
+    trimControls.querySelector('.trim-apply-btn').addEventListener('click', () => {
+        const nx = parseInt(inputX.value, 10) || 0;
+        const ny = parseInt(inputY.value, 10) || 0;
+        const nw = parseInt(inputW.value, 10) || 50;
+        const nh = parseInt(inputH.value, 10) || 50;
+        updateItemCropAndRefresh(item, nx, ny, nw, nh);
+        renderAllItems();
+    });
+
+    trimControls.querySelector('.trim-reset-btn').addEventListener('click', () => {
+        updateItemCropAndRefresh(item, 0, 0, srcImg.width, srcImg.height);
+        renderAllItems();
+    });
+
+    const baseName = getBaseFileName();
+
+    const cardScaleContainer = document.createElement('div');
+    cardScaleContainer.className = 'card-scale-container';
+    cardScaleContainer.innerHTML = `<strong>${t('lblIndivScale')} </strong><select class="card-scale-select" style="width:100%; margin-top:3px;">
+        <option value="0.5"${item.itemPdfOrigRatio === 0.5 ? ' selected' : ''}>1/2</option>
+        <option value="0.333333"${Math.abs(item.itemPdfOrigRatio - 0.333333) < 0.001 ? ' selected' : ''}>1/3</option>
+        <option value="0.25"${item.itemPdfOrigRatio === 0.25 ? ' selected' : ''}>1/4</option>
+        <option value="0.2"${item.itemPdfOrigRatio === 0.2 ? ' selected' : ''}>1/5</option>
+        <option value="0.166667"${Math.abs(item.itemPdfOrigRatio - 0.166667) < 0.001 ? ' selected' : ''}>1/6</option>
+        <option value="0.125"${item.itemPdfOrigRatio === 0.125 ? ' selected' : ''}>1/8</option>
+        <option value="0.1"${item.itemPdfOrigRatio === 0.1 ? ' selected' : ''}>1/10</option>
+    </select>`;
+    
+    cardScaleContainer.querySelector('select').addEventListener('change', (e) => {
+        item.itemPdfOrigRatio = parseFloat(e.target.value);
+        item.scaleFactor = calculateScaleFactor(item.itemPdfOrigRatio, getTargetRatio());
+        
+        const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+        const logicalWidthPt = item.rawCanvas.width / renderScale * (getTargetRatio() / item.itemPdfOrigRatio) * 72;
+        const logicalWidthMm = (logicalWidthPt * 0.352778).toFixed(1);
+        item.scaleMessage = `${t('outputScaleRatio')} <strong>${(getTargetRatio() / item.itemPdfOrigRatio).toFixed(3)}</strong> | ${t('paperWidth')} <strong>${logicalWidthMm} mm</strong>`;
+        meta.innerHTML = `
+            <strong>${t('lblPixelSize')}</strong> ${item.rawCanvas.width} × ${item.rawCanvas.height} px<br>
+            <strong>${t('lblSizeInfo')}</strong> ${item.scaleMessage}
+        `;
+    });
+    rawDiv.appendChild(cardScaleContainer);
+
+    const rawPdfBtn = document.createElement('button');
+    rawPdfBtn.className = 'eps-btn';
+    rawPdfBtn.style.backgroundColor = '#16a085';
+    rawPdfBtn.innerText = t('btnRawPdf');
+    rawPdfBtn.addEventListener('click', () => {
+        const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+        const buffer = generatePdfBuffer(item.rawCanvas, 1.0 / renderScale);
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_raw.pdf`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    rawDiv.appendChild(rawPdfBtn);
+
+    const rawJpgBtn = document.createElement('button');
+    rawJpgBtn.className = 'eps-btn';
+    rawJpgBtn.style.backgroundColor = '#d35400';
+    rawJpgBtn.innerText = t('btnRawJpg');
+    rawJpgBtn.addEventListener('click', () => {
+        const dataUrl = generateJpgDataUrl(item.rawCanvas);
+        const blob = dataUrlToBlob(dataUrl);
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_raw.jpg`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    rawDiv.appendChild(rawJpgBtn);
+
+    const scaledPdfBtn = document.createElement('button');
+    scaledPdfBtn.className = 'eps-btn';
+    scaledPdfBtn.style.backgroundColor = '#2980b9';
+    scaledPdfBtn.innerText = t('btnScaledPdf');
+    scaledPdfBtn.addEventListener('click', () => {
+        const buffer = generatePdfBuffer(item.rawCanvas, item.scaleFactor);
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_scaled.pdf`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    rawDiv.appendChild(scaledPdfBtn);
+
+    const scaledJpgBtn = document.createElement('button');
+    scaledJpgBtn.className = 'eps-btn';
+    scaledJpgBtn.style.backgroundColor = '#27ae60';
+    scaledJpgBtn.innerText = t('btnScaledJpg');
+    scaledJpgBtn.addEventListener('click', () => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = Math.round(item.rawCanvas.width * (item.scaleFactor / (document.getElementById('renderQuality').value === 'light' ? 0.25 : 0.125)));
+        tempCanvas.height = Math.round(item.rawCanvas.height * (item.scaleFactor / (document.getElementById('renderQuality').value === 'light' ? 0.25 : 0.125)));
+        const tCtx2 = tempCanvas.getContext('2d');
+        tCtx2.fillStyle = '#FFFFFF';
+        tCtx2.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tCtx2.drawImage(item.rawCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+        
+        const dataUrl = generateJpgDataUrl(tempCanvas);
+        const blob = dataUrlToBlob(dataUrl);
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_scaled.jpg`;
+        link.click();
+        setTimeout(() => { URL.revokeObjectURL(url); tempCanvas.width = 0; tempCanvas.height = 0; }, 5000);
+    });
+    rawDiv.appendChild(scaledJpgBtn);
+
+    const rawEpsBtn = document.createElement('button');
+    rawEpsBtn.className = 'eps-btn';
+    rawEpsBtn.style.backgroundColor = '#8e44ad';
+    rawEpsBtn.innerText = t('btnSkeletonEps');
+    rawEpsBtn.addEventListener('click', () => {
+        const blob = new Blob([item.fullLinesEpsString], { type: 'application/postscript' });
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_skeleton.eps`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    rawDiv.appendChild(rawEpsBtn);
+
+    const sliderContainer = document.createElement('div');
+    sliderContainer.className = 'slider-container';
+    sliderContainer.innerHTML = `<strong>${t('lblDensity')} </strong><span class="thresh-val">${item.threshold}</span>`;
+    
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = 0; slider.max = 255; slider.value = item.threshold;
+    sliderContainer.appendChild(document.createElement('br'));
+    sliderContainer.appendChild(slider);
+
+    let debounceTimer;
+    slider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        sliderContainer.querySelector('.thresh-val').innerText = val;
+        
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            item.threshold = val;
+            const newSilCanvas = generateSilhouetteCanvas(item.rawCanvas, val);
+            if (item.silCanvas) { item.silCanvas.width = 0; item.silCanvas.height = 0; }
+            item.silCanvas = newSilCanvas;
+            silImg.src = item.silCanvas.toDataURL('image/png');
+            item.epsString = generateSolidPolygonEpsString(newSilCanvas, item.scaleFactor);
+        }, 300);
+    });
+    silDiv.appendChild(sliderContainer);
+
+    const silPdfBtn = document.createElement('button');
+    silPdfBtn.className = 'eps-btn';
+    silPdfBtn.style.backgroundColor = '#16a085';
+    silPdfBtn.innerText = t('btnSilPdf');
+    silPdfBtn.addEventListener('click', () => {
+        const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+        const buffer = generatePdfBuffer(item.silCanvas, 1.0 / renderScale);
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_sil.pdf`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    silDiv.appendChild(silPdfBtn);
+
+    const silJpgBtn = document.createElement('button');
+    silJpgBtn.className = 'eps-btn';
+    silJpgBtn.style.backgroundColor = '#d35400';
+    silJpgBtn.innerText = t('btnSilJpg');
+    silJpgBtn.addEventListener('click', () => {
+        const dataUrl = generateJpgDataUrl(item.silCanvas);
+        const blob = dataUrlToBlob(dataUrl);
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_sil.jpg`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    silDiv.appendChild(silJpgBtn);
+
+    const epsBtn = document.createElement('button');
+    epsBtn.className = 'eps-btn';
+    epsBtn.innerText = t('btnSilEps');
+    epsBtn.addEventListener('click', () => {
+        const blob = new Blob([item.epsString], { type: 'application/postscript' });
+        const url = URL.createObjectURL(blob);
+        activeObjectUrls.push(url);
+        const safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_${safeTitle}_sil.eps`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    silDiv.appendChild(epsBtn);
+
+    imagesDiv.appendChild(rawDiv);
+    imagesDiv.appendChild(silDiv);
+    card.appendChild(imagesDiv);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta-info';
+    meta.innerHTML = `
+        <strong>${t('lblPixelSize')}</strong> ${item.rawCanvas.width} × ${item.rawCanvas.height} px<br>
+        <strong>${t('lblSizeInfo')}</strong> ${item.scaleMessage}
+    `;
+    card.appendChild(meta);
+
+    return card;
+}
+
+// 指定された範囲を順に取り込んで解析実行
+document.getElementById('processBtn').addEventListener('click', async () => {
+    if (manualSelections.length === 0) {
+        alert(t('msgNoSelection'));
+        return;
+    }
+
+    setStatus(t('msgProcessing'));
+
+    // 以前の抽出成果物を消去
+    extractedItems.forEach(item => {
+        if (item.rawCanvas) { item.rawCanvas.width = 0; item.rawCanvas.height = 0; }
+        if (item.silCanvas) { item.silCanvas.width = 0; item.silCanvas.height = 0; }
+        if (item.highResRawCanvas) { item.highResRawCanvas.width = 0; item.highResRawCanvas.height = 0; }
+    });
+    extractedItems = [];
+
+    const basePdfOrigRatio = getPdfOriginalRatio();
+    const targetRatio = getTargetRatio();
+
+    // ユーザーがマニュアル選択した順番（order順）で切り出し
+    const sortedSelections = [...manualSelections].sort((a, b) => a.order - b.order);
+
+    sortedSelections.forEach((sel) => {
+        const hrCanvasObj = pageCanvases.find(p => p.pageNum === sel.pageNum);
+        if (!hrCanvasObj) return;
+
+        const srcCanvas = hrCanvasObj.canvas;
+        const subCanvas = document.createElement('canvas');
+        subCanvas.width = sel.w;
+        subCanvas.height = sel.h;
+        const subCtx = subCanvas.getContext('2d');
+
+        subCtx.drawImage(srcCanvas, sel.x, sel.y, sel.w, sel.h, 0, 0, sel.w, sel.h);
+
+        const titleText = `p${sel.pageNum}_fig${sel.order}`;
+        renderIndividualPottery(subCanvas, titleText, basePdfOrigRatio, targetRatio);
+    });
+
+    renderAllItems();
+    setStatus(t('msgComplete', { count: extractedItems.length }));
+
+    if (extractedItems.length > 0) {
+        document.getElementById('sortBtn').disabled = extractedItems.length < 2;
+        document.getElementById('selectAllBtn').disabled = false;
+        document.getElementById('deselectAllBtn').disabled = false;
+        updateDownloadBtnState();
+    }
+});
+
+document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+    const targets = extractedItems.filter(i => i.selected);
+    if (targets.length === 0) return;
+
+    try {
+        const baseName = getBaseFileName();
+        const zip = new JSZip();
+        const folderRawPdf = zip.folder("1_Raw_PDF");
+        const folderRawJpg = zip.folder("2_Raw_JPG");
+        const folderScaledPdf = zip.folder("3_Scaled_PDF");
+        const folderScaledJpg = zip.folder("4_Scaled_JPG");
+        const folderSilPdf = zip.folder("5_Silhouette_PDF");
+        const folderSilJpg = zip.folder("6_Silhouette_JPG");
+        const folderSilEps = zip.folder("7_Silhouette_EPS");
+        const folderFullEps = zip.folder("8_Skeleton_EPS");
+
+        const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+        const usedZipFilenames = new Set();
+
+        targets.forEach((item) => {
+            let safeTitle = item.title.replace(/[^a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '_');
+            let fileKey = safeTitle;
+            let counter = 2;
+            while (usedZipFilenames.has(fileKey)) {
+                fileKey = `${safeTitle}_${counter}`;
+                counter++;
+            }
+            usedZipFilenames.add(fileKey);
+
+            const rawPdfBuffer = generatePdfBuffer(item.rawCanvas, 1.0 / renderScale);
+            const scaledPdfBuffer = generatePdfBuffer(item.rawCanvas, item.scaleFactor);
+            const silPdfBuffer = generatePdfBuffer(item.silCanvas, 1.0 / renderScale);
+
+            const rawJpgDataUrl = generateJpgDataUrl(item.rawCanvas);
+            const silJpgDataUrl = generateJpgDataUrl(item.silCanvas);
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = Math.round(item.rawCanvas.width * (item.scaleFactor / (renderScale === 4.0 ? 0.25 : 0.125)));
+            tempCanvas.height = Math.round(item.rawCanvas.height * (item.scaleFactor / (renderScale === 4.0 ? 0.25 : 0.125)));
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.fillStyle = '#FFFFFF';
+            tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tCtx.drawImage(item.rawCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+            const scaledJpgDataUrl = generateJpgDataUrl(tempCanvas);
+            tempCanvas.width = 0; tempCanvas.height = 0;
+
+            folderRawPdf.file(`${baseName}_${fileKey}_raw.pdf`, rawPdfBuffer);
+            folderRawJpg.file(`${baseName}_${fileKey}_raw.jpg`, dataUrlToBlob(rawJpgDataUrl));
+            folderScaledPdf.file(`${baseName}_${fileKey}_scaled.pdf`, scaledPdfBuffer);
+            folderScaledJpg.file(`${baseName}_${fileKey}_scaled.jpg`, dataUrlToBlob(scaledJpgDataUrl));
+            folderSilPdf.file(`${baseName}_${fileKey}_sil.pdf`, silPdfBuffer);
+            folderSilJpg.file(`${baseName}_${fileKey}_sil.jpg`, dataUrlToBlob(silJpgDataUrl));
+            
+            folderSilEps.file(`${baseName}_${fileKey}_silhouette.eps`, item.epsString);
+            folderFullEps.file(`${baseName}_${fileKey}_skeleton.eps`, item.fullLinesEpsString);
+        });
+
+        setStatus(t('msgZipping'));
+        const content = await zip.generateAsync({type: "blob"});
+        const url = URL.createObjectURL(content);
+        activeObjectUrls.push(url);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${baseName}_extracted_artifacts_bundle.zip`;
+        link.click();
+        
+        setStatus(t('msgZipStart', { count: targets.length }));
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch(err) {
+        setStatus('Download error: ' + err.message);
+        console.error(err);
+    }
+});
+
+function generateSilhouetteCanvas(figCanvas, threshold = 220) {
+    const w = figCanvas.width; const h = figCanvas.height;
+    const srcCtx = figCanvas.getContext('2d');
+    const imgData = srcCtx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    const binMap = new Uint8Array(w * h);
+    for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+        binMap[i / 4] = gray < threshold ? 1 : 0;
+    }
+
+    const bgMap = new Uint8Array(w * h); const queue = [];
+    for (let x = 0; x < w; x++) {
+        if (binMap[x] === 0) { bgMap[x] = 1; queue.push(x); }
+        if (binMap[(h - 1) * w + x] === 0) { bgMap[(h - 1) * w + x] = 1; queue.push((h - 1) * w + x); }
+    }
+    for (let y = 0; y < h; y++) {
+        if (binMap[y * w] === 0) { bgMap[y * w] = 1; queue.push(y * w); }
+        if (binMap[y * w + (w - 1)] === 0) { bgMap[y * w + (w - 1)] = 1; queue.push(y * w + (w - 1)); }
+    }
+    while (queue.length > 0) {
+        const idx = queue.pop();
+        const cx = idx % w; const cy = Math.floor(idx / w);
+        const neighbors = [[cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]];
+        for (const [nx, ny] of neighbors) {
+            if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                const nIdx = ny * w + nx;
+                if (binMap[nIdx] === 0 && bgMap[nIdx] === 0) { bgMap[nIdx] = 1; queue.push(nIdx); }
+            }
+        }
+    }
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = w; outCanvas.height = h;
+    const outCtx = outCanvas.getContext('2d');
+    const outImgData = outCtx.createImageData(w, h); const outBuf = outImgData.data;
+    for (let i = 0; i < w * h; i++) {
+        const pIdx = i * 4;
+        if (bgMap[i] !== 1) { outBuf[pIdx] = 0; outBuf[pIdx+1] = 0; outBuf[pIdx+2] = 0; outBuf[pIdx+3] = 255; }
+        else { outBuf[pIdx] = 255; outBuf[pIdx+1] = 255; outBuf[pIdx+2] = 255; outBuf[pIdx+3] = 255; }
+    }
+    outCtx.putImageData(outImgData, 0, 0);
+    return outCanvas;
+}
+
+function calculateScaleFactor(pdfOrigRatio, targetRatio) {
+    const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+    return (1.0 / renderScale) * (targetRatio / pdfOrigRatio);
+}
+
+function skeletonize(grid, width, height) {
+    let current = new Uint8Array(grid);
+    let changed = true;
+    
+    function get(x, y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return 0;
+        return current[y * width + x];
+    }
+
+    while (changed) {
+        changed = false;
+        let deletable1 = [];
+        
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                if (get(x, y) === 1) {
+                    let p2 = get(x, y-1), p3 = get(x+1, y-1), p4 = get(x+1, y), p5 = get(x+1, y+1);
+                    let p6 = get(x, y+1), p7 = get(x-1, y+1), p8 = get(x-1, y), p9 = get(x-1, y-1);
+                    
+                    let B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+                    let A = 0;
+                    if (p2 === 0 && p3 === 1) A++; if (p3 === 0 && p4 === 1) A++;
+                    if (p4 === 0 && p5 === 1) A++; if (p5 === 0 && p6 === 1) A++;
+                    if (p6 === 0 && p7 === 1) A++; if (p7 === 0 && p8 === 1) A++;
+                    if (p8 === 0 && p9 === 1) A++; if (p9 === 0 && p2 === 1) A++;
+                    
+                    if (B >= 2 && B <= 6 && A === 1 && (p2 * p4 * p6 === 0) && (p4 * p6 * p8 === 0)) {
+                        deletable1.push(y * width + x);
+                    }
+                }
+            }
+        }
+        if (deletable1.length > 0) {
+            changed = true;
+            for (let idx of deletable1) current[idx] = 0;
+        }
+        
+        let deletable2 = [];
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                if (get(x, y) === 1) {
+                    let p2 = get(x, y-1), p3 = get(x+1, y-1), p4 = get(x+1, y), p5 = get(x+1, y+1);
+                    let p6 = get(x, y+1), p7 = get(x-1, y+1), p8 = get(x-1, y), p9 = get(x-1, y-1);
+                    
+                    let B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+                    let A = 0;
+                    if (p2 === 0 && p3 === 1) A++; if (p3 === 0 && p4 === 1) A++;
+                    if (p4 === 0 && p5 === 1) A++; if (p5 === 0 && p6 === 1) A++;
+                    if (p6 === 0 && p7 === 1) A++; if (p7 === 0 && p8 === 1) A++;
+                    if (p8 === 0 && p9 === 1) A++; if (p9 === 0 && p2 === 1) A++;
+                    
+                    if (B >= 2 && B <= 6 && A === 1 && (p2 * p4 * p8 === 0) && (p2 * p6 * p8 === 0)) {
+                        deletable2.push(y * width + x);
+                    }
+                }
+            }
+        }
+        if (deletable2.length > 0) {
+            changed = true;
+            for (let idx of deletable2) current[idx] = 0;
+        }
+    }
+    return current;
+}
+
+function generateDetailedLineEpsString(figCanvas, scaleFactor) {
+    const w = figCanvas.width;
+    const h = figCanvas.height;
+    const ctx = figCanvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    const rawGrid = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const gray = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
+            if (gray < 210) {
+                rawGrid[y * w + x] = 1;
+            }
+        }
+    }
+
+    const skeletonGrid = skeletonize(rawGrid, w, h);
+    const visited = new Uint8Array(w * h);
+    let psSegments = [];
+
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const idx = y * w + x;
+            if (skeletonGrid[idx] === 1 && !visited[idx]) {
+                let path = [];
+                let q = [[x, y]];
+                visited[idx] = 1;
+
+                while(q.length > 0) {
+                    let [cx, cy] = q.pop();
+                    path.push({x: cx, y: cy});
+
+                    const neighbors = [[cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1], [cx+1, cy+1], [cx-1, cy-1], [cx+1, cy-1], [cx-1, cy+1]];
+                    for (let [nx, ny] of neighbors) {
+                        if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                            let nIdx = ny * w + nx;
+                            if (skeletonGrid[nIdx] === 1 && !visited[nIdx]) {
+                                visited[nIdx] = 1;
+                                q.push([nx, ny]);
+                            }
+                        }
+                    }
+                }
+
+                if (path.length >= 2) {
+                    psSegments.push(`${(path[0].x * scaleFactor).toFixed(3)} ${((h - path[0].y) * scaleFactor).toFixed(3)} m`);
+                    for (let i = 1; i < path.length; i++) {
+                        psSegments.push(`${(path[i].x * scaleFactor).toFixed(3)} ${((h - path[i].y) * scaleFactor).toFixed(3)} l`);
+                    }
+                }
+            }
+        }
+    }
+
+    const bboxW = (w * scaleFactor).toFixed(2);
+    const bboxH = (h * scaleFactor).toFixed(2);
+
+    return `%!PS-Adobe-3.0 EPSF-3.0
+%%Creator: Archaeological Artifact Vectorizer
+%%BoundingBox: 0 0 ${Math.ceil(w * scaleFactor)} ${Math.ceil(h * scaleFactor)}
+%%HiResBoundingBox: 0.00 0.00 ${bboxW} ${bboxH}
+%%EndComments
+/m {moveto} bind def
+/l {lineto} bind def
+gsave
+0.5 setlinewidth
+0 setgray
+newpath
+${psSegments.join('\n')}
+stroke
+grestore
+%%EOF
+`;
+}
+
+function generateSolidPolygonEpsString(silCanvas, scaleFactor) {
+    const w = silCanvas.width;
+    const h = silCanvas.height;
+    const ctx = silCanvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    const gridW = w + 2;
+    const gridH = h + 2;
+    const grid = new Uint8Array(gridW * gridH);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const gray = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
+            if (gray < 128) {
+                grid[(y + 1) * gridW + (x + 1)] = 1;
+            }
+        }
+    }
+
+    const edges = new Map();
+    const addEdge = (v1, v2) => {
+        let arr = edges.get(v1);
+        if (!arr) { arr = []; edges.set(v1, arr); }
+        arr.push(v2);
+    };
+
+    for (let y = 1; y < gridH; y++) {
+        for (let x = 1; x < gridW; x++) {
+            const isBlack = grid[y * gridW + x];
+            const topBlack = grid[(y - 1) * gridW + x];
+            const leftBlack = grid[y * gridW + (x - 1)];
+
+            const vTopLeft = (y - 1) * (gridW + 1) + (x - 1);
+            const vTopRight = (y - 1) * (gridW + 1) + x;
+            const vBottomLeft = y * (gridW + 1) + (x - 1);
+
+            if (isBlack && !topBlack) addEdge(vTopRight, vTopLeft);
+            else if (!isBlack && topBlack) addEdge(vTopLeft, vTopRight);
+
+            if (isBlack && !leftBlack) addEdge(vTopLeft, vBottomLeft);
+            else if (!isBlack && leftBlack) addEdge(vBottomLeft, vTopLeft);
+        }
+    }
+
+    let psPaths = [];
+
+    for (const [startV, outs] of edges.entries()) {
+        while (outs.length > 0) {
+            let currentV = startV;
+            let path = [];
+            
+            while (true) {
+                let currentOuts = edges.get(currentV);
+                if (!currentOuts || !currentOuts.length) break;
+                
+                const nextV = currentOuts.pop();
+                path.push(currentV);
+                currentV = nextV;
+                
+                if (currentV === startV) break;
+            }
+            
+            if (path.length > 2) {
+                let coords = path.map(v => {
+                    return { x: (v % (gridW + 1)) - 1, y: Math.floor(v / (gridW + 1)) - 1 };
+                });
+
+                let area = 0;
+                for (let i = 0; i < coords.length; i++) {
+                    const p1 = coords[i];
+                    const p2 = coords[(i + 1) % coords.length];
+                    area += (p1.x * p2.y - p2.x * p1.y);
+                }
+                area = Math.abs(area) / 2;
+
+                if (area > 100) {
+                    psPaths.push(`${(coords[0].x * scaleFactor).toFixed(3)} ${((h - coords[0].y) * scaleFactor).toFixed(3)} m`);
+                    for (let i = 1; i < coords.length; i++) {
+                        psPaths.push(`${(coords[i].x * scaleFactor).toFixed(3)} ${((h - coords[i].y) * scaleFactor).toFixed(3)} l`);
+                    }
+                    psPaths.push("cp");
+                }
+            }
+        }
+    }
+
+    const bboxW = (w * scaleFactor).toFixed(2);
+    const bboxH = (h * scaleFactor).toFixed(2);
+
+    return `%!PS-Adobe-3.0 EPSF-3.0
+%%Creator: Archaeological Artifact Vectorizer - Silhouette
+%%BoundingBox: 0 0 ${Math.ceil(w * scaleFactor)} ${Math.ceil(h * scaleFactor)}
+%%HiResBoundingBox: 0.00 0.00 ${bboxW} ${bboxH}
+%%EndComments
+/m {moveto} bind def
+/l {lineto} bind def
+/cp {closepath} bind def
+gsave
+0 setgray
+newpath
+${psPaths.join('\n')}
+eofill
+grestore
+%%EOF
+`;
+}
+
+function renderIndividualPottery(subCanvas, titleText, pdfOrigRatio, targetRatio) {
+    const resultsContainer = document.getElementById('results');
+    
+    const defaultThreshold = 220;
+    const highResSilCanvas = generateSilhouetteCanvas(subCanvas, defaultThreshold);
+    const scaleFactor = calculateScaleFactor(pdfOrigRatio, targetRatio);
+
+    const epsString = generateSolidPolygonEpsString(highResSilCanvas, scaleFactor);
+    const fullLinesEpsString = generateDetailedLineEpsString(subCanvas, scaleFactor);
+
+    const exportRawCanvas = subCanvas; 
+    const exportSilCanvas = highResSilCanvas;
+
+    const renderScale = document.getElementById('renderQuality').value === 'light' ? 4.0 : 8.0;
+    const logicalWidthPt = exportRawCanvas.width / renderScale * (targetRatio / pdfOrigRatio) * 72;
+    const logicalWidthMm = (logicalWidthPt * 0.352778).toFixed(1);
+    
+    const scaleMessage = `${t('outputScaleRatio')} <strong>${(targetRatio / pdfOrigRatio).toFixed(3)}</strong> | ${t('paperWidth')} <strong>${logicalWidthMm} mm</strong>`;
+
+    const item = {
+        title: titleText,
+        rawCanvas: exportRawCanvas, 
+        silCanvas: exportSilCanvas,
+        epsString: epsString,
+        fullLinesEpsString: fullLinesEpsString,
+        scaleMessage: scaleMessage,
+        fingerprint: null,
+        selected: true,
+        
+        highResRawCanvas: subCanvas,
+        scaleFactor: scaleFactor,
+        threshold: defaultThreshold,
+        itemPdfOrigRatio: pdfOrigRatio,
+
+        trimX: 0,
+        trimY: 0,
+        trimW: subCanvas.width,
+        trimH: subCanvas.height
+    };
+
+    extractedItems.push(item);
+}
+</script>
+
+</body>
+</html>
