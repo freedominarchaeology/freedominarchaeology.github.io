@@ -211,6 +211,7 @@
         let isLogging = false;
         let routeLog = [];
         let logTimer = null;
+        let lastLoggedPoint = null;
 
         const safeGetStorage = (key, defaultVal, isFloat = false) => {
             try {
@@ -443,14 +444,28 @@
         logToggleBtn.addEventListener('click', () => {
             if (!isLogging) {
                 routeLog = [];
+                lastLoggedPoint = null;
                 isLogging = true;
                 logToggleBtn.innerText = "⏹️ 記録停止＆出力";
                 logToggleBtn.className = "danger";
 
+                // 【修正1】 0.5m以上移動した場合のみログへ追加（静止中の揺らぎ・ノイズを除去）
                 logTimer = setInterval(() => {
                     const coords = getCurrentTransformedCoords();
                     if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
-                        routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
+                        if (!lastLoggedPoint) {
+                            routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
+                            lastLoggedPoint = coords;
+                        } else {
+                            const dx = coords.x - lastLoggedPoint.x;
+                            const dy = coords.y - lastLoggedPoint.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (dist >= 0.5) {
+                                routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
+                                lastLoggedPoint = coords;
+                            }
+                        }
                     }
                 }, 1000);
 
@@ -595,16 +610,31 @@
                     }
                 }
 
-                // 2. ログルート（赤線）描画
+                // 【修正2】 2. ログルート（赤線）描画（ベジェ曲線によるスムージング処理）
                 if (validLog.length > 0) {
                     ctx.strokeStyle = '#ef4444';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    validLog.forEach((p, idx) => {
-                        const cv = toCanvasCoord(p.x, p.y);
-                        if (idx === 0) ctx.moveTo(cv.x, cv.y);
-                        else ctx.lineTo(cv.x, cv.y);
-                    });
+
+                    const firstCv = toCanvasCoord(validLog[0].x, validLog[0].y);
+                    ctx.moveTo(firstCv.x, firstCv.y);
+
+                    if (validLog.length < 3) {
+                        validLog.forEach((p) => {
+                            const cv = toCanvasCoord(p.x, p.y);
+                            ctx.lineTo(cv.x, cv.y);
+                        });
+                    } else {
+                        for (let i = 1; i < validLog.length - 1; i++) {
+                            const p1 = toCanvasCoord(validLog[i].x, validLog[i].y);
+                            const p2 = toCanvasCoord(validLog[i + 1].x, validLog[i + 1].y);
+                            const midX = (p1.x + p2.x) / 2;
+                            const midY = (p1.y + p2.y) / 2;
+                            ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+                        }
+                        const lastCv = toCanvasCoord(validLog[validLog.length - 1].x, validLog[validLog.length - 1].y);
+                        ctx.lineTo(lastCv.x, lastCv.y);
+                    }
                     ctx.stroke();
 
                     // 軌跡点
