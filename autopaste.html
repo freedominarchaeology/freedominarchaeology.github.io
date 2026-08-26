@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="appTitle">考古学図面 Excel自動貼り付けツール</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #27ae60;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        .title-section h1 { font-size: 1.5rem; color: var(--primary-color); margin-bottom: 5px; }
+        .title-section p.subtitle { font-size: 0.9rem; color: #666; }
+        
+        /* 言語選択セレクタ */
+        .lang-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        .lang-selector select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e0;
+            font-family: inherit;
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        .drop-zone {
+            border: 2px dashed #a0aec0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f7fafc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 20px;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-color);
+            background: #f0fff4;
+        }
+        .drop-zone p { color: #4a5568; font-weight: 500; }
+        .drop-zone .sub-text { font-size: 0.85rem; color: #a0aec0; }
+        .drop-zone input { display: none; }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { background-color: #219653; }
+        .btn:disabled { background-color: #cbd5e0; cursor: not-allowed; }
+        .btn-danger { background-color: #e53e3e; }
+        .btn-danger:hover { background-color: #c53030; }
+        .file-info { font-size: 0.9rem; color: #718096; font-weight: 600; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #edf2f7;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .col-num { width: 50px; text-align: center; }
+        .col-img { width: 220px; }
+        .col-desc { width: auto; }
+        .col-action { width: 80px; text-align: center; }
+        
+        .img-preview {
+            max-width: 200px;
+            max-height: 150px;
+            object-fit: contain;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+            background: #fff;
+        }
+        .img-meta {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 6px;
+            text-align: center;
+            word-break: break-all;
+        }
+        textarea.desc-input {
+            width: 100%;
+            height: 120px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+        textarea.desc-input:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+        }
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-sm:hover { background-color: #c53030; }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+            font-size: 0.95rem;
+        }
+        .status-bar {
+            margin-top: 15px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .status-info { background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
+        .status-success { background: #f0fff4; color: #276749; border: 1px solid #c6f6d5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-top">
+        <div class="title-section">
+            <h1 data-i18n="appTitle">考古学図面 Excel自動貼り付けツール</h1>
+            <p class="subtitle" data-i18n="appSubtitle">完全オフライン環境で動作／JPEG図面をA列セル内に配置したExcel（.xlsx）を出力します</p>
+        </div>
+        <div class="lang-selector">
+            🌐 <select id="langSelect">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">简体中文</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+        <p>📷 <span data-i18n="dropZoneMain">ここにJPEG画像をドラッグ＆ドロップ</span><br>
+        <span class="sub-text" data-i18n="dropZoneSub">またはクリックしてファイルを選択</span></p>
+        <input type="file" id="fileInput" multiple accept="image/jpeg, image/jpg">
+    </div>
+
+    <div class="controls">
+        <div class="file-info" id="fileCountInfo"><span data-i18n="itemCount">件数: 0 件</span></div>
+        <div>
+            <button class="btn btn-danger" id="clearBtn" disabled data-i18n="clearAllBtn">すべて消去</button>
+            <button class="btn" id="exportBtn" disabled>
+                <span>📊 <span data-i18n="exportBtn">Excel (.xlsx) 書き出し</span></span>
+            </button>
+        </div>
+    </div>
+
+    <div id="statusBar" class="status-bar"></div>
+
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th class="col-num" data-i18n="thNo">No.</th>
+                <th class="col-img" data-i18n="thImage">図面 (A列配置)</th>
+                <th class="col-desc" data-i18n="thDesc">説明文 (B列入力)</th>
+                <th class="col-action" data-i18n="thAction">操作</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr id="emptyRow">
+                <td colspan="4" class="empty-state" data-i18n="emptyState">画像が選択されていません</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+/**
+ * -------------------------------------------------------------
+ * i18n Dictionary (多言語辞書)
+ * -------------------------------------------------------------
+ */
+const i18nDict = {
+    "ja": {
+        "appTitle": "考古学図面 Excel自動貼り付けツール",
+        "appSubtitle": "完全オフライン環境で動作／JPEG図面をA列セル内に配置したExcel（.xlsx）を出力します",
+        "dropZoneMain": "ここにJPEG画像をドラッグ＆ドロップ",
+        "dropZoneSub": "またはクリックしてファイルを選択",
+        "itemCount": "件数: {count} 件",
+        "clearAllBtn": "すべて消去",
+        "exportBtn": "Excel (.xlsx) 書き出し",
+        "thNo": "No.",
+        "thImage": "図面 (A列配置)",
+        "thDesc": "説明文 (B列入力)",
+        "thAction": "操作",
+        "emptyState": "画像が選択されていません",
+        "textareaPlaceholder": "図面の説明文を入力してください...",
+        "btnDelete": "削除",
+        "msgLoading": "画像を読み込み中...",
+        "msgInvalidFile": "JPEG画像 (.jpg, .jpeg) を選択してください。",
+        "msgAdded": "{count} 件の画像を追加しました。",
+        "msgCleared": "クリアしました。",
+        "msgGenerating": "Excelファイルを生成中...",
+        "msgSuccess": "Excelファイルの書き出しが完了しました！",
+        "msgError": "エラーが発生しました: ",
+        "excelHeaderA": "図面",
+        "excelHeaderB": "説明文",
+        "excelSheetName": "図面一覧",
+        "defaultExcelFilename": "図面一覧"
+    },
+    "en": {
+        "appTitle": "Archaeological Drawing Excel Auto-Placer",
+        "appSubtitle": "Fully Offline / Outputs Excel (.xlsx) with JPEG images placed inside Column A cells",
+        "dropZoneMain": "Drag & Drop JPEG images here",
+        "dropZoneSub": "or click to select files",
+        "itemCount": "Items: {count}",
+        "clearAllBtn": "Clear All",
+        "exportBtn": "Export Excel (.xlsx)",
+        "thNo": "No.",
+        "thImage": "Image (Col A)",
+        "thDesc": "Description (Col B)",
+        "thAction": "Action",
+        "emptyState": "No images selected",
+        "textareaPlaceholder": "Enter description for this drawing...",
+        "btnDelete": "Delete",
+        "msgLoading": "Loading images...",
+        "msgInvalidFile": "Please select JPEG images (.jpg, .jpeg).",
+        "msgAdded": "Added {count} images.",
+        "msgCleared": "All items cleared.",
+        "msgGenerating": "Generating Excel file...",
+        "msgSuccess": "Excel export completed successfully!",
+        "msgError": "An error occurred: ",
+        "excelHeaderA": "Image",
+        "excelHeaderB": "Description",
+        "excelSheetName": "Drawings",
+        "defaultExcelFilename": "DrawingsList"
+    },
+    "zh": {
+        "appTitle": "考古图纸 Excel 自动导入工具",
+        "appSubtitle": "完全离线运行 / 导出 Excel (.xlsx) 并将 JPEG 图片嵌入 A 列单元格",
+        "dropZoneMain": "将 JPEG 图片拖放到此处",
+        "dropZoneSub": "或点击选择文件",
+        "itemCount": "数量: {count}",
+        "clearAllBtn": "全部清除",
+        "exportBtn": "导出 Excel (.xlsx)",
+        "thNo": "序号",
+        "thImage": "图纸 (A列)",
+        "thDesc": "说明文本 (B列)",
+        "thAction": "操作",
+        "emptyState": "未选择图片",
+        "textareaPlaceholder": "请输入图纸说明...",
+        "btnDelete": "删除",
+        "msgLoading": "正在加载图片...",
+        "msgInvalidFile": "请选择 JPEG 图片 (.jpg, .jpeg)。",
+        "msgAdded": "已添加 {count} 张图片。",
+        "msgCleared": "已清空所有内容。",
+        "msgGenerating": "正在生成 Excel 文件...",
+        "msgSuccess": "Excel 导出成功！",
+        "msgError": "发生错误: ",
+        "excelHeaderA": "图纸",
+        "excelHeaderB": "说明",
+        "excelSheetName": "图纸列表",
+        "defaultExcelFilename": "图纸列表"
+    },
+    "es": {
+        "appTitle": "Herramienta Excel para Dibujos Arqueológicos",
+        "appSubtitle": "Totalmente Offline / Exporta un Excel (.xlsx) con imágenes JPEG incrustadas en la Columna A",
+        "dropZoneMain": "Arrastra y suelta imágenes JPEG aquí",
+        "dropZoneSub": "o haz clic para seleccionar archivos",
+        "itemCount": "Elementos: {count}",
+        "clearAllBtn": "Borrar Todo",
+        "exportBtn": "Exportar Excel (.xlsx)",
+        "thNo": "No.",
+        "thImage": "Imagen (Col A)",
+        "thDesc": "Descripción (Col B)",
+        "thAction": "Acción",
+        "emptyState": "No se seleccionaron imágenes",
+        "textareaPlaceholder": "Introduzca la descripción del dibujo...",
+        "btnDelete": "Eliminar",
+        "msgLoading": "Cargando imágenes...",
+        "msgInvalidFile": "Por favor, seleccione imágenes JPEG (.jpg, .jpeg).",
+        "msgAdded": "Se agregaron {count} imágenes.",
+        "msgCleared": "Todo borrado.",
+        "msgGenerating": "Generando archivo Excel...",
+        "msgSuccess": "¡Exportación de Excel completada con éxito!",
+        "msgError": "Ocurrió un error: ",
+        "excelHeaderA": "Imagen",
+        "excelHeaderB": "Descripción",
+        "excelSheetName": "Dibujos",
+        "defaultExcelFilename": "ListaDeDibujos"
+    }
+};
+
+let currentLang = 'en'; // default fallback
+
+// 言語の初期化 (ブラウザ言語判定)
+function initLanguage() {
+    const langSelect = document.getElementById('langSelect');
+    const userLang = (navigator.language || navigator.userLanguage).toLowerCase();
+    
+    if (userLang.startsWith('ja')) currentLang = 'ja';
+    else if (userLang.startsWith('zh')) currentLang = 'zh';
+    else if (userLang.startsWith('es')) currentLang = 'es';
+    else currentLang = 'en'; // fallback
+
+    langSelect.value = currentLang;
+    langSelect.addEventListener('change', (e) => {
+        currentLang = e.target.value;
+        applyLanguage();
+        renderTable(); // テーブル内のプレースホルダー等の再描画
+        updateItemCount(); // カウント表示の更新
+    });
+    
+    applyLanguage();
+}
+
+// 辞書からテキスト取得
+function t(key, params = {}) {
+    let text = i18nDict[currentLang][key] || i18nDict['en'][key] || key;
+    for (const [k, v] of Object.entries(params)) {
+        text = text.replace(`{${k}}`, v);
+    }
+    return text;
+}
+
+// 画面全体の静的テキスト適用
+function applyLanguage() {
+    document.documentElement.lang = currentLang;
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+    });
+    // タイトルタグも更新
+    document.title = t('appTitle');
+}
+
+/**
+ * -------------------------------------------------------------
+ * 軽量 Minimal Zip Builder & OpenXML Generator
+ * -------------------------------------------------------------
+ */
+class MiniZip {
+    constructor() { this.files = []; }
+    addFile(filename, data) {
+        let bytes;
+        if (typeof data === 'string') bytes = new TextEncoder().encode(data);
+        else if (data instanceof ArrayBuffer) bytes = new Uint8Array(data);
+        else bytes = data;
+        this.files.push({ name: filename, data: bytes });
+    }
+    crc32(buf) {
+        let table = window._crcTable;
+        if (!table) {
+            table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+                table[i] = c;
+            }
+            window._crcTable = table;
+        }
+        let crc = 0xffffffff;
+        for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xff];
+        return (crc ^ 0xffffffff) >>> 0;
+    }
+    generateBlob() {
+        const localHeaders = [], cdHeaders = [];
+        let offset = 0;
+        for (const file of this.files) {
+            const nameBytes = new TextEncoder().encode(file.name);
+            const crc = this.crc32(file.data);
+            const size = file.data.length;
+
+            const lh = new Uint8Array(30 + nameBytes.length);
+            const dvL = new DataView(lh.buffer);
+            dvL.setUint32(0, 0x04034b50, true);
+            dvL.setUint16(4, 20, true); dvL.setUint16(6, 0, true); dvL.setUint16(8, 0, true);
+            dvL.setUint16(10, 0, true); dvL.setUint16(12, 0, true);
+            dvL.setUint32(14, crc, true); dvL.setUint32(18, size, true); dvL.setUint32(22, size, true);
+            dvL.setUint16(26, nameBytes.length, true); dvL.setUint16(28, 0, true);
+            lh.set(nameBytes, 30);
+
+            const cd = new Uint8Array(46 + nameBytes.length);
+            const dvC = new DataView(cd.buffer);
+            dvC.setUint32(0, 0x02014b50, true);
+            dvC.setUint16(4, 20, true); dvC.setUint16(6, 20, true); dvC.setUint16(8, 0, true); dvC.setUint16(10, 0, true);
+            dvC.setUint16(12, 0, true); dvC.setUint16(14, 0, true);
+            dvC.setUint32(16, crc, true); dvC.setUint32(20, size, true); dvC.setUint32(24, size, true);
+            dvC.setUint16(28, nameBytes.length, true); dvC.setUint16(30, 0, true); dvC.setUint16(32, 0, true);
+            dvC.setUint16(34, 0, true); dvC.setUint16(36, 0, true);
+            dvC.setUint32(38, 32, true); dvC.setUint32(42, offset, true);
+            cd.set(nameBytes, 46);
+
+            localHeaders.push(lh, file.data);
+            cdHeaders.push(cd);
+            offset += lh.length + size;
+        }
+
+        const cdOffset = offset;
+        let cdSize = 0;
+        for (const cd of cdHeaders) cdSize += cd.length;
+
+        const eocd = new Uint8Array(22);
+        const dvE = new DataView(eocd.buffer);
+        dvE.setUint32(0, 0x06054b50, true);
+        dvE.setUint16(4, 0, true); dvE.setUint16(6, 0, true);
+        dvE.setUint16(8, this.files.length, true); dvE.setUint16(10, this.files.length, true);
+        dvE.setUint32(12, cdSize, true); dvE.setUint32(16, cdOffset, true); dvE.setUint16(20, 0, true);
+
+        return new Blob([...localHeaders, ...cdHeaders, eocd], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
+}
+
+/**
+ * -------------------------------------------------------------
+ * アプリケーションロジック
+ * -------------------------------------------------------------
+ */
+let items = []; // { id, file, objectUrl, width, height, description }
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const tableBody = document.getElementById('tableBody');
+const exportBtn = document.getElementById('exportBtn');
+const clearBtn = document.getElementById('clearBtn');
+const fileCountInfo = document.getElementById('fileCountInfo');
+const statusBar = document.getElementById('statusBar');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) handleFiles(e.target.files);
+});
+clearBtn.addEventListener('click', clearAll);
+exportBtn.addEventListener('click', exportToExcel);
+
+async function handleFiles(fileList) {
+    showStatus(t('msgLoading'), 'info');
+    const validFiles = Array.from(fileList).filter(f => f.type === 'image/jpeg' || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg'));
+    
+    if (validFiles.length === 0) {
+        showStatus(t('msgInvalidFile'), 'info');
+        return;
+    }
+
+    for (const file of validFiles) {
+        const id = 'img_' + Math.random().toString(36).substr(2, 9);
+        const objectUrl = URL.createObjectURL(file);
+        const dim = await getImageDimensions(objectUrl);
+        items.push({ id, file, objectUrl, width: dim.width, height: dim.height, description: '' });
+    }
+    fileInput.value = '';
+    renderTable();
+    showStatus(t('msgAdded', { count: validFiles.length }), 'success');
+}
+
+function getImageDimensions(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.width, height: img.height });
+        img.onerror = () => resolve({ width: 200, height: 150 });
+        img.src = url;
+    });
+}
+
+function updateItemCount() {
+    fileCountInfo.innerHTML = `<span data-i18n="itemCount">${t('itemCount', { count: items.length })}</span>`;
+}
+
+function renderTable() {
+    tableBody.innerHTML = '';
+    
+    if (items.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" class="empty-state" data-i18n="emptyState">${t('emptyState')}</td></tr>`;
+        exportBtn.disabled = true;
+        clearBtn.disabled = true;
+        updateItemCount();
+        return;
+    }
+
+    exportBtn.disabled = false;
+    clearBtn.disabled = false;
+    updateItemCount();
+
+    items.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="col-num">${index + 1}</td>
+            <td class="col-img">
+                <img src="${item.objectUrl}" class="img-preview" alt="Preview">
+                <div class="img-meta">${escapeHtml(item.file.name)}<br>(${item.width} x ${item.height}px)</div>
+            </td>
+            <td class="col-desc">
+                <textarea class="desc-input" placeholder="${t('textareaPlaceholder')}" data-id="${item.id}">${escapeHtml(item.description)}</textarea>
+            </td>
+            <td class="col-action">
+                <button class="btn-sm" onclick="deleteItem('${item.id}')">${t('btnDelete')}</button>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.desc-input').forEach(textarea => {
+        textarea.addEventListener('input', (e) => {
+            const id = e.target.getAttribute('data-id');
+            const targetItem = items.find(i => i.id === id);
+            if (targetItem) targetItem.description = e.target.value;
+        });
+    });
+}
+
+function deleteItem(id) {
+    const index = items.findIndex(i => i.id === id);
+    if (index !== -1) {
+        URL.revokeObjectURL(items[index].objectUrl);
+        items.splice(index, 1);
+        renderTable();
+    }
+}
+
+function clearAll() {
+    items.forEach(i => URL.revokeObjectURL(i.objectUrl));
+    items = [];
+    renderTable();
+    showStatus(t('msgCleared'), 'info');
+}
+
+function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+}
+
+function showStatus(msg, type) {
+    statusBar.style.display = 'block';
+    statusBar.className = 'status-bar ' + (type === 'success' ? 'status-success' : 'status-info');
+    statusBar.textContent = msg;
+    setTimeout(() => { statusBar.style.display = 'none'; }, 4000);
+}
+
+/**
+ * -------------------------------------------------------------
+ * Excel (.xlsx) OpenXML Export Engine
+ * -------------------------------------------------------------
+ */
+async function exportToExcel() {
+    if (items.length === 0) return;
+    showStatus(t('msgGenerating'), 'info');
+    exportBtn.disabled = true;
+
+    try {
+        const zip = new MiniZip();
+
+        // 1. [Content_Types].xml
+        zip.addFile('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="jpeg" ContentType="image/jpeg"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+</Types>`);
+
+        // 2. _rels/.rels
+        zip.addFile('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`);
+
+        // 3. xl/_rels/workbook.xml.rels
+        zip.addFile('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>`);
+
+        // 4. xl/workbook.xml
+        const sheetNameEscaped = escapeHtml(t('excelSheetName'));
+        zip.addFile('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="${sheetNameEscaped}" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>`);
+
+        // 5. xl/styles.xml
+        zip.addFile('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="1"><font><sz val="11"/><name val="Arial"/></font></fonts>
+  <fills count="2">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+  </fills>
+  <borders count="1"><border><left/><right/><top/><bottom/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="2">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+  </cellXfs>
+</styleSheet>`);
+
+        // 6. xl/sharedStrings.xml (Dynamic Headers based on Lang)
+        const headerA = escapeHtml(t('excelHeaderA'));
+        const headerB = escapeHtml(t('excelHeaderB'));
+        zip.addFile('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="2" uniqueCount="2">
+  <si><t>${headerA}</t></si>
+  <si><t>${headerB}</t></si>
+</sst>`);
+
+        // Build Drawings and Sheet Data
+        let drawingRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+`;
+        let drawingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">`;
+        
+        let sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing">
+  <cols>
+    <col min="1" max="1" width="30" customWidth="1"/>
+    <col min="2" max="2" width="60" customWidth="1"/>
+  </cols>
+  <sheetData>
+    <row r="1" ht="25" customHeight="1">
+      <c r="A1" t="s" s="1"><v>0</v></c>
+      <c r="B1" t="s" s="1"><v>1</v></c>
+    </row>`;
+
+        const cellHeightPt = 150; 
+        const targetPxWidth = 200;
+        const targetPxHeight = 180;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const rowIndex = i + 2; 
+
+            // Add Image Media
+            const arrayBuffer = await item.file.arrayBuffer();
+            const imgFileName = `image${i + 1}.jpeg`;
+            zip.addFile(`xl/media/${imgFileName}`, arrayBuffer);
+
+            drawingRels += `  <Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${imgFileName}"/>
+`;
+
+            // Calculate Aspect Ratio (EMU units)
+            let drawWidth = item.width, drawHeight = item.height;
+            const ratio = Math.min(targetPxWidth / drawWidth, targetPxHeight / drawHeight);
+            if (ratio < 1) { drawWidth = Math.round(drawWidth * ratio); drawHeight = Math.round(drawHeight * ratio); }
+            const emuWidth = Math.round(drawWidth * 9525);
+            const emuHeight = Math.round(drawHeight * 9525);
+
+            drawingXml += `
+  <xdr:oneCellAnchor>
+    <xdr:from>
+      <xdr:col>0</xdr:col>
+      <xdr:colOff>190500</xdr:colOff>
+      <xdr:row>${rowIndex - 1}</xdr:row>
+      <xdr:rowOff>95250</xdr:rowOff>
+    </xdr:from>
+    <xdr:ext cx="${emuWidth}" cy="${emuHeight}"/>
+    <xdr:pic>
+      <xdr:nvPicPr><xdr:cNvPr id="${i + 1}" name="Picture ${i + 1}"/><xdr:cNvPicPr/></xdr:nvPicPr>
+      <xdr:blipFill>
+        <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId${i + 1}"/>
+        <a:stretch><a:fillRect/></a:stretch>
+      </xdr:blipFill>
+      <xdr:spPr>
+        <a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuWidth}" cy="${emuHeight}"/></a:xfrm>
+        <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+      </xdr:spPr>
+    </xdr:pic>
+    <xdr:clientData/>
+  </xdr:oneCellAnchor>`;
+
+            const descEscaped = escapeHtml(item.description);
+            sheetXml += `
+    <row r="${rowIndex}" ht="${cellHeightPt}" customHeight="1">
+      <c r="A${rowIndex}" s="1"/>
+      <c r="B${rowIndex}" t="inlineStr" s="1"><is><t>${descEscaped}</t></is></c>
+    </row>`;
+        }
+
+        drawingRels += `</Relationships>`;
+        drawingXml += `
+</xdr:wsDr>`;
+        sheetXml += `
+  </sheetData>
+  <drawing r:id="rId1"/>
+</worksheet>`;
+
+        zip.addFile('xl/drawings/_rels/drawing1.xml.rels', drawingRels);
+        zip.addFile('xl/drawings/drawing1.xml', drawingXml);
+        zip.addFile('xl/worksheets/sheet1.xml', sheetXml);
+        zip.addFile('xl/worksheets/_rels/sheet1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
+</Relationships>`);
+
+        const blob = zip.generateBlob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        
+        // Use localized filename
+        const filenamePrefix = t('defaultExcelFilename');
+        const dateStr = new Date().toISOString().slice(0,10);
+        a.download = `${filenamePrefix}_${dateStr}.xlsx`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 10000);
+        showStatus(t('msgSuccess'), 'success');
+
+    } catch (err) {
+        console.error(err);
+        showStatus(t('msgError') + err.message, 'info');
+    } finally {
+        exportBtn.disabled = false;
+    }
+}
+
+// 起動時に実行
+initLanguage();
+
+</script>
+</body>
+</html>
