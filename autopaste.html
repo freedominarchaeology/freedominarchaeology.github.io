@@ -295,11 +295,6 @@
 </div>
 
 <script>
-/**
- * -------------------------------------------------------------
- * i18n Dictionary (多言語辞書)
- * -------------------------------------------------------------
- */
 const i18nDict = {
     "ja": {
         "appTitle": "考古学図面 Excel自動貼り付けツール",
@@ -471,11 +466,6 @@ function applyLanguage() {
     document.title = t('appTitle');
 }
 
-/**
- * -------------------------------------------------------------
- * 軽量 Minimal Zip Builder & OpenXML Generator
- * -------------------------------------------------------------
- */
 class MiniZip {
     constructor() { this.files = []; }
     addFile(filename, data) {
@@ -548,12 +538,7 @@ class MiniZip {
     }
 }
 
-/**
- * -------------------------------------------------------------
- * アプリケーションロジック
- * -------------------------------------------------------------
- */
-let items = []; // { id, file(Blob), objectUrl, width, height, description, originalName }
+let items = []; 
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -577,46 +562,48 @@ fileInput.addEventListener('change', (e) => {
 clearBtn.addEventListener('click', clearAll);
 exportBtn.addEventListener('click', exportToExcel);
 
-// 画像をCanvasでリサイズ＆圧縮してBlobを返す関数
+// ★ 修正点: 常にCanvasで再描画し、EXIFの回転を正規化することで、Excel上での縦横比崩れを防ぐ
 function processImage(file, maxDimStr) {
     return new Promise((resolve) => {
-        if (maxDimStr === 'original') {
-            resolve(file); // そのまま返す
-            return;
-        }
-
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
                 let width = img.width;
                 let height = img.height;
-                const maxDim = parseInt(maxDimStr, 10);
-
-                if (width > maxDim || height > maxDim) {
-                    if (width > height) {
-                        height = Math.round(height * (maxDim / width));
-                        width = maxDim;
-                    } else {
-                        width = Math.round(width * (maxDim / height));
-                        height = maxDim;
+                
+                // 縮小指定がある場合のみサイズ計算
+                if (maxDimStr !== 'original') {
+                    const maxDim = parseInt(maxDimStr, 10);
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round(height * (maxDim / width));
+                            width = maxDim;
+                        } else {
+                            width = Math.round(width * (maxDim / height));
+                            height = maxDim;
+                        }
                     }
-                } else {
-                    // 指定サイズより小さい場合はリサイズ不要（そのまま返す）
-                    resolve(file);
-                    return;
                 }
 
+                // すべての設定においてCanvasへ再描画（EXIF除去・ピクセル情報の正規化）
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
+                
+                // 背景を白で塗りつぶす（透明領域がある場合の黒背景化を防ぐ安全策）
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // JPEGの品質を 0.82 (82%) で圧縮して容量削減
+                // オリジナルの場合は品質を高めに維持し、縮小時は0.82にする
+                const quality = maxDimStr === 'original' ? 0.95 : 0.82;
+                
                 canvas.toBlob((blob) => {
                     resolve(blob);
-                }, 'image/jpeg', 0.82);
+                }, 'image/jpeg', quality);
             };
             img.src = e.target.result;
         };
@@ -627,7 +614,6 @@ function processImage(file, maxDimStr) {
 async function handleFiles(fileList) {
     showStatus(t('msgLoading'), 'info');
     
-    // 拡張子チェック
     let validFiles = Array.from(fileList).filter(f => f.type === 'image/jpeg' || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg'));
     
     if (validFiles.length === 0) {
@@ -635,13 +621,11 @@ async function handleFiles(fileList) {
         return;
     }
 
-    // ★ 改善点: ファイル名の番号順（自然順ソート）
     validFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
     const selectedResizeOpt = resizeOpt.value;
 
     for (const file of validFiles) {
-        // ★ 改善点: リサイズと圧縮処理
         const processedBlob = await processImage(file, selectedResizeOpt);
         
         const id = 'img_' + Math.random().toString(36).substr(2, 9);
@@ -655,7 +639,7 @@ async function handleFiles(fileList) {
             width: dim.width, 
             height: dim.height, 
             description: '',
-            originalName: file.name // 表示用
+            originalName: file.name 
         });
     }
     
@@ -677,7 +661,6 @@ function updateItemCount() {
     fileCountInfo.innerHTML = `<span data-i18n="itemCount">${t('itemCount', { count: items.length })}</span>`;
 }
 
-// ★ 改善点: 行の入れ替え機能
 function moveUp(id) {
     const index = items.findIndex(i => i.id === id);
     if (index > 0) {
@@ -769,11 +752,6 @@ function showStatus(msg, type) {
     setTimeout(() => { statusBar.style.display = 'none'; }, 4000);
 }
 
-/**
- * -------------------------------------------------------------
- * Excel (.xlsx) OpenXML Export Engine
- * -------------------------------------------------------------
- */
 async function exportToExcel() {
     if (items.length === 0) return;
     showStatus(t('msgGenerating'), 'info');
@@ -782,7 +760,6 @@ async function exportToExcel() {
     try {
         const zip = new MiniZip();
 
-        // 1. [Content_Types].xml
         zip.addFile('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -796,13 +773,11 @@ async function exportToExcel() {
   <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
 </Types>`);
 
-        // 2. _rels/.rels
         zip.addFile('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
 </Relationships>`);
 
-        // 3. xl/_rels/workbook.xml.rels
         zip.addFile('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
@@ -810,7 +785,6 @@ async function exportToExcel() {
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
 </Relationships>`);
 
-        // 4. xl/workbook.xml
         const sheetNameEscaped = escapeHtml(t('excelSheetName'));
         zip.addFile('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
@@ -819,7 +793,6 @@ async function exportToExcel() {
   </sheets>
 </workbook>`);
 
-        // 5. xl/styles.xml
         zip.addFile('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="1"><font><sz val="11"/><name val="Arial"/></font></fonts>
@@ -835,7 +808,6 @@ async function exportToExcel() {
   </cellXfs>
 </styleSheet>`);
 
-        // 6. xl/sharedStrings.xml
         const headerA = escapeHtml(t('excelHeaderA'));
         const headerB = escapeHtml(t('excelHeaderB'));
         zip.addFile('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -867,7 +839,6 @@ async function exportToExcel() {
             const item = items[i];
             const rowIndex = i + 2; 
 
-            // BlobまたはFileからArrayBufferを取得
             const arrayBuffer = await item.file.arrayBuffer();
             const imgFileName = `image${i + 1}.jpeg`;
             zip.addFile(`xl/media/${imgFileName}`, arrayBuffer);
@@ -950,7 +921,6 @@ async function exportToExcel() {
     }
 }
 
-// 起動時に実行
 initLanguage();
 
 </script>
