@@ -55,6 +55,33 @@
             cursor: pointer;
         }
 
+        .options-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            background: #edf2f7;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        .resize-settings {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .resize-settings label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .resize-settings select {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e0;
+            font-family: inherit;
+        }
+
         .drop-zone {
             border: 2px dashed #a0aec0;
             border-radius: 8px;
@@ -72,6 +99,7 @@
         .drop-zone p { color: #4a5568; font-weight: 500; }
         .drop-zone .sub-text { font-size: 0.85rem; color: #a0aec0; }
         .drop-zone input { display: none; }
+        
         .controls {
             display: flex;
             justify-content: space-between;
@@ -119,7 +147,7 @@
         .col-num { width: 50px; text-align: center; }
         .col-img { width: 220px; }
         .col-desc { width: auto; }
-        .col-action { width: 80px; text-align: center; }
+        .col-action { width: 90px; text-align: center; }
         
         .img-preview {
             max-width: 200px;
@@ -153,8 +181,28 @@
             border-color: #3182ce;
             box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
         }
-        .btn-sm {
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .btn-move {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            border: none;
             padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn-move:hover:not(:disabled) { background-color: #cbd5e0; }
+        .btn-move:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-danger-sm {
+            width: 100%;
+            padding: 6px 8px;
             font-size: 0.8rem;
             background-color: #e53e3e;
             color: white;
@@ -162,7 +210,8 @@
             border-radius: 4px;
             cursor: pointer;
         }
-        .btn-sm:hover { background-color: #c53030; }
+        .btn-danger-sm:hover { background-color: #c53030; }
+        
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -194,6 +243,18 @@
                 <option value="en">English</option>
                 <option value="zh">简体中文</option>
                 <option value="es">Español</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="options-bar">
+        <div class="resize-settings">
+            <label data-i18n="resizeLabel">読込時の画像圧縮・解像度:</label>
+            <select id="resizeOpt">
+                <option value="original" data-i18n="optOriginal">圧縮なし（元サイズのまま）</option>
+                <option value="1280" data-i18n="opt1280">長辺1280pxに縮小</option>
+                <option value="800" data-i18n="opt800">長辺800pxに縮小</option>
+                <option value="400" data-i18n="opt400">長辺400pxに縮小</option>
             </select>
         </div>
     </div>
@@ -243,8 +304,13 @@ const i18nDict = {
     "ja": {
         "appTitle": "考古学図面 Excel自動貼り付けツール",
         "appSubtitle": "完全オフライン環境で動作／JPEG図面をA列セル内に配置したExcel（.xlsx）を出力します",
+        "resizeLabel": "読込時の画像圧縮・解像度:",
+        "optOriginal": "圧縮なし（元サイズのまま）",
+        "opt1280": "長辺 1280px に縮小",
+        "opt800": "長辺 800px に縮小",
+        "opt400": "長辺 400px に縮小",
         "dropZoneMain": "ここにJPEG画像をドラッグ＆ドロップ",
-        "dropZoneSub": "またはクリックしてファイルを選択",
+        "dropZoneSub": "またはクリックしてファイルを選択（ファイル名順に読み込まれます）",
         "itemCount": "件数: {count} 件",
         "clearAllBtn": "すべて消去",
         "exportBtn": "Excel (.xlsx) 書き出し",
@@ -255,7 +321,7 @@ const i18nDict = {
         "emptyState": "画像が選択されていません",
         "textareaPlaceholder": "図面の説明文を入力してください...",
         "btnDelete": "削除",
-        "msgLoading": "画像を読み込み中...",
+        "msgLoading": "画像を処理中...",
         "msgInvalidFile": "JPEG画像 (.jpg, .jpeg) を選択してください。",
         "msgAdded": "{count} 件の画像を追加しました。",
         "msgCleared": "クリアしました。",
@@ -270,8 +336,13 @@ const i18nDict = {
     "en": {
         "appTitle": "Archaeological Drawing Excel Auto-Placer",
         "appSubtitle": "Fully Offline / Outputs Excel (.xlsx) with JPEG images placed inside Column A cells",
+        "resizeLabel": "Image Compression (On Load):",
+        "optOriginal": "Original (No compression)",
+        "opt1280": "Max length 1280px",
+        "opt800": "Max length 800px",
+        "opt400": "Max length 400px",
         "dropZoneMain": "Drag & Drop JPEG images here",
-        "dropZoneSub": "or click to select files",
+        "dropZoneSub": "or click to select files (Sorted by filename)",
         "itemCount": "Items: {count}",
         "clearAllBtn": "Clear All",
         "exportBtn": "Export Excel (.xlsx)",
@@ -282,7 +353,7 @@ const i18nDict = {
         "emptyState": "No images selected",
         "textareaPlaceholder": "Enter description for this drawing...",
         "btnDelete": "Delete",
-        "msgLoading": "Loading images...",
+        "msgLoading": "Processing images...",
         "msgInvalidFile": "Please select JPEG images (.jpg, .jpeg).",
         "msgAdded": "Added {count} images.",
         "msgCleared": "All items cleared.",
@@ -297,8 +368,13 @@ const i18nDict = {
     "zh": {
         "appTitle": "考古图纸 Excel 自动导入工具",
         "appSubtitle": "完全离线运行 / 导出 Excel (.xlsx) 并将 JPEG 图片嵌入 A 列单元格",
+        "resizeLabel": "导入时图片压缩与分辨率:",
+        "optOriginal": "原图 (不压缩)",
+        "opt1280": "长边缩放至 1280px",
+        "opt800": "长边缩放至 800px",
+        "opt400": "长边缩放至 400px",
         "dropZoneMain": "将 JPEG 图片拖放到此处",
-        "dropZoneSub": "或点击选择文件",
+        "dropZoneSub": "或点击选择文件 (按文件名排序)",
         "itemCount": "数量: {count}",
         "clearAllBtn": "全部清除",
         "exportBtn": "导出 Excel (.xlsx)",
@@ -309,7 +385,7 @@ const i18nDict = {
         "emptyState": "未选择图片",
         "textareaPlaceholder": "请输入图纸说明...",
         "btnDelete": "删除",
-        "msgLoading": "正在加载图片...",
+        "msgLoading": "正在处理图片...",
         "msgInvalidFile": "请选择 JPEG 图片 (.jpg, .jpeg)。",
         "msgAdded": "已添加 {count} 张图片。",
         "msgCleared": "已清空所有内容。",
@@ -324,8 +400,13 @@ const i18nDict = {
     "es": {
         "appTitle": "Herramienta Excel para Dibujos Arqueológicos",
         "appSubtitle": "Totalmente Offline / Exporta un Excel (.xlsx) con imágenes JPEG incrustadas en la Columna A",
+        "resizeLabel": "Resolución y Compresión:",
+        "optOriginal": "Original (Sin compresión)",
+        "opt1280": "Lado mayor 1280px",
+        "opt800": "Lado mayor 800px",
+        "opt400": "Lado mayor 400px",
         "dropZoneMain": "Arrastra y suelta imágenes JPEG aquí",
-        "dropZoneSub": "o haz clic para seleccionar archivos",
+        "dropZoneSub": "o haz clic para seleccionar archivos (Ordenado por nombre)",
         "itemCount": "Elementos: {count}",
         "clearAllBtn": "Borrar Todo",
         "exportBtn": "Exportar Excel (.xlsx)",
@@ -336,7 +417,7 @@ const i18nDict = {
         "emptyState": "No se seleccionaron imágenes",
         "textareaPlaceholder": "Introduzca la descripción del dibujo...",
         "btnDelete": "Eliminar",
-        "msgLoading": "Cargando imágenes...",
+        "msgLoading": "Procesando imágenes...",
         "msgInvalidFile": "Por favor, seleccione imágenes JPEG (.jpg, .jpeg).",
         "msgAdded": "Se agregaron {count} imágenes.",
         "msgCleared": "Todo borrado.",
@@ -350,9 +431,8 @@ const i18nDict = {
     }
 };
 
-let currentLang = 'en'; // default fallback
+let currentLang = 'en';
 
-// 言語の初期化 (ブラウザ言語判定)
 function initLanguage() {
     const langSelect = document.getElementById('langSelect');
     const userLang = (navigator.language || navigator.userLanguage).toLowerCase();
@@ -360,20 +440,19 @@ function initLanguage() {
     if (userLang.startsWith('ja')) currentLang = 'ja';
     else if (userLang.startsWith('zh')) currentLang = 'zh';
     else if (userLang.startsWith('es')) currentLang = 'es';
-    else currentLang = 'en'; // fallback
+    else currentLang = 'en';
 
     langSelect.value = currentLang;
     langSelect.addEventListener('change', (e) => {
         currentLang = e.target.value;
         applyLanguage();
-        renderTable(); // テーブル内のプレースホルダー等の再描画
-        updateItemCount(); // カウント表示の更新
+        renderTable(); 
+        updateItemCount(); 
     });
     
     applyLanguage();
 }
 
-// 辞書からテキスト取得
 function t(key, params = {}) {
     let text = i18nDict[currentLang][key] || i18nDict['en'][key] || key;
     for (const [k, v] of Object.entries(params)) {
@@ -382,7 +461,6 @@ function t(key, params = {}) {
     return text;
 }
 
-// 画面全体の静的テキスト適用
 function applyLanguage() {
     document.documentElement.lang = currentLang;
     const elements = document.querySelectorAll('[data-i18n]');
@@ -390,7 +468,6 @@ function applyLanguage() {
         const key = el.getAttribute('data-i18n');
         el.textContent = t(key);
     });
-    // タイトルタグも更新
     document.title = t('appTitle');
 }
 
@@ -476,7 +553,7 @@ class MiniZip {
  * アプリケーションロジック
  * -------------------------------------------------------------
  */
-let items = []; // { id, file, objectUrl, width, height, description }
+let items = []; // { id, file(Blob), objectUrl, width, height, description, originalName }
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -485,6 +562,7 @@ const exportBtn = document.getElementById('exportBtn');
 const clearBtn = document.getElementById('clearBtn');
 const fileCountInfo = document.getElementById('fileCountInfo');
 const statusBar = document.getElementById('statusBar');
+const resizeOpt = document.getElementById('resizeOpt');
 
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -499,21 +577,88 @@ fileInput.addEventListener('change', (e) => {
 clearBtn.addEventListener('click', clearAll);
 exportBtn.addEventListener('click', exportToExcel);
 
+// 画像をCanvasでリサイズ＆圧縮してBlobを返す関数
+function processImage(file, maxDimStr) {
+    return new Promise((resolve) => {
+        if (maxDimStr === 'original') {
+            resolve(file); // そのまま返す
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                const maxDim = parseInt(maxDimStr, 10);
+
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round(height * (maxDim / width));
+                        width = maxDim;
+                    } else {
+                        width = Math.round(width * (maxDim / height));
+                        height = maxDim;
+                    }
+                } else {
+                    // 指定サイズより小さい場合はリサイズ不要（そのまま返す）
+                    resolve(file);
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // JPEGの品質を 0.82 (82%) で圧縮して容量削減
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, 'image/jpeg', 0.82);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 async function handleFiles(fileList) {
     showStatus(t('msgLoading'), 'info');
-    const validFiles = Array.from(fileList).filter(f => f.type === 'image/jpeg' || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg'));
+    
+    // 拡張子チェック
+    let validFiles = Array.from(fileList).filter(f => f.type === 'image/jpeg' || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg'));
     
     if (validFiles.length === 0) {
         showStatus(t('msgInvalidFile'), 'info');
         return;
     }
 
+    // ★ 改善点: ファイル名の番号順（自然順ソート）
+    validFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const selectedResizeOpt = resizeOpt.value;
+
     for (const file of validFiles) {
+        // ★ 改善点: リサイズと圧縮処理
+        const processedBlob = await processImage(file, selectedResizeOpt);
+        
         const id = 'img_' + Math.random().toString(36).substr(2, 9);
-        const objectUrl = URL.createObjectURL(file);
+        const objectUrl = URL.createObjectURL(processedBlob);
         const dim = await getImageDimensions(objectUrl);
-        items.push({ id, file, objectUrl, width: dim.width, height: dim.height, description: '' });
+        
+        items.push({ 
+            id: id, 
+            file: processedBlob, 
+            objectUrl: objectUrl, 
+            width: dim.width, 
+            height: dim.height, 
+            description: '',
+            originalName: file.name // 表示用
+        });
     }
+    
     fileInput.value = '';
     renderTable();
     showStatus(t('msgAdded', { count: validFiles.length }), 'success');
@@ -530,6 +675,23 @@ function getImageDimensions(url) {
 
 function updateItemCount() {
     fileCountInfo.innerHTML = `<span data-i18n="itemCount">${t('itemCount', { count: items.length })}</span>`;
+}
+
+// ★ 改善点: 行の入れ替え機能
+function moveUp(id) {
+    const index = items.findIndex(i => i.id === id);
+    if (index > 0) {
+        [items[index - 1], items[index]] = [items[index], items[index - 1]];
+        renderTable();
+    }
+}
+
+function moveDown(id) {
+    const index = items.findIndex(i => i.id === id);
+    if (index < items.length - 1) {
+        [items[index], items[index + 1]] = [items[index + 1], items[index]];
+        renderTable();
+    }
 }
 
 function renderTable() {
@@ -553,13 +715,17 @@ function renderTable() {
             <td class="col-num">${index + 1}</td>
             <td class="col-img">
                 <img src="${item.objectUrl}" class="img-preview" alt="Preview">
-                <div class="img-meta">${escapeHtml(item.file.name)}<br>(${item.width} x ${item.height}px)</div>
+                <div class="img-meta">${escapeHtml(item.originalName)}<br>(${item.width} x ${item.height}px)</div>
             </td>
             <td class="col-desc">
                 <textarea class="desc-input" placeholder="${t('textareaPlaceholder')}" data-id="${item.id}">${escapeHtml(item.description)}</textarea>
             </td>
             <td class="col-action">
-                <button class="btn-sm" onclick="deleteItem('${item.id}')">${t('btnDelete')}</button>
+                <div class="action-buttons">
+                    <button class="btn-move" onclick="moveUp('${item.id}')" ${index === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="btn-move" onclick="moveDown('${item.id}')" ${index === items.length - 1 ? 'disabled' : ''}>▼</button>
+                </div>
+                <button class="btn-danger-sm" onclick="deleteItem('${item.id}')">${t('btnDelete')}</button>
             </td>
         `;
         tableBody.appendChild(tr);
@@ -669,7 +835,7 @@ async function exportToExcel() {
   </cellXfs>
 </styleSheet>`);
 
-        // 6. xl/sharedStrings.xml (Dynamic Headers based on Lang)
+        // 6. xl/sharedStrings.xml
         const headerA = escapeHtml(t('excelHeaderA'));
         const headerB = escapeHtml(t('excelHeaderB'));
         zip.addFile('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -678,12 +844,8 @@ async function exportToExcel() {
   <si><t>${headerB}</t></si>
 </sst>`);
 
-        // Build Drawings and Sheet Data
-        let drawingRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-`;
-        let drawingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">`;
+        let drawingRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n`;
+        let drawingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">`;
         
         let sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing">
@@ -705,15 +867,13 @@ async function exportToExcel() {
             const item = items[i];
             const rowIndex = i + 2; 
 
-            // Add Image Media
+            // BlobまたはFileからArrayBufferを取得
             const arrayBuffer = await item.file.arrayBuffer();
             const imgFileName = `image${i + 1}.jpeg`;
             zip.addFile(`xl/media/${imgFileName}`, arrayBuffer);
 
-            drawingRels += `  <Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${imgFileName}"/>
-`;
+            drawingRels += `  <Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${imgFileName}"/>\n`;
 
-            // Calculate Aspect Ratio (EMU units)
             let drawWidth = item.width, drawHeight = item.height;
             const ratio = Math.min(targetPxWidth / drawWidth, targetPxHeight / drawHeight);
             if (ratio < 1) { drawWidth = Math.round(drawWidth * ratio); drawHeight = Math.round(drawHeight * ratio); }
@@ -752,8 +912,7 @@ async function exportToExcel() {
         }
 
         drawingRels += `</Relationships>`;
-        drawingXml += `
-</xdr:wsDr>`;
+        drawingXml += `\n</xdr:wsDr>`;
         sheetXml += `
   </sheetData>
   <drawing r:id="rId1"/>
@@ -772,7 +931,6 @@ async function exportToExcel() {
         const a = document.createElement('a');
         a.href = downloadUrl;
         
-        // Use localized filename
         const filenamePrefix = t('defaultExcelFilename');
         const dateStr = new Date().toISOString().slice(0,10);
         a.download = `${filenamePrefix}_${dateStr}.xlsx`;
