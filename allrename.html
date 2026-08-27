@@ -101,21 +101,22 @@
             </div>
         </section>
 
-        <!-- 2. 写真追加エリア -->
+        <!-- 2. 写真・データ追加エリア -->
         <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
             <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <span class="w-2 h-6 bg-amber-500 rounded-sm"></span>
                 <span data-i18n="step2">2. 写真追加・自動リネーム（写真をドロップして追加）</span>
             </h2>
             <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-amber-500 transition-colors cursor-pointer bg-slate-50 relative">
-                <input type="file" id="fileInput" multiple accept="image/*,.cr2,.cr3,.nef,.arw,.raf,.orf,.rw2,.dng" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <!-- 対応拡張子に PDF, TIFF, TIFF各種を追加 -->
+                <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.pdf,.tif,.tiff,.cr2,.cr3,.nef,.arw,.raf,.orf,.rw2,.dng" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                 <div class="flex flex-col items-center justify-center space-y-3">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <div>
                         <p class="text-sm font-semibold text-slate-700" data-i18n="drop1">ここに写真をドラッグ＆ドロップ、またはクリックして選択</p>
-                        <p class="text-xs text-amber-600 mt-1 font-medium" data-i18n="drop2">複数選択可能・RAW+JPGペア自動認識対応</p>
+                        <p class="text-xs text-amber-600 mt-1 font-medium" data-i18n="drop2">複数選択可能・RAW+JPGペア自動認識 / PDF・TIFF対応</p>
                     </div>
                 </div>
             </div>
@@ -193,7 +194,7 @@
                 title: "写真 自動リネーム＆一括整理ツール", tag: "完全オフライン対応", step1: "1. メタデータ設定（まず命名規則を入力）",
                 name1: "名前1", ex1: "(例: 遺跡名)", name2: "名前2", ex2: "(例: TR名)", name3: "名前3", ex3: "(例: グリッド)",
                 date: "日付", startSeq: "開始番号", preview: "プレビュー形式:", hint1: "※チェックを外した項目はスキップされ、連番は自動採番されます",
-                step2: "2. 写真追加・自動リネーム（写真をドロップして追加）", drop1: "ここに写真をドラッグ＆ドロップ、またはクリックして選択", drop2: "複数選択可能・RAW+JPGペア自動認識対応",
+                step2: "2. 写真追加・自動リネーム（写真をドロップして追加）", drop1: "ここに写真をドラッグ＆ドロップ、またはクリックして選択", drop2: "複数選択可能・RAW+JPGペア自動認識 / PDF・TIFF対応",
                 step3: "3. ローカルアルバム確認（リネーム結果の確認・調整）", clear: "すべて削除", empty: "写真が登録されていません",
                 step4: "4. バックアップとエクスポート（最後にZIPで一括ダウンロード）", zipDesc: "蓄積されたすべての写真をリネーム済みのオリジナルデータでZIPアーカイブ化します。", zipBtn: "ZIPで一括ダウンロード",
                 proc: "処理中...", procWait: "しばらくお待ちください...", procCount: "{n} / {m} グループ処理完了",
@@ -205,7 +206,7 @@
                 title: "Photo Auto-Rename & Organizer", tag: "Fully Offline", step1: "1. Metadata Setup (Set Naming Rules)",
                 name1: "Name 1", ex1: "(e.g. Site Name)", name2: "Name 2", ex2: "(e.g. Trench)", name3: "Name 3", ex3: "(e.g. Grid)",
                 date: "Date", startSeq: "Start No.", preview: "Preview:", hint1: "* Unchecked items are skipped. Auto-sequencing applied.",
-                step2: "2. Add & Auto-Rename (Drop photos here)", drop1: "Drag & drop photos here, or click to select", drop2: "Multi-select / RAW+JPG auto-pairing supported",
+                step2: "2. Add & Auto-Rename (Drop photos here)", drop1: "Drag & drop photos here, or click to select", drop2: "Multi-select / RAW+JPG / PDF, TIFF supported",
                 step3: "3. Local Album (Check & Adjust Names)", clear: "Clear All", empty: "No photos added yet",
                 step4: "4. Backup & Export (Download as ZIP)", zipDesc: "Archives all accumulated photos with their original data, renamed.", zipBtn: "Download All as ZIP",
                 proc: "Processing...", procWait: "Please wait...", procCount: "{n} / {m} groups processed",
@@ -217,7 +218,7 @@
                 title: "照片自动重命名与整理工具", tag: "完全离线", step1: "1. 元数据设置 (设置命名规则)",
                 name1: "名称1", ex1: "(例: 遗址名)", name2: "名称2", ex2: "(例: 探方)", name3: "名称3", ex3: "(例: 网格)",
                 date: "日期", startSeq: "起始序号", preview: "预览格式:", hint1: "* 未勾选的项将被跳过，序号自动分配。",
-                step2: "2. 添加照片 (拖拽至此)", drop1: "将照片拖拽至此处，或点击选择", drop2: "支持多选 / RAW+JPG自动配对",
+                step2: "2. 添加照片 (拖拽至此)", drop1: "将照片拖拽至此处，或点击选择", drop2: "支持多选 / RAW+JPG配对 / PDF, TIFF支持",
                 step3: "3. 本地相册 (确认并单独调整名称)", clear: "全部清除", empty: "暂无照片",
                 step4: "4. 备份与导出 (打包下载ZIP)", zipDesc: "将所有照片按新名称打包为ZIP。", zipBtn: "打包下载ZIP",
                 proc: "处理中...", procWait: "请稍候...", procCount: "{n} / {m} 组已处理",
@@ -229,7 +230,7 @@
                 title: "사진 자동 이름 변경 및 정리 도구", tag: "완전 오프라인", step1: "1. 메타데이터 설정 (명명 규칙 설정)",
                 name1: "이름 1", ex1: "(예: 유적명)", name2: "이름 2", ex2: "(예: 트렌치)", name3: "이름 3", ex3: "(예: 그리드)",
                 date: "날짜", startSeq: "시작 번호", preview: "미리보기:", hint1: "* 체크 해제된 항목은 생략되며, 일련번호는 자동 부여됩니다.",
-                step2: "2. 사진 추가 (여기에 드롭)", drop1: "여기에 사진을 드래그 앤 드롭하거나 클릭하여 선택", drop2: "다중 선택 및 RAW+JPG 자동 페어링 지원",
+                step2: "2. 사진 추가 (여기에 드롭)", drop1: "여기에 사진을 드래그 앤 드롭하거나 클릭하여 선택", drop2: "다중 선택 및 RAW+JPG / PDF, TIFF 지원",
                 step3: "3. 로컬 앨범 (이름 확인 및 개별 조정)", clear: "모두 삭제", empty: "등록된 사진이 없습니다",
                 step4: "4. 백업 및 내보내기 (ZIP 다운로드)", zipDesc: "모든 사진을 새 이름이 적용된 원본 데이터로 ZIP 압축합니다.", zipBtn: "ZIP으로 일괄 다운로드",
                 proc: "처리 중...", procWait: "잠시만 기다려주세요...", procCount: "{n} / {m} 그룹 처리 완료",
@@ -241,7 +242,7 @@
                 title: "Renommage et organisation de photos", tag: "Hors ligne", step1: "1. Métadonnées (Règles de nommage)",
                 name1: "Nom 1", ex1: "(ex: Site)", name2: "Nom 2", ex2: "(ex: Tranchée)", name3: "Nom 3", ex3: "(ex: Grille)",
                 date: "Date", startSeq: "N° de départ", preview: "Aperçu :", hint1: "* Les éléments non cochés sont ignorés, numérotation automatique.",
-                step2: "2. Ajouter des photos (Glisser-déposer)", drop1: "Glissez-déposez des photos ici ou cliquez", drop2: "Sélection multiple / RAW+JPG appariés auto",
+                step2: "2. Ajouter des photos (Glisser-déposer)", drop1: "Glissez-déposez des photos ici ou cliquez", drop2: "Sélection multiple / RAW+JPG / PDF, TIFF supportés",
                 step3: "3. Album local (Vérifier et ajuster)", clear: "Tout effacer", empty: "Aucune photo ajoutée",
                 step4: "4. Sauvegarde et Export (Télécharger ZIP)", zipDesc: "Archive toutes les photos renommées en fichier ZIP.", zipBtn: "Télécharger le ZIP",
                 proc: "Traitement...", procWait: "Veuillez patienter...", procCount: "{n} / {m} groupes traités",
@@ -253,7 +254,7 @@
                 title: "Renombrado y organización de fotos", tag: "Fuera de línea", step1: "1. Metadatos (Reglas de nombres)",
                 name1: "Nombre 1", ex1: "(ej. Sitio)", name2: "Nombre 2", ex2: "(ej. Trinchera)", name3: "Nombre 3", ex3: "(ej. Cuadrícula)",
                 date: "Fecha", startSeq: "Nº Inicio", preview: "Vista previa:", hint1: "* Los desmarcados se omiten, numeración automática.",
-                step2: "2. Añadir fotos (Arrastrar y soltar)", drop1: "Arrastre y suelte fotos aquí, o haga clic", drop2: "Selección múltiple / RAW+JPG emparejados auto",
+                step2: "2. Añadir fotos (Arrastrar y soltar)", drop1: "Arrastre y suelte fotos aquí, o haga clic", drop2: "Selección múltiple / RAW+JPG / PDF, TIFF soportados",
                 step3: "3. Álbum local (Verificar y ajustar)", clear: "Borrar todo", empty: "No hay fotos",
                 step4: "4. Respaldo y Exportación (Descargar ZIP)", zipDesc: "Archiva todas las fotos con sus nombres nuevos en un ZIP.", zipBtn: "Descargar todo en ZIP",
                 proc: "Procesando...", procWait: "Por favor espere...", procCount: "{n} / {m} grupos procesados",
@@ -353,14 +354,14 @@
         }
 
         /* =========================================
-           3. コアロジック (画像処理, RAW+JPG連携)
+           3. コアロジック (画像・多形式ファイル処理, RAW/PDF/TIFF連携)
         ========================================= */
         function createDummyThumbnail(text) {
             return new Promise(resolve => {
                 const canvas = document.createElement('canvas'); canvas.width = 300; canvas.height = 300;
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = '#e2e8f0'; ctx.fillRect(0, 0, 300, 300);
-                ctx.fillStyle = '#64748b'; ctx.font = 'bold 36px sans-serif';
+                ctx.fillStyle = '#64748b'; ctx.font = 'bold 32px sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(text, 150, 150);
                 canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
@@ -401,10 +402,15 @@
                 return;
             }
 
+            // 【追加】ファイル名順（自然順 / 数値順ソート）で読み込み順を保証する
+            const fileArray = Array.from(files).sort((a, b) => 
+                a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+            );
+
             const groups = new Map();
 
-            for (let i = 0; i < files.length; i++) {
-                const f = files[i];
+            for (let i = 0; i < fileArray.length; i++) {
+                const f = fileArray[i];
                 const dotIdx = f.name.lastIndexOf('.');
                 const baseName = dotIdx !== -1 ? f.name.substring(0, dotIdx) : f.name;
                 const ext = dotIdx !== -1 ? f.name.substring(dotIdx) : '';
@@ -421,13 +427,14 @@
 
             try {
                 for (const [baseName, fileList] of groups.entries()) {
+                    // 標準的な画像フォーマットのみCanvasでサムネイル化 (PDF, TIFF, RAW等は代替ダミーを生成)
                     const thumbSource = fileList.find(f => f.ext.match(/\.(jpg|jpeg|png|webp|gif|bmp)$/i));
                     let thumbnailBlob;
                     if (thumbSource) {
                         thumbnailBlob = await createThumbnail(thumbSource.blob);
                     } else {
-                        const rawExt = fileList[0].ext.replace('.','').toUpperCase() || 'RAW';
-                        thumbnailBlob = await createDummyThumbnail(rawExt);
+                        const fileExt = fileList[0].ext.replace('.','').toUpperCase() || 'FILE';
+                        thumbnailBlob = await createDummyThumbnail(fileExt);
                     }
 
                     const seqStr = String(currentSeqNum).padStart(3, '0');
@@ -491,7 +498,14 @@
                 const badgesHtml = photo.files.map(f => {
                     const extName = f.ext.replace('.', '').toUpperCase() || 'UNK';
                     const isRaw = ['CR2','CR3','NEF','ARW','RAF','ORF','RW2','DNG'].includes(extName);
-                    const color = isRaw ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+                    const isPdf = extName === 'PDF';
+                    const isTiff = ['TIF','TIFF'].includes(extName);
+
+                    let color = 'bg-blue-100 text-blue-800 border-blue-200';
+                    if (isRaw) color = 'bg-amber-100 text-amber-800 border-amber-200';
+                    else if (isPdf) color = 'bg-rose-100 text-rose-800 border-rose-200';
+                    else if (isTiff) color = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
                     return `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded border ${color}">${extName}</span>`;
                 }).join('');
 
