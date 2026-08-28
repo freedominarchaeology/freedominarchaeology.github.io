@@ -6,6 +6,8 @@
     <title>高精度平面直角座標測位アプリ（考古学フィールドワーク対応版）</title>
     <!-- jsPDFライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- JSZipライブラリの読み込み（ZIP作成用） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -116,7 +118,7 @@
         
         <div style="margin-top: 6px; display: flex; gap: 6px;">
             <button id="log-toggle-btn" class="primary" style="flex: 1; padding: 8px; font-size: 13px;">🔴 ログ記録開始</button>
-            <button id="export-csv-btn" class="success" style="padding: 8px; font-size: 12px;">📊 CSV保存</button>
+            <button id="export-zip-btn" class="success" style="padding: 8px; font-size: 12px;">📦 ZIP一括保存</button>
         </div>
     </header>
 
@@ -126,7 +128,6 @@
     </div>
 
     <div id="register-panel">
-        <!-- 遺物・遺構点（黄色）登録領域 -->
         <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🟡 遺物・遺構記録点（任意測位点）の登録</div>
         <div class="flex-row">
             <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 須恵器片01)">
@@ -135,7 +136,6 @@
 
         <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">
 
-        <!-- 既知点（基準点）登録領域 -->
         <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🎯 基準点（既知点）の学習登録</div>
         <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">
         <div class="flex-row">
@@ -208,9 +208,8 @@
 
         const JAPANESE_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif';
 
-        // メモリ限界・分割保存定数
-        const MAX_LOG_LIMIT = 1000;      // 限界数（これを超えたらダウンサンプリングとアラート）
-        const AUTO_SAVE_THRESHOLD = 500; // メモリ上限に達する前の自動分割保存しきい値
+        const MAX_LOG_LIMIT = 1000;
+        const AUTO_SAVE_THRESHOLD = 500;
 
         let isLogging = false;
         let routeLog = [];
@@ -218,6 +217,73 @@
         let lastLoggedPoint = null;
         let lastAutoSaveIndex = 0;
 
+        // --- IndexedDB の構築と管理 ---
+        const DB_NAME = 'ArchaeologySurveyDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('logs')) {
+                        database.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!database.objectStoreNames.contains('recordedPoints')) {
+                        database.createObjectStore('recordedPoints', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('knownPoints')) {
+                        database.createObjectStore('knownPoints', { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        async function saveToDB(storeName, data) {
+            if (!db) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                if (Array.isArray(data)) {
+                    store.clear();
+                    data.forEach(item => store.put(item));
+                } else {
+                    store.put(data);
+                }
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        async function loadFromDB(storeName) {
+            if (!db) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        async function clearDBStore(storeName) {
+            if (!db) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                store.clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        // --- 初期設定およびLocalStorage補完 ---
         const safeGetStorage = (key, defaultVal, isFloat = false) => {
             try {
                 const val = localStorage.getItem(key);
@@ -238,22 +304,19 @@
         };
 
         let knownPoints = [];
-        try {
-            const savedKp = localStorage.getItem('conf_known_points');
-            if (savedKp) {
-                const parsed = JSON.parse(savedKp);
-                if (Array.isArray(parsed)) knownPoints = parsed;
-            }
-        } catch (e) { knownPoints = []; }
-
         let recordedPoints = [];
-        try {
-            const savedRec = localStorage.getItem('conf_recorded_points');
-            if (savedRec) {
-                const parsed = JSON.parse(savedRec);
-                if (Array.isArray(parsed)) recordedPoints = parsed;
-            }
-        } catch (e) { recordedPoints = []; }
+
+        // DBから非同期読み込み初期化
+        async function initData() {
+            await initDB();
+            recordedPoints = await loadFromDB('recordedPoints');
+            knownPoints = await loadFromDB('knownPoints');
+            routeLog = await loadFromDB('logs');
+
+            renderKnownPointsList();
+            renderRecordedPointsList();
+            updateGrowthUI();
+        }
 
         const SMOOTHING_SIZE = 4;
         let latHistory = [];
@@ -276,9 +339,7 @@
 
         document.getElementById('zone-select').value = config.selectedZone;
         document.getElementById('in-invertalt').checked = config.invertAlt;
-        renderKnownPointsList();
-        renderRecordedPointsList();
-        updateGrowthUI();
+        initData();
 
         function getCurrentTransformedCoords() {
             if (latestLat === 0 || latestLon === 0) return null;
@@ -302,7 +363,7 @@
             return { x: finalX, y: finalY, z: finalZ };
         }
 
-        document.getElementById('add-rec-btn').addEventListener('click', () => {
+        document.getElementById('add-rec-btn').addEventListener('click', async () => {
             const nameInput = document.getElementById('rec-name');
             const userEnteredName = nameInput.value ? String(nameInput.value).trim() : '';
             const name = userEnteredName !== '' ? userEnteredName : `記録点_${recordedPoints.length + 1}`;
@@ -323,17 +384,11 @@
             };
 
             recordedPoints.push(newPoint);
-            saveRecordedPoints();
+            await saveToDB('recordedPoints', recordedPoints);
             nameInput.value = '';
             renderRecordedPointsList();
-            alert(`🟡 記録点「${name}」を記録しました！`);
+            alert(`🟡 記録点「${name}」をDBに永続記録しました！`);
         });
-
-        function saveRecordedPoints() {
-            try {
-                localStorage.setItem('conf_recorded_points', JSON.stringify(recordedPoints));
-            } catch (e) {}
-        }
 
         function renderRecordedPointsList() {
             const container = document.getElementById('rec-list-container');
@@ -384,23 +439,16 @@
             });
         }
 
-        window.deleteRecordedPoint = function(id) {
+        window.deleteRecordedPoint = async function(id) {
             if(!confirm("この記録点を削除しますか？")) return;
             recordedPoints = recordedPoints.filter(p => p.id !== id);
-            saveRecordedPoints();
+            await saveToDB('recordedPoints', recordedPoints);
             renderRecordedPointsList();
         };
 
-        // CSV自動ダウンロード機能
-        document.getElementById('export-csv-btn').addEventListener('click', () => exportCSV());
-
-        function exportCSV(logDataOverride = null, filenameSuffix = "") {
-            const targetLog = logDataOverride || routeLog;
-            if (recordedPoints.length === 0 && targetLog.length === 0 && knownPoints.length === 0) {
-                alert("出力する測量データがありません。");
-                return;
-            }
-
+        // CSV文字列生成関数
+        function generateCSVString(targetLog = null) {
+            const logToUse = targetLog || routeLog;
             let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
 
             recordedPoints.forEach(p => {
@@ -413,25 +461,57 @@
                 csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
             });
 
-            targetLog.forEach((p, idx) => {
+            logToUse.forEach((p, idx) => {
                 const timeStr = new Date(p.time).toLocaleString('ja-JP');
                 csvContent += `軌跡ログ,Track_${idx+1},${timeStr},${p.x.toFixed(3)},${p.y.toFixed(3)},\n`;
             });
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
+            return csvContent;
+        }
+
+        // --- ZIP一括パッケージ保存 & ダウンロード ---
+        document.getElementById('export-zip-btn').addEventListener('click', async () => {
+            if (recordedPoints.length === 0 && routeLog.length === 0 && knownPoints.length === 0) {
+                alert("出力する測量データがありません。");
+                return;
+            }
+
+            const zip = new JSZip();
+            const timestamp = Date.now();
+
+            // 1. CSVデータの読み込み・追加
+            const csvData = generateCSVString();
+            zip.file(`測量ログ_${timestamp}.csv`, csvData);
+
+            // 2. PDF描画データのバイナリ生成・追加
+            try {
+                const pdfBlob = await generatePDFBlob();
+                if (pdfBlob) {
+                    zip.file(`測量図面_A3_${timestamp}.pdf`, pdfBlob);
+                }
+            } catch (err) {
+                console.error("PDF生成スキップ: ", err);
+            }
+
+            // ZIPアーカイブ圧縮出力
+            const zipContent = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(zipContent);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `測量ログ_${Date.now()}${filenameSuffix}.csv`;
+            a.download = `測量アーカイブ_${timestamp}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        }
+        });
 
-        document.getElementById('clear-all-data-btn').addEventListener('click', () => {
-            if (confirm("これまでに保存された全記録点・基準点・ログが完全に消去されます。\nデータを一括リセットしますか？")) {
+        document.getElementById('clear-all-data-btn').addEventListener('click', async () => {
+            if (confirm("DBおよびストレージに保存された全記録点・基準点・ログが完全に消去されます。\nデータを一括リセットしますか？")) {
                 localStorage.clear();
+                await clearDBStore('logs');
+                await clearDBStore('recordedPoints');
+                await clearDBStore('knownPoints');
+
                 recordedPoints = [];
                 knownPoints = [];
                 routeLog = [];
@@ -439,45 +519,47 @@
                 config.shiftX = 0;
                 config.shiftY = 0;
                 config.hasCalibrated = false;
+
                 renderRecordedPointsList();
                 renderKnownPointsList();
                 updateGrowthUI();
-                alert("旧データおよび全記録を正常に初期化・消去しました。");
+                alert("データベースおよび全記録を正常に初期化・消去しました。");
             }
         });
 
-        // ダウンサンプリング（ログ間引き）処理
         function downsampleLog() {
             if (routeLog.length < 2) return;
             const newLog = [];
             for (let i = 0; i < routeLog.length; i += 2) {
                 newLog.push(routeLog[i]);
             }
-            // 最後の点は保持
             if ((routeLog.length - 1) % 2 !== 0) {
                 newLog.push(routeLog[routeLog.length - 1]);
             }
             routeLog = newLog;
         }
 
-        // ログ記録 & PDF直接ダウンロード出力
+        // ログ記録 & リアルタイムDB保存
         const logToggleBtn = document.getElementById('log-toggle-btn');
-        logToggleBtn.addEventListener('click', () => {
+        logToggleBtn.addEventListener('click', async () => {
             if (!isLogging) {
                 routeLog = [];
+                await clearDBStore('logs');
                 lastLoggedPoint = null;
                 lastAutoSaveIndex = 0;
                 isLogging = true;
-                logToggleBtn.innerText = "⏹️ 記録停止＆出力";
+                logToggleBtn.innerText = "⏹️ 記録停止＆ZIP保存";
                 logToggleBtn.className = "danger";
 
-                // 0.5m以上移動した場合のみログへ追加（静止中の揺らぎ・ノイズを除去）
-                logTimer = setInterval(() => {
+                logTimer = setInterval(async () => {
                     const coords = getCurrentTransformedCoords();
                     if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
                         let added = false;
+                        const logItem = { x: coords.x, y: coords.y, time: Date.now() };
+
                         if (!lastLoggedPoint) {
-                            routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
+                            routeLog.push(logItem);
+                            await saveToDB('logs', logItem);
                             lastLoggedPoint = coords;
                             added = true;
                         } else {
@@ -486,29 +568,17 @@
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             
                             if (dist >= 0.5) {
-                                routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
+                                routeLog.push(logItem);
+                                await saveToDB('logs', logItem);
                                 lastLoggedPoint = coords;
                                 added = true;
                             }
                         }
 
-                        if (added) {
-                            // 1. メモリ上限前の分割保存・出力チェック
-                            if (routeLog.length - lastAutoSaveIndex >= AUTO_SAVE_THRESHOLD) {
-                                const chunk = routeLog.slice(lastAutoSaveIndex, routeLog.length);
-                                exportCSV(chunk, `_part${Math.floor(routeLog.length / AUTO_SAVE_THRESHOLD)}`);
-                                generatePDFReport(chunk, `_part${Math.floor(routeLog.length / AUTO_SAVE_THRESHOLD)}`);
-                                lastAutoSaveIndex = routeLog.length;
-                            }
-
-                            // 2. 限界数に達したときの処理（アラート発出＆ダウンサンプリング）
-                            if (routeLog.length >= MAX_LOG_LIMIT) {
-                                alert(`⚠️ メモリ限界アラート: ログの記録数が上限 (${MAX_LOG_LIMIT}点) に達しました。\nメモリ保護のため自動バックアップ出力を行い、データのダウンサンプリング（間引き）を実行します。`);
-                                exportCSV(routeLog, "_backup_limit");
-                                generatePDFReport(routeLog, "_backup_limit");
-                                downsampleLog();
-                                lastAutoSaveIndex = routeLog.length;
-                            }
+                        if (added && routeLog.length >= MAX_LOG_LIMIT) {
+                            alert(`⚠️ メモリ限界アラート: ログの記録数が上限 (${MAX_LOG_LIMIT}点) に達しました。\nダウンサンプリング（間引き）を実行します。`);
+                            downsampleLog();
+                            await saveToDB('logs', routeLog);
                         }
                     }
                 }, 1000);
@@ -523,281 +593,267 @@
                     logTimer = null;
                 }
 
-                exportCSV();
-                generatePDFReport();
+                document.getElementById('export-zip-btn').click();
             }
         });
 
-        // PDF自動生成 ＆ 直接ダウンロード処理 (A3分割描画・最小縮尺 1/10,000 対応)
-        function generatePDFReport(logDataOverride = null, filenameSuffix = "") {
-            try {
-                if (typeof window.jspdf === 'undefined') {
-                    alert('PDF生成ライブラリが読み込まれていません。');
-                    return;
-                }
+        // PDF生成関数 (Promise/Blobを返すように拡張)
+        function generatePDFBlob(logDataOverride = null) {
+            return new Promise((resolve) => {
+                try {
+                    if (typeof window.jspdf === 'undefined') {
+                        resolve(null);
+                        return;
+                    }
 
-                const targetLog = logDataOverride || routeLog;
-                const validLog = targetLog.filter(p => !isNaN(p.x) && !isNaN(p.y));
-                const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
-                const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
+                    const targetLog = logDataOverride || routeLog;
+                    const validLog = targetLog.filter(p => !isNaN(p.x) && !isNaN(p.y));
+                    const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
+                    const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
 
-                if (validLog.length === 0 && validKnown.length === 0 && validRec.length === 0) {
-                    alert("PDFに出力する有効な座標データがありません。");
-                    return;
-                }
+                    if (validLog.length === 0 && validKnown.length === 0 && validRec.length === 0) {
+                        resolve(null);
+                        return;
+                    }
 
-                // A3横向き規格 (mm: 420 × 297)
-                const marginMM = 20;
-                const headerMM = 30;
-                const printWidthMM = 420 - (marginMM * 2); // 380mm
-                const printHeightMM = 297 - marginMM - headerMM; // 247mm
+                    const marginMM = 20;
+                    const headerMM = 30;
+                    const printWidthMM = 420 - (marginMM * 2);
+                    const printHeightMM = 297 - marginMM - headerMM;
 
-                // 最小縮尺 1/10,000 -> 1mm = 10m
-                // 1ページあたりの最大実空間カバー領域 (m)
-                const maxPageMetersX = printHeightMM * 10; // X(北進) 2470m
-                const maxPageMetersY = printWidthMM * 10;  // Y(東進) 3800m
+                    const maxPageMetersX = printHeightMM * 10;
+                    const maxPageMetersY = printWidthMM * 10;
 
-                // データ全体の境界計算
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                const allPoints = [
-                    ...validLog.map(p => ({ x: p.x, y: p.y })),
-                    ...validKnown.map(p => ({ x: p.targetX, y: p.targetY })),
-                    ...validRec.map(p => ({ x: p.x, y: p.y }))
-                ];
+                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                    const allPoints = [
+                        ...validLog.map(p => ({ x: p.x, y: p.y })),
+                        ...validKnown.map(p => ({ x: p.targetX, y: p.targetY })),
+                        ...validRec.map(p => ({ x: p.x, y: p.y }))
+                    ];
 
-                allPoints.forEach(p => {
-                    if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
-                    if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
-                });
+                    allPoints.forEach(p => {
+                        if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+                        if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+                    });
 
-                if (minX === Infinity) { minX = 0; maxX = 10; minY = 0; maxY = 10; }
-                
-                // 余白（パディング）を持たせる
-                const spanX = Math.max(maxX - minX, 10);
-                const spanY = Math.max(maxY - minY, 10);
-                minX -= spanX * 0.05; maxX += spanX * 0.05;
-                minY -= spanY * 0.05; maxY += spanY * 0.05;
+                    if (minX === Infinity) { minX = 0; maxX = 10; minY = 0; maxY = 10; }
+                    
+                    const spanX = Math.max(maxX - minX, 10);
+                    const spanY = Math.max(maxY - minY, 10);
+                    minX -= spanX * 0.05; maxX += spanX * 0.05;
+                    minY -= spanY * 0.05; maxY += spanY * 0.05;
 
-                const totalMetersX = maxX - minX;
-                const totalMetersY = maxY - minY;
+                    const totalMetersX = maxX - minX;
+                    const totalMetersY = maxY - minY;
 
-                // A3 1/10,000 からはみ出る場合、ページ分割数を計算
-                const cols = Math.ceil(totalMetersY / maxPageMetersY);
-                const rows = Math.ceil(totalMetersX / maxPageMetersX);
-                const totalPages = cols * rows;
+                    const cols = Math.ceil(totalMetersY / maxPageMetersY);
+                    const rows = Math.ceil(totalMetersX / maxPageMetersX);
+                    const totalPages = cols * rows;
 
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
 
-                // 高解像度Canvas生成準備
-                const CanvasW = 2380, CanvasH = 1684; // A3横比率
-                const canvas = document.createElement('canvas');
-                canvas.width = CanvasW; canvas.height = CanvasH;
-                const ctx = canvas.getContext('2d');
+                    const CanvasW = 2380, CanvasH = 1684;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = CanvasW; canvas.height = CanvasH;
+                    const ctx = canvas.getContext('2d');
 
-                let pageCount = 0;
+                    let pageCount = 0;
 
-                for (let r = 0; r < rows; r++) {
-                    for (let c = 0; c < cols; c++) {
-                        pageCount++;
-                        if (pageCount > 1) doc.addPage('a3', 'landscape');
+                    for (let r = 0; r < rows; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            pageCount++;
+                            if (pageCount > 1) doc.addPage('a3', 'landscape');
 
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, CanvasW, CanvasH);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, CanvasW, CanvasH);
 
-                        // ヘッダー情報
-                        ctx.fillStyle = '#111827';
-                        ctx.font = `bold 32px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillText(`考古学フィールドワーク 測位・軌跡描画レポート (A3 縮尺 1/10,000) - [Page ${pageCount}/${totalPages}]`, 80, 70);
+                            ctx.fillStyle = '#111827';
+                            ctx.font = `bold 32px ${JAPANESE_FONT_FAMILY}`;
+                            ctx.fillText(`考古学フィールドワーク 測位・軌跡描画レポート (A3 縮尺 1/10,000) - [Page ${pageCount}/${totalPages}]`, 80, 70);
 
-                        ctx.font = `16px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillStyle = '#4b5563';
-                        const nowStr = new Date().toLocaleString('ja-JP');
-                        ctx.fillText(`出力日時: ${nowStr}   |   記録点: ${validRec.length}箇所   |   基準点: ${validKnown.length}箇所   |   軌跡ログ点: ${validLog.length}点`, 80, 105);
+                            ctx.font = `16px ${JAPANESE_FONT_FAMILY}`;
+                            ctx.fillStyle = '#4b5563';
+                            const nowStr = new Date().toLocaleString('ja-JP');
+                            ctx.fillText(`出力日時: ${nowStr}   |   記録点: ${validRec.length}箇所   |   基準点: ${validKnown.length}箇所   |   軌跡ログ点: ${validLog.length}点`, 80, 105);
 
-                        // 各ページの表示座標枠 (m)
-                        const pageMinX = minX + r * maxPageMetersX;
-                        const pageMaxX = Math.min(pageMinX + maxPageMetersX, maxX);
-                        const pageMinY = minY + c * maxPageMetersY;
-                        const pageMaxY = Math.min(pageMinY + maxPageMetersY, maxY);
+                            const pageMinX = minX + r * maxPageMetersX;
+                            const pageMaxX = Math.min(pageMinX + maxPageMetersX, maxX);
+                            const pageMinY = minY + c * maxPageMetersY;
+                            const pageMaxY = Math.min(pageMinY + maxPageMetersY, maxY);
 
-                        const margin = 120;
-                        const drawWidth = CanvasW - (margin * 2);
-                        const drawHeight = CanvasH - (margin * 2) - 60;
+                            const margin = 120;
+                            const drawWidth = CanvasW - (margin * 2);
+                            const drawHeight = CanvasH - (margin * 2) - 60;
 
-                        // 固定縮尺 (1/10,000: 1m = 0.1mm -> Canvas変換比率)
-                        const scale = Math.min(drawWidth / maxPageMetersY, drawHeight / maxPageMetersX);
+                            const scale = Math.min(drawWidth / maxPageMetersY, drawHeight / maxPageMetersX);
 
-                        function toCanvasCoord(x, y) {
-                            const px = margin + (y - pageMinY) * scale;
-                            const py = margin + 60 + drawHeight - ((x - pageMinX) * scale);
-                            return { x: px, y: py };
-                        }
-
-                        function isPointInPage(x, y) {
-                            return x >= pageMinX && x <= pageMaxX && y >= pageMinY && y <= pageMaxY;
-                        }
-
-                        // 外枠線
-                        ctx.strokeStyle = '#374151';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(margin, margin + 60, drawWidth, drawHeight);
-
-                        // メッシュ線（100m間隔）
-                        const gridInterval = 100;
-                        const startX = Math.floor(pageMinX / gridInterval) * gridInterval;
-                        const endX = Math.ceil(pageMaxX / gridInterval) * gridInterval;
-                        const startY = Math.floor(pageMinY / gridInterval) * gridInterval;
-                        const endY = Math.ceil(pageMaxY / gridInterval) * gridInterval;
-
-                        ctx.strokeStyle = '#e5e7eb';
-                        ctx.lineWidth = 1;
-                        ctx.font = `12px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillStyle = '#6b7280';
-
-                        for (let yVal = startY; yVal <= endY; yVal += gridInterval) {
-                            const p = toCanvasCoord(pageMinX, yVal);
-                            if (p.x >= margin && p.x <= margin + drawWidth) {
-                                ctx.beginPath();
-                                ctx.moveTo(p.x, margin + 60);
-                                ctx.lineTo(p.x, margin + 60 + drawHeight);
-                                ctx.stroke();
-                                ctx.fillText(`Y:${yVal}m`, p.x - 20, margin + 60 + drawHeight + 20);
+                            function toCanvasCoord(x, y) {
+                                const px = margin + (y - pageMinY) * scale;
+                                const py = margin + 60 + drawHeight - ((x - pageMinX) * scale);
+                                return { x: px, y: py };
                             }
-                        }
 
-                        for (let xVal = startX; xVal <= endX; xVal += gridInterval) {
-                            const p = toCanvasCoord(xVal, pageMinY);
-                            if (p.y >= margin + 60 && p.y <= margin + 60 + drawHeight) {
-                                ctx.beginPath();
-                                ctx.moveTo(margin, p.y);
-                                ctx.lineTo(margin + drawWidth, p.y);
-                                ctx.stroke();
-                                ctx.fillText(`X:${xVal}m`, margin - 85, p.y + 4);
+                            function isPointInPage(x, y) {
+                                return x >= pageMinX && x <= pageMaxX && y >= pageMinY && y <= pageMaxY;
                             }
-                        }
 
-                        // ログルート描画
-                        if (validLog.length > 0) {
-                            ctx.strokeStyle = '#ef4444';
+                            ctx.strokeStyle = '#374151';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(margin, margin + 60, drawWidth, drawHeight);
+
+                            const gridInterval = 100;
+                            const startX = Math.floor(pageMinX / gridInterval) * gridInterval;
+                            const endX = Math.ceil(pageMaxX / gridInterval) * gridInterval;
+                            const startY = Math.floor(pageMinY / gridInterval) * gridInterval;
+                            const endY = Math.ceil(pageMaxY / gridInterval) * gridInterval;
+
+                            ctx.strokeStyle = '#e5e7eb';
+                            ctx.lineWidth = 1;
+                            ctx.font = `12px ${JAPANESE_FONT_FAMILY}`;
+                            ctx.fillStyle = '#6b7280';
+
+                            for (let yVal = startY; yVal <= endY; yVal += gridInterval) {
+                                const p = toCanvasCoord(pageMinX, yVal);
+                                if (p.x >= margin && p.x <= margin + drawWidth) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(p.x, margin + 60);
+                                    ctx.lineTo(p.x, margin + 60 + drawHeight);
+                                    ctx.stroke();
+                                    ctx.fillText(`Y:${yVal}m`, p.x - 20, margin + 60 + drawHeight + 20);
+                                }
+                            }
+
+                            for (let xVal = startX; xVal <= endX; xVal += gridInterval) {
+                                const p = toCanvasCoord(xVal, pageMinY);
+                                if (p.y >= margin + 60 && p.y <= margin + 60 + drawHeight) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(margin, p.y);
+                                    ctx.lineTo(margin + drawWidth, p.y);
+                                    ctx.stroke();
+                                    ctx.fillText(`X:${xVal}m`, margin - 85, p.y + 4);
+                                }
+                            }
+
+                            if (validLog.length > 0) {
+                                ctx.strokeStyle = '#ef4444';
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                let drawing = false;
+
+                                validLog.forEach((p) => {
+                                    const cv = toCanvasCoord(p.x, p.y);
+                                    if (isPointInPage(p.x, p.y)) {
+                                        if (!drawing) {
+                                            ctx.moveTo(cv.x, cv.y);
+                                            drawing = true;
+                                        } else {
+                                            ctx.lineTo(cv.x, cv.y);
+                                        }
+                                    } else {
+                                        drawing = false;
+                                    }
+                                });
+                                ctx.stroke();
+
+                                validLog.forEach(p => {
+                                    if (isPointInPage(p.x, p.y)) {
+                                        const cv = toCanvasCoord(p.x, p.y);
+                                        ctx.fillStyle = 'rgba(239, 68, 68, 0.6)';
+                                        ctx.beginPath();
+                                        ctx.arc(cv.x, cv.y, 3, 0, Math.PI * 2);
+                                        ctx.fill();
+                                    }
+                                });
+                            }
+
+                            const scaleMeters = 100;
+                            const scalePx = scaleMeters * scale;
+                            const sbX = margin + 20;
+                            const sbY = margin + 60 + drawHeight - 20;
+
+                            ctx.strokeStyle = '#111827';
+                            ctx.fillStyle = '#111827';
                             ctx.lineWidth = 3;
                             ctx.beginPath();
-                            let drawing = false;
-
-                            validLog.forEach((p) => {
-                                const cv = toCanvasCoord(p.x, p.y);
-                                if (isPointInPage(p.x, p.y)) {
-                                    if (!drawing) {
-                                        ctx.moveTo(cv.x, cv.y);
-                                        drawing = true;
-                                    } else {
-                                        ctx.lineTo(cv.x, cv.y);
-                                    }
-                                } else {
-                                    drawing = false;
-                                }
-                            });
-                            ctx.stroke();
-
-                            validLog.forEach(p => {
-                                if (isPointInPage(p.x, p.y)) {
-                                    const cv = toCanvasCoord(p.x, p.y);
-                                    ctx.fillStyle = 'rgba(239, 68, 68, 0.6)';
-                                    ctx.beginPath();
-                                    ctx.arc(cv.x, cv.y, 3, 0, Math.PI * 2);
-                                    ctx.fill();
-                                }
-                            });
-                        }
-
-                        // 縮尺スケールバー描画 (100m)
-                        const scaleMeters = 100;
-                        const scalePx = scaleMeters * scale;
-                        const sbX = margin + 20;
-                        const sbY = margin + 60 + drawHeight - 20;
-
-                        ctx.strokeStyle = '#111827';
-                        ctx.fillStyle = '#111827';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(sbX, sbY);
-                        ctx.lineTo(sbX + scalePx, sbY);
-                        ctx.moveTo(sbX, sbY - 8);
-                        ctx.lineTo(sbX, sbY + 8);
-                        ctx.moveTo(sbX + scalePx, sbY - 8);
-                        ctx.lineTo(sbX + scalePx, sbY + 8);
-                        ctx.stroke();
-
-                        ctx.font = `bold 14px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillText(`0`, sbX - 4, sbY - 12);
-                        ctx.fillText(`${scaleMeters} m`, sbX + scalePx - 15, sbY - 12);
-                        ctx.font = `12px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillText(`縮尺 1/10,000`, sbX, sbY + 24);
-
-                        // 注釈付きポイント描画
-                        function drawAnnotatedPointCanvas(ptX, ptY, ptZ, rawName, pointColorHex, labelPrefix) {
-                            if (!isPointInPage(ptX, ptY)) return;
-
-                            const cvPt = toCanvasCoord(ptX, ptY);
-                            const nameStr = String(rawName || '名称未設定');
-                            const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
-                            const titleText = `${labelPrefix}${nameStr}`;
-
-                            ctx.fillStyle = pointColorHex;
-                            ctx.strokeStyle = '#000000';
-                            ctx.lineWidth = 2;
-                            ctx.beginPath();
-                            ctx.arc(cvPt.x, cvPt.y, 7, 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.moveTo(sbX, sbY);
+                            ctx.lineTo(sbX + scalePx, sbY);
+                            ctx.moveTo(sbX, sbY - 8);
+                            ctx.lineTo(sbX, sbY + 8);
+                            ctx.moveTo(sbX + scalePx, sbY - 8);
+                            ctx.lineTo(sbX + scalePx, sbY + 8);
                             ctx.stroke();
 
                             ctx.font = `bold 14px ${JAPANESE_FONT_FAMILY}`;
-                            const boxWidth = Math.max(ctx.measureText(titleText).width, 140) + 20;
-                            const boxHeight = 74;
-
-                            let offsetX = cvPt.x > CanvasW / 2 ? -boxWidth - 40 : 40;
-                            let offsetY = cvPt.y > CanvasH / 2 ? -boxHeight - 20 : 20;
-
-                            let textX = cvPt.x + offsetX;
-                            let textY = cvPt.y + offsetY;
-
-                            const lineTargetX = textX < cvPt.x ? textX + boxWidth : textX;
-                            const lineTargetY = textY + boxHeight / 2;
-
-                            ctx.strokeStyle = '#4b5563';
-                            ctx.lineWidth = 1.5;
-                            ctx.beginPath();
-                            ctx.moveTo(cvPt.x, cvPt.y);
-                            ctx.lineTo(lineTargetX, lineTargetY);
-                            ctx.stroke();
-
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                            ctx.strokeStyle = '#9ca3af';
-                            ctx.lineWidth = 1;
-                            ctx.fillRect(textX, textY, boxWidth, boxHeight);
-                            ctx.strokeRect(textX, textY, boxWidth, boxHeight);
-
-                            ctx.fillStyle = '#000000';
-                            ctx.font = `bold 14px ${JAPANESE_FONT_FAMILY}`;
-                            ctx.fillText(titleText, textX + 10, textY + 20);
+                            ctx.fillText(`0`, sbX - 4, sbY - 12);
+                            ctx.fillText(`${scaleMeters} m`, sbX + scalePx - 15, sbY - 12);
                             ctx.font = `12px ${JAPANESE_FONT_FAMILY}`;
-                            ctx.fillText(`X: ${ptX.toFixed(3)}`, textX + 10, textY + 38);
-                            ctx.fillText(`Y: ${ptY.toFixed(3)}`, textX + 10, textY + 53);
-                            ctx.fillText(`Z: ${zText}`, textX + 10, textY + 68);
+                            ctx.fillText(`縮尺 1/10,000`, sbX, sbY + 24);
+
+                            function drawAnnotatedPointCanvas(ptX, ptY, ptZ, rawName, pointColorHex, labelPrefix) {
+                                if (!isPointInPage(ptX, ptY)) return;
+
+                                const cvPt = toCanvasCoord(ptX, ptY);
+                                const nameStr = String(rawName || '名称未設定');
+                                const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
+                                const titleText = `${labelPrefix}${nameStr}`;
+
+                                ctx.fillStyle = pointColorHex;
+                                ctx.strokeStyle = '#000000';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.arc(cvPt.x, cvPt.y, 7, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.stroke();
+
+                                ctx.font = `bold 14px ${JAPANESE_FONT_FAMILY}`;
+                                const boxWidth = Math.max(ctx.measureText(titleText).width, 140) + 20;
+                                const boxHeight = 74;
+
+                                let offsetX = cvPt.x > CanvasW / 2 ? -boxWidth - 40 : 40;
+                                let offsetY = cvPt.y > CanvasH / 2 ? -boxHeight - 20 : 20;
+
+                                let textX = cvPt.x + offsetX;
+                                let textY = cvPt.y + offsetY;
+
+                                const lineTargetX = textX < cvPt.x ? textX + boxWidth : textX;
+                                const lineTargetY = textY + boxHeight / 2;
+
+                                ctx.strokeStyle = '#4b5563';
+                                ctx.lineWidth = 1.5;
+                                ctx.beginPath();
+                                ctx.moveTo(cvPt.x, cvPt.y);
+                                ctx.lineTo(lineTargetX, lineTargetY);
+                                ctx.stroke();
+
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                                ctx.strokeStyle = '#9ca3af';
+                                ctx.lineWidth = 1;
+                                ctx.fillRect(textX, textY, boxWidth, boxHeight);
+                                ctx.strokeRect(textX, textY, boxWidth, boxHeight);
+
+                                ctx.fillStyle = '#000000';
+                                ctx.font = `bold 14px ${JAPANESE_FONT_FAMILY}`;
+                                ctx.fillText(titleText, textX + 10, textY + 20);
+                                ctx.font = `12px ${JAPANESE_FONT_FAMILY}`;
+                                ctx.fillText(`X: ${ptX.toFixed(3)}`, textX + 10, textY + 38);
+                                ctx.fillText(`Y: ${ptY.toFixed(3)}`, textX + 10, textY + 53);
+                                ctx.fillText(`Z: ${zText}`, textX + 10, textY + 68);
+                            }
+
+                            validKnown.forEach(kp => drawAnnotatedPointCanvas(kp.targetX, kp.targetY, kp.targetZ, kp.name, "#2563eb", "基準: "));
+                            validRec.forEach(rp => drawAnnotatedPointCanvas(rp.x, rp.y, rp.z, rp.name, "#eab308", "記録: "));
+
+                            const imgData = canvas.toDataURL('image/png');
+                            doc.addImage(imgData, 'PNG', 0, 0, 420, 297);
                         }
-
-                        validKnown.forEach(kp => drawAnnotatedPointCanvas(kp.targetX, kp.targetY, kp.targetZ, kp.name, "#2563eb", "基準: "));
-                        validRec.forEach(rp => drawAnnotatedPointCanvas(rp.x, rp.y, rp.z, rp.name, "#eab308", "記録: "));
-
-                        const imgData = canvas.toDataURL('image/png');
-                        doc.addImage(imgData, 'PNG', 0, 0, 420, 297);
                     }
-                }
 
-                doc.save(`archaeology_survey_A3_${Date.now()}${filenameSuffix}.pdf`);
-            } catch (err) {
-                alert("PDF生成中にエラーが発生しました: " + err.message);
-            }
+                    resolve(doc.output('blob'));
+                } catch (err) {
+                    resolve(null);
+                }
+            });
         }
 
         document.getElementById('settings-btn').addEventListener('click', () => {
@@ -850,7 +906,7 @@
             if (motionHandler) window.removeEventListener('devicemotion', motionHandler);
         });
 
-        document.getElementById('add-kp-btn').addEventListener('click', () => {
+        document.getElementById('add-kp-btn').addEventListener('click', async () => {
             const nameInput = document.getElementById('kp-name');
             const xInput = document.getElementById('kp-x');
             const yInput = document.getElementById('kp-y');
@@ -881,7 +937,7 @@
             if (samplingTimer !== null) clearInterval(samplingTimer);
             btn.innerText = `⏳ 座標取得中... 残り${secondsLeft}秒`;
 
-            samplingTimer = setInterval(() => {
+            samplingTimer = setInterval(async () => {
                 try {
                     if (latestLat !== 0) {
                         samplesLat.push(latestLat);
@@ -927,7 +983,7 @@
                         };
 
                         knownPoints.push(newPoint);
-                        saveKnownPoints();
+                        await saveToDB('knownPoints', knownPoints);
 
                         nameInput.value = ''; xInput.value = ''; yInput.value = ''; zInput.value = '';
                         renderKnownPointsList();
@@ -945,12 +1001,6 @@
                 }
             }, 1000);
         });
-
-        function saveKnownPoints() {
-            try {
-                localStorage.setItem('conf_known_points', JSON.stringify(knownPoints));
-            } catch (e) {}
-        }
 
         function renderKnownPointsList() {
             const container = document.getElementById('kp-list-container');
@@ -1013,7 +1063,7 @@
             });
         }
 
-        window.editKnownPoint = function(id) {
+        window.editKnownPoint = async function(id) {
             const kp = knownPoints.find(p => p.id === id);
             if (!kp) return;
 
@@ -1040,15 +1090,15 @@
             kp.shiftX = newX - rawX;
             kp.shiftY = newY - rawY;
 
-            saveKnownPoints();
+            await saveToDB('knownPoints', knownPoints);
             renderKnownPointsList();
             updateGrowthUI();
         };
 
-        window.deleteKnownPoint = function(id) {
+        window.deleteKnownPoint = async function(id) {
             if(!confirm("この既知点を削除しますか？")) return;
             knownPoints = knownPoints.filter(p => p.id !== id);
-            saveKnownPoints();
+            await saveToDB('knownPoints', knownPoints);
             renderKnownPointsList();
             updateGrowthUI();
         };
