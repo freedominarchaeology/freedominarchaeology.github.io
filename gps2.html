@@ -118,7 +118,7 @@
         
         <div style="margin-top: 6px; display: flex; gap: 6px;">
             <button id="log-toggle-btn" class="primary" style="flex: 1; padding: 8px; font-size: 13px;">🔴 ログ記録開始</button>
-            <button id="export-csv-btn" class="success" style="padding: 8px; font-size: 12px;">📊 CSV保存</button>
+            <button id="export-csv-btn" class="success" style="padding: 8px; font-size: 12px;">📊 現状CSV出力</button>
         </div>
     </header>
 
@@ -128,7 +128,6 @@
     </div>
 
     <div id="register-panel">
-        <!-- 遺物・遺構点（黄色）登録領域 -->
         <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🟡 遺物・遺構記録点（任意測位点）の登録</div>
         <div class="flex-row">
             <input type="text" id="rec-name" placeholder="点名/遺物名 (例: 須恵器片01)">
@@ -137,7 +136,6 @@
 
         <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">
 
-        <!-- 既知点（基準点）登録領域 -->
         <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 4px;">🎯 基準点（既知点）の学習登録</div>
         <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">
         <div class="flex-row">
@@ -197,7 +195,7 @@
             <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">
 
             <button id="sensor-permission-btn" class="primary" style="width: 100%; padding: 8px; margin-bottom: 8px;">📱 スマホセンサー（PDR）有効化</button>
-            <button id="clear-all-data-btn" class="danger" style="width: 100%; padding: 8px; font-size: 12px;">🗑️ 化けた旧データを全消去・初期化</button>
+            <button id="clear-all-data-btn" class="danger" style="width: 100%; padding: 8px; font-size: 12px;">🗑️ 全データを初期化・削除</button>
 
             <div style="margin-top: 12px;">
                 <button id="close-settings" class="success" style="width: 100%; padding: 10px; font-size: 14px;">保存して閉じる</button>
@@ -210,15 +208,15 @@
 
         const JAPANESE_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif';
 
-        // ログ・ストレージ管理定数
-        const MAX_LOG_LIMIT = 2000;      // 限界点数（2000点を超えたらストレージへ自動バッチ保存）
-        const AUTO_SAVE_THRESHOLD = 500; // チャンク分割サイズ
-
+        // ログ制御用変数
         let isLogging = false;
-        let routeLog = [];
         let logTimer = null;
-        let lastLoggedPoint = null;
-        let logChunkIndex = 0;
+        let currentSecondSamples = []; // 1秒間に取得された測位サンプルのバッファ
+        let currentChunkPoints = [];   // 現在記録中のログポイント（1000点未満）
+        let lastLoggedPoint = null;    // 直前に記録したログ点
+
+        const STORAGE_CSV_PREFIX = 'log_csv_';
+        const STORAGE_PDF_PREFIX = 'log_pdf_';
 
         const safeGetStorage = (key, defaultVal, isFloat = false) => {
             try {
@@ -393,18 +391,14 @@
             renderRecordedPointsList();
         };
 
-        // CSV単体ダウンロード機能
-        document.getElementById('export-csv-btn').addEventListener('click', () => exportCSV());
-
-        function exportCSV(logDataOverride = null, filenameSuffix = "") {
-            const targetLog = logDataOverride || routeLog;
-            if (recordedPoints.length === 0 && targetLog.length === 0 && knownPoints.length === 0) {
-                alert("出力する測量データがありません。");
+        // 現状の遺物・基準点データを単体CSV出力
+        document.getElementById('export-csv-btn').addEventListener('click', () => {
+            if (recordedPoints.length === 0 && knownPoints.length === 0) {
+                alert("出力する記録点・基準点データがありません。");
                 return;
             }
 
             let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
-
             recordedPoints.forEach(p => {
                 const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : '';
                 csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ''},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
@@ -415,53 +409,58 @@
                 csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
             });
 
-            targetLog.forEach((p, idx) => {
-                const timeStr = new Date(p.time).toLocaleString('ja-JP');
-                csvContent += `軌跡ログ,Track_${idx+1},${timeStr},${p.x.toFixed(3)},${p.y.toFixed(3)},\n`;
-            });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `測量ログ_${Date.now()}${filenameSuffix}.csv`;
+            a.download = `測量登録点_${Date.now()}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        });
+
+        // タイムスタンプ文字列生成ヘルパー (YYYYMMDD_HHmmss)
+        function formatTimestamp(d = new Date()) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
         }
 
-        // ブラウザストレージ（localStorage）へログチャンクを一時保存
-        function saveLogChunkToStorage(chunk, index) {
+        // CSVデータをブラウザストレージ(localStorage)へ保存する
+        function saveCsvToStorage(points) {
+            if (!points || points.length === 0) return null;
+            const timeStr = formatTimestamp(new Date(points[0].time));
+            const fileName = `${timeStr}.csv`;
+            const storageKey = `${STORAGE_CSV_PREFIX}${fileName}`;
+
+            let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
+            points.forEach((p, idx) => {
+                const tStr = new Date(p.time).toLocaleString('ja-JP');
+                const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : '';
+                csvContent += `軌跡ログ,Track_${idx+1},${tStr},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
+            });
+
             try {
-                localStorage.setItem(`survey_log_chunk_${index}`, JSON.stringify(chunk));
+                localStorage.setItem(storageKey, csvContent);
+                return fileName;
             } catch (e) {
-                console.warn("LocalStorage storage limit reached for log chunk.");
+                console.error("ブラウザストレージの容量制限に達した可能性があります。", e);
+                return null;
             }
         }
 
-        function clearStoredLogChunks() {
+        // ブラウザストレージ内の全ログデータを全消去
+        function clearAllLogStorage() {
             try {
-                for (let i = 0; i < 50; i++) {
-                    localStorage.removeItem(`survey_log_chunk_${i}`);
-                }
-            } catch (e) {}
-        }
-
-        function loadAllStoredLogs() {
-            let combined = [...routeLog];
-            try {
-                for (let i = 0; i < 50; i++) {
-                    const data = localStorage.getItem(`survey_log_chunk_${i}`);
-                    if (data) {
-                        const parsed = JSON.parse(data);
-                        if (Array.isArray(parsed)) {
-                            combined = combined.concat(parsed);
-                        }
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith(STORAGE_CSV_PREFIX) || key.startsWith(STORAGE_PDF_PREFIX))) {
+                        keysToRemove.push(key);
                     }
                 }
+                keysToRemove.forEach(k => localStorage.removeItem(k));
             } catch (e) {}
-            return combined;
         }
 
         document.getElementById('clear-all-data-btn').addEventListener('click', () => {
@@ -469,146 +468,239 @@
                 localStorage.clear();
                 recordedPoints = [];
                 knownPoints = [];
-                routeLog = [];
-                logChunkIndex = 0;
-                clearStoredLogChunks();
+                currentChunkPoints = [];
+                currentSecondSamples = [];
+                lastLoggedPoint = null;
                 config.shiftX = 0;
                 config.shiftY = 0;
                 config.hasCalibrated = false;
                 renderRecordedPointsList();
                 renderKnownPointsList();
                 updateGrowthUI();
-                alert("旧データおよび全記録を正常に初期化・消去しました。");
+                alert("全データを正常に初期化・消去しました。");
             }
         });
 
-        // ログ記録 ＆ 終了時のZip保存・PDF出力統合ステップ
+        // ログ記録の開始・停止制御ボタン
         const logToggleBtn = document.getElementById('log-toggle-btn');
         logToggleBtn.addEventListener('click', async () => {
             if (!isLogging) {
-                routeLog = [];
+                // ログ記録開始
+                currentChunkPoints = [];
+                currentSecondSamples = [];
                 lastLoggedPoint = null;
-                logChunkIndex = 0;
-                clearStoredLogChunks();
                 isLogging = true;
-                logToggleBtn.innerText = "⏹️ 記録停止 ＆ Zip保存・PDF出力";
+
+                logToggleBtn.innerText = "⏹️ ログ停止・出力 (Zip生成)";
                 logToggleBtn.className = "danger";
 
-                // 0.5m以上移動した場合のみログへ追加
+                // 1秒周期タイマー: 1秒間の測位サンプル平均値を評価して記録
                 logTimer = setInterval(() => {
-                    const coords = getCurrentTransformedCoords();
-                    if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
-                        let added = false;
+                    if (!isLogging) return;
+
+                    let evalPoint = null;
+
+                    if (currentSecondSamples.length > 0) {
+                        // 1: 1秒間の測位サンプルの平均値を算出
+                        const sumX = currentSecondSamples.reduce((a, b) => a + b.x, 0);
+                        const sumY = currentSecondSamples.reduce((a, b) => a + b.y, 0);
+                        let sumZ = 0, zCount = 0;
+                        currentSecondSamples.forEach(p => {
+                            if (p.z !== null && p.z !== undefined && !isNaN(p.z)) {
+                                sumZ += p.z;
+                                zCount++;
+                            }
+                        });
+
+                        evalPoint = {
+                            x: sumX / currentSecondSamples.length,
+                            y: sumY / currentSecondSamples.length,
+                            z: zCount > 0 ? sumZ / zCount : null,
+                            time: currentSecondSamples[currentSecondSamples.length - 1].time
+                        };
+                        currentSecondSamples = []; // バッファクリア
+                    } else {
+                        // 2: 動きが激しくサンプルがない場合は単独測位結果を採用
+                        const coords = getCurrentTransformedCoords();
+                        if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
+                            evalPoint = {
+                                x: coords.x,
+                                y: coords.y,
+                                z: coords.z,
+                                time: Date.now()
+                            };
+                        }
+                    }
+
+                    if (evalPoint) {
+                        // 1: 50cm(0.5m)以上の移動があった場合のみ記録
+                        let shouldLog = false;
                         if (!lastLoggedPoint) {
-                            routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
-                            lastLoggedPoint = coords;
-                            added = true;
+                            shouldLog = true;
                         } else {
-                            const dx = coords.x - lastLoggedPoint.x;
-                            const dy = coords.y - lastLoggedPoint.y;
+                            const dx = evalPoint.x - lastLoggedPoint.x;
+                            const dy = evalPoint.y - lastLoggedPoint.y;
                             const dist = Math.sqrt(dx * dx + dy * dy);
-                            
                             if (dist >= 0.5) {
-                                routeLog.push({ x: coords.x, y: coords.y, time: Date.now() });
-                                lastLoggedPoint = coords;
-                                added = true;
+                                shouldLog = true;
                             }
                         }
 
-                        if (added) {
-                            // 500点に達するごとにブラウザストレージへ退避
-                            if (routeLog.length >= AUTO_SAVE_THRESHOLD) {
-                                saveLogChunkToStorage(routeLog, logChunkIndex);
-                                logChunkIndex++;
-                                routeLog = []; // メモリ解放
-                            }
+                        if (shouldLog) {
+                            currentChunkPoints.push(evalPoint);
+                            lastLoggedPoint = evalPoint;
 
-                            // 2000点制限または長時間の測量に達したときのチェック
-                            const totalCount = loadAllStoredLogs().length + routeLog.length;
-                            if (totalCount >= MAX_LOG_LIMIT) {
-                                alert(`⚠️ ログデータ点数が上限 (${MAX_LOG_LIMIT}点) に達しました。\n自動的に記録を停止し、Zip一括出力およびPDF描画ステップへ移行します。`);
-                                logToggleBtn.click(); // 自動停止アクション実行
+                            // 3 & 4: 1000点計測達成ごとにブラウザストレージへ「（測位結果記録日時）.csv」を保存
+                            if (currentChunkPoints.length >= 1000) {
+                                saveCsvToStorage(currentChunkPoints);
+                                currentChunkPoints = []; // メモリリセット
                             }
                         }
                     }
                 }, 1000);
 
             } else {
+                // ログ停止・出力処理
                 isLogging = false;
-                logToggleBtn.innerText = "🔴 ログ記録開始";
-                logToggleBtn.className = "primary";
-                
                 if (logTimer !== null) {
                     clearInterval(logTimer);
                     logTimer = null;
                 }
 
-                // ブラウザストレージに保存されたデータを結合して成果品作成
-                const completeLog = loadAllStoredLogs();
+                logToggleBtn.innerText = "⏳ 処理中...";
+                logToggleBtn.disabled = true;
 
-                if (completeLog.length === 0 && recordedPoints.length === 0 && knownPoints.length === 0) {
-                    alert("出力する測量データがありません。");
-                    return;
+                // 5: 1000点未満の残データがあればCSVとしてブラウザストレージに保存
+                if (currentChunkPoints.length > 0) {
+                    saveCsvToStorage(currentChunkPoints);
+                    currentChunkPoints = [];
                 }
 
-                // 1. JSZipによる一括Zipアーカイブ生成・ダウンロード
-                await generateAndDownloadZip(completeLog);
+                // ストレージ内のログCSVファイルを全て探索・PDF描画・ストレージ保存
+                await processStorageLogsAndGeneratePDFs();
 
-                // 2. 成果品のログ描画PDFを出力
-                generatePDFReport(completeLog);
+                // 6: ブラウザストレージのCSVとPDFをZIPにまとめ端末のダウンロードフォルダへ出力
+                await packageAndDownloadZip();
+
+                // 7: ダウンロード完了後にストレージ上のログCSV/PDFを削除
+                clearAllLogStorage();
+
+                logToggleBtn.innerText = "🔴 ログ記録開始";
+                logToggleBtn.className = "primary";
+                logToggleBtn.disabled = false;
             }
         });
 
-        // JSZipを使った一括アーカイブ出力
-        async function generateAndDownloadZip(completeLog) {
+        // CSVテキストからログ点配列を復元するパース関数
+        function parseCsvToLogPoints(csvText) {
+            const lines = csvText.split('\n');
+            const points = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const cols = line.split(',');
+                if (cols.length >= 5) {
+                    const x = parseFloat(cols[3]);
+                    const y = parseFloat(cols[4]);
+                    const z = cols[5] ? parseFloat(cols[5]) : null;
+                    if (!isNaN(x) && !isNaN(y)) {
+                        points.push({ x, y, z });
+                    }
+                }
+            }
+            return points;
+        }
+
+        // ストレージ内の各ログCSVから描画PDFを生成してブラウザストレージに書き込む
+        async function processStorageLogsAndGeneratePDFs() {
+            const csvKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(STORAGE_CSV_PREFIX)) {
+                    csvKeys.push(key);
+                }
+            }
+
+            for (const key of csvKeys) {
+                const csvContent = localStorage.getItem(key);
+                if (!csvContent) continue;
+
+                const baseFileName = key.replace(STORAGE_CSV_PREFIX, '').replace('.csv', '');
+                const logPoints = parseCsvToLogPoints(csvContent);
+
+                // ログを描画してPDFインスタンス作成
+                const doc = generatePDFReportForLog(logPoints, baseFileName);
+                if (doc) {
+                    try {
+                        const pdfDataUri = doc.output('datauristring');
+                        const pdfKey = `${STORAGE_PDF_PREFIX}${baseFileName}.pdf`;
+                        localStorage.setItem(pdfKey, pdfDataUri);
+                    } catch (e) {
+                        console.error("PDFのブラウザストレージ保存中にエラーが発生しました:", e);
+                    }
+                }
+            }
+        }
+
+        // ZIP生成とダウンロード処理
+        async function packageAndDownloadZip() {
             if (typeof window.JSZip === 'undefined') {
-                alert('JSZipライブラリが読み込まれていません。通常のCSV保存を行います。');
-                exportCSV(completeLog);
+                alert('JSZipライブラリがロードされていません。');
                 return;
             }
 
             const zip = new window.JSZip();
-            const timestamp = Date.now();
-            
-            // メインCSV生成
-            let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
-            recordedPoints.forEach(p => {
-                const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : '';
-                csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ''},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
-            });
-            knownPoints.forEach(p => {
-                const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : '';
-                csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
-            });
-            completeLog.forEach((p, idx) => {
-                const timeStr = new Date(p.time).toLocaleString('ja-JP');
-                csvContent += `軌跡ログ,Track_${idx+1},${timeStr},${p.x.toFixed(3)},${p.y.toFixed(3)},\n`;
-            });
+            let fileCount = 0;
 
-            zip.file(`survey_master_data_${timestamp}.csv`, csvContent);
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key) continue;
 
-            // ストレージ内のチャンクも個別にZipへ同梱
-            try {
-                for (let i = 0; i < 50; i++) {
-                    const data = localStorage.getItem(`survey_log_chunk_${i}`);
-                    if (data) {
-                        zip.file(`chunks/log_chunk_${i + 1}.json`, data);
-                    }
+                if (key.startsWith(STORAGE_CSV_PREFIX)) {
+                    const fileName = key.replace(STORAGE_CSV_PREFIX, '');
+                    const content = localStorage.getItem(key);
+                    zip.file(`csv/${fileName}`, content);
+                    fileCount++;
+                } else if (key.startsWith(STORAGE_PDF_PREFIX)) {
+                    const fileName = key.replace(STORAGE_PDF_PREFIX, '');
+                    const dataUri = localStorage.getItem(key);
+                    const base64Data = dataUri.split(',')[1];
+                    zip.file(`pdf/${fileName}`, base64Data, { base64: true });
+                    fileCount++;
                 }
-            } catch (e) {}
+            }
+
+            if (fileCount === 0) {
+                alert("出力対象のログデータが存在しません。");
+                return;
+            }
+
+            // 基準点・遺物点のマスターデータもルートに追加
+            if (recordedPoints.length > 0 || knownPoints.length > 0) {
+                let masterCsv = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
+                recordedPoints.forEach(p => {
+                    const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : '';
+                    masterCsv += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ''},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
+                });
+                knownPoints.forEach(p => {
+                    const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : '';
+                    masterCsv += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
+                });
+                zip.file(`registered_points_master.csv`, masterCsv);
+            }
 
             const content = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(content);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `測量成果品一式_${timestamp}.zip`;
+            a.download = `測量ログ成果物一式_${formatTimestamp()}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
-        // ベジェ曲線（二次/三次ベジェ）を用いたなめらかな軌跡描画関数
+        // ベジェ曲線を用いたなめらかな軌跡描画関数
         function drawSmoothBezierPath(ctx, points, toCanvasCoordFunc, isPointInPageFunc) {
             if (!points || points.length === 0) return;
 
@@ -624,7 +716,6 @@
                 return;
             }
 
-            // 開始点
             const firstValidIdx = points.findIndex(p => isPointInPageFunc(p.x, p.y));
             if (firstValidIdx === -1) return;
 
@@ -654,7 +745,6 @@
                 ctx.quadraticCurveTo(cv0.x, cv0.y, midX, midY);
             }
 
-            // 最後の点へ接続
             const lastP = points[points.length - 1];
             if (isPointInPageFunc(lastP.x, lastP.y)) {
                 const lastCv = toCanvasCoordFunc(lastP.x, lastP.y);
@@ -664,23 +754,14 @@
             ctx.stroke();
         }
 
-        // PDF自動生成 ＆ 直接ダウンロード処理 (A3領域に最適な自動縮尺で描画)
-        function generatePDFReport(logDataOverride = null) {
+        // 特定のログ記録点配列を受け取ってA3設定でPDFインスタンスを生成・返却する
+        function generatePDFReportForLog(logPoints, titleTimeStr) {
             try {
-                if (typeof window.jspdf === 'undefined') {
-                    alert('PDF生成ライブラリが読み込まれていません。');
-                    return;
-                }
+                if (typeof window.jspdf === 'undefined') return null;
 
-                const targetLog = logDataOverride || loadAllStoredLogs().concat(routeLog);
-                const validLog = targetLog.filter(p => !isNaN(p.x) && !isNaN(p.y));
+                const validLog = logPoints.filter(p => !isNaN(p.x) && !isNaN(p.y));
                 const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
                 const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
-
-                if (validLog.length === 0 && validKnown.length === 0 && validRec.length === 0) {
-                    alert("PDFに出力する有効な座標データがありません。");
-                    return;
-                }
 
                 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
                 const allPoints = [
@@ -713,12 +794,10 @@
                 const drawWidth = CanvasW - (margin * 2);
                 const drawHeight = CanvasH - (margin * 2) - 60;
 
-                // 10%のマージンを設けた実距離範囲の算出
                 const marginRatio = 0.1;
                 const totalMetersX = spanX * (1 + marginRatio * 2);
                 const totalMetersY = spanY * (1 + marginRatio * 2);
 
-                // A3描画域にフルに収めるための適切な縮尺（px/m）を算出
                 const scaleX = drawHeight / totalMetersX;
                 const scaleY = drawWidth / totalMetersY;
                 const scale = Math.min(scaleX, scaleY);
@@ -731,11 +810,9 @@
                 const pageMinY = centerY - (drawWidth / scale) / 2;
                 const pageMaxY = centerY + (drawWidth / scale) / 2;
 
-                // A3（420mm幅）換算の縮尺分母を動的計算
                 const pxPerMM = CanvasW / 420;
                 const scaleDenominator = Math.round((1000 * pxPerMM) / scale);
 
-                // 実距離スパンに応じたグリッド間隔の動的判定
                 const maxSpan = Math.max(spanX, spanY);
                 let gridInterval = 10;
                 if (maxSpan <= 10) gridInterval = 1;
@@ -751,12 +828,11 @@
 
                 ctx.fillStyle = '#111827';
                 ctx.font = `bold 32px ${JAPANESE_FONT_FAMILY}`;
-                ctx.fillText(`考古学フィールドワーク 測位・軌跡描画レポート (A3 縮尺 1/${scaleDenominator.toLocaleString()})`, 80, 70);
+                ctx.fillText(`考古学フィールドワーク 測位・軌跡描画レポート (${titleTimeStr})`, 80, 70);
 
                 ctx.font = `16px ${JAPANESE_FONT_FAMILY}`;
                 ctx.fillStyle = '#4b5563';
-                const nowStr = new Date().toLocaleString('ja-JP');
-                ctx.fillText(`出力日時: ${nowStr}   |   記録点: ${validRec.length}箇所   |   基準点: ${validKnown.length}箇所   |   軌跡ログ点: ${validLog.length}点`, 80, 105);
+                ctx.fillText(`縮尺: 1/${scaleDenominator.toLocaleString()}   |   記録点: ${validRec.length}箇所   |   基準点: ${validKnown.length}箇所   |   ログ点数: ${validLog.length}点`, 80, 105);
 
                 function toCanvasCoord(x, y) {
                     const px = margin + (y - pageMinY) * scale;
@@ -804,7 +880,7 @@
                     }
                 }
 
-                // ベジェ曲線によるなめらかな軌跡ログの描画適用
+                // なめらかな軌跡描画
                 if (validLog.length > 0) {
                     ctx.strokeStyle = '#ef4444';
                     ctx.lineWidth = 3;
@@ -905,9 +981,10 @@
                 const imgData = canvas.toDataURL('image/png');
                 doc.addImage(imgData, 'PNG', 0, 0, 420, 297);
 
-                doc.save(`archaeology_survey_A3_${Date.now()}.pdf`);
+                return doc;
             } catch (err) {
-                alert("PDF生成中にエラーが発生しました: " + err.message);
+                console.error("PDF描画エラー:", err);
+                return null;
             }
         }
 
@@ -1434,12 +1511,22 @@
                             document.getElementById('grid-x').innerText = coords.x.toFixed(3) + ' m';
                             document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';
                             document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';
+
+                            // 2: 記録中であれば1秒間のサンプル用バッファに追記
+                            if (isLogging) {
+                                currentSecondSamples.push({
+                                    x: coords.x,
+                                    y: coords.y,
+                                    z: coords.z,
+                                    time: Date.now()
+                                });
+                            }
                         }
                         
                         const statusEl = document.getElementById('gps-status');
                         if (statusEl) {
-                            statusEl.innerText = "測位中";
-                            statusEl.style.color = "#4ade80";
+                            statusEl.innerText = isLogging ? "🔴 ログ記録中" : "測位中";
+                            statusEl.style.color = isLogging ? "#ef4444" : "#4ade80";
                         }
                     } catch (err) {}
                 },
