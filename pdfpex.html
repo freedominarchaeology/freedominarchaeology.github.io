@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFページ抽出・考古学資料対応ツール</title>
+    
+    <!-- 外部ライブラリ (オフライン時は同階層のローカルファイルを指定可能) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* 堅牢なレイアウト崩れ防止とMS明朝指定 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "MS Mincho", "MS 明朝", serif;
+            background-color: #f4f4f9;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2c3e50;
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"], select, input[type="text"], button {
+            font-family: "MS Mincho", "MS 明朝", serif;
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 400px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            max-width: 200px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #loading {
+            display: none;
+            color: #e67e22;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        /* サムネイルプレビュー領域 */
+        #thumbnail-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .thumb-card {
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .thumb-card.selected {
+            border-color: #27ae60;
+            background: #e8f8f5;
+        }
+        .thumb-card canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+        }
+        .thumb-info input {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            width: 100%;
+        }
+        .badge {
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 id="ui-title">PDFページ抽出ツール（考古学対応）</h1>
+        <div>
+            <label for="lang-select" style="display:inline; color:#fff;" id="ui-lang-label">言語:</label>
+            <select id="lang-select" style="width: auto; display:inline;" onchange="changeLanguage()">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="control-group">
+        <label for="pdf-file" id="ui-file-label">報告書PDFファイルを選択:</label>
+        <input type="file" id="pdf-file" accept="application/pdf" onchange="loadPDF(event)">
+    </div>
+
+    <div id="loading">処理中... 少々お待ちください。</div>
+
+    <div class="control-group">
+        <h3 id="ui-preview-title">抽出ページ選択・ファイル名調整</h3>
+        <p id="ui-preview-desc" class="badge">カードをクリックして選択・解除。必要に応じてファイル名（OCR検出値）を直接編集できます。</p>
+        <div id="thumbnail-container"></div>
+    </div>
+
+    <button id="process-btn" onclick="executeExtraction()" disabled>抽出・保存実行</button>
+</div>
+
+<script>
+    // 多言語辞書データ
+    const i18n = {
+        ja: {
+            title: "PDFページ抽出ツール（考古学対応）",
+            langLabel: "言語:",
+            fileLabel: "報告書PDFファイルを選択:",
+            previewTitle: "抽出ページ選択・ファイル名調整",
+            previewDesc: "カードをクリックして選択・解除。必要に応じてファイル名（OCR検出値）を直接編集できます。",
+            processBtn: "抽出・保存実行",
+            loading: "処理中... 少々お待ちください。",
+            alertNoFile: "PDFファイルを選択してください。",
+            alertNoSelect: "抽出するページが選択されていません。"
+        },
+        en: {
+            title: "PDF Page Extractor (Archaeology)",
+            langLabel: "Lang:",
+            fileLabel: "Select Report PDF File:",
+            previewTitle: "Select Pages & Edit Filenames",
+            previewDesc: "Click cards to select/deselect. Edit the OCR-detected filenames if needed.",
+            processBtn: "Execute Extraction & Save",
+            loading: "Processing... Please wait.",
+            alertNoFile: "Please select a PDF file.",
+            alertNoSelect: "No pages selected for extraction."
+        },
+        zh: {
+            title: "PDF页面提取工具（考古专用）",
+            langLabel: "语言:",
+            fileLabel: "选择报告PDF文件:",
+            previewTitle: "选择页面并调整文件名",
+            previewDesc: "点击卡片进行选择/取消。如有必要，可直接修改OCR识别的文件名。",
+            processBtn: "执行提取并保存",
+            loading: "处理中...请稍候。",
+            alertNoFile: "请选择PDF文件。",
+            alertNoSelect: "未选择要提取的页面。"
+        },
+        ko: {
+            title: "PDF 페이지 추출 도구 (고고학 대응)",
+            langLabel: "언어:",
+            fileLabel: "보고서 PDF 파일 선택:",
+            previewTitle: "추출 페이지 선택 및 파일명 조정",
+            previewDesc: "카드를 클릭하여 선택/해제하세요. 필요시 OCR 파일명을 직접 수정할 수 있습니다.",
+            processBtn: "추출 및 저장 실행",
+            loading: "처리 중... 잠시 기다려주세요.",
+            alertNoFile: "PDF 파일을 선택해주세요.",
+            alertNoSelect: "추출할 페이지가 선택되지 않았습니다."
+        },
+        fr: {
+            title: "Extracteur de pages PDF (Archéologie)",
+            langLabel: "Langue:",
+            fileLabel: "Sélectionner le fichier PDF du rapport:",
+            previewTitle: "Sélection des pages et noms de fichiers",
+            previewDesc: "Cliquez sur les cartes pour sélectionner. Modifiez le nom OCR si nécessaire.",
+            processBtn: "Exécuter l'extraction",
+            loading: "Traitement en cours... Veuillez patienter.",
+            alertNoFile: "Veuillez sélectionner un fichier PDF.",
+            alertNoSelect: "Aucune page sélectionnée."
+        },
+        es: {
+            title: "Extractor de páginas PDF (Arqueología)",
+            langLabel: "Idioma:",
+            fileLabel: "Seleccionar archivo PDF del informe:",
+            previewTitle: "Selección de páginas y nombres",
+            previewDesc: "Haga clic en las tarjetas para seleccionar. Edite el nombre OCR si es necesario.",
+            processBtn: "Ejecutar extracción y guardar",
+            loading: "Procesando... Por favor espere.",
+            alertNoFile: "Por favor seleccione un archivo PDF.",
+            alertNoSelect: "No se han seleccionado páginas."
+        }
+    };
+
+    function changeLanguage() {
+        const lang = document.getElementById('lang-select').value;
+        const dict = i18n[lang];
+        document.getElementById('ui-title').innerText = dict.title;
+        document.getElementById('ui-lang-label').innerText = dict.langLabel;
+        document.getElementById('ui-file-label').innerText = dict.fileLabel;
+        document.getElementById('ui-preview-title').innerText = dict.previewTitle;
+        document.getElementById('ui-preview-desc').innerText = dict.previewDesc;
+        document.getElementById('process-btn').innerText = dict.processBtn;
+    }
+
+    let loadedPdfBytes = null;
+    let originalFileName = "";
+    let pageDataList = []; // サムネイル・OCR情報格納用
+
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    async function loadPDF(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        originalFileName = file.name.replace(/\.[^/.]+$/, "");
+        showLoading(true);
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            loadedPdfBytes = new Uint8Array(arrayBuffer);
+
+            // PDF.jsでの読み込み（Workerへの所有権譲渡によるBuffer detachedを防ぐため slice(0) で複製を渡す）
+            const loadingTask = pdfjsLib.getDocument({ data: loadedPdfBytes.slice(0) });
+            const pdfDoc = await loadingTask.promise;
+            
+            const container = document.getElementById('thumbnail-container');
+            container.innerHTML = '';
+            pageDataList = [];
+
+            // OCRワーカーの準備（ループロードを防ぎ速度・メモリを最適化）
+            let ocrWorker = null;
+            try {
+                if (typeof Tesseract !== 'undefined') {
+                    ocrWorker = await Tesseract.createWorker('eng');
+                }
+            } catch (e) {
+                console.warn("Tesseract Workerの初期化をスキップしました:", e);
+            }
+
+            // ページごとにサムネイル生成とOCR（フッター検出）
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: 0.3 }); // サムネイル用縮小スケール
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const context = canvas.getContext('2d');
+                
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                // フッター部分（下部20%）を切り出してOCRにかける
+                const fullViewport = page.getViewport({ scale: 1.0 });
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = fullViewport.width;
+                cropCanvas.height = fullViewport.height * 0.2; // 下部20%
+                const cropCtx = cropCanvas.getContext('2d');
+                
+                const renderContext = {
+                    canvasContext: cropCtx,
+                    viewport: page.getViewport({ 
+                        scale: 1.0, 
+                        transform: [1, 0, 0, 1, 0, -fullViewport.height * 0.8] 
+                    })
+                };
+                await page.render(renderContext).promise;
+
+                // Tesseractによる簡易OCR実行（フッター付近のページ番号検出）
+                let detectedPageNum = String(i);
+                if (ocrWorker) {
+                    try {
+                        const ret = await ocrWorker.recognize(cropCanvas);
+                        const matches = ret.data.text.match(/\d+/g);
+                        if (matches && matches.length > 0) {
+                            detectedPageNum = matches[matches.length - 1]; // フッター付近の最後の数字を採用
+                        }
+                    } catch (ocrErr) {
+                        console.warn("Page " + i + " のOCRに失敗/スキップしました:", ocrErr);
+                    }
+                }
+
+                const suggestedName = `${originalFileName}_p${detectedPageNum}`;
+
+                // データ格納
+                pageDataList.push({
+                    pageNumber: i,
+                    selected: false,
+                    suggestedName: suggestedName
+                });
+
+                // DOM構築
+                const card = document.createElement('div');
+                card.className = 'thumb-card';
+                card.dataset.index = i - 1;
+                
+                const thumbCanvasClone = canvas; // プレビュー用
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'thumb-info';
+                infoDiv.innerHTML = `
+                    <span class="badge">Page ${i}</span>
+                    <input type="text" value="${suggestedName}" onclick="event.stopPropagation()" onchange="updateFileName(${i - 1}, this.value)">
+                `;
+
+                card.appendChild(thumbCanvasClone);
+                card.appendChild(infoDiv);
+
+                card.onclick = () => toggleSelect(i - 1, card);
+                container.appendChild(card);
+
+                // メモリ解放
+                page.cleanup();
+            }
+
+            // OCRワーカーの終了・メモリ解放
+            if (ocrWorker) {
+                await ocrWorker.terminate();
+                ocrWorker = null;
+            }
+
+            document.getElementById('process-btn').disabled = false;
+        } catch (error) {
+            alert("PDFの読み込みに失敗しました: " + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function toggleSelect(index, cardElement) {
+        pageDataList[index].selected = !pageDataList[index].selected;
+        if (pageDataList[index].selected) {
+            cardElement.classList.add('selected');
+        } else {
+            cardElement.classList.remove('selected');
+        }
+    }
+
+    function updateFileName(index, value) {
+        pageDataList[index].suggestedName = value;
+    }
+
+    // 抽出・保存処理：解像度完全維持・縮尺維持（pdf-lib使用）
+    async function executeExtraction() {
+        const selectedPages = pageDataList.filter(p => p.selected);
+        const lang = document.getElementById('lang-select').value;
+        const dict = i18n[lang];
+
+        if (selectedPages.length === 0) {
+            alert(dict.alertNoSelect);
+            return;
+        }
+
+        showLoading(true);
+
+        try {
+            // pdf-lib側にもコピーを渡すことで detached エラーを完全に回避
+            const srcDoc = await PDFLib.PDFDocument.load(loadedPdfBytes.slice(0));
+            const extractedFiles = [];
+
+            for (const item of selectedPages) {
+                const newDoc = await PDFLib.PDFDocument.create();
+                // ページ単位でコピー（元の解像度・ベクターデータ・フォント・図版の縮尺を完全に維持）
+                const [copiedPage] = await newDoc.copyPages(srcDoc, [item.pageNumber - 1]);
+                newDoc.addPage(copiedPage);
+
+                const pdfBytes = await newDoc.save();
+                extractedFiles.push({
+                    name: `${item.suggestedName}.pdf`,
+                    bytes: pdfBytes
+                });
+            }
+
+            // 単一ページなら直接ダウンロード、複数ページならZIP化
+            if (extractedFiles.length === 1) {
+                downloadBlob(new Blob([extractedFiles[0].bytes], { type: 'application/pdf' }), extractedFiles[0].name);
+            } else {
+                const zip = new JSZip();
+                extractedFiles.forEach(file => {
+                    zip.file(file.name, file.bytes);
+                });
+                const content = await zip.generateAsync({ type: 'blob' });
+                downloadBlob(content, `${originalFileName}_extracted.zip`);
+            }
+
+        } catch (error) {
+            alert("抽出処理中にエラーが発生しました: " + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
