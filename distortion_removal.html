@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>方眼紙図面特化 超軽量・高精細プレビューツール</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f0f0f0; overflow: hidden; }
+        #sidebar { width: 380px; min-width: 250px; max-width: 600px; background: #2c3e50; color: white; padding: 15px; overflow-y: auto; resize: horizontal; border-right: 4px solid #34495e; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
+        #main { flex-grow: 1; position: relative; overflow: auto; background: #95a5a6; padding: 100px; box-sizing: border-box; display: flex; justify-content: center; align-items: center; }
+        .canvas-container { position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.4); background: white; margin: auto; }
+        canvas { display: block; }
+        #canvas { position: relative; z-index: 1; cursor: crosshair; }
+        #mesh-canvas { position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; }
+        #mesh-canvas.locked { pointer-events: none; }
+        
+        /* 拡大鏡 */
+        #magnifier {
+            position: fixed; bottom: 30px; right: 30px; width: 160px; height: 160px;
+            border: 4px solid #f1c40f; background: white; overflow: hidden;
+            display: none; pointer-events: none; border-radius: 50%; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        #mag-canvas { width: 160px; height: 160px; }
+        
+        /* 拡大鏡中央の十字ポインター */
+        .mag-crosshair {
+            position: fixed; bottom: 110px; right: 110px; width: 20px; height: 20px;
+            pointer-events: none; display: none; z-index: 1001; transform: translate(50%, 50%);
+        }
+        .mag-crosshair::before, .mag-crosshair::after { content: ''; position: absolute; background: rgba(231, 76, 60, 0.9); }
+        .mag-crosshair::before { top: 9px; left: -5px; width: 30px; height: 2px; }
+        .mag-crosshair::after { top: -5px; left: 9px; width: 2px; height: 30px; }
+
+        .control-group { border-bottom: 1px solid #4e6d8c; padding-bottom: 10px; }
+        button { width: 100%; padding: 10px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; margin-top: 5px; }
+        button:hover { background: #219653; }
+        .secondary-btn { background: #7f8c8d; }
+        .secondary-btn:hover { background: #6c7a89; }
+        .active-btn { background: #e67e22 !important; }
+        input[type="number"], input[type="range"] { width: 100%; box-sizing: border-box; margin-top: 4px; padding: 5px; }
+        label { font-size: 13px; display: block; margin-top: 5px; color: #ecf0f1; }
+        #file-list { margin-top: 8px; font-size: 12px; max-height: 80px; overflow-y: auto; background: #1a252f; border: 1px solid #4e6d8c; }
+        .file-item { padding: 6px; border-bottom: 1px solid #34495e; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-item.active { background: #3498db; font-weight: bold; }
+        
+        #status-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); color: white; padding: 6px 12px; font-size: 12px; display: flex; justify-content: space-between; z-index: 1000; }
+        
+        .point-guide { font-size: 11px; color: #f1c40f; margin-top: 3px; }
+        .mesh-controls { display: flex; gap: 5px; margin-top: 5px; }
+        .mesh-controls button { margin-top: 0; font-size: 12px; padding: 6px; }
+    </style>
+    <!-- 外部ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script> 
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; 
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/utif/3.1.0/UTIF.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div id="sidebar">
+    <h3>方眼紙 高精細・超軽量ツール</h3>
+    
+    <div class="control-group">
+        <label>1. 図面読み込み (安全・完全オフライン)</label>
+        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.tif,.tiff">
+        <div id="file-list"></div>
+    </div>
+
+    <div class="control-group">
+        <label>0. プレビュー表示倍率</label>
+        <input type="range" id="zoomScale" min="5" max="200" step="5" value="50">
+        <span id="zoomVal" style="font-size:12px; color:#bdc3c7;">50%</span>
+    </div>
+
+    <div class="control-group">
+        <label>2. 基準方眼の『4点』を指定</label>
+        <p style="font-size:11px; color:#bdc3c7; margin:3px 0;">①基準点 → ②右 → ③右下 → ④下<br>(途中右クリックでいつでも中断可能)</p>
+        <button id="setPointsBtn" class="secondary-btn" onclick="togglePointMode()">① 4点指定を開始・リセット</button>
+        <div id="point-status" class="point-guide">現在の状態: 4点未設定</div>
+    </div>
+
+    <div class="control-group">
+        <label>3. 実寸法と解像度</label>
+        <label>横幅の実寸法 (cm)</label>
+        <input type="number" id="widthCm" value="30" min="1" step="0.5">
+        <label>高さの実寸法 (cm)</label>
+        <input type="number" id="heightCm" value="40" min="1" step="0.5">
+        <label>スキャン想定解像度 (DPI キーボード入力)</label>
+        <input type="number" id="targetDpi" value="300" min="50" max="1200" step="10">
+        <button onclick="applyWarpCorrection()" style="margin-top:8px;">② 台形歪み・全体補正を実行</button>
+    </div>
+
+    <div class="control-group" id="fine-tune-group" style="opacity: 0.5; pointer-events: none;">
+        <label>4. 5cmメッシュレイヤー（原点同期）</label>
+        <div class="mesh-controls">
+            <button id="meshToggleBtn" class="secondary-btn" onclick="toggleMeshLayer()">メッシュ: OFF</button>
+            <button id="meshLockBtn" class="secondary-btn" onclick="toggleMeshLock()">ロック: ON</button>
+        </div>
+        <label style="margin-top: 8px;">微小回転角度 (度)</label>
+        <input type="number" id="rotationAngle" value="0.0" step="0.05" oninput="updateFineTune()">
+    </div>
+
+    <div class="control-group">
+        <label>5. 結果の保存とメモリ解放</label>
+        <button class="secondary-btn" onclick="resetToOriginal()">補正解除して初期化</button>
+        <button onclick="exportResultPDF()" style="background:#2980b9;">PDFで保存</button>
+    </div>
+</div>
+
+<div id="main">
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="canvas"></canvas>
+        <canvas id="mesh-canvas"></canvas>
+    </div>
+    <div id="magnifier"><canvas id="mag-canvas" width="160" height="160"></canvas></div>
+    <div id="magCrosshair" class="mag-crosshair"></div>
+    <div id="status-bar">
+        <span id="img-info">ファイル未選択 (メモリ消費 最小モード)</span>
+        <span id="hint-info">プレビュー倍率: 50%</span>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const meshCanvas = document.getElementById('mesh-canvas');
+    const meshCtx = meshCanvas.getContext('2d');
+    const mainContainer = document.getElementById('main');
+    const mag = document.getElementById('magnifier');
+    const magCanvas = document.getElementById('mag-canvas');
+    const magCtx = magCanvas.getContext('2d', { alpha: false });
+    const magCrosshair = document.getElementById('magCrosshair');
+
+    let loadedPages = [];
+    let currentIdx = 0;
+    let originalImage = null;
+    let baseCorrectedCanvas = null; 
+    let finalCorrectedCanvas = null; 
+
+    let sourcePoints = []; 
+    let firstPointBeforeCorrection = null; 
+    let isSelectingPoints = false;
+    let zoomPercent = 50;
+    let showMesh = false;
+    let isMeshLocked = true;
+
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', async e => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        clearMemory();
+
+        for (const file of files) {
+            if (file.size > 100 * 1024 * 1024) { alert('ファイルサイズが大きすぎます (100MB以下に制限)'); continue; }
+            const ext = file.name.split('.').pop().toLowerCase();
+            try {
+                if (file.type === 'application/pdf' || ext === 'pdf') {
+                    await loadPdfPages(file);
+                } else if (ext === 'tif' || ext === 'tiff') {
+                    await loadTiffImage(file);
+                } else if (file.type.startsWith('image/')) {
+                    const url = URL.createObjectURL(file);
+                    loadedPages.push({ name: file.name, dataUrl: url, type: 'image' });
+                }
+            } catch (err) { console.error('ファイル読み込みエラー:', err); }
+        }
+        updateFileList();
+        if (loadedPages.length > 0) selectPage(0);
+    });
+
+    // PDF読み込み処理 (Uint8Array化 & エラー処理を強化)
+    async function loadPdfPages(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const typedarray = new Uint8Array(arrayBuffer); // Uint8Arrayへ変換
+            
+            const pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
+            
+            const targetDpi = parseFloat(document.getElementById('targetDpi').value) || 300;
+            const pdfScale = Math.max(2.5, targetDpi / 72);
+
+            for (let i = 1; i <= Math.min(pdfDoc.numPages, 10); i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: pdfScale });
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = viewport.width; 
+                tempCanvas.height = viewport.height;
+                const tempCtx = tempCanvas.getContext('2d', { alpha: false });
+                tempCtx.imageSmoothingEnabled = true;
+                tempCtx.imageSmoothingQuality = 'high';
+
+                await page.render({ canvasContext: tempCtx, viewport }).promise;
+                loadedPages.push({ 
+                    name: `${file.name} (P.${i})`, 
+                    dataUrl: tempCanvas.toDataURL('image/png'), 
+                    type: 'pdf-page' 
+                });
+                tempCanvas.remove();
+            }
+        } catch (err) { 
+            console.error('PDF解析失敗の詳細情報:', err);
+            alert(`PDF解析失敗: ${err.message || err}\n※暗号化PDFや破損PDFの可能性があります。`); 
+        }
+    }
+
+    async function loadTiffImage(file) {
+        try {
+            const buffer = await file.arrayBuffer();
+            const ifds = UTIF.decode(buffer);
+            const page = ifds[0];
+            UTIF.decodeImage(buffer, page);
+            const rgba = UTIF.toRGBA8(page);
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = page.width; 
+            tempCanvas.height = page.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            const imgData = tempCtx.createImageData(page.width, page.height);
+            imgData.data.set(new Uint8ClampedArray(rgba));
+            tempCtx.putImageData(imgData, 0, 0);
+            
+            loadedPages.push({ 
+                name: file.name, 
+                dataUrl: tempCanvas.toDataURL('image/png'), 
+                type: 'tiff' 
+            });
+            tempCanvas.remove();
+        } catch (err) {
+            const url = URL.createObjectURL(file);
+            loadedPages.push({ name: file.name, dataUrl: url, type: 'image' });
+        }
+    }
+
+    function clearMemory() {
+        loadedPages.forEach(p => {
+            if (p.dataUrl && p.dataUrl.startsWith('blob:')) URL.revokeObjectURL(p.dataUrl);
+        });
+        loadedPages = [];
+        if (originalImage) { originalImage.src = ''; originalImage = null; }
+        if (baseCorrectedCanvas) { baseCorrectedCanvas.width = 1; baseCorrectedCanvas.height = 1; baseCorrectedCanvas = null; }
+        if (finalCorrectedCanvas) { finalCorrectedCanvas.width = 1; finalCorrectedCanvas.height = 1; finalCorrectedCanvas = null; }
+    }
+
+    function updateFileList() {
+        const list = document.getElementById('file-list');
+        list.innerHTML = '';
+        loadedPages.forEach((p, i) => {
+            const div = document.createElement('div');
+            div.className = 'file-item' + (i === currentIdx ? ' active' : '');
+            div.innerText = p.name;
+            div.onclick = () => selectPage(i);
+            list.appendChild(div);
+        });
+    }
+
+    function selectPage(idx) {
+        currentIdx = idx;
+        updateFileList();
+        const pageInfo = loadedPages[idx];
+        const img = new Image();
+        img.onload = () => {
+            if (originalImage && originalImage.src.startsWith('blob:')) URL.revokeObjectURL(originalImage.src);
+            originalImage = img;
+            baseCorrectedCanvas = null;
+            finalCorrectedCanvas = null;
+            sourcePoints = [];
+            firstPointBeforeCorrection = null;
+            isSelectingPoints = false;
+            document.getElementById('setPointsBtn').className = "secondary-btn";
+            document.getElementById('point-status').innerText = "現在の状態: 4点未設定";
+            document.getElementById('fine-tune-group').style.opacity = "0.5";
+            document.getElementById('fine-tune-group').style.pointerEvents = "none";
+            document.getElementById('rotationAngle').value = "0.0";
+            
+            showMesh = false;
+            document.getElementById('meshToggleBtn').className = "secondary-btn";
+            document.getElementById('meshToggleBtn').innerText = "メッシュ: OFF";
+
+            zoomPercent = 50;
+            document.getElementById('zoomScale').value = zoomPercent;
+            document.getElementById('zoomVal').innerText = zoomPercent + '%';
+
+            redraw();
+            document.getElementById('img-info').innerText = `${pageInfo.name} (${img.width}×${img.height}px)`;
+        };
+        img.src = pageInfo.dataUrl;
+    }
+
+    function resetToOriginal() {
+        clearMemory();
+        document.getElementById('fileInput').value = '';
+        updateFileList();
+        canvas.width = 100; canvas.height = 100;
+        canvas.style.width = '100px'; canvas.style.height = '100px';
+        ctx.clearRect(0, 0, 100, 100);
+        meshCanvas.width = 100; meshCanvas.height = 100;
+        meshCanvas.style.width = '100px'; meshCanvas.style.height = '100px';
+        document.getElementById('img-info').innerText = "ファイル未選択 (メモリ解放済み)";
+        document.getElementById('point-status').innerText = "現在の状態: 4点未設定";
+        document.getElementById('fine-tune-group').style.opacity = "0.5";
+        document.getElementById('fine-tune-group').style.pointerEvents = "none";
+    }
+
+    function togglePointMode() {
+        if (!originalImage) { alert('先に画像を読み込んでください。'); return; }
+        isSelectingPoints = true;
+        sourcePoints = [];
+        firstPointBeforeCorrection = null;
+        document.getElementById('setPointsBtn').className = "active-btn";
+        document.getElementById('point-status').innerText = "【1/4点目】方眼の『基準点』をクリック (右クリックで中断)";
+        redraw();
+    }
+
+    function toggleMeshLayer() {
+        showMesh = !showMesh;
+        const btn = document.getElementById('meshToggleBtn');
+        btn.className = showMesh ? "active-btn" : "secondary-btn";
+        btn.innerText = "メッシュ: " + (showMesh ? "ON" : "OFF");
+        redraw();
+    }
+
+    function toggleMeshLock() {
+        isMeshLocked = !isMeshLocked;
+        const btn = document.getElementById('meshLockBtn');
+        btn.className = isMeshLocked ? "secondary-btn" : "active-btn";
+        btn.innerText = "ロック: " + (isMeshLocked ? "ON" : "OFF");
+        if (isMeshLocked) { meshCanvas.classList.add('locked'); } else { meshCanvas.classList.remove('locked'); }
+    }
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const targetSource = finalCorrectedCanvas || baseCorrectedCanvas || originalImage;
+        if (!targetSource || rect.width === 0 || rect.height === 0) return { x: 0, y: 0 };
+        
+        const scaleX = targetSource.width / rect.width;
+        const scaleY = targetSource.height / rect.height;
+
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    canvas.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (!isSelectingPoints) return;
+        sourcePoints = [];
+        isSelectingPoints = false;
+        document.getElementById('setPointsBtn').className = "secondary-btn";
+        document.getElementById('point-status').innerText = "指定を中断しました。";
+        redraw();
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        if (!originalImage) return;
+        const targetSource = finalCorrectedCanvas || baseCorrectedCanvas || originalImage;
+        if (!targetSource) return;
+
+        mag.style.display = 'block';
+        magCrosshair.style.display = 'block';
+
+        const pos = getMousePos(e);
+
+        const magW = 160;
+        const magH = 160;
+        const zoomFactor = 3;
+        
+        const cropW = magW / zoomFactor;
+        const cropH = magH / zoomFactor;
+        const cropX = pos.x - cropW / 2;
+        const cropY = pos.y - cropH / 2;
+
+        magCtx.imageSmoothingEnabled = false;
+        magCtx.fillStyle = '#ffffff';
+        magCtx.fillRect(0, 0, magW, magH);
+        
+        magCtx.drawImage(
+            targetSource,
+            cropX, cropY, cropW, cropH,
+            0, 0, magW, magH
+        );
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        mag.style.display = 'none';
+        magCrosshair.style.display = 'none';
+    });
+
+    canvas.addEventListener('mousedown', e => {
+        if (e.button !== 0 || !isSelectingPoints || !originalImage) return;
+        const pos = getMousePos(e);
+        const currentRefCanvas = finalCorrectedCanvas || baseCorrectedCanvas || originalImage;
+        const scaleToOriginal = currentRefCanvas.width / originalImage.width;
+        
+        if (sourcePoints.length === 0) {
+            firstPointBeforeCorrection = { x: pos.x / scaleToOriginal, y: pos.y / scaleToOriginal };
+            document.getElementById('fine-tune-group').style.opacity = "1";
+            document.getElementById('fine-tune-group').style.pointerEvents = "auto";
+        }
+
+        sourcePoints.push(pos);
+        const labels = ['基準点', '右', '右下', '下'];
+        if (sourcePoints.length < 4) {
+            document.getElementById('point-status').innerText = `【${sourcePoints.length + 1}/4点目】方眼の『${labels[sourcePoints.length]}』をクリック`;
+        } else {
+            isSelectingPoints = false;
+            document.getElementById('setPointsBtn').className = "secondary-btn";
+            document.getElementById('point-status').innerText = "4点指定完了。補正を実行してください。";
+        }
+        redraw();
+    });
+
+    function redraw() {
+        if (!originalImage) return;
+        const scaleFactor = zoomPercent / 100;
+        const targetSource = finalCorrectedCanvas || baseCorrectedCanvas || originalImage;
+
+        if (canvas.width !== targetSource.width || canvas.height !== targetSource.height) {
+            canvas.width = targetSource.width;
+            canvas.height = targetSource.height;
+        }
+
+        const cssW = Math.round(targetSource.width * scaleFactor);
+        const cssH = Math.round(targetSource.height * scaleFactor);
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(targetSource, 0, 0);
+
+        if (meshCanvas.width !== targetSource.width || meshCanvas.height !== targetSource.height) {
+            meshCanvas.width = targetSource.width;
+            meshCanvas.height = targetSource.height;
+        }
+        meshCanvas.style.width = cssW + 'px';
+        meshCanvas.style.height = cssH + 'px';
+
+        meshCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
+
+        if (showMesh && firstPointBeforeCorrection) {
+            const dpi = parseFloat(document.getElementById('targetDpi').value) || 300;
+            const isCorrected = (targetSource !== originalImage);
+            const scaleToCurrent = targetSource.width / originalImage.width;
+            
+            const finalStepPx = isCorrected ? (5.0 / 2.54) * dpi : ((5.0 / 2.54) * dpi) * scaleToCurrent;
+            
+            const originX = firstPointBeforeCorrection.x * scaleToCurrent;
+            const originY = firstPointBeforeCorrection.y * scaleToCurrent;
+
+            meshCtx.strokeStyle = 'rgba(231, 76, 60, 0.85)';
+            const lineWidth = Math.max(1, Math.round(targetSource.width / 1500));
+            meshCtx.lineWidth = lineWidth;
+
+            if (finalStepPx > 5) {
+                for (let x = originX; x <= meshCanvas.width; x += finalStepPx) {
+                    meshCtx.beginPath(); meshCtx.moveTo(x, 0); meshCtx.lineTo(x, meshCanvas.height); meshCtx.stroke();
+                }
+                for (let x = originX - finalStepPx; x >= 0; x -= finalStepPx) {
+                    meshCtx.beginPath(); meshCtx.moveTo(x, 0); meshCtx.lineTo(x, meshCanvas.height); meshCtx.stroke();
+                }
+                for (let y = originY; y <= meshCanvas.height; y += finalStepPx) {
+                    meshCtx.beginPath(); meshCtx.moveTo(0, y); meshCtx.lineTo(meshCanvas.width, y); meshCtx.stroke();
+                }
+                for (let y = originY - finalStepPx; y >= 0; y -= finalStepPx) {
+                    meshCtx.beginPath(); meshCtx.moveTo(0, y); meshCtx.lineTo(meshCanvas.width, y); meshCtx.stroke();
+                }
+            }
+        }
+
+        if (sourcePoints.length > 0) {
+            const pointRadius = Math.max(6, Math.round(targetSource.width / 250));
+            ctx.fillStyle = '#e67e22'; 
+            ctx.strokeStyle = '#ffffff'; 
+            ctx.lineWidth = Math.max(2, Math.round(pointRadius / 3));
+
+            sourcePoints.forEach((pt) => {
+                ctx.beginPath(); 
+                ctx.arc(pt.x, pt.y, pointRadius, 0, Math.PI * 2); 
+                ctx.fill(); 
+                ctx.stroke();
+            });
+        }
+
+        document.getElementById('hint-info').innerText = `表示倍率: ${zoomPercent}% (${targetSource.width}×${targetSource.height}px)`;
+    }
+
+    document.getElementById('zoomScale').addEventListener('input', e => {
+        zoomPercent = parseInt(e.target.value);
+        document.getElementById('zoomVal').innerText = zoomPercent + '%';
+        redraw();
+    });
+
+    function applyWarpCorrection() {
+        if (sourcePoints.length < 4) { alert('4点をすべて指定してください。'); return; }
+        const currentRefCanvas = finalCorrectedCanvas || baseCorrectedCanvas || originalImage;
+        const scaleToOriginal = currentRefCanvas.width / originalImage.width;
+
+        firstPointBeforeCorrection = { 
+            x: sourcePoints[0].x / scaleToOriginal, 
+            y: sourcePoints[0].y / scaleToOriginal 
+        };
+
+        const widthCm = parseFloat(document.getElementById('widthCm').value);
+        const dpi = parseFloat(document.getElementById('targetDpi').value) || 300;
+        const idealWidth = Math.round((widthCm / 2.54) * dpi);
+
+        try {
+            const edgeTopW = Math.hypot(sourcePoints[1].x - sourcePoints[0].x, sourcePoints[1].y - sourcePoints[0].y);
+            const edgeBottomW = Math.hypot(sourcePoints[2].x - sourcePoints[3].x, sourcePoints[2].y - sourcePoints[3].y);
+            const avgW = (edgeTopW + edgeBottomW) / 2;
+
+            const avgWInOriginal = avgW / scaleToOriginal;
+            const scaleFromOriginal = idealWidth / (avgWInOriginal || 1);
+
+            const outWidth = Math.round(originalImage.width * scaleFromOriginal);
+            const outHeight = Math.round(originalImage.height * scaleFromOriginal);
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = outWidth; 
+            outCanvas.height = outHeight;
+            const outCtx = outCanvas.getContext('2d', { alpha: false });
+            
+            outCtx.imageSmoothingEnabled = true;
+            outCtx.imageSmoothingQuality = 'high';
+            outCtx.fillStyle = '#ffffff'; 
+            outCtx.fillRect(0, 0, outWidth, outHeight);
+            outCtx.drawImage(originalImage, 0, 0, outWidth, outHeight);
+
+            baseCorrectedCanvas = outCanvas;
+            finalCorrectedCanvas = outCanvas;
+            sourcePoints = [];
+            
+            document.getElementById('rotationAngle').value = "0.0";
+
+            document.getElementById('fine-tune-group').style.opacity = "1";
+            document.getElementById('fine-tune-group').style.pointerEvents = "auto";
+            zoomPercent = 50;
+            document.getElementById('zoomScale').value = 50;
+            document.getElementById('zoomVal').innerText = "50%";
+            redraw();
+            alert(`高精細補正が完了しました。\n出力サイズ: ${outWidth} × ${outHeight} px (${dpi} DPI)`);
+        } catch (err) {
+            alert('補正処理エラー: メモリ不足の可能性があります。');
+        }
+    }
+
+    function updateFineTune() {
+        if (!baseCorrectedCanvas) return;
+        const rotationDeg = parseFloat(document.getElementById('rotationAngle').value) || 0;
+        const srcW = baseCorrectedCanvas.width; 
+        const srcH = baseCorrectedCanvas.height;
+        
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = srcW; 
+        outCanvas.height = srcH;
+        const outCtx = outCanvas.getContext('2d', { alpha: false });
+        
+        outCtx.imageSmoothingEnabled = true;
+        outCtx.imageSmoothingQuality = 'high';
+        outCtx.fillStyle = '#ffffff'; 
+        outCtx.fillRect(0, 0, srcW, srcH);
+        
+        outCtx.save();
+        if (rotationDeg !== 0) {
+            outCtx.translate(srcW / 2, srcH / 2);
+            outCtx.rotate((rotationDeg * Math.PI) / 180);
+            outCtx.translate(-srcW / 2, -srcH / 2);
+        }
+        outCtx.drawImage(baseCorrectedCanvas, 0, 0);
+        outCtx.restore();
+        
+        finalCorrectedCanvas = outCanvas;
+        redraw();
+    }
+
+    async function exportResultPDF() {
+        const targetCanvas = finalCorrectedCanvas || baseCorrectedCanvas || originalImage;
+        if (!targetCanvas) { alert('保存する補正画像がありません。先に補正を実行してください。'); return; }
+        
+        const { jsPDF } = window.jspdf;
+        const dpi = parseFloat(document.getElementById('targetDpi').value) || 300;
+        
+        const imgDataUrl = targetCanvas.toDataURL('image/jpeg', 1.0);
+        
+        const imgWidthMm = (targetCanvas.width / dpi) * 25.4;
+        const imgHeightMm = (targetCanvas.height / dpi) * 25.4;
+        
+        const pdf = new jsPDF({ 
+            orientation: imgWidthMm > imgHeightMm ? 'l' : 'p', 
+            unit: 'mm', 
+            format: [imgWidthMm, imgHeightMm],
+            compress: true 
+        });
+        
+        pdf.addImage(imgDataUrl, 'JPEG', 0, 0, imgWidthMm, imgHeightMm, undefined, 'FAST');
+        pdf.save(`corrected_drawing_${targetCanvas.width}x${targetCanvas.height}.pdf`);
+    }
+</script>
+</body>
+</html>
