@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考古学 遺構図総合分析システム（主軸方位・寸法計測）</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --panel-bg: #ffffff;
+            --text-color: #2c3e50;
+            --primary-color: #2c5282;
+            --primary-hover: #1a365d;
+            --border-color: #cbd5e0;
+            --accent-color: #3182ce;
+            --danger-color: #e53e3e;
+            --danger-hover: #c53030;
+            --success-color: #276749;
+            --font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", "Yu Mincho", serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            letter-spacing: 0.05em;
+        }
+
+        .lang-container select {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            flex: 1;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 4px;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        input[type="file"], input[type="text"], input[type="number"], select {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+        }
+        .btn-accent:hover {
+            background-color: #2b6cb0;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .btn:disabled, .btn-danger:disabled, .btn-accent:disabled {
+            background-color: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .canvas-container {
+            position: relative;
+            flex: 1;
+            background: #e2e8f0;
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 450px;
+            overflow: hidden;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .placeholder-text {
+            position: absolute;
+            color: #718096;
+            font-size: 1rem;
+            pointer-events: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .status-box {
+            background: #f7fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 250px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        th, td {
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #edf2f7;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td input {
+            padding: 2px 4px;
+            font-size: 0.8rem;
+        }
+
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .help-text {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-area, #printable-area * {
+                visibility: visible;
+            }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+            }
+            header, .panel:not(:has(#printable-area)), .btn-group, .action-row {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="ui-title">考古学 遺構図総合分析システム（主軸方位・寸法計測）</h1>
+        <div class="lang-container">
+            <select id="langSelect" onchange="changeLanguage(this.value)">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- コントロールパネル -->
+        <div class="panel">
+            <div class="section-title" id="ui-sec-input">1. 図面ファイルインポート</div>
+            <div class="form-group">
+                <label id="ui-lbl-file">対応形式: PDF, TIFF, PNG, JPG, SVG</label>
+                <input type="file" id="imageLoader" accept=".pdf,.tiff,.tif,.png,.jpg,.jpeg,.svg">
+            </div>
+
+            <div class="section-title" id="ui-sec-scale">2. 縮尺設定 (寸法計測用)</div>
+            <div class="form-group">
+                <label id="ui-lbl-scale-mode">設定方法</label>
+                <select id="scaleMode" onchange="toggleScaleMode()">
+                    <option value="preset">縮尺表記選択 (例: 1/20)</option>
+                    <option value="bar">スケールバーで指定</option>
+                </select>
+            </div>
+            <div class="form-group" id="presetScaleGroup">
+                <label id="ui-lbl-preset">縮尺分母</label>
+                <select id="presetSelect" onchange="updateScaleFromPreset()">
+                    <option value="10">1/10</option>
+                    <option value="20" selected>1/20</option>
+                    <option value="25">1/25</option>
+                    <option value="50">1/50</option>
+                    <option value="100">1/100</option>
+                    <option value="200">1/200</option>
+                </select>
+            </div>
+            <div id="barScaleGroup" style="display:none; display:none; flex-direction:column; gap:6px;">
+                <div class="form-group">
+                    <label id="ui-lbl-bar-len">スケールバー実長 (cm)</label>
+                    <input type="number" id="barLengthInput" value="10" min="0.1" step="0.1">
+                </div>
+                <button class="btn btn-accent" id="btnSetBar" onclick="setMode('scaleBar')" disabled>スケールバー始終点を指定</button>
+            </div>
+
+            <div class="section-title" id="ui-sec-mode">3. 分析・計測モード選択</div>
+            <div class="form-group">
+                <label id="ui-lbl-mode">操作モード</label>
+                <div class="btn-group">
+                    <button class="btn" id="btnModeNorth" onclick="setMode('north')" disabled>図中北を指定</button>
+                    <button class="btn" id="btnModeAxis" onclick="setMode('axis')" style="background-color:#718096;" disabled>遺構軸線を引く</button>
+                </div>
+                <div class="btn-group" style="margin-top: 4px;">
+                    <button class="btn btn-accent" id="btnModeMajor" onclick="setMode('major')" disabled>長軸計測</button>
+                    <button class="btn btn-accent" id="btnModeMinor" onclick="setMode('minor')" style="background-color:#4a5568;" disabled>短軸計測</button>
+                </div>
+                <div class="btn-group" style="margin-top: 4px;">
+                    <button class="btn btn-accent" id="btnModeDepth" onclick="setMode('depth')" style="background-color:#6b46c1;" disabled>深さ計測</button>
+                    <button class="btn btn-danger" id="btnClearMeas" onclick="clearCurrentMeasurements()" disabled>計測クリア</button>
+                </div>
+            </div>
+
+            <div class="status-box">
+                <div><strong id="ui-status-title">状態:</strong> <span id="statusText">図面ファイルを読み込んでください</span></div>
+                <div id="scaleStatus">縮尺: 1/20 (1px = 0.20mm)</div>
+                <div><strong id="ui-res-title">算出方位:</strong> <span id="resultAzimuthDisplay" style="color:var(--primary-color); font-weight:bold;">---</span></div>
+                <div id="measMajorStatus">長軸: 未計測</div>
+                <div id="measMinorStatus">短軸: 未計測</div>
+                <div id="measDepthStatus">深さ: 未計測</div>
+            </div>
+
+            <div class="form-group">
+                <label id="ui-lbl-label">遺構ラベル名</label>
+                <input type="text" id="featureLabel" placeholder="例: SX01 竪穴建物跡">
+            </div>
+
+            <button class="btn" id="btnAddRecord" onclick="addRecord()" disabled>統合データとして一覧表に追加</button>
+
+            <div class="section-title" id="ui-sec-danger">システム管理</div>
+            <button class="btn btn-danger" id="btnReset" onclick="resetAll()">全リセット (データ破棄)</button>
+        </div>
+
+        <!-- ビューア・テーブルパネル -->
+        <div class="panel" style="flex: 1;">
+            <div class="section-title" id="ui-sec-canvas">図面ビューア (キャンバス操作)</div>
+            <div class="canvas-container" id="canvasContainer">
+                <div class="placeholder-text" id="ui-placeholder">図面ファイルをアップロードしてください</div>
+                <canvas id="imageCanvas"></canvas>
+            </div>
+
+            <div id="printable-area">
+                <div class="section-title" id="ui-sec-table">総合分析結果 一覧表</div>
+                <div class="table-container">
+                    <table id="recordTable">
+                        <thead>
+                            <tr>
+                                <th id="th-id">ID</th>
+                                <th id="th-label">ラベル名</th>
+                                <th id="th-azimuth">主軸方位</th>
+                                <th id="th-major">長軸(cm)</th>
+                                <th id="th-minor">短軸(cm)</th>
+                                <th id="th-depth">深さ(cm)</th>
+                                <th id="th-action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-title" id="ui-sec-export">エクスポート</div>
+            <div class="action-row">
+                <button class="btn" onclick="exportCSV()">CSV保存</button>
+                <button class="btn" onclick="exportExcel()">Excel形式保存</button>
+                <button class="btn" onclick="exportPDF()">PDF保存 (印刷)</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // 多言語辞書データ (統合版)
+    const translations = {
+        ja: {
+            title: "考古学 遺構図総合分析システム（主軸方位・寸法計測）",
+            secInput: "1. 図面ファイルインポート",
+            lblFile: "対応形式: PDF, TIFF, PNG, JPG, SVG",
+            secScale: "2. 縮尺設定 (寸法計測用)",
+            lblScaleMode: "設定方法",
+            optPreset: "縮尺表記選択 (例: 1/20)",
+            optBar: "スケールバーで指定",
+            lblPreset: "縮尺分母",
+            lblBarLen: "スケールバー実長 (cm)",
+            btnSetBar: "スケールバー始終点を指定",
+            secMode: "3. 分析・計測モード選択",
+            lblMode: "操作モード",
+            btnNorth: "図中北を指定",
+            btnAxis: "遺構軸線を引く",
+            btnMajor: "長軸計測",
+            btnMinor: "短軸計測",
+            btnDepth: "深さ計測",
+            btnClearMeas: "計測クリア",
+            statusTitle: "状態:",
+            statusInit: "図面ファイルを読み込んでください",
+            statusReady: "準備完了。モードを選んでください",
+            statusSetBarStart: "スケールバーの始点をクリックしてください",
+            statusSetBarEnd: "スケールバーの終点をクリックしてください",
+            statusNorth: "図中北のベクトルをドラッグして描いてください",
+            statusAxis: "遺構軸線のベクトルをドラッグして描いてください",
+            statusMajorStart: "長軸の始点をクリックしてください",
+            statusMajorEnd: "長軸の終点をクリックしてください",
+            statusMinorStart: "短軸の始点をクリックしてください",
+            statusMinorEnd: "短軸の終点をクリックしてください",
+            statusDepthStart: "深さの始点をクリックしてください",
+            statusDepthEnd: "深さの終点をクリックしてください",
+            resTitle: "算出方位:",
+            lblLabel: "遺構ラベル名",
+            btnAdd: "統合データとして一覧表に追加",
+            secDanger: "システム管理",
+            btnReset: "全リセット (データ破棄)",
+            secCanvas: "図面ビューア (キャンバス操作)",
+            placeholder: "図面ファイルをアップロードしてください",
+            secTable: "総合分析結果 一覧表",
+            thId: "ID",
+            thLabel: "ラベル名",
+            thAzimuth: "主軸方位",
+            thMajor: "長軸(cm)",
+            thMinor: "短軸(cm)",
+            thDepth: "深さ(cm)",
+            thAction: "操作",
+            secExport: "エクスポート",
+            btnCSV: "CSV保存",
+            btnExcel: "Excel形式保存",
+            btnPDF: "PDF保存 (印刷)",
+            alertNoData: "追加するデータがありません。",
+            alertNoLabel: "遺構ラベル名を入力してください。",
+            scaleText: "縮尺: 1/{scale} (1px = {val}mm)",
+            scaleBarText: "縮尺: スケールバー指定 (1px = {val}mm)",
+            measMajor: "長軸: ",
+            measMinor: "短軸: ",
+            measDepth: "深さ: ",
+            notMeasured: "未計測",
+            del: "削除",
+            resetConfirm: "本当にすべてのデータをリセットして破棄しますか？"
+        },
+        en: {
+            title: "Archaeological Feature Comprehensive Analysis System",
+            secInput: "1. Import Drawing File",
+            lblFile: "Supported: PDF, TIFF, PNG, JPG, SVG",
+            secScale: "2. Scale Settings (For Measurement)",
+            lblScaleMode: "Method",
+            optPreset: "Preset Scale (e.g., 1/20)",
+            optBar: "Scale Bar",
+            lblPreset: "Scale Denominator",
+            lblBarLen: "Scale Bar Real Length (cm)",
+            btnSetBar: "Specify Scale Bar Points",
+            secMode: "3. Analysis & Measurement Mode",
+            lblMode: "Operation Mode",
+            btnNorth: "Set North",
+            btnAxis: "Draw Axis Line",
+            btnMajor: "Major Axis",
+            btnMinor: "Minor Axis",
+            btnDepth: "Depth",
+            btnClearMeas: "Clear Measure",
+            statusTitle: "Status:",
+            statusInit: "Please load a drawing file",
+            statusReady: "Ready. Select a mode.",
+            statusSetBarStart: "Click start point of scale bar",
+            statusSetBarEnd: "Click end point of scale bar",
+            statusNorth: "Drag to draw North vector",
+            statusAxis: "Drag to draw feature axis vector",
+            statusMajorStart: "Click start point of major axis",
+            statusMajorEnd: "Click end point of major axis",
+            statusMinorStart: "Click start point of minor axis",
+            statusMinorEnd: "Click end point of minor axis",
+            statusDepthStart: "Click start point of depth",
+            statusDepthEnd: "Click end point of depth",
+            resTitle: "Azimuth:",
+            lblLabel: "Feature Label Name",
+            btnAdd: "Add to Comprehensive Table",
+            secDanger: "System Management",
+            btnReset: "Reset All",
+            secCanvas: "Drawing Viewer",
+            placeholder: "Please upload a drawing file",
+            secTable: "Comprehensive Results Table",
+            thId: "ID",
+            thLabel: "Label Name",
+            thAzimuth: "Azimuth",
+            thMajor: "Major(cm)",
+            thMinor: "Minor(cm)",
+            thDepth: "Depth(cm)",
+            thAction: "Action",
+            secExport: "Export",
+            btnCSV: "Save CSV",
+            btnExcel: "Save Excel",
+            btnPDF: "Save PDF (Print)",
+            alertNoData: "No data to add.",
+            alertNoLabel: "Please enter a feature label name.",
+            scaleText: "Scale: 1/{scale} (1px = {val}mm)",
+            scaleBarText: "Scale: Custom Bar (1px = {val}mm)",
+            measMajor: "Major: ",
+            measMinor: "Minor: ",
+            measDepth: "Depth: ",
+            notMeasured: "Not measured",
+            del: "Delete",
+            resetConfirm: "Are you sure you want to reset all data?"
+        },
+        zh: {
+            title: "考古学遗迹综合分析系统（主轴方位与尺寸测量）",
+            secInput: "1. 导入图纸文件",
+            lblFile: "支持格式: PDF, TIFF, PNG, JPG, SVG",
+            secScale: "2. 比例尺设置",
+            lblScaleMode: "设置方法",
+            optPreset: "预设比例尺 (例: 1/20)",
+            optBar: "标尺指定",
+            lblPreset: "比例尺分母",
+            lblBarLen: "标尺实际长度 (cm)",
+            btnSetBar: "指定标尺起点和终点",
+            secMode: "3. 分析与测量模式",
+            lblMode: "操作模式",
+            btnNorth: "指定正北",
+            btnAxis: "绘制轴线",
+            btnMajor: "长轴测量",
+            btnMinor: "短轴测量",
+            btnDepth: "深度测量",
+            btnClearMeas: "清除测量",
+            statusTitle: "状态:",
+            statusInit: "请加载图纸文件",
+            statusReady: "准备就绪。请选择模式。",
+            statusSetBarStart: "点击标尺起点",
+            statusSetBarEnd: "点击标尺终点",
+            statusNorth: "拖动绘制正北向量",
+            statusAxis: "拖动绘制遗迹轴线向量",
+            statusMajorStart: "点击长轴起点",
+            statusMajorEnd: "点击长轴终点",
+            statusMinorStart: "点击短轴起点",
+            statusMinorEnd: "点击短轴终点",
+            statusDepthStart: "点击深度起点",
+            statusDepthEnd: "点击深度终点",
+            resTitle: "计算方位:",
+            lblLabel: "遗迹标签名称",
+            btnAdd: "添加到综合表格",
+            secDanger: "系统管理",
+            btnReset: "全部重置",
+            secCanvas: "图纸查看器",
+            placeholder: "请上传图纸文件",
+            secTable: "综合分析结果表",
+            thId: "ID",
+            thLabel: "标签名称",
+            thAzimuth: "主轴方位",
+            thMajor: "长轴(cm)",
+            thMinor: "短轴(cm)",
+            thDepth: "深度(cm)",
+            thAction: "操作",
+            secExport: "导出",
+            btnCSV: "保存CSV",
+            btnExcel: "保存Excel",
+            btnPDF: "保存PDF (打印)",
+            alertNoData: "没有可添加的数据。",
+            alertNoLabel: "请输入遗迹标签名称。",
+            scaleText: "比例尺: 1/{scale} (1px = {val}mm)",
+            scaleBarText: "比例尺: 自定义标尺 (1px = {val}mm)",
+            measMajor: "长轴: ",
+            measMinor: "短轴: ",
+            measDepth: "深度: ",
+            notMeasured: "未测量",
+            del: "删除",
+            resetConfirm: "确定要重置所有数据吗？"
+        },
+        ko: {
+            title: "고고학 유구 종합 분석 시스템 (주축 방위 및 치수 측정)",
+            secInput: "1. 도면 파일 가져오기",
+            lblFile: "지원 형식: PDF, TIFF, PNG, JPG, SVG",
+            secScale: "2. 축척 설정",
+            lblScaleMode: "설정 방식",
+            optPreset: "축척 선택 (예: 1/20)",
+            optBar: "스케일 바 지정",
+            lblPreset: "축척 분모",
+            lblBarLen: "스케일 바 실제 길이 (cm)",
+            btnSetBar: "스케일 바 지정",
+            secMode: "3. 분석 및 측정 모드",
+            lblMode: "조작 모드",
+            btnNorth: "북쪽 지정",
+            btnAxis: "축선 그리기",
+            btnMajor: "장축 측정",
+            btnMinor: "단축 측정",
+            btnDepth: "깊이 측정",
+            btnClearMeas: "측정 클리어",
+            statusTitle: "상태:",
+            statusInit: "도면 파일을 불러와주세요",
+            statusReady: "준비 완료. 모드를 선택하세요.",
+            statusSetBarStart: "스케일 바 시작점을 클릭하세요",
+            statusSetBarEnd: "스케일 바 끝점을 클릭하세요",
+            statusNorth: "북쪽 벡터를 드래그하여 그리세요",
+            statusAxis: "유구 축선 벡터를 드래그하여 그리세요",
+            statusMajorStart: "장축 시작점 클릭",
+            statusMajorEnd: "장축 끝점 클릭",
+            statusMinorStart: "단축 시작점 클릭",
+            statusMinorEnd: "단축 끝점 클릭",
+            statusDepthStart: "깊이 시작점 클릭",
+            statusDepthEnd: "깊이 끝점 클릭",
+            resTitle: "산출 방위:",
+            lblLabel: "유구 라벨 이름",
+            btnAdd: "종합 테이블에 추가",
+            secDanger: "시스템 관리",
+            btnReset: "전체 리셋",
+            secCanvas: "도면 뷰어",
+            placeholder: "도면 파일을 업로드해주세요",
+            secTable: "종합 분석 결과 목록",
+            thId: "ID",
+            thLabel: "라벨 이름",
+            thAzimuth: "주축 방위",
+            thMajor: "장축(cm)",
+            thMinor: "단축(cm)",
+            thDepth: "깊이(cm)",
+            thAction: "작업",
+            secExport: "내보내기",
+            btnCSV: "CSV 저장",
+            btnExcel: "Excel 저장",
+            btnPDF: "PDF 저장 (인쇄)",
+            alertNoData: "추가할 데이터가 없습니다.",
+            alertNoLabel: "유구 라벨 이름을 입력하세요.",
+            scaleText: "축척: 1/{scale} (1px = {val}mm)",
+            scaleBarText: "축척: 커스텀 바 (1px = {val}mm)",
+            measMajor: "장축: ",
+            measMinor: "단축: ",
+            measDepth: "깊이: ",
+            notMeasured: "미측정",
+            del: "삭제",
+            resetConfirm: "모든 데이터를 리셋하시겠습니까?"
+        },
+        fr: {
+            title: "Système d'analyse globale de vestiges archéologiques",
+            secInput: "1. Importer le dessin",
+            lblFile: "Formats: PDF, TIFF, PNG, JPG, SVG",
+            secScale: "2. Paramètres d'échelle",
+            lblScaleMode: "Méthode",
+            optPreset: "Échelle prédéfinie (ex: 1/20)",
+            optBar: "Échelle graphique",
+            lblPreset: "Dénominateur",
+            lblBarLen: "Longueur réelle (cm)",
+            btnSetBar: "Définir l'échelle",
+            secMode: "3. Mode d'analyse et mesure",
+            lblMode: "Mode",
+            btnNorth: "Définir le Nord",
+            btnAxis: "Tracer l'axe",
+            btnMajor: "Grand axe",
+            btnMinor: "Petit axe",
+            btnDepth: "Profondeur",
+            btnClearMeas: "Effacer mesures",
+            statusTitle: "Statut:",
+            statusInit: "Veuillez charger un fichier",
+            statusReady: "Prêt. Choisissez un mode.",
+            statusSetBarStart: "Cliquez sur le début de l'échelle",
+            statusSetBarEnd: "Cliquez sur la fin de l'échelle",
+            statusNorth: "Glissez pour tracer le Nord",
+            statusAxis: "Glissez pour tracer l'axe",
+            statusMajorStart: "Début grand axe",
+            statusMajorEnd: "Fin grand axe",
+            statusMinorStart: "Début petit axe",
+            statusMinorEnd: "Fin petit axe",
+            statusDepthStart: "Début profondeur",
+            statusDepthEnd: "Fin profondeur",
+            resTitle: "Azimut:",
+            lblLabel: "Nom du vestige",
+            btnAdd: "Ajouter au tableau",
+            secDanger: "Gestion",
+            btnReset: "Réinitialiser",
+            secCanvas: "Visualiseur",
+            placeholder: "Veuillez télécharger un fichier",
+            secTable: "Tableau des résultats",
+            thId: "ID",
+            thLabel: "Nom",
+            thAzimuth: "Azimut",
+            thMajor: "Grand axe(cm)",
+            thMinor: "Petit axe(cm)",
+            thDepth: "Prof.(cm)",
+            thAction: "Action",
+            secExport: "Exporter",
+            btnCSV: "CSV",
+            btnExcel: "Excel",
+            btnPDF: "PDF",
+            alertNoData: "Pas de données.",
+            alertNoLabel: "Entrez un nom.",
+            scaleText: "Échelle: 1/{scale} (1px = {val}mm)",
+            scaleBarText: "Échelle: Barre (1px = {val}mm)",
+            measMajor: "Grand axe: ",
+            measMinor: "Petit axe: ",
+            measDepth: "Profondeur: ",
+            notMeasured: "Non mesuré",
+            del: "Suppr.",
+            resetConfirm: "Réinitialiser toutes les données ?"
+        },
+        es: {
+            title: "Sistema de análisis integral de planos arqueológicos",
+            secInput: "1. Importar plano",
+            lblFile: "Formatos: PDF, TIFF, PNG, JPG, SVG",
+            secScale: "2. Configuración de escala",
+            lblScaleMode: "Método",
+            optPreset: "Escala preestablecida (ej. 1/20)",
+            optBar: "Barra de escala",
+            lblPreset: "Denominador",
+            lblBarLen: "Longitud real (cm)",
+            btnSetBar: "Definir barra",
+            secMode: "3. Modo de análisis y medición",
+            lblMode: "Modo",
+            btnNorth: "Definir Norte",
+            btnAxis: "Dibujar Eje",
+            btnMajor: "Eje mayor",
+            btnMinor: "Eje menor",
+            btnDepth: "Profundidad",
+            btnClearMeas: "Borrar medidas",
+            statusTitle: "Estado:",
+            statusInit: "Cargue un archivo",
+            statusReady: "Listo. Seleccione un modo.",
+            statusSetBarStart: "Clic en inicio de barra",
+            statusSetBarEnd: "Clic en fin de barra",
+            statusNorth: "Arrastre para dibujar el Norte",
+            statusAxis: "Arrastre para dibujar el eje",
+            statusMajorStart: "Inicio eje mayor",
+            statusMajorEnd: "Fin eje mayor",
+            statusMinorStart: "Inicio eje menor",
+            statusMinorEnd: "Fin eje menor",
+            statusDepthStart: "Inicio profundidad",
+            statusDepthEnd: "Fin profundidad",
+            resTitle: "Azimut:",
+            lblLabel: "Nombre de etiqueta",
+            btnAdd: "Añadir a tabla integral",
+            secDanger: "Gestión",
+            btnReset: "Restablecer",
+            secCanvas: "Visor",
+            placeholder: "Suba un archivo",
+            secTable: "Tabla de resultados",
+            thId: "ID",
+            thLabel: "Etiqueta",
+            thAzimuth: "Azimut",
+            thMajor: "Mayor(cm)",
+            thMinor: "Menor(cm)",
+            thDepth: "Prof.(cm)",
+            thAction: "Acción",
+            secExport: "Exportar",
+            btnCSV: "CSV",
+            btnExcel: "Excel",
+            btnPDF: "PDF",
+            alertNoData: "No hay datos.",
+            alertNoLabel: "Ingrese un nombre.",
+            scaleText: "Escala: 1/{scale} (1px = {val}mm)",
+            scaleBarText: "Escala: Barra (1px = {val}mm)",
+            measMajor: "Mayor: ",
+            measMinor: "Menor: ",
+            measDepth: "Profundidad: ",
+            notMeasured: "No medido",
+            del: "Eliminar",
+            resetConfirm: "¿Desea restablecer todos los datos?"
+        }
+    };
+
+    let currentLang = 'ja';
+
+    function changeLanguage(lang) {
+        currentLang = lang;
+        const t = translations[lang];
+        document.getElementById('ui-title').innerText = t.title;
+        document.getElementById('ui-sec-input').innerText = t.secInput;
+        document.getElementById('ui-lbl-file').innerText = t.lblFile;
+        document.getElementById('ui-sec-scale').innerText = t.secScale;
+        document.getElementById('ui-lbl-scale-mode').innerText = t.lblScaleMode;
+        document.getElementById('ui-opt-preset').innerText = t.optPreset;
+        document.getElementById('ui-opt-bar').innerText = t.optBar;
+        document.getElementById('ui-lbl-preset').innerText = t.lblPreset;
+        document.getElementById('ui-lbl-bar-len').innerText = t.lblBarLen;
+        document.getElementById('btnSetBar').innerText = t.btnSetBar;
+        document.getElementById('ui-sec-mode').innerText = t.secMode;
+        document.getElementById('ui-lbl-mode').innerText = t.lblMode;
+        document.getElementById('btnModeNorth').innerText = t.btnNorth;
+        document.getElementById('btnModeAxis').innerText = t.btnAxis;
+        document.getElementById('btnModeMajor').innerText = t.btnMajor;
+        document.getElementById('btnModeMinor').innerText = t.btnMinor;
+        document.getElementById('btnModeDepth').innerText = t.btnDepth;
+        document.getElementById('btnClearMeas').innerText = t.btnClearMeas;
+        document.getElementById('ui-status-title').innerText = t.statusTitle;
+        document.getElementById('ui-res-title').innerText = t.resTitle;
+        document.getElementById('ui-lbl-label').innerText = t.lblLabel;
+        document.getElementById('btnAddRecord').innerText = t.btnAdd;
+        document.getElementById('ui-sec-danger').innerText = t.secDanger;
+        document.getElementById('btnReset').innerText = t.btnReset;
+        document.getElementById('ui-sec-canvas').innerText = t.secCanvas;
+        document.getElementById('ui-placeholder').innerText = t.placeholder;
+        document.getElementById('ui-sec-table').innerText = t.secTable;
+        document.getElementById('th-id').innerText = t.thId;
+        document.getElementById('th-label').innerText = t.thLabel;
+        document.getElementById('th-azimuth').innerText = t.thAzimuth;
+        document.getElementById('th-major').innerText = t.thMajor;
+        document.getElementById('th-minor').innerText = t.thMinor;
+        document.getElementById('th-depth').innerText = t.thDepth;
+        document.getElementById('th-action').innerText = t.thAction;
+        document.getElementById('ui-sec-export').innerText = t.secExport;
+
+        const exportBtns = document.querySelectorAll('.action-row .btn');
+        if(exportBtns.length >= 3) {
+            exportBtns[0].innerText = t.btnCSV;
+            exportBtns[1].innerText = t.btnExcel;
+            exportBtns[2].innerText = t.btnPDF;
+        }
+        updateScaleParams();
+        updateStatusText();
+    }
+
+    // --- 状態変数 ---
+    let imgElement = null;
+    let canvas = document.getElementById('imageCanvas');
+    let ctx = canvas.getContext('2d');
+
+    // モード管理: 'none', 'north', 'axis', 'scaleBar', 'major', 'minor', 'depth'
+    let currentMode = 'none';
+    let stepState = 'init';
+
+    // 縮尺パラメータ
+    let scaleModeType = 'preset'; // 'preset' or 'bar'
+    let scaleVal = 20;
+    let mmPerPixel = (25.4 / 96) * 20;
+
+    // 座標データ
+    let northVector = null; // {x1, y1, x2, y2}
+    let axisVector = null;  // {x1, y1, x2, y2}
+    let scaleBarPoints = []; // [{x,y}, {x,y}]
+    let majorPoints = [];    // [{x,y}, {x,y}]
+    let minorPoints = [];    // [{x,y}, {x,y}]
+    let depthPoints = [];    // [{x,y}, {x,y}]
+
+    // ドラッグ用 (North / Axis)
+    let isDrawing = false;
+    let startX = 0, startY = 0;
+    let currentX = 0, currentY = 0;
+
+    let records = [];
+    let currentCalculatedAzimuth = null;
+
+    // 初期化
+    window.addEventListener('DOMContentLoaded', () => {
+        loadFromStorage();
+        renderTable();
+        updateScaleParams();
+    });
+
+    // 縮尺モード切替
+    function toggleScaleMode() {
+        scaleModeType = document.getElementById('scaleMode').value;
+        if(scaleModeType === 'preset') {
+            document.getElementById('presetScaleGroup').style.display = 'flex';
+            document.getElementById('barScaleGroup').style.display = 'none';
+            updateScaleFromPreset();
+        } else {
+            document.getElementById('presetScaleGroup').style.display = 'none';
+            document.getElementById('barScaleGroup').style.display = 'flex';
+        }
+    }
+
+    function updateScaleFromPreset() {
+        scaleVal = parseFloat(document.getElementById('presetSelect').value) || 20;
+        mmPerPixel = (25.4 / 96) * scaleVal;
+        updateScaleParams();
+    }
+
+    function updateScaleParams() {
+        const t = translations[currentLang];
+        let txt = "";
+        if(scaleModeType === 'preset') {
+            txt = t.scaleText.replace('{scale}', scaleVal).replace('{val}', mmPerPixel.toFixed(3));
+        } else {
+            txt = t.scaleBarText.replace('{val}', mmPerPixel.toFixed(3));
+        }
+        document.getElementById('scaleStatus').innerText = txt;
+    }
+
+    // ファイルインポート
+    document.getElementById('imageLoader').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        if(imgElement) {
+            URL.revokeObjectURL(imgElement.src);
+            imgElement = null;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                imgElement = img;
+                document.getElementById('ui-placeholder').style.display = 'none';
+                
+                // ボタン有効化
+                enableControls(true);
+                currentMode = 'north';
+                stepState = 'ready';
+                setActiveModeBtn('btnModeNorth');
+                updateStatusText();
+                redrawCanvas();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function enableControls(enable) {
+        document.getElementById('btnSetBar').disabled = !enable;
+        document.getElementById('btnModeNorth').disabled = !enable;
+        document.getElementById('btnModeAxis').disabled = !enable;
+        document.getElementById('btnModeMajor').disabled = !enable;
+        document.getElementById('btnModeMinor').disabled = !enable;
+        document.getElementById('btnModeDepth').disabled = !enable;
+        document.getElementById('btnClearMeas').disabled = !enable;
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+        setActiveModeBtn(getBtnIdByMode(mode));
+        updateStatusText();
+    }
+
+    function getBtnIdByMode(m) {
+        switch(m) {
+            case 'north': return 'btnModeNorth';
+            case 'axis': return 'btnModeAxis';
+            case 'scaleBar': return 'btnSetBar';
+            case 'major': return 'btnModeMajor';
+            case 'minor': return 'btnModeMinor';
+            case 'depth': return 'btnModeDepth';
+            default: return '';
+        }
+    }
+
+    function setActiveModeBtn(btnId) {
+        ['btnModeNorth', 'btnModeAxis', 'btnSetBar', 'btnModeMajor', 'btnModeMinor', 'btnModeDepth'].forEach(id => {
+            const el = document.getElementById(id);
+            if(!el) return;
+            if(id === btnId) {
+                el.style.opacity = '1';
+                el.style.outline = '3px solid #f6ad55';
+            } else {
+                el.style.opacity = '0.85';
+                el.style.outline = 'none';
+            }
+        });
+    }
+
+    function updateStatusText() {
+        const t = translations[currentLang];
+        const statusEl = document.getElementById('statusText');
+        if(!imgElement) {
+            statusEl.innerText = t.statusInit;
+            return;
+        }
+
+        switch(currentMode) {
+            case 'north': statusEl.innerText = t.statusNorth; break;
+            case 'axis': statusEl.innerText = t.statusAxis; break;
+            case 'scaleBar': statusEl.innerText = scaleBarPoints.length === 0 ? t.statusSetBarStart : t.statusSetBarEnd; break;
+            case 'major': statusEl.innerText = majorPoints.length === 0 ? t.statusMajorStart : t.statusMajorEnd; break;
+            case 'minor': statusEl.innerText = minorPoints.length === 0 ? t.statusMinorStart : t.statusMinorEnd; break;
+            case 'depth': statusEl.innerText = depthPoints.length === 0 ? t.statusDepthStart : t.statusDepthEnd; break;
+            default: statusEl.innerText = t.statusReady;
+        }
+
+        // 計測ステータス更新
+        document.getElementById('measMajorStatus').innerText = t.measMajor + (majorPoints.length === 2 ? formatLength(calcDist(majorPoints[0], majorPoints[1])) : t.notMeasured);
+        document.getElementById('measMinorStatus').innerText = t.measMinor + (minorPoints.length === 2 ? formatLength(calcDist(minorPoints[0], minorPoints[1])) : t.notMeasured);
+        document.getElementById('measDepthStatus').innerText = t.measDepth + (depthPoints.length === 2 ? formatLength(calcDist(depthPoints[0], depthPoints[1])) : t.notMeasured);
+
+        // 追加ボタン判定 (方位または寸法の一方があれば有効化可能)
+        if(currentCalculatedAzimuth || majorPoints.length === 2 || minorPoints.length === 2 || depthPoints.length === 2) {
+            document.getElementById('btnAddRecord').disabled = false;
+        } else {
+            document.getElementById('btnAddRecord').disabled = true;
+        }
+    }
+
+    function calcDist(p1, p2) {
+        return Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+    }
+
+    function formatLength(px) {
+        const mm = px * mmPerPixel;
+        const cm = mm / 10.0;
+        return `${cm.toFixed(2)} cm`;
+    }
+
+    // キャンバス操作イベント (ドラッグベース vs クリックベースの振り分け)
+    canvas.addEventListener('mousedown', (e) => {
+        if(!imgElement) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        if(currentMode === 'north' || currentMode === 'axis') {
+            isDrawing = true;
+            startX = x; startY = y;
+            currentX = x; currentY = y;
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if(!isDrawing || !imgElement) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        currentX = (e.clientX - rect.left) * scaleX;
+        currentY = (e.clientY - rect.top) * scaleY;
+        redrawCanvas();
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        if(!isDrawing || !imgElement) return;
+        isDrawing = false;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const endX = (e.clientX - rect.left) * scaleX;
+        const endY = (e.clientY - rect.top) * scaleY;
+
+        if(currentMode === 'north') {
+            northVector = {x1: startX, y1: startY, x2: endX, y2: endY};
+        } else if(currentMode === 'axis') {
+            axisVector = {x1: startX, y1: startY, x2: endX, y2: endY};
+            calculateAzimuth();
+        }
+        redrawCanvas();
+        updateStatusText();
+    });
+
+    // クリックベースの処理 (ScaleBar, Major, Minor, Depth)
+    canvas.addEventListener('click', (e) => {
+        if(!imgElement || currentMode === 'north' || currentMode === 'axis') return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        if(currentMode === 'scaleBar') {
+            if(scaleBarPoints.length === 0 || scaleBarPoints.length >= 2) {
+                scaleBarPoints = [{x, y}];
+            } else {
+                scaleBarPoints.push({x, y});
+                // スケール計算適用
+                const pxDist = calcDist(scaleBarPoints[0], scaleBarPoints[1]);
+                const realCm = parseFloat(document.getElementById('barLengthInput').value) || 10;
+                if(pxDist > 0) {
+                    mmPerPixel = (realCm * 10.0) / pxDist;
+                    updateScaleParams();
+                }
+                currentMode = 'none';
+                setActiveModeBtn('');
+            }
+        } else if(currentMode === 'major') {
+            if(majorPoints.length === 0 || majorPoints.length >= 2) {
+                majorPoints = [{x, y}];
+            } else {
+                majorPoints.push({x, y});
+                currentMode = 'none';
+                setActiveModeBtn('');
+            }
+        } else if(currentMode === 'minor') {
+            if(minorPoints.length === 0 || minorPoints.length >= 2) {
+                minorPoints = [{x, y}];
+            } else {
+                minorPoints.push({x, y});
+                currentMode = 'none';
+                setActiveModeBtn('');
+            }
+        } else if(currentMode === 'depth') {
+            if(depthPoints.length === 0 || depthPoints.length >= 2) {
+                depthPoints = [{x, y}];
+            } else {
+                depthPoints.push({x, y});
+                currentMode = 'none';
+                setActiveModeBtn('');
+            }
+        }
+
+        redrawCanvas();
+        updateStatusText();
+    });
+
+    function redrawCanvas() {
+        if(!imgElement) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imgElement, 0, 0);
+
+        // 描画中ライン
+        if(isDrawing) {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(currentX, currentY);
+            ctx.strokeStyle = currentMode === 'north' ? '#e53e3e' : '#3182ce';
+            ctx.lineWidth = Math.max(2, canvas.width / 300);
+            ctx.stroke();
+        }
+
+        if(northVector) drawArrow(ctx, northVector.x1, northVector.y1, northVector.x2, northVector.y2, '#e53e3e', 'N');
+        if(axisVector) drawArrow(ctx, axisVector.x1, axisVector.y1, axisVector.x2, axisVector.y2, '#3182ce', 'Axis');
+
+        drawPointsAndLine(scaleBarPoints, '#2b6cb0', 'SB');
+        drawPointsAndLine(majorPoints, '#e53e3e', 'Major');
+        drawPointsAndLine(minorPoints, '#38a169', 'Minor');
+        drawPointsAndLine(depthPoints, '#805ad5', 'Depth');
+    }
+
+    function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(3, canvas.width / 250);
+        ctx.stroke();
+
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const headLen = Math.max(10, canvas.width / 40);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        ctx.font = `bold ${Math.max(14, canvas.width / 35)}px var(--font-family)`;
+        ctx.fillStyle = color;
+        ctx.fillText(label, x2 + 10, y2 - 10);
+    }
+
+    function drawPointsAndLine(points, color, label) {
+        if(points.length > 0) {
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = Math.max(2, canvas.width / 350);
+
+            points.forEach((p, idx) => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, Math.max(4, canvas.width / 200), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.font = `bold ${Math.max(12, canvas.width / 40)}px var(--font-family)`;
+                ctx.fillText(`${label}${idx+1}`, p.x + 8, p.y - 8);
+            });
+
+            if(points.length === 2) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                ctx.lineTo(points[1].x, points[1].y);
+                ctx.stroke();
+            }
+        }
+    }
+
+    // 方位算出エンジン
+    function calculateAzimuth() {
+        if(!northVector || !axisVector) return;
+        const northAngle = Math.atan2(northVector.y2 - northVector.y1, northVector.x2 - northVector.x1);
+        const axisAngle = Math.atan2(axisVector.y2 - axisVector.y1, axisVector.x2 - axisVector.x1);
+        let diffDeg = (axisAngle - northAngle) * (180 / Math.PI);
+        diffDeg = (diffDeg % 360 + 360) % 360;
+        currentCalculatedAzimuth = convertToQuadrantBearing(diffDeg);
+        document.getElementById('resultAzimuthDisplay').innerText = currentCalculatedAzimuth;
+    }
+
+    function convertToQuadrantBearing(deg) {
+        let quadrant = "";
+        let angle = 0;
+        if (deg === 0 || deg === 360) return "N 0° E (N)";
+        else if (deg > 0 && deg < 90) { quadrant = "N E"; angle = deg; }
+        else if (deg === 90) return "N 90° E (E)";
+        else if (deg > 90 && deg < 180) { quadrant = "S E"; angle = 180 - deg; }
+        else if (deg === 180) return "S 180° E (S)";
+        else if (deg > 180 && deg < 270) { quadrant = "S W"; angle = deg - 180; }
+        else if (deg === 270) return "N 90° W (W)";
+        else { quadrant = "N W"; angle = 360 - deg; }
+
+        angle = Math.round(angle);
+        const parts = quadrant.split(" ");
+        return `${parts[0]} ${angle}° ${parts[1]}`;
+    }
+
+    function clearCurrentMeasurements() {
+        majorPoints = [];
+        minorPoints = [];
+        depthPoints = [];
+        updateStatusText();
+        redrawCanvas();
+    }
+
+    // データ管理 & ストレージ
+    function addRecord() {
+        const t = translations[currentLang];
+        const labelInput = document.getElementById('featureLabel');
+        const labelName = labelInput.value.trim() || `遺構 ${records.length + 1}`;
+
+        const majorVal = majorPoints.length === 2 ? parseFloat(((calcDist(majorPoints[0], majorPoints[1]) * mmPerPixel) / 10.0).toFixed(2)) : 0;
+        const minorVal = minorPoints.length === 2 ? parseFloat(((calcDist(minorPoints[0], minorPoints[1]) * mmPerPixel) / 10.0).toFixed(2)) : 0;
+        const depthVal = depthPoints.length === 2 ? parseFloat(((calcDist(depthPoints[0], depthPoints[1]) * mmPerPixel) / 10.0).toFixed(2)) : 0;
+
+        const newRecord = {
+            id: records.length + 1,
+            label: labelName,
+            azimuth: currentCalculatedAzimuth || '---',
+            major: majorVal > 0 ? majorVal : '-',
+            minor: minorVal > 0 ? minorVal : '-',
+            depth: depthVal > 0 ? depthVal : '-'
+        };
+
+        records.push(newRecord);
+        saveToStorage();
+        renderTable();
+
+        // フォーム・一時変数リセット
+        labelInput.value = '';
+        currentCalculatedAzimuth = null;
+        axisVector = null;
+        majorPoints = [];
+        minorPoints = [];
+        depthPoints = [];
+        document.getElementById('resultAzimuthDisplay').innerText = '---';
+        updateStatusText();
+        redrawCanvas();
+    }
+
+    function deleteRecord(id) {
+        records = records.filter(r => r.id !== id);
+        records.forEach((r, idx) => r.id = idx + 1);
+        saveToStorage();
+        renderTable();
+    }
+
+    function updateItemLabel(id, val) {
+        const item = records.find(r => r.id === id);
+        if(item) {
+            item.label = val;
+            saveToStorage();
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        const t = translations[currentLang];
+
+        records.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${r.id}</td>
+                <td><input type="text" value="${escapeHTML(r.label)}" onchange="updateItemLabel(${r.id}, this.value)"></td>
+                <td><strong>${escapeHTML(r.azimuth)}</strong></td>
+                <td>${r.major}</td>
+                <td>${r.minor}</td>
+                <td>${r.depth}</td>
+                <td><button class="btn btn-danger" style="padding:2px 6px; font-size:0.75rem;" onclick="deleteRecord(${r.id})">${t.del}</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function saveToStorage() {
+        try {
+            localStorage.setItem('arch_comprehensive_records', JSON.stringify(records));
+        } catch (e) {
+            console.error("Storage save failed", e);
+        }
+    }
+
+    function loadFromStorage() {
+        try {
+            const data = localStorage.getItem('arch_comprehensive_records');
+            if(data) {
+                records = JSON.parse(data);
+            }
+        } catch (e) {
+            console.error("Storage load failed", e);
+        }
+    }
+
+    function resetAll() {
+        const t = translations[currentLang];
+        if(!confirm(t.resetConfirm)) return;
+        records = [];
+        northVector = null;
+        axisVector = null;
+        scaleBarPoints = [];
+        majorPoints = [];
+        minorPoints = [];
+        depthPoints = [];
+        currentCalculatedAzimuth = null;
+        localStorage.removeItem('arch_comprehensive_records');
+
+        if(imgElement) {
+            URL.revokeObjectURL(imgElement.src);
+            imgElement = null;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('ui-placeholder').style.display = 'block';
+        document.getElementById('resultAzimuthDisplay').innerText = '---';
+        document.getElementById('featureLabel').value = '';
+        document.getElementById('imageLoader').value = '';
+        enableControls(false);
+        renderTable();
+        updateStatusText();
+    }
+
+    function escapeHTML(str) {
+        return String(str).replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+
+    // エクスポート機能
+    function exportCSV() {
+        if(records.length === 0) return;
+        let csv = '\uFEFFID,Label,Azimuth,Major(cm),Minor(cm),Depth(cm)\n';
+        records.forEach(r => {
+            csv += `${r.id},"${r.label.replace(/"/g, '""')}","${r.azimuth}",${r.major},${r.minor},${r.depth}\n`;
+        });
+        downloadFile(csv, 'archaeology_comprehensive_data.csv', 'text/csv;charset=utf-8;');
+    }
+
+    function exportExcel() {
+        if(records.length === 0) return;
+        let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="UTF-8"></head><body>';
+        html += '<table><tr><th>ID</th><th>Label</th><th>Azimuth</th><th>Major(cm)</th><th>Minor(cm)</th><th>Depth(cm)</th></tr>';
+        records.forEach(r => {
+            html += `<tr><td>${r.id}</td><td>${escapeHTML(r.label)}</td><td>${escapeHTML(r.azimuth)}</td><td>${r.major}</td><td>${r.minor}</td><td>${r.depth}</td></tr>`;
+        });
+        html += '</table></body></html>';
+        downloadFile(html, 'archaeology_comprehensive_data.xls', 'application/vnd.ms-excel;charset=utf-8;');
+    }
+
+    function exportPDF() {
+        if(records.length === 0) return;
+        window.print();
+    }
+
+    function downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+</script>
+</body>
+</html>
