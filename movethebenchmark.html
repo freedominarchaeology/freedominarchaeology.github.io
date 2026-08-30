@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水準点移動（連続レベル）計算アプリ</title>
+    <style>
+        /* 基本Reset & 共通スタイル */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f1f5f9; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .font-bold { font-weight: bold; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-blue { color: #1d4ed8; }
+        .text-emerald { color: #047857; }
+        .text-rose { color: #e11d48; }
+
+        /* ヘッダー */
+        header { background-color: #1e3a8a; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-inner { max-width: 56rem; margin: 0 auto; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .header-title { font-size: 1.25rem; font-weight: bold; }
+        .badge { font-size: 0.75rem; background-color: #1d4ed8; padding: 0.25rem 0.625rem; border-radius: 9999px; }
+
+        /* コンテナ & カード */
+        main { flex-grow: 1; max-width: 56rem; width: 100%; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .card { background-color: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        @media (min-width: 768px) { .card { padding: 1.5rem; } }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .card-title { font-size: 1.125rem; font-weight: bold; color: #334155; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .card-header .card-title { margin-bottom: 0; }
+        
+        /* フォーム & グリッド */
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
+        @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center; }
+
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 0.875rem; font-weight: 500; color: #475569; margin-bottom: 0.25rem; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; font-size: 1rem; outline: none; }
+        input[type="text"]:focus, input[type="number"]:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+
+        .origin-info { font-size: 0.75rem; background-color: #f8fafc; color: #475569; padding: 0.25rem 0.75rem; border-radius: 0.375rem; border: 1px solid #e2e8f0; }
+
+        /* プレビュー */
+        .preview-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; }
+        .preview-label { display: block; font-size: 0.75rem; color: #64748b; }
+        .preview-val { font-size: 1rem; font-weight: bold; color: #334155; }
+        @media (min-width: 640px) { .preview-val { font-size: 1.125rem; } }
+
+        /* ボタン */
+        .btn-submit { width: 100%; background-color: #2563eb; color: white; font-weight: bold; padding: 0.75rem 1rem; border: none; border-radius: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 1rem; transition: background-color 0.2s; }
+        .btn-submit:hover { background-color: #1d4ed8; }
+        .btn-submit.btn-emerald { background-color: #059669; }
+        .btn-submit.btn-emerald:hover { background-color: #047857; }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .btn-tool { font-size: 0.75rem; font-weight: bold; padding: 0.5rem 0.75rem; border-radius: 0.375rem; border: none; color: white; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
+        .btn-csv { background-color: #059669; } .btn-csv:hover { background-color: #047857; }
+        .btn-print { background-color: #334155; } .btn-print:hover { background-color: #1e293b; }
+        .btn-clear { background-color: #f43f5e; } .btn-clear:hover { background-color: #e11d48; }
+
+        /* テーブル */
+        .table-wrap { overflow-x: auto; margin-top: 0.5rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left; }
+        th { background-color: #f1f5f9; padding: 0.625rem; font-weight: 600; color: #334155; border-bottom: 1px solid #cbd5e1; }
+        td { padding: 0.625rem; border-bottom: 1px solid #e2e8f0; color: #334155; }
+        tr:hover { background-color: #f8fafc; }
+
+        .btn-table { font-size: 0.75rem; padding: 0.25rem 0.375rem; border: none; border-radius: 0.25rem; cursor: pointer; }
+        .btn-edit { background-color: #eff6ff; color: #2563eb; margin-right: 0.25rem; } .btn-edit:hover { color: #1d4ed8; }
+        .btn-del { background-color: #fff1f2; color: #e11d48; } .btn-del:hover { color: #be123c; }
+
+        /* 点検・検算領域 */
+        .check-box { margin-top: 1rem; padding: 1rem; background-color: #f8fafc; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.75rem; }
+        @media (min-width: 640px) { .check-box { font-size: 0.875rem; } }
+        .check-title { font-weight: bold; color: #334155; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.25rem; }
+
+        /* SVG Icon */
+        .icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .icon-sm { width: 1rem; height: 1rem; }
+
+        footer { text-align: center; padding: 1rem 0; font-size: 0.75rem; color: #94a3b8; }
+
+        /* 印刷設定 */
+        @media print {
+            body { background-color: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            table { border-collapse: collapse !important; width: 100% !important; }
+            th, td { border: 1px solid #000 !important; padding: 4px 8px !important; font-size: 12px !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- ヘッダー -->
+    <header class="no-print">
+        <div class="header-inner">
+            <h1 class="header-title">水準点移動（連続レベル）計算</h1>
+            <span class="badge font-mono">オフライン対応</span>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main>
+
+        <!-- 起点（元BM）設定セクション -->
+        <section class="card no-print">
+            <h2 class="card-title">
+                <svg class="icon text-blue" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                起点 (元ベンチマーク) 設定
+            </h2>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="startBmName">起点名 / 元BM名称</label>
+                    <input type="text" id="startBmName" value="BM-1">
+                </div>
+                <div class="form-group">
+                    <label for="startBmElevation">起点 標高 (m)</label>
+                    <input type="number" step="0.001" id="startBmElevation" value="10.000" class="font-mono font-bold">
+                </div>
+            </div>
+        </section>
+
+        <!-- 水準移動・観測データ入力セクション -->
+        <section class="card no-print">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg class="icon text-blue" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    水準移動の入力
+                </h2>
+                <div class="origin-info font-mono">
+                    移動元: <span id="currentOriginName" class="font-bold text-blue">BM-1</span> 
+                    (<span id="currentOriginElev" class="font-bold">10.000</span>m)
+                </div>
+            </div>
+
+            <form id="surveyForm">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="bsValue">移動元への <span class="text-blue font-bold">後視 (BS)</span> 読値 (m)</label>
+                        <input type="number" step="0.001" id="bsValue" placeholder="例: 1.250" required class="font-mono">
+                    </div>
+                    <div class="form-group">
+                        <label for="targetName">移動先 / 新測点名（自由記入）</label>
+                        <input type="text" id="targetName" placeholder="例: TP-1, 新BM, トレンチA" required>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="fsValue">移動先への <span class="text-emerald font-bold">前視 (FS)</span> 読値 (m)</label>
+                        <input type="number" step="0.001" id="fsValue" placeholder="例: 0.840" required class="font-mono">
+                    </div>
+                    <div class="form-group">
+                        <label for="remarks">備考・メモ</label>
+                        <input type="text" id="remarks" placeholder="例: 仮杭, 構造物天端">
+                    </div>
+                </div>
+
+                <!-- リアルタイム計算プレビュー -->
+                <div class="preview-box grid-3">
+                    <div>
+                        <span class="preview-label">今回器械高 (HI)</span>
+                        <span id="previewHI" class="preview-val font-mono">---</span>
+                    </div>
+                    <div>
+                        <span class="preview-label">移動先 算出標高</span>
+                        <span id="previewElevation" class="preview-val font-mono text-blue">---</span>
+                    </div>
+                    <div>
+                        <span class="preview-label">起点からの高低差</span>
+                        <span id="previewDiff" class="preview-val font-mono text-emerald">---</span>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-submit">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    <span id="submitBtnText">観測データを記録して次へ移動</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- 記録リストセクション -->
+        <section class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
+                <h2 class="card-title">
+                    <svg class="icon text-blue" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    水準移動・観測記録一覧 (<span id="recordCount">0</span>区間)
+                </h2>
+                <div class="btn-group no-print">
+                    <button id="exportCsvBtn" class="btn-tool btn-csv">
+                        <svg class="icon-sm" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>CSV出力</span>
+                    </button>
+                    <button id="printBtn" class="btn-tool btn-print">
+                        <svg class="icon-sm" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        <span>印刷 / PDF保存</span>
+                    </button>
+                    <button id="clearAllBtn" class="btn-tool btn-clear">全クリア</button>
+                </div>
+            </div>
+
+            <!-- 印刷用タイトル -->
+            <div class="print-only" style="margin-bottom: 1rem;">
+                <h3 style="font-size: 1.25rem; font-weight: bold; text-align: center;">水準点移動・連続レベル計算野帳</h3>
+                <p style="font-size: 0.875rem; text-align: center; margin-top: 0.25rem;">起点: <span id="printStartBmName">---</span> (標高: <span id="printStartBmElev">---</span>m)</p>
+            </div>
+
+            <!-- テーブル -->
+            <div class="table-wrap">
+                <table id="recordTable">
+                    <thead>
+                        <tr>
+                            <th>移動元点</th>
+                            <th class="text-right">後視(BS)</th>
+                            <th class="text-right">器械高(HI)</th>
+                            <th>移動先点</th>
+                            <th class="text-right">前視(FS)</th>
+                            <th class="text-right">算出標高(EL)</th>
+                            <th class="text-right">起点差</th>
+                            <th>備考</th>
+                            <th class="text-center no-print">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordTableBody" class="font-mono">
+                        <!-- 動的に挿入 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 検算サマリー -->
+            <div id="checkSummary" class="check-box font-mono">
+                <div class="check-title">
+                    <svg class="icon-sm text-blue" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    水準測量の点検 (検算)
+                </div>
+                <div class="grid-2" style="margin-bottom: 0;">
+                    <div>ΣBS (後視合計): <span id="sumBS" class="font-bold">0.000</span> m</div>
+                    <div>ΣFS (前視合計): <span id="sumFS" class="font-bold">0.000</span> m</div>
+                    <div>ΣBS - ΣFS: <span id="diffBSFS" class="font-bold text-blue">0.000</span> m</div>
+                    <div>最終標高 - 起点標高: <span id="diffElev" class="font-bold text-blue">0.000</span> m</div>
+                </div>
+            </div>
+
+            <!-- 空メッセージ -->
+            <div id="emptyMessage" class="text-center style-empty" style="padding: 2rem 0; color: #94a3b8; font-size: 0.875rem;">
+                記録されたデータはありません。上のフォームから入力してください。
+            </div>
+        </section>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="no-print">
+        &copy; 2026 水準点移動計算アプリ - 完全オフライン動作
+    </footer>
+
+    <!-- スクリプト -->
+    <script>
+    (function () {
+        'use strict';
+
+        const el = {
+            startBmName: document.getElementById('startBmName'),
+            startBmElevation: document.getElementById('startBmElevation'),
+            currentOriginName: document.getElementById('currentOriginName'),
+            currentOriginElev: document.getElementById('currentOriginElev'),
+            bsValue: document.getElementById('bsValue'),
+            targetName: document.getElementById('targetName'),
+            fsValue: document.getElementById('fsValue'),
+            remarks: document.getElementById('remarks'),
+            previewHI: document.getElementById('previewHI'),
+            previewElevation: document.getElementById('previewElevation'),
+            previewDiff: document.getElementById('previewDiff'),
+            surveyForm: document.getElementById('surveyForm'),
+            submitBtn: document.getElementById('submitBtn'),
+            submitBtnText: document.getElementById('submitBtnText'),
+            recordTableBody: document.getElementById('recordTableBody'),
+            recordCount: document.getElementById('recordCount'),
+            emptyMessage: document.getElementById('emptyMessage'),
+            checkSummary: document.getElementById('checkSummary'),
+            sumBS: document.getElementById('sumBS'),
+            sumFS: document.getElementById('sumFS'),
+            diffBSFS: document.getElementById('diffBSFS'),
+            diffElev: document.getElementById('diffElev'),
+            exportCsvBtn: document.getElementById('exportCsvBtn'),
+            printBtn: document.getElementById('printBtn'),
+            clearAllBtn: document.getElementById('clearAllBtn'),
+            printStartBmName: document.getElementById('printStartBmName'),
+            printStartBmElev: document.getElementById('printStartBmElev')
+        };
+
+        let records = [];
+        let editingIndex = null;
+        let saveTimer = null;
+
+        const KEYS = {
+            RECORDS: 'survey_move_records_v1',
+            NAME: 'survey_move_start_name_v1',
+            ELEV: 'survey_move_start_elev_v1'
+        };
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+
+        function saveDataDebounced() {
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(KEYS.RECORDS, JSON.stringify(records));
+                    localStorage.setItem(KEYS.NAME, el.startBmName.value);
+                    localStorage.setItem(KEYS.ELEV, el.startBmElevation.value);
+                } catch (e) {
+                    console.error('Storage書き込みエラー:', e);
+                }
+            }, 300);
+        }
+
+        function getCurrentOrigin(upToIndex = records.length) {
+            const startName = el.startBmName.value.trim() || '起点';
+            const startElev = parseFloat(el.startBmElevation.value) || 0.0;
+            let currentElev = startElev;
+            let currentName = startName;
+
+            const limit = Math.min(upToIndex, records.length);
+            for (let i = 0; i < limit; i++) {
+                const bs = parseFloat(records[i].bs) || 0;
+                const fs = parseFloat(records[i].fs) || 0;
+                currentElev = (currentElev + bs) - fs;
+                currentName = records[i].targetName;
+            }
+            return { name: currentName, elevation: currentElev };
+        }
+
+        function updatePreview() {
+            const targetIdx = (editingIndex !== null) ? editingIndex : records.length;
+            const origin = getCurrentOrigin(targetIdx);
+
+            el.currentOriginName.textContent = origin.name;
+            el.currentOriginElev.textContent = origin.elevation.toFixed(3);
+
+            const bs = parseFloat(el.bsValue.value);
+            const fs = parseFloat(el.fsValue.value);
+            const startElev = parseFloat(el.startBmElevation.value) || 0;
+
+            if (!isNaN(bs) && !isNaN(fs)) {
+                const hi = origin.elevation + bs;
+                const targetElev = hi - fs;
+                const diffFromStart = targetElev - startElev;
+
+                el.previewHI.textContent = hi.toFixed(3) + ' m';
+                el.previewElevation.textContent = targetElev.toFixed(3) + ' m';
+                el.previewDiff.textContent = (diffFromStart >= 0 ? '+' : '') + diffFromStart.toFixed(3) + ' m';
+            } else {
+                el.previewHI.textContent = '---';
+                el.previewElevation.textContent = '---';
+                el.previewDiff.textContent = '---';
+            }
+        }
+
+        function recalculateAndRender() {
+            const startName = el.startBmName.value.trim() || '起点';
+            const startElev = parseFloat(el.startBmElevation.value) || 0.0;
+
+            el.recordTableBody.textContent = '';
+            el.recordCount.textContent = records.length;
+            el.printStartBmName.textContent = startName;
+            el.printStartBmElev.textContent = startElev.toFixed(3);
+
+            if (records.length === 0) {
+                el.emptyMessage.style.display = 'block';
+                el.checkSummary.style.display = 'none';
+                updatePreview();
+                return;
+            }
+
+            el.emptyMessage.style.display = 'none';
+            el.checkSummary.style.display = 'block';
+
+            let currentElev = startElev;
+            let currentName = startName;
+            let totalBS = 0;
+            let totalFS = 0;
+
+            const fragment = document.createDocumentFragment();
+
+            for (let i = 0; i < records.length; i++) {
+                const rec = records[i];
+                const bs = parseFloat(rec.bs) || 0;
+                const fs = parseFloat(rec.fs) || 0;
+                const hi = currentElev + bs;
+                const targetElev = hi - fs;
+                const diffFromStart = targetElev - startElev;
+
+                totalBS += bs;
+                totalFS += fs;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-family: sans-serif; font-weight: 500;">${escapeHtml(currentName)}</td>
+                    <td class="text-right font-bold text-blue">${bs.toFixed(3)}</td>
+                    <td class="text-right" style="color: #64748b;">${hi.toFixed(3)}</td>
+                    <td style="font-family: sans-serif; font-weight: bold;">${escapeHtml(rec.targetName)}</td>
+                    <td class="text-right font-bold text-emerald">${fs.toFixed(3)}</td>
+                    <td class="text-right font-bold text-blue">${targetElev.toFixed(3)}</td>
+                    <td class="text-right" style="color: #64748b; font-size: 0.75rem;">${(diffFromStart >= 0 ? '+' : '') + diffFromStart.toFixed(3)}</td>
+                    <td style="font-family: sans-serif; font-size: 0.75rem; color: #475569;">${escapeHtml(rec.remarks)}</td>
+                    <td class="text-center no-print" style="white-space: nowrap;">
+                        <button data-action="edit" data-index="${i}" class="btn-table btn-edit">編集</button>
+                        <button data-action="delete" data-index="${i}" class="btn-table btn-del">削除</button>
+                    </td>
+                `;
+                fragment.appendChild(tr);
+
+                currentElev = targetElev;
+                currentName = rec.targetName;
+            }
+
+            el.recordTableBody.appendChild(fragment);
+
+            const diffBSFS = totalBS - totalFS;
+            const diffFinalStart = currentElev - startElev;
+
+            el.sumBS.textContent = totalBS.toFixed(3);
+            el.sumFS.textContent = totalFS.toFixed(3);
+            el.diffBSFS.textContent = (diffBSFS >= 0 ? '+' : '') + diffBSFS.toFixed(3);
+            el.diffElev.textContent = (diffFinalStart >= 0 ? '+' : '') + diffFinalStart.toFixed(3);
+
+            updatePreview();
+        }
+
+        el.recordTableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const index = parseInt(btn.dataset.index, 10);
+
+            if (action === 'edit') {
+                editingIndex = index;
+                const rec = records[index];
+                el.bsValue.value = rec.bs;
+                el.targetName.value = rec.targetName;
+                el.fsValue.value = rec.fs;
+                el.remarks.value = rec.remarks;
+
+                el.submitBtnText.textContent = `第 ${index + 1} 区間の変更を保存する`;
+                el.submitBtn.classList.add('btn-emerald');
+
+                updatePreview();
+                el.bsValue.focus();
+                window.scrollTo({ top: el.surveyForm.offsetTop - 50, behavior: 'smooth' });
+            } else if (action === 'delete') {
+                if (confirm(`区間 ${index + 1}（${records[index].targetName} への移動）を削除しますか？`)) {
+                    records.splice(index, 1);
+                    if (editingIndex === index) {
+                        editingIndex = null;
+                        el.surveyForm.reset();
+                        el.submitBtnText.textContent = '観測データを記録して次へ移動';
+                        el.submitBtn.classList.remove('btn-emerald');
+                    } else if (editingIndex > index) {
+                        editingIndex--;
+                    }
+                    saveDataDebounced();
+                    recalculateAndRender();
+                }
+            }
+        });
+
+        [el.startBmName, el.startBmElevation].forEach(element => {
+            element.addEventListener('input', () => {
+                saveDataDebounced();
+                recalculateAndRender();
+            });
+        });
+
+        [el.bsValue, el.fsValue, el.targetName].forEach(element => {
+            element.addEventListener('input', updatePreview);
+        });
+
+        el.surveyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const bs = parseFloat(el.bsValue.value);
+            const fs = parseFloat(el.fsValue.value);
+            const targetName = el.targetName.value.trim();
+
+            if (isNaN(bs) || isNaN(fs) || !targetName) {
+                alert('入力内容を正しく確認してください。');
+                return;
+            }
+
+            const item = {
+                bs: bs.toFixed(3),
+                targetName: targetName,
+                fs: fs.toFixed(3),
+                remarks: el.remarks.value.trim()
+            };
+
+            if (editingIndex !== null) {
+                records[editingIndex] = item;
+                editingIndex = null;
+                el.submitBtnText.textContent = '観測データを記録して次へ移動';
+                el.submitBtn.classList.remove('btn-emerald');
+            } else {
+                records.push(item);
+            }
+
+            saveDataDebounced();
+            recalculateAndRender();
+
+            el.bsValue.value = '';
+            el.fsValue.value = '';
+            el.targetName.value = '';
+            el.remarks.value = '';
+            el.bsValue.focus();
+        });
+
+        el.clearAllBtn.addEventListener('click', () => {
+            if (records.length === 0) return;
+            if (confirm('すべての水準移動記録を削除しますか？')) {
+                records.length = 0;
+                editingIndex = null;
+                saveDataDebounced();
+                recalculateAndRender();
+                el.surveyForm.reset();
+            }
+        });
+
+        el.exportCsvBtn.addEventListener('click', () => {
+            if (records.length === 0) {
+                alert('出力するデータがありません。');
+                return;
+            }
+            const startName = el.startBmName.value.trim() || '起点';
+            const startElev = parseFloat(el.startBmElevation.value) || 0.0;
+
+            let csvContent = "\uFEFF";
+            csvContent += `起点名,${startName}\n起点標高,${startElev.toFixed(3)}\n\n`;
+            csvContent += "移動元点,後視(BS),器械高(HI),移動先点,前視(FS),算出標高(EL),起点差,備考\n";
+
+            let currentElev = startElev;
+            let currentName = startName;
+
+            for (let i = 0; i < records.length; i++) {
+                const rec = records[i];
+                const bs = parseFloat(rec.bs) || 0;
+                const fs = parseFloat(rec.fs) || 0;
+                const hi = currentElev + bs;
+                const targetElev = hi - fs;
+                const diffFromStart = targetElev - startElev;
+
+                const row = [
+                    `"${currentName.replace(/"/g, '""')}"`,
+                    bs.toFixed(3),
+                    hi.toFixed(3),
+                    `"${rec.targetName.replace(/"/g, '""')}"`,
+                    fs.toFixed(3),
+                    targetElev.toFixed(3),
+                    diffFromStart.toFixed(3),
+                    `"${rec.remarks.replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\n";
+                currentElev = targetElev;
+                currentName = rec.targetName;
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `level_transfer_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 200);
+        });
+
+        el.printBtn.addEventListener('click', () => window.print());
+
+        function init() {
+            try {
+                const savedRecords = localStorage.getItem(KEYS.RECORDS);
+                if (savedRecords) records = JSON.parse(savedRecords) || [];
+            } catch (e) {
+                records = [];
+            }
+            const savedStartName = localStorage.getItem(KEYS.NAME);
+            if (savedStartName) el.startBmName.value = savedStartName;
+
+            const savedStartElev = localStorage.getItem(KEYS.ELEV);
+            if (savedStartElev) el.startBmElevation.value = savedStartElev;
+
+            recalculateAndRender();
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>
