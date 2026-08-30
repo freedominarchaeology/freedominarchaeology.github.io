@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ghost Wizard AR</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+            background-color: #07090e;
+            color: #d1d9e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 8px;
+            overflow: hidden;
+        }
+        header {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2d3b50;
+            padding-bottom: 6px;
+        }
+        h1 {
+            font-size: 1.1rem;
+            color: #00ffcc;
+            text-shadow: 0 0 6px rgba(0, 255, 204, 0.6);
+        }
+        select, input[type="text"] {
+            font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+            background-color: #121926;
+            color: #d1d9e6;
+            border: 1px solid #2d3b50;
+            padding: 4px 6px;
+            border-radius: 4px;
+            outline: none;
+            font-size: 0.85rem;
+        }
+        main {
+            width: 100%;
+            max-width: 480px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .panel {
+            background-color: #0e1420;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            background: #080c14;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #1a2333;
+        }
+        .val-highlight {
+            color: #00ffcc;
+            font-weight: bold;
+        }
+        .radar-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        #radar-canvas {
+            background-color: #050810;
+            border: 2px solid #00ffcc;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+            margin: 4px 0;
+        }
+        .combo-overlay {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #ffaa00;
+            text-shadow: 0 0 10px #ff5500;
+            pointer-events: none;
+            opacity: 0;
+            transition: transform 0.2s, opacity 0.2s;
+            z-index: 10;
+        }
+        .spell-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.3rem;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.3s;
+            text-align: center;
+            width: 100%;
+            z-index: 10;
+        }
+        .effect-active {
+            opacity: 1;
+            transform: translate(-50%, -65%);
+        }
+        #trail-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+            flex: 1;
+            padding: 8px;
+            background-color: #122238;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        button:active {
+            background-color: #00ffcc;
+            color: #07090e;
+        }
+        button:disabled {
+            background-color: #10141d;
+            color: #334155;
+            border-color: #1e293b;
+        }
+        .log-panel {
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+        }
+        .log-title {
+            font-size: 0.75rem;
+            color: #475569;
+            margin-bottom: 2px;
+            border-bottom: 1px solid #1e293b;
+        }
+        #log-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .log-entry { margin-top: 2px; word-break: break-all; }
+        
+        .ranking-section {
+            font-size: 0.8rem;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .ranking-table th, .ranking-table td {
+            padding: 2px 4px;
+            border-bottom: 1px solid #1a2333;
+        }
+        .name-input-container {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="ui-title">Ghost Wizard AR</h1>
+        <select id="language-select">
+            <option value="ja" selected>日本語</option>
+            <option value="en">English</option>
+        </select>
+    </header>
+
+    <main>
+        <div class="name-input-container">
+            <input type="text" id="player-name" placeholder="名前を入力 (Player Name)" maxlength="10" style="flex:1;">
+        </div>
+
+        <section class="panel status-grid">
+            <div class="status-item">
+                <span id="ui-score-label">スコア:</span>
+                <span id="score-val" class="val-highlight">0</span>
+            </div>
+            <div class="status-item">
+                <span id="ui-ghost-hp-label">ゴーストHP:</span>
+                <span id="ghost-hp-val" class="val-highlight">---</span>
+            </div>
+            <div class="status-item">
+                <span id="ui-heading-label">方角:</span>
+                <span id="heading-val">0</span>°
+            </div>
+            <div class="status-item">
+                <span id="ui-dist-label">距離:</span>
+                <span id="dist-val">---</span>m
+            </div>
+        </section>
+
+        <section class="panel radar-panel">
+            <canvas id="radar-canvas" width="200" height="200"></canvas>
+            <canvas id="trail-canvas" width="200" height="200"></canvas>
+            <div id="combo-overlay" class="combo-overlay">0 COMBO!</div>
+            <div id="spell-overlay" class="spell-effect"></div>
+        </section>
+
+        <section class="controls">
+            <button id="btn-start">探知スタート</button>
+            <button id="btn-reset" disabled>リセット</button>
+        </section>
+
+        <section class="panel log-panel">
+            <div class="log-title" id="ui-log-title">索敵・戦闘ログ</div>
+            <div id="log-container"></div>
+        </section>
+
+        <section class="panel ranking-section">
+            <div class="log-title" id="ui-ranking-title">ベストスコア (Top 10)</div>
+            <table class="ranking-table">
+                <thead>
+                    <tr><th>Rank</th><th>Name</th><th>Score</th></tr>
+                </thead>
+                <tbody id="ranking-body"></tbody>
+            </table>
+        </section>
+    </main>
+
+<script>
+(function() {
+    'use strict';
+
+    const i18n = {
+        ja: {
+            title: "Ghost Wizard AR",
+            score: "スコア:",
+            ghostHp: "ゴーストHP:",
+            heading: "方角:",
+            dist: "距離:",
+            logTitle: "索敵・戦闘ログ",
+            rankingTitle: "ベストスコア (Top 10)",
+            btnStart: "探知スタート",
+            btnReset: "リセット",
+            sensorPermDenied: "センサーアクセスが拒否されました。",
+            sensorNotSupported: "お使いの端末は必要なセンサーに対応していません。",
+            gpsSearching: "GPS信号を受信中...",
+            ghostSpawned: "【警告】周辺にゴーストが出現！",
+            downSlash: "【唐竹割り: 破魔炎】発動！",
+            upSlash: "【斬上げ: 昇天雷】発動！",
+            leftToRight: "【右薙ぎ: 氷結陣】発動！",
+            rightToLeft: "【左薙ぎ: 影縫い】発動！",
+            topRightToBottomLeft: "【袈裟斬り: 疾風突】発動！",
+            topLeftToBottomRight: "【逆袈裟: 太陽光】発動！",
+            bottomRightToTopLeft: "【逆込み: 裂地撃】発動！",
+            bottomLeftToTopRight: "【跳ね返し: 聖光矢】発動！",
+            spellThrust: "【突き: 伏龍破】発動！",
+            spellPull: "【引き: 霊力引き寄せ】敵を崩した！",
+            spellSpin: "【回転斬り: 旋風円舞】全方位撃滅！",
+            comboBonus: " コンボヒット！ ボーナス: x",
+            ghostDefeated: "ゴースト消滅！ スコア加算: +",
+            targetMiss: "ゴーストを捉えていません！方角を合わせろ！",
+            noName: "名無しの魔法使い"
+        },
+        en: {
+            title: "Ghost Wizard AR",
+            score: "Score:",
+            ghostHp: "Ghost HP:",
+            heading: "Heading:",
+            dist: "Distance:",
+            logTitle: "Battle Log",
+            rankingTitle: "Best Scores (Top 10)",
+            btnStart: "Start Radar",
+            btnReset: "Reset",
+            sensorPermDenied: "Sensor access denied.",
+            sensorNotSupported: "Sensors not supported on this device.",
+            gpsSearching: "Acquiring GPS...",
+            ghostSpawned: "[WARNING] Ghost spawned nearby!",
+            downSlash: "Cast [Flame Slash]!",
+            upSlash: "Cast [Rising Lightning]!",
+            leftToRight: "Cast [Frost Strike]!",
+            rightToLeft: "Cast [Shadow Bind]!",
+            topRightToBottomLeft: "Cast [Wind Cut]!",
+            topLeftToBottomRight: "Cast [Solar Flare]!",
+            bottomRightToTopLeft: "Cast [Earth Breaker]!",
+            bottomLeftToTopRight: "Cast [Holy Arrow]!",
+            spellThrust: "Cast [Dragon Thrust]!",
+            spellPull: "Cast [Spirit Pull]!",
+            spellSpin: "Cast [Cyclone Spin]!",
+            comboBonus: " Combo Hit! Multiplier: x",
+            ghostDefeated: "Ghost Exorcised! Score +",
+            targetMiss: "Not facing the ghost!",
+            noName: "Anonymous Wizard"
+        }
+    };
+
+    let currentLang = 'ja';
+    let isRunning = false;
+    let score = 0;
+    
+    let currentGhost = null;
+    let watchPositionId = null;
+    let currentCoords = null;
+
+    let currentHeading = 0;
+    let smoothedHeading = 0;
+    let lastHeadingForSpin = 0;
+    let accumulatedRotation = 0;
+    let lastRotationTime = Date.now();
+
+    let lastAccel = { x: 0, y: 0, z: 0 };
+    let cooldownTimer = 0;
+    
+    let comboCount = 0;
+    let comboResetTimer = null;
+    let comboElement = null;
+
+    const trailLines = [];
+    let isTrailAnimating = false;
+
+    let audioCtx = null;
+    let beepIntervalTimer = null;
+
+    const dom = {
+        langSelect: document.getElementById('language-select'),
+        playerNameInput: document.getElementById('player-name'),
+        uiTitle: document.getElementById('ui-title'),
+        uiScoreLabel: document.getElementById('ui-score-label'),
+        uiGhostHpLabel: document.getElementById('ui-ghost-hp-label'),
+        uiHeadingLabel: document.getElementById('ui-heading-label'),
+        uiDistLabel: document.getElementById('ui-dist-label'),
+        uiLogTitle: document.getElementById('ui-log-title'),
+        uiRankingTitle: document.getElementById('ui-ranking-title'),
+        scoreVal: document.getElementById('score-val'),
+        ghostHpVal: document.getElementById('ghost-hp-val'),
+        headingVal: document.getElementById('heading-val'),
+        distVal: document.getElementById('dist-val'),
+        btnStart: document.getElementById('btn-start'),
+        btnReset: document.getElementById('btn-reset'),
+        logContainer: document.getElementById('log-container'),
+        radarCanvas: document.getElementById('radar-canvas'),
+        trailCanvas: document.getElementById('trail-canvas'),
+        spellOverlay: document.getElementById('spell-overlay'),
+        comboOverlay: document.getElementById('combo-overlay'),
+        rankingBody: document.getElementById('ranking-body')
+    };
+
+    const ctx = dom.radarCanvas.getContext('2d');
+    const trailCtx = dom.trailCanvas.getContext('2d');
+
+    const SPELL_DATA = {
+        downSlash:            { key: "downSlash",            color: "#ff4d4d", symbol: "🔥 破魔炎", dirVector: {x1: 100, y1: 20, x2: 100, y2: 180} },
+        upSlash:              { key: "upSlash",              color: "#ffff00", symbol: "⚡ 昇天雷", dirVector: {x1: 100, y1: 180, x2: 100, y2: 20} },
+        leftToRight:          { key: "leftToRight",          color: "#00ccff", symbol: "❄️ 氷結陣", dirVector: {x1: 20, y1: 100, x2: 180, y2: 100} },
+        rightToLeft:          { key: "rightToLeft",          color: "#aa00ff", symbol: "👁️ 影縫い", dirVector: {x1: 180, y1: 100, x2: 20, y2: 100} },
+        topRightToBottomLeft: { key: "topRightToBottomLeft", color: "#00ffaa", symbol: "🌪️ 疾風突", dirVector: {x1: 180, y1: 20, x2: 20, y2: 180} },
+        topLeftToBottomRight: { key: "topLeftToBottomRight", color: "#ffaa00", symbol: "☀️ 太陽光", dirVector: {x1: 20, y1: 20, x2: 180, y2: 180} },
+        bottomRightToTopLeft: { key: "bottomRightToTopLeft", color: "#ff00bb", symbol: "💥 裂地撃", dirVector: {x1: 180, y1: 180, x2: 20, y2: 20} },
+        bottomLeftToTopRight: { key: "bottomLeftToTopRight", color: "#ffffff", symbol: "✨ 聖光矢", dirVector: {x1: 20, y1: 180, x2: 180, y2: 20} },
+        thrust:               { key: "spellThrust",          color: "#ff3300", symbol: "🎯 伏龍破", dirVector: null },
+        pull:                 { key: "spellPull",            color: "#9900ff", symbol: "🌀 引き寄せ", dirVector: null },
+        spin:                 { key: "spellSpin",            color: "#00ffcc", symbol: "🌪️ 旋風円舞", dirVector: null }
+    };
+
+    function updateLanguage(lang) {
+        if (!i18n[lang]) return;
+        currentLang = lang;
+        const dict = i18n[lang];
+
+        dom.uiTitle.textContent = dict.title;
+        dom.uiScoreLabel.textContent = dict.score;
+        dom.uiGhostHpLabel.textContent = dict.ghostHp;
+        dom.uiHeadingLabel.textContent = dict.heading;
+        dom.uiDistLabel.textContent = dict.dist;
+        dom.uiLogTitle.textContent = dict.logTitle;
+        dom.uiRankingTitle.textContent = dict.rankingTitle;
+        if (!isRunning) dom.btnStart.textContent = dict.btnStart;
+        dom.btnReset.textContent = dict.btnReset;
+        renderRadar();
+    }
+
+    dom.langSelect.addEventListener('change', e => updateLanguage(e.target.value));
+
+    function addLog(msgKey, extraText = "") {
+        const text = (i18n[currentLang][msgKey] || i18n['ja'][msgKey] || msgKey) + extraText;
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.textContent = `> ${text}`;
+        dom.logContainer.insertBefore(entry, dom.logContainer.firstChild);
+
+        while (dom.logContainer.children.length > 15) {
+            dom.logContainer.removeChild(dom.logContainer.lastChild);
+        }
+    }
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playBeep(freq = 880, duration = 0.08) {
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e){}
+    }
+
+    function updateBeepRate(dist) {
+        if (beepIntervalTimer) clearInterval(beepIntervalTimer);
+        if (!isRunning || !currentGhost) return;
+
+        let interval = Math.max(150, Math.min(1200, dist * 25));
+        beepIntervalTimer = setInterval(() => {
+            const pitch = Math.max(400, 1200 - dist * 15);
+            playBeep(pitch, 0.06);
+        }, interval);
+    }
+
+    function getAngleDifference(a, b) {
+        let diff = (b - a) % 360;
+        if (diff < -180) diff += 360;
+        if (diff > 180) diff -= 360;
+        return diff;
+    }
+
+    function addTrailEffect(spell) {
+        const activeColor = comboElement ? comboElement.color : spell.color;
+
+        if (spell.dirVector) {
+            trailLines.push({
+                x1: spell.dirVector.x1, y1: spell.dirVector.y1,
+                x2: spell.dirVector.x2, y2: spell.dirVector.y2,
+                color: activeColor, alpha: 1.0, width: 8, isSpin: false
+            });
+        } else if (spell.key === 'spin') {
+            trailLines.push({
+                cx: 100, cy: 100, r: 80,
+                color: activeColor, alpha: 1.0, width: 10, isSpin: true
+            });
+        }
+
+        if (!isTrailAnimating) {
+            isTrailAnimating = true;
+            requestAnimationFrame(updateAndRenderTrails);
+        }
+    }
+
+    function updateAndRenderTrails() {
+        trailCtx.clearRect(0, 0, dom.trailCanvas.width, dom.trailCanvas.height);
+
+        for (let i = trailLines.length - 1; i >= 0; i--) {
+            const line = trailLines[i];
+            line.alpha -= 0.04;
+            if (line.alpha <= 0) {
+                trailLines.splice(i, 1);
+                continue;
+            }
+
+            trailCtx.save();
+            trailCtx.globalAlpha = line.alpha;
+            trailCtx.strokeStyle = line.color;
+            trailCtx.lineWidth = line.width;
+            trailCtx.lineCap = 'round';
+            trailCtx.shadowColor = line.color;
+            trailCtx.shadowBlur = 12;
+
+            trailCtx.beginPath();
+            if (line.isSpin) {
+                trailCtx.arc(line.cx, line.cy, line.r, 0, Math.PI * 2);
+            } else {
+                trailCtx.moveTo(line.x1, line.y1);
+                trailCtx.lineTo(line.x2, line.y2);
+            }
+            trailCtx.stroke();
+            trailCtx.restore();
+        }
+
+        if (trailLines.length > 0) {
+            requestAnimationFrame(updateAndRenderTrails);
+        } else {
+            isTrailAnimating = false;
+        }
+    }
+
+    function renderRadar() {
+        const w = dom.radarCanvas.width;
+        const h = dom.radarCanvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = w / 2 - 8;
+
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = "#00ffcc";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
+        ctx.strokeStyle = "#1a3344";
+        ctx.stroke();
+
+        const headingRad = (smoothedHeading - 90) * (Math.PI / 180);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, headingRad - Math.PI/6, headingRad + Math.PI/6);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(0, 255, 204, 0.08)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(headingRad) * radius, cy + Math.sin(headingRad) * radius);
+        ctx.strokeStyle = "#00ffcc";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (currentGhost) {
+            const ghostRad = (currentGhost.relativeHeading - 90) * (Math.PI / 180);
+            const distRatio = Math.min(1.0, currentGhost.distance / 50.0);
+            const gx = cx + Math.cos(ghostRad) * (radius * distRatio);
+            const gy = cy + Math.sin(ghostRad) * (radius * distRatio);
+
+            ctx.beginPath();
+            ctx.arc(gx, gy, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "#ff0055";
+            ctx.shadowColor = "#ff0055";
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    function spawnGhost() {
+        const randomHeading = (smoothedHeading + Math.floor(Math.random() * 280) - 140 + 360) % 360;
+        const randomDist = Math.floor(Math.random() * 25) + 10;
+        const hp = Math.floor(Math.random() * 200) + 180;
+
+        currentGhost = { relativeHeading: randomHeading, distance: randomDist, hp: hp, maxHp: hp };
+        dom.ghostHpVal.textContent = `${currentGhost.hp}/${currentGhost.maxHp}`;
+        dom.distVal.textContent = currentGhost.distance;
+        addLog("ghostSpawned");
+        updateBeepRate(currentGhost.distance);
+        renderRadar();
+    }
+
+    function processCombo(spell) {
+        if (comboCount === 0) {
+            comboElement = { color: spell.color, symbol: spell.symbol };
+        }
+
+        comboCount++;
+
+        if (comboResetTimer) clearTimeout(comboResetTimer);
+        comboResetTimer = setTimeout(() => {
+            comboCount = 0;
+            comboElement = null;
+            dom.comboOverlay.style.opacity = '0';
+        }, 2500);
+
+        if (comboCount > 1) {
+            dom.comboOverlay.textContent = `${comboCount} COMBO!`;
+            dom.comboOverlay.style.color = comboElement.color;
+            dom.comboOverlay.style.opacity = '1';
+        }
+    }
+
+    function executeSpell(actionKey) {
+        if (!currentGhost) return;
+        const spell = SPELL_DATA[actionKey];
+        if (!spell) return;
+
+        if (actionKey !== 'spin') {
+            const diff = Math.abs(getAngleDifference(smoothedHeading, currentGhost.relativeHeading));
+            if (diff > 35) {
+                addLog("targetMiss");
+                return;
+            }
+        }
+
+        processCombo(spell);
+        addTrailEffect(spell);
+
+        const multiplier = 1.0 + (comboCount - 1) * 0.35;
+        const baseDamage = actionKey === 'spin' ? Math.floor(Math.random() * 30) + 60 : Math.floor(Math.random() * 25) + 35;
+        const finalDamage = Math.floor(baseDamage * multiplier);
+
+        currentGhost.hp -= finalDamage;
+        playBeep(actionKey === 'spin' ? 1500 : 1200, 0.2);
+
+        if (actionKey === 'pull') {
+            currentGhost.distance = Math.max(5, currentGhost.distance - 8);
+            dom.distVal.textContent = currentGhost.distance;
+            updateBeepRate(currentGhost.distance);
+        }
+
+        addLog(spell.key, comboCount > 1 ? `${i18n[currentLang].comboBonus || " Combo: x"}${multiplier.toFixed(1)}` : "");
+
+        const overlay = dom.spellOverlay;
+        overlay.textContent = `${spell.symbol} -${finalDamage}`;
+        overlay.style.color = comboElement ? comboElement.color : spell.color;
+        overlay.classList.add('effect-active');
+        setTimeout(() => overlay.classList.remove('effect-active'), 400);
+
+        if (currentGhost.hp <= 0) {
+            const addedScore = Math.floor(currentGhost.maxHp * (1 + comboCount * 0.25));
+            score += addedScore;
+            dom.scoreVal.textContent = score;
+            addLog("ghostDefeated", `${addedScore}`);
+
+            currentGhost = null;
+            dom.ghostHpVal.textContent = "撃破!";
+            dom.distVal.textContent = "---";
+            saveScore();
+
+            setTimeout(() => { if (isRunning) spawnGhost(); }, 2000);
+        } else {
+            dom.ghostHpVal.textContent = `${currentGhost.hp}/${currentGhost.maxHp}`;
+        }
+
+        renderRadar();
+    }
+
+    function detectMotionDirection(dx, dy, dz) {
+        const threshold = 11.0;
+
+        if (dz < -threshold * 1.2) return 'pull';
+        if (dz > threshold * 1.2) return 'thrust';
+
+        const magnitude = Math.hypot(dx, dy);
+        if (magnitude < threshold) return null;
+
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+        if (angle >= -22.5 && angle < 22.5) return 'leftToRight';
+        if (angle >= 22.5 && angle < 67.5) return 'topLeftToBottomRight';
+        if (angle >= 67.5 && angle < 112.5) return 'downSlash';
+        if (angle >= 112.5 && angle < 157.5) return 'topRightToBottomLeft';
+        if (angle >= 157.5 || angle < -157.5) return 'rightToLeft';
+        if (angle >= -157.5 && angle < -112.5) return 'bottomRightToTopLeft';
+        if (angle >= -112.5 && angle < -67.5) return 'upSlash';
+        if (angle >= -67.5 && angle < -22.5) return 'bottomLeftToTopRight';
+
+        return null;
+    }
+
+    function handleOrientation(e) {
+        let heading = null;
+        if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+            heading = e.webkitCompassHeading;
+        } else if (e.alpha !== null) {
+            heading = 360 - e.alpha;
+        }
+
+        if (heading !== null) {
+            currentHeading = heading;
+            let diff = getAngleDifference(smoothedHeading, currentHeading);
+            smoothedHeading = (smoothedHeading + diff * 0.2 + 360) % 360;
+            dom.headingVal.textContent = Math.round(smoothedHeading);
+
+            const now = Date.now();
+            const deltaHeading = getAngleDifference(lastHeadingForSpin, currentHeading);
+            
+            if (now - lastRotationTime < 1200) {
+                accumulatedRotation += deltaHeading;
+                if (Math.abs(accumulatedRotation) >= 180 && now - cooldownTimer > 800) {
+                    executeSpell('spin');
+                    cooldownTimer = now;
+                    accumulatedRotation = 0;
+                }
+            } else {
+                accumulatedRotation = 0;
+            }
+            
+            lastHeadingForSpin = currentHeading;
+            lastRotationTime = now;
+            renderRadar();
+        }
+    }
+
+    function handleMotion(e) {
+        const now = Date.now();
+        if (now - cooldownTimer < 500) return;
+
+        const acc = e.accelerationIncludingGravity || e.acceleration;
+        if (!acc) return;
+
+        const dx = acc.x - lastAccel.x;
+        const dy = acc.y - lastAccel.y;
+        const dz = acc.z - lastAccel.z;
+
+        lastAccel = { x: acc.x, y: acc.y, z: acc.z };
+
+        const detectedAction = detectMotionDirection(dx, dy, dz);
+        if (detectedAction) {
+            executeSpell(detectedAction);
+            cooldownTimer = now;
+        }
+    }
+
+    function handleGpsSuccess(pos) {
+        if (!currentCoords && !currentGhost) {
+            currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            spawnGhost();
+        }
+    }
+
+    function loadRankings() {
+        try {
+            const data = localStorage.getItem('ghost_wizard_rankings');
+            return data ? JSON.parse(data) : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function saveScore() {
+        const playerName = dom.playerNameInput.value.trim() || i18n[currentLang].noName;
+        let rankings = loadRankings();
+        rankings.push({ name: playerName, score: score, date: new Date().toLocaleDateString() });
+        rankings.sort((a, b) => b.score - a.score);
+        rankings = rankings.slice(0, 10);
+        
+        try {
+            localStorage.setItem('ghost_wizard_rankings', JSON.stringify(rankings));
+        } catch(e){}
+        renderRankings();
+    }
+
+    function renderRankings() {
+        const rankings = loadRankings();
+        dom.rankingBody.innerHTML = '';
+        rankings.forEach((r, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${idx + 1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td>`;
+            dom.rankingBody.appendChild(tr);
+        });
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    async function startSensors() {
+        initAudio();
+        try {
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                const res = await DeviceMotionEvent.requestPermission();
+                if (res !== 'granted') { addLog("sensorPermDenied"); return; }
+            }
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                await DeviceOrientationEvent.requestPermission();
+            }
+
+            window.addEventListener('deviceorientation', handleOrientation, true);
+            window.addEventListener('devicemotion', handleMotion, true);
+
+            if ("geolocation" in navigator) {
+                addLog("gpsSearching");
+                watchPositionId = navigator.geolocation.watchPosition(
+                    handleGpsSuccess,
+                    err => console.warn(err),
+                    { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+                );
+            }
+
+            isRunning = true;
+            dom.btnStart.disabled = true;
+            dom.btnReset.disabled = false;
+        } catch (err) {
+            addLog("sensorNotSupported");
+        }
+    }
+
+    function stopSensors() {
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+        window.removeEventListener('devicemotion', handleMotion, true);
+
+        if (watchPositionId !== null) {
+            navigator.geolocation.clearWatch(watchPositionId);
+            watchPositionId = null;
+        }
+        if (beepIntervalTimer) clearInterval(beepIntervalTimer);
+        if (comboResetTimer) clearTimeout(comboResetTimer);
+
+        currentCoords = null;
+        currentGhost = null;
+        isRunning = false;
+
+        dom.btnStart.disabled = false;
+        dom.btnReset.disabled = true;
+    }
+
+    function resetGame() {
+        stopSensors();
+        score = 0;
+        comboCount = 0;
+        comboElement = null;
+        trailLines.length = 0;
+        dom.scoreVal.textContent = "0";
+        dom.ghostHpVal.textContent = "---";
+        dom.distVal.textContent = "---";
+        dom.logContainer.textContent = "";
+        renderRadar();
+    }
+
+    dom.btnStart.addEventListener('click', startSensors);
+    dom.btnReset.addEventListener('click', resetGame);
+
+    updateLanguage('ja');
+    renderRankings();
+    renderRadar();
+
+})();
+</script>
+</body>
+</html>
