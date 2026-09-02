@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Balance Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'MS Mincho', 'MS PMincho', 'Yu Mincho', serif;
+        }
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        .ui-element {
+            pointer-events: auto;
+        }
+        #lang-selector {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            font-size: 14px;
+            font-family: inherit;
+            border-radius: 4px;
+            z-index: 20;
+        }
+        .card {
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #444;
+            padding: 24px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 85%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        p {
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:active {
+            background: #555;
+        }
+        #score-board {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 20;
+            display: none;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <select id="lang-selector" class="ui-element">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+
+        <div id="score-board"></div>
+
+        <div id="ui-screen" class="ui-layer">
+            <div id="start-card" class="card ui-element">
+                <h1 id="txt-title"></h1>
+                <p id="txt-desc"></p>
+                <button id="btn-start" class="ui-element"></button>
+            </div>
+
+            <div id="result-card" class="card ui-element hidden">
+                <h1 id="txt-result-title"></h1>
+                <p id="txt-result-score"></p>
+                <button id="btn-restart" class="ui-element"></button>
+            </div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <script>
+    'use strict';
+
+    (function() {
+        const i18n = {
+            ja: {
+                title: "バランスゲーム",
+                desc: "スマホを傾けて、ボールを中央のターゲット内に維持してください。",
+                start: "ゲーム開始",
+                gameOver: "ゲームオーバー",
+                score: "スコア",
+                restart: "もう一度プレイ",
+                sec: "秒"
+            },
+            en: {
+                title: "Balance Game",
+                desc: "Tilt your phone to keep the ball inside the central target area.",
+                start: "Start Game",
+                gameOver: "Game Over",
+                score: "Score",
+                restart: "Play Again",
+                sec: "s"
+            },
+            zh: {
+                title: "平衡游戏",
+                desc: "倾斜手机，将球保持在中央目标区域内。",
+                start: "开始游戏",
+                gameOver: "游戏结束",
+                score: "得分",
+                restart: "再玩一次",
+                sec: "秒"
+            },
+            ko: {
+                title: "밸런스 게임",
+                desc: "스마트폰을 기울여 공을 중앙 타겟 안에 유지하세요.",
+                start: "게임 시작",
+                gameOver: "게임 오버",
+                score: "점수",
+                restart: "다시 하기",
+                sec: "초"
+            },
+            fr: {
+                title: "Jeu d'Équilibre",
+                desc: "Inclinez votre téléphone pour maintenir la balle dans la zone cible centrale.",
+                start: "Commencer",
+                gameOver: "Partie Terminée",
+                score: "Score",
+                restart: "Rejouer",
+                sec: "s"
+            },
+            es: {
+                title: "Juego de Equilibrio",
+                desc: "Inclina tu teléfono para mantener la pelota dentro del área objetivo central.",
+                start: "Iniciar Juego",
+                gameOver: "Juego Terminado",
+                score: "Puntuación",
+                restart: "Jugar de Nuevo",
+                sec: "s"
+            }
+        };
+
+        let currentLang = 'ja';
+
+        const dom = {
+            langSelector: document.getElementById('lang-selector'),
+            scoreBoard: document.getElementById('score-board'),
+            uiScreen: document.getElementById('ui-screen'),
+            startCard: document.getElementById('start-card'),
+            resultCard: document.getElementById('result-card'),
+            txtTitle: document.getElementById('txt-title'),
+            txtDesc: document.getElementById('txt-desc'),
+            btnStart: document.getElementById('btn-start'),
+            txtResultTitle: document.getElementById('txt-result-title'),
+            txtResultScore: document.getElementById('txt-result-score'),
+            btnRestart: document.getElementById('btn-restart'),
+            canvas: document.getElementById('game-canvas')
+        };
+
+        const ctx = dom.canvas.getContext('2d');
+
+        const state = {
+            STATUS_TITLE: 0,
+            STATUS_PLAYING: 1,
+            STATUS_GAMEOVER: 2,
+            current: 0,
+            animId: null,
+            lastTime: 0,
+            score: 0
+        };
+
+        const gameProps = {
+            width: 0,
+            height: 0,
+            centerX: 0,
+            centerY: 0,
+            targetRadius: 60,
+            ballRadius: 12
+        };
+
+        const ball = {
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            ax: 0,
+            ay: 0
+        };
+
+        const physics = {
+            friction: 0.95,
+            sensitivity: 15.0 // dt正規化に伴い感度数値を調整
+        };
+
+        function updateLanguage(lang) {
+            if (!i18n[lang]) return;
+            currentLang = lang;
+            const dict = i18n[lang];
+            
+            dom.txtTitle.textContent = dict.title;
+            dom.txtDesc.textContent = dict.desc;
+            dom.btnStart.textContent = dict.start;
+            dom.txtResultTitle.textContent = dict.gameOver;
+            dom.btnRestart.textContent = dict.restart;
+            
+            if (state.current === state.STATUS_PLAYING) {
+                dom.scoreBoard.textContent = dict.score + ": " + state.score.toFixed(1) + " " + dict.sec;
+            } else if (state.current === state.STATUS_GAMEOVER) {
+                dom.txtResultScore.textContent = dict.score + ": " + state.score.toFixed(1) + " " + dict.sec;
+            }
+        }
+
+        function resizeCanvas() {
+            gameProps.width = window.innerWidth;
+            gameProps.height = window.innerHeight;
+            gameProps.centerX = gameProps.width / 2;
+            gameProps.centerY = gameProps.height / 2;
+            gameProps.targetRadius = Math.min(gameProps.width, gameProps.height) * 0.22;
+            gameProps.ballRadius = Math.min(gameProps.width, gameProps.height) * 0.035;
+
+            dom.canvas.width = gameProps.width;
+            dom.canvas.height = gameProps.height;
+
+            if (state.current !== state.STATUS_PLAYING) {
+                renderBackground();
+            }
+        }
+
+        function handleOrientation(e) {
+            if (state.current !== state.STATUS_PLAYING) return;
+            
+            let gamma = e.gamma || 0;
+            let beta = e.beta || 0;
+
+            if (gamma > 90) gamma = 90;
+            if (gamma < -90) gamma = -90;
+            if (beta > 90) beta = 90;
+            if (beta < -90) beta = -90;
+
+            ball.ax = gamma * physics.sensitivity;
+            ball.ay = beta * physics.sensitivity;
+        }
+
+        function requestSensorPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            bindOrientationEvent();
+                            startGame();
+                        } else {
+                            alert("Permission denied.");
+                        }
+                    })
+                    .catch(function() {
+                        alert("Sensor error.");
+                    });
+            } else {
+                bindOrientationEvent();
+                startGame();
+            }
+        }
+
+        function bindOrientationEvent() {
+            unbindOrientationEvent();
+            window.addEventListener('deviceorientation', handleOrientation, false);
+        }
+
+        function unbindOrientationEvent() {
+            window.removeEventListener('deviceorientation', handleOrientation, false);
+        }
+
+        function startGame() {
+            state.current = state.STATUS_PLAYING;
+            state.score = 0;
+            state.lastTime = performance.now();
+
+            ball.x = gameProps.centerX;
+            ball.y = gameProps.centerY;
+            ball.vx = 0;
+            ball.vy = 0;
+            ball.ax = 0;
+            ball.ay = 0;
+
+            dom.startCard.classList.add('hidden');
+            dom.resultCard.classList.add('hidden');
+            dom.uiScreen.style.pointerEvents = 'none';
+            dom.scoreBoard.style.display = 'block';
+
+            updateLanguage(currentLang);
+
+            if (state.animId) {
+                cancelAnimationFrame(state.animId);
+            }
+            state.animId = requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            state.current = state.STATUS_GAMEOVER;
+            unbindOrientationEvent(); // ゲームオーバー時にセンサーリスナーを解放してメモリとCPU負荷を削減
+
+            if (state.animId) {
+                cancelAnimationFrame(state.animId);
+                state.animId = null;
+            }
+
+            dom.scoreBoard.style.display = 'none';
+            dom.resultCard.classList.remove('hidden');
+            dom.uiScreen.style.pointerEvents = 'auto';
+
+            updateLanguage(currentLang);
+        }
+
+        function gameLoop(now) {
+            if (state.current !== state.STATUS_PLAYING) return;
+
+            const dt = Math.min((now - state.lastTime) / 1000, 0.1); // 最大フレームギャップを0.1秒に制限
+            state.lastTime = now;
+
+            if (dt > 0) {
+                state.score += dt;
+                dom.scoreBoard.textContent = i18n[currentLang].score + ": " + state.score.toFixed(1) + " " + i18n[currentLang].sec;
+            }
+
+            // デルタタイムを使用したフレームレート非依存の物理計算
+            ball.vx += ball.ax * dt;
+            ball.vy += ball.ay * dt;
+            ball.vx *= Math.pow(physics.friction, dt * 60);
+            ball.vy *= Math.pow(physics.friction, dt * 60);
+
+            ball.x += ball.vx * dt * 60;
+            ball.y += ball.vy * dt * 60;
+
+            const dx = ball.x - gameProps.centerX;
+            const dy = ball.y - gameProps.centerY;
+            const distSq = dx * dx + dy * dy;
+            const maxDist = gameProps.targetRadius - gameProps.ballRadius;
+
+            if (distSq > maxDist * maxDist || 
+                ball.x - gameProps.ballRadius < 0 || 
+                ball.x + gameProps.ballRadius > gameProps.width || 
+                ball.y - gameProps.ballRadius < 0 || 
+                ball.y + gameProps.ballRadius > gameProps.height) {
+                
+                renderGame();
+                gameOver();
+                return;
+            }
+
+            renderGame();
+            state.animId = requestAnimationFrame(gameLoop);
+        }
+
+        function renderBackground() {
+            ctx.fillStyle = '#121212';
+            ctx.fillRect(0, 0, gameProps.width, gameProps.height);
+
+            ctx.beginPath();
+            ctx.arc(gameProps.centerX, gameProps.centerY, gameProps.targetRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1e3a1e';
+            ctx.fill();
+            ctx.strokeStyle = '#4caf50';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(gameProps.centerX, gameProps.centerY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#4caf50';
+            ctx.fill();
+        }
+
+        function renderGame() {
+            renderBackground();
+
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, gameProps.ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff5252';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                if (state.animId) {
+                    cancelAnimationFrame(state.animId);
+                    state.animId = null;
+                }
+                unbindOrientationEvent();
+            } else {
+                if (state.current === state.STATUS_PLAYING) {
+                    bindOrientationEvent();
+                    if (!state.animId) {
+                        state.lastTime = performance.now();
+                        state.animId = requestAnimationFrame(gameLoop);
+                    }
+                }
+            }
+        }
+
+        function initEvents() {
+            dom.langSelector.addEventListener('change', function(e) {
+                updateLanguage(e.target.value);
+            });
+
+            dom.btnStart.addEventListener('click', requestSensorPermission);
+            dom.btnRestart.addEventListener('click', function() {
+                bindOrientationEvent();
+                startGame();
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        function init() {
+            initEvents();
+            resizeCanvas();
+            updateLanguage('ja');
+            state.current = state.STATUS_TITLE;
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>
