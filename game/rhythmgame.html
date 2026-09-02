@@ -148,37 +148,37 @@
         const i18n = {
             ja: {
                 title: "ビートパルス リズム", score: "スコア", combo: "コンボ", start: "スタート", retry: "再挑戦",
-                desc: "リングが画面中央のボタンに重なる瞬間にタップ！真ん中の「VOICE」リングは大きな声を出すことでも消せるよ！連打はMISSになります。",
+                desc: "ドンドンというキック音に合わせてリングがボタンに重なる瞬間にタップ！真ん中の「VOICE」は大きな声でもOK！連打はMISSになります。",
                 micOk: "マイク有効（声出しOK!）", micNg: "マイク無効（タップ操作のみ）",
                 perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "ステージクリア！"
             },
             en: {
                 title: "Beat Pulse Rhythm", score: "Score", combo: "Combo", start: "Start", retry: "Retry",
-                desc: "Tap when the rings match the center buttons! Shout out loud for middle 'VOICE' rings! Mashing gives MISS.",
+                desc: "Tap in sync with the heavy kick beat when rings hit the target! Shout for 'VOICE'!",
                 micOk: "Microphone Active (Voice On!)", micNg: "Microphone Inactive (Tap mode)",
                 perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "Stage Clear!"
             },
             zh: {
                 title: "脉冲节奏", score: "得分", combo: "连击", start: "开始游戏", retry: "再试一次",
-                desc: "光环与画面中央按钮重合时点击！中间的“VOICE”光环可以通过喊叫触发！乱按会导致MISS。",
+                desc: "跟随强烈的鼓点节奏，在光环重合时点击！中间“VOICE”光环可用喊叫触发！",
                 micOk: "麦克风已启用（可喊叫！）", micNg: "麦克风未启用（点击模式）",
                 perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "关卡完成！"
             },
             ko: {
                 title: "비트 펄스 리듬", score: "점수", combo: "콤보", start: "시작", retry: "다시 시도",
-                desc: "화면 중앙의 버튼에 링이 겹치는 순간 탭하세요! 가운데 'VOICE' 링은 큰 소리를 질러서 맞출 수 있어요! 연타는 MISS!",
+                desc: "강한 킥 드럼 비트에 맞춰 링이 버튼에 맞닿을 때 탭하세요! 가운데 'VOICE'는 큰 소리로도 가능!",
                 micOk: "마이크 활성화됨 (음성 가능)", micNg: "마이크 비활성화됨 (탭 전용)",
                 perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "스테이지 클리어!"
             },
             fr: {
                 title: "Rythme Beat Pulse", score: "Score", combo: "Combo", start: "Commencer", retry: "Recommencer",
-                desc: "Appuyez quand l'anneau rejoint le bouton au centre! Criez pour les anneaux 'VOICE'! Spammer donne un MISS.",
+                desc: "Suivez le rythme fort de la grosse caisse et appuyez au bon moment! Criez pour 'VOICE'!",
                 micOk: "Microphone activé (Voix OK)", micNg: "Microphone inactif (Mode tap)",
                 perfect: "PARFAIT!", great: "SUPER", miss: "RATÉ!", voiceOk: "VOICE OK!", clear: "Niveau terminé!"
             },
             es: {
                 title: "Ritmo Beat Pulse", score: "Puntos", combo: "Combo", start: "Iniciar", retry: "Reintentar",
-                desc: "¡Toca cuando los anillos coincidan con los botones del centro! ¡Grita para 'VOICE'! Tocar sin ritmo da MISS.",
+                desc: "¡Sigue el fuerte ritmo del bombo y toca cuando el anillo encaje! ¡Grita para 'VOICE'!",
                 micOk: "Micrófono activo (¡Voz activa!)", micNg: "Micrófono inactif (Modo toque)",
                 perfect: "¡PERFECTO!", great: "GENIAL", miss: "¡FALLO!", voiceOk: "¡VOICE OK!", clear: "¡Nivel Completado!"
             }
@@ -195,12 +195,12 @@
         let combo = 0;
         let isPlaying = false;
         let animationFrameId = null;
-        let gameStartTime = 0;
 
-        let bpm = 128;
+        let bpm = 120;
         let beatInterval = 60 / bpm;
         let beats = [];
         let scheduledAudioEvents = [];
+        let audioStartTime = 0;
 
         let feedbackText = "";
         let feedbackTimer = 0;
@@ -264,23 +264,39 @@
             }
         }
 
+        // 強調されたパワフルなキックドラム音
         function playKick(time) {
             if (!audioCtx) return;
+
+            // 低音オシレーター（ズシンという低音）
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.frequency.setValueAtTime(140, time);
-            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
-            gain.gain.setValueAtTime(0.8, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
+            osc.frequency.setValueAtTime(180, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.18);
+            gain.gain.setValueAtTime(1.5, time); // 音量アゲ
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.18);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(time);
-            osc.stop(time + 0.12);
+            osc.stop(time + 0.18);
+
+            // アタック音（聞き取りやすさを高めるカチッとした音）
+            const clickOsc = audioCtx.createOscillator();
+            const clickGain = audioCtx.createGain();
+            clickOsc.type = 'square';
+            clickOsc.frequency.setValueAtTime(400, time);
+            clickOsc.frequency.exponentialRampToValueAtTime(10, time + 0.02);
+            clickGain.gain.setValueAtTime(0.6, time);
+            clickGain.gain.exponentialRampToValueAtTime(0.01, time + 0.02);
+            clickOsc.connect(clickGain);
+            clickGain.connect(audioCtx.destination);
+            clickOsc.start(time);
+            clickOsc.stop(time + 0.02);
         }
 
         function playHiHat(time) {
             if (!audioCtx) return;
-            const bufferSize = audioCtx.sampleRate * 0.04;
+            const bufferSize = audioCtx.sampleRate * 0.03;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -288,10 +304,10 @@
             noise.buffer = buffer;
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'highpass';
-            filter.frequency.value = 8000;
+            filter.frequency.value = 7000;
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.25, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.04);
+            gain.gain.setValueAtTime(0.15, time); // キックを立たせるため少し抑えめ
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.03);
             noise.connect(filter);
             filter.connect(gain);
             gain.connect(audioCtx.destination);
@@ -305,7 +321,7 @@
                 const gain = audioCtx.createGain();
                 osc.type = type;
                 osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -315,21 +331,24 @@
         }
 
         function generateChart() {
-            bpm = Math.floor(Math.random() * 16) + 120;
+            bpm = 120;
             beatInterval = 60 / bpm;
             beats = [];
             scheduledAudioEvents = [];
 
-            const totalBeats = 48;
-            for (let i = 0; i < totalBeats; i++) {
-                const time = (i + 2) * beatInterval;
-                scheduledAudioEvents.push({ type: 'kick', time: time });
-                scheduledAudioEvents.push({ type: 'hihat', time: time + beatInterval / 2 });
+            const startOffset = 1.5;
+            const totalBeats = 40;
 
-                if (Math.random() < 0.7) {
+            for (let i = 0; i < totalBeats; i++) {
+                const targetTime = startOffset + (i * beatInterval);
+                
+                scheduledAudioEvents.push({ type: 'kick', time: targetTime, played: false });
+                scheduledAudioEvents.push({ type: 'hihat', time: targetTime + (beatInterval / 2), played: false });
+
+                if (i >= 2 && Math.random() < 0.75) {
                     const isVoice = Math.random() < 0.35;
                     beats.push({
-                        time: time,
+                        time: targetTime,
                         padIndex: isVoice ? 1 : (Math.random() < 0.5 ? 0 : 2),
                         type: isVoice ? 'voice' : 'tap',
                         hit: false,
@@ -353,9 +372,9 @@
         }
 
         function processInput(padIndex, isVoiceAction = false) {
-            if (!isPlaying) return;
+            if (!isPlaying || !audioCtx) return;
 
-            const now = (performance.now() - gameStartTime) / 1000;
+            const now = audioCtx.currentTime - audioStartTime;
             let targetBeat = null;
             let minDiff = Infinity;
 
@@ -371,7 +390,7 @@
                 }
             }
 
-            if (targetBeat && minDiff <= 0.18) {
+            if (targetBeat && minDiff <= 0.16) {
                 targetBeat.hit = true;
                 flashIntensity = 1.0;
 
@@ -380,7 +399,7 @@
                     combo++;
                     triggerFeedback(i18n[currentLang].voiceOk);
                     playSoundEffect(1046.5, 0.12, 'triangle');
-                } else if (minDiff < 0.08) {
+                } else if (minDiff < 0.07) {
                     score += 100;
                     combo++;
                     triggerFeedback(i18n[currentLang].perfect);
@@ -408,7 +427,7 @@
             const touchY = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
 
             const padWidth = canvas.width / 3;
-            const padY = canvas.height * 0.55; // 画面中央やや下に配置
+            const padY = canvas.height * 0.55;
             const padRadius = 38;
 
             for (let i = 0; i < 3; i++) {
@@ -437,22 +456,23 @@
             handleCanvasClick(e);
         });
 
-        function gameLoop(timestamp) {
-            if (!isPlaying) return;
+        function gameLoop() {
+            if (!isPlaying || !audioCtx) return;
 
-            const now = (timestamp - gameStartTime) / 1000;
+            const now = audioCtx.currentTime - audioStartTime;
 
-            while (scheduledAudioEvents.length > 0 && scheduledAudioEvents[0].time <= now) {
-                const event = scheduledAudioEvents.shift();
-                const audioTime = audioCtx.currentTime;
-                if (event.type === 'kick') playKick(audioTime);
-                else if (event.type === 'hihat') playHiHat(audioTime);
+            for (let i = 0; i < scheduledAudioEvents.length; i++) {
+                const ev = scheduledAudioEvents[i];
+                if (!ev.played && ev.time <= now + 0.05) {
+                    ev.played = true;
+                    if (ev.type === 'kick') playKick(audioStartTime + ev.time);
+                    else if (ev.type === 'hihat') playHiHat(audioStartTime + ev.time);
+                }
             }
 
-            // 見逃し（MISS）判定
             for (let i = 0; i < beats.length; i++) {
                 const b = beats[i];
-                if (!b.hit && !b.missed && (now - b.time) > 0.18) {
+                if (!b.hit && !b.missed && (now - b.time) > 0.16) {
                     b.missed = true;
                     combo = 0;
                     triggerFeedback(i18n[currentLang].miss);
@@ -460,13 +480,11 @@
                 }
             }
 
-            // マイク（声出し）判定
             if (checkVoiceInput() && (now - lastVoiceTriggerTime) > 0.3) {
                 lastVoiceTriggerTime = now;
                 processInput(1, true);
             }
 
-            // 画面描画
             ctx.fillStyle = '#050508';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -476,7 +494,6 @@
                 flashIntensity -= 0.05;
             }
 
-            // ボタン位置を画面縦中央（55%）へ引き上げ
             const padWidth = canvas.width / 3;
             const padY = canvas.height * 0.55;
             const padRadius = 38;
@@ -500,14 +517,13 @@
                     ctx.fillText('VOICE', padX, padY + 4);
                 }
 
-                // 縮小するリズムリング描画
                 for (let j = 0; j < beats.length; j++) {
                     const b = beats[j];
                     if (b.padIndex !== i || b.hit || b.missed) continue;
 
                     const timeDiff = b.time - now;
                     if (timeDiff > 0 && timeDiff < 0.8) {
-                        const ringRadius = padRadius + (timeDiff * 140);
+                        const ringRadius = padRadius + (timeDiff * 150);
                         ctx.beginPath();
                         ctx.arc(padX, padY, ringRadius, 0, Math.PI * 2);
                         ctx.strokeStyle = b.type === 'voice' ? '#ffea00' : '#00e676';
@@ -517,7 +533,6 @@
                 }
             }
 
-            // フィードバック表示（ボタンの上部に配置）
             if (feedbackTimer > 0) {
                 ctx.fillStyle = feedbackText.includes("MISS") ? '#ff5252' : '#00e676';
                 ctx.font = 'bold 30px "MS Mincho", "MS 明朝", serif';
@@ -526,9 +541,8 @@
                 feedbackTimer--;
             }
 
-            // 全ノーツ終了判定
-            if (beats.every(b => b.hit || b.missed)) {
-                setTimeout(endGame, 500);
+            if (beats.length > 0 && beats.every(b => b.hit || b.missed)) {
+                setTimeout(endGame, 600);
                 return;
             }
 
@@ -549,7 +563,7 @@
 
             uiOverlay.style.display = 'none';
             isPlaying = true;
-            gameStartTime = performance.now();
+            audioStartTime = audioCtx.currentTime;
 
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             animationFrameId = requestAnimationFrame(gameLoop);
