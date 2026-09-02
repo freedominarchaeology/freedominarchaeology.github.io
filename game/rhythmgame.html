@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Rhythm Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Yu Mincho", "Hiragino Mincho ProN", serif;
+            background-color: #121212;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            width: 100vw;
+        }
+        #header {
+            width: 100%;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        #lang-select {
+            padding: 5px 10px;
+            background-color: #333333;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        #game-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        #info-panel {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #canvas {
+            background-color: #000000;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.85);
+            z-index: 5;
+        }
+        .btn {
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-family: inherit;
+        }
+        .btn:active {
+            background-color: #303f9f;
+        }
+        #description {
+            margin: 15px 20px;
+            text-align: center;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        #mic-status {
+            font-size: 12px;
+            color: #ff9800;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div id="game-title"></div>
+        <div id="info-panel">
+            <div><span id="label-score"></span>: <span id="score-val">0</span></div>
+            <div><span id="label-combo"></span>: <span id="combo-val">0</span></div>
+        </div>
+        <select id="lang-select" aria-label="Language Select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+
+    <div id="game-container">
+        <canvas id="canvas"></canvas>
+        <div id="ui-overlay">
+            <div id="overlay-title" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;"></div>
+            <div id="description"></div>
+            <button id="start-btn" class="btn"></button>
+            <div id="mic-status"></div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        const i18n = {
+            ja: {
+                title: "リズムゲーム", score: "スコア", combo: "コンボ", start: "スタート", retry: "再挑戦",
+                desc: "流れてくるノーツが判定線に重なったら画面をタップ！黄色い「VOICE」ノーツは大きな声を出して消そう！",
+                micOk: "マイク有効", micNg: "マイク無効（タップで代替可能）",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "ゲーム終了！"
+            },
+            en: {
+                title: "Rhythm Game", score: "Score", combo: "Combo", start: "Start", retry: "Retry",
+                desc: "Tap the screen when notes reach the line! Shout loud for yellow 'VOICE' notes!",
+                micOk: "Microphone Active", micNg: "Microphone Inactive (Tap works as fallback)",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "Game Over!"
+            },
+            zh: {
+                title: "节奏游戏", score: "得分", combo: "连击", start: "开始游戏", retry: "再试一次",
+                desc: "当音符到达判定线时点击屏幕！黄色“VOICE”音符请大声喊叫！",
+                micOk: "麦克风已启用", micNg: "麦克风未启用（可点击代替）",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "游戏结束！"
+            },
+            ko: {
+                title: "리듬 게임", score: "점수", combo: "콤보", start: "시작", retry: "다시 시도",
+                desc: "노트가 판정선에 도달하면 화면을 탭하세요! 노란색 'VOICE' 노트는 큰 소리를 질러서 맞추세요!",
+                micOk: "마이크 활성화됨", micNg: "마이크 비활성화됨 (탭으로 대체 가능)",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "게임 종료!"
+            },
+            fr: {
+                title: "Jeu de Rythme", score: "Score", combo: "Combo", start: "Commencer", retry: "Recommencer",
+                desc: "Appuyez sur l'écran quand les notes atteignent la ligne! Criez fort pour les notes jaunes 'VOICE'!",
+                micOk: "Microphone activé", micNg: "Microphone inactif (Le tap fonctionne en secours)",
+                perfect: "PARFAIT!", great: "SUPER", miss: "RATÉ", voiceOk: "VOICE OK!", clear: "Partie terminée!"
+            },
+            es: {
+                title: "Juego de Ritmo", score: "Puntos", combo: "Combo", start: "Iniciar", retry: "Reintentar",
+                desc: "¡Toca la pantalla cuando las notas lleguen a la línea! ¡Grita fuerte para las notas amarillas 'VOICE'!",
+                micOk: "Micrófono activo", micNg: "Micrófono inactivo (El toque funciona como alternativa)",
+                perfect: "¡PERFECTO!", great: "GENIAL", miss: "FALLO", voiceOk: "¡VOICE OK!", clear: "¡Juego terminado!"
+            }
+        };
+
+        let currentLang = 'ja';
+        let audioCtx = null;
+        let micStream = null;
+        let micSource = null;
+        let analyser = null;
+        let micDataArray = null;
+
+        let score = 0;
+        let combo = 0;
+        let isPlaying = false;
+        let animationFrameId = null;
+        let gameStartTime = 0;
+
+        const notePool = [];
+        const activeNotes = [];
+        const MAX_POOL_SIZE = 30;
+
+        for (let i = 0; i < MAX_POOL_SIZE; i++) {
+            notePool.push({ id: i, time: 0, lane: 0, type: 'tap', hit: false, missed: false, y: -100 });
+        }
+
+        const songData = [
+            { time: 1.0, lane: 0, type: 'tap' },
+            { time: 1.8, lane: 1, type: 'tap' },
+            { time: 2.6, lane: 2, type: 'tap' },
+            { time: 3.4, lane: 1, type: 'voice' },
+            { time: 4.2, lane: 0, type: 'tap' },
+            { time: 5.0, lane: 2, type: 'tap' },
+            { time: 5.8, lane: 1, type: 'tap' },
+            { time: 6.6, lane: 0, type: 'voice' },
+            { time: 7.4, lane: 2, type: 'tap' },
+            { time: 8.2, lane: 1, type: 'tap' },
+            { time: 9.0, lane: 0, type: 'tap' },
+            { time: 9.8, lane: 2, type: 'voice' },
+            { time: 10.6, lane: 1, type: 'tap' },
+            { time: 11.4, lane: 0, type: 'tap' },
+            { time: 12.2, lane: 2, type: 'tap' },
+            { time: 13.0, lane: 1, type: 'voice' }
+        ];
+
+        let nextNoteIndex = 0;
+        let feedbackText = "";
+        let feedbackTimer = 0;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const langSelect = document.getElementById('lang-select');
+        const startBtn = document.getElementById('start-btn');
+        const uiOverlay = document.getElementById('ui-overlay');
+        const micStatusEl = document.getElementById('mic-status');
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            const t = i18n[lang];
+            document.getElementById('game-title').textContent = t.title;
+            document.getElementById('label-score').textContent = t.score;
+            document.getElementById('label-combo').textContent = t.combo;
+            document.getElementById('overlay-title').textContent = t.title;
+            document.getElementById('description').textContent = t.desc;
+            startBtn.textContent = isPlaying ? t.retry : t.start;
+        }
+
+        langSelect.addEventListener('change', (e) => {
+            updateLanguage(e.target.value);
+        });
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        async function initMic() {
+            if (micStream) return;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                micStatusEl.textContent = i18n[currentLang].micNg;
+                return;
+            }
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                if (audioCtx) {
+                    micSource = audioCtx.createMediaStreamSource(micStream);
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256;
+                    micSource.connect(analyser);
+                    micDataArray = new Uint8Array(analyser.frequencyBinCount);
+                    micStatusEl.textContent = i18n[currentLang].micOk;
+                }
+            } catch (err) {
+                micStatusEl.textContent = i18n[currentLang].micNg;
+            }
+        }
+
+        function playSound(freq, duration, type = 'sine') {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+                
+                osc.onended = () => {
+                    osc.disconnect();
+                    gain.disconnect();
+                };
+            } catch (e) {}
+        }
+
+        function checkVoiceInput() {
+            if (!analyser || !micDataArray) return false;
+            analyser.getByteFrequencyData(micDataArray);
+            let sum = 0;
+            for (let i = 0; i < micDataArray.length; i++) {
+                sum += micDataArray[i];
+            }
+            return (sum / micDataArray.length) > 45;
+        }
+
+        function spawnNote(data) {
+            if (notePool.length > 0) {
+                const note = notePool.pop();
+                note.time = data.time;
+                note.lane = data.lane;
+                note.type = data.type;
+                note.hit = false;
+                note.missed = false;
+                note.y = -50;
+                activeNotes.push(note);
+            }
+        }
+
+        function recycleNote(note, index) {
+            activeNotes.splice(index, 1);
+            notePool.push(note);
+        }
+
+        function triggerFeedback(text) {
+            feedbackText = text;
+            feedbackTimer = 30;
+        }
+
+        function handleTap() {
+            if (!isPlaying) return;
+            
+            playSound(600, 0.05, 'square');
+
+            const now = (performance.now() - gameStartTime) / 1000;
+            let closestNote = null;
+            let closestIndex = -1;
+            let minDiff = Infinity;
+
+            for (let i = 0; i < activeNotes.length; i++) {
+                const note = activeNotes[i];
+                if (note.hit || note.missed) continue;
+                
+                const timeDiff = Math.abs(note.time - now);
+                if (timeDiff < minDiff) {
+                    minDiff = timeDiff;
+                    closestNote = note;
+                    closestIndex = i;
+                }
+            }
+
+            if (closestNote && minDiff < 0.25) {
+                closestNote.hit = true;
+                if (minDiff < 0.1) {
+                    score += 100;
+                    combo++;
+                    triggerFeedback(i18n[currentLang].perfect);
+                    playSound(880, 0.1, 'sine');
+                } else {
+                    score += 50;
+                    combo++;
+                    triggerFeedback(i18n[currentLang].great);
+                    playSound(660, 0.1, 'sine');
+                }
+                document.getElementById('score-val').textContent = score.toString();
+                document.getElementById('combo-val').textContent = combo.toString();
+                recycleNote(closestNote, closestIndex);
+            }
+        }
+
+        let isTouchHandled = false;
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isTouchHandled = true;
+            handleTap();
+        }, { passive: false });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (isTouchHandled) {
+                isTouchHandled = false;
+                return;
+            }
+            handleTap();
+        });
+
+        function gameLoop(timestamp) {
+            if (!isPlaying) return;
+
+            const now = (timestamp - gameStartTime) / 1000;
+            const targetY = canvas.height - 80;
+            const speed = 300;
+
+            if (now >= 0 && nextNoteIndex < songData.length) {
+                if (songData[nextNoteIndex].time - now <= (targetY / speed)) {
+                    spawnNote(songData[nextNoteIndex]);
+                    nextNoteIndex++;
+                }
+            }
+
+            const isShouting = checkVoiceInput();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const laneWidth = canvas.width / 3;
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 2;
+            for (let i = 1; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * laneWidth, 0);
+                ctx.lineTo(i * laneWidth, canvas.height);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#00e676';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, targetY);
+            ctx.lineTo(canvas.width, targetY);
+            ctx.stroke();
+
+            for (let i = activeNotes.length - 1; i >= 0; i--) {
+                const note = activeNotes[i];
+                const timeDiff = note.time - now;
+                note.y = targetY - (timeDiff * speed);
+
+                if (note.type === 'voice' && !note.hit && !note.missed && isShouting) {
+                    if (Math.abs(targetY - note.y) < 60) {
+                        note.hit = true;
+                        score += 150;
+                        combo++;
+                        triggerFeedback(i18n[currentLang].voiceOk);
+                        playSound(1046.5, 0.15, 'triangle');
+                        document.getElementById('score-val').textContent = score.toString();
+                        document.getElementById('combo-val').textContent = combo.toString();
+                        recycleNote(note, i);
+                        continue;
+                    }
+                }
+
+                if (note.y > targetY + 40 && !note.hit && !note.missed) {
+                    note.missed = true;
+                    combo = 0;
+                    triggerFeedback(i18n[currentLang].miss);
+                    document.getElementById('combo-val').textContent = '0';
+                    recycleNote(note, i);
+                    continue;
+                }
+
+                ctx.beginPath();
+                const x = note.lane * laneWidth + laneWidth / 2;
+                ctx.arc(x, note.y, 25, 0, Math.PI * 2);
+                ctx.fillStyle = note.type === 'voice' ? '#ffeb3b' : '#2196f3';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                if (note.type === 'voice') {
+                    ctx.fillStyle = '#000000';
+                    ctx.font = 'bold 12px "MS Mincho", "MS 明朝", serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('VOICE', x, note.y);
+                }
+            }
+
+            if (feedbackTimer > 0) {
+                ctx.fillStyle = feedbackText === i18n[currentLang].miss ? '#f44336' : '#4caf50';
+                ctx.font = 'bold 28px "MS Mincho", "MS 明朝", serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(feedbackText, canvas.width / 2, targetY - 100);
+                feedbackTimer--;
+            }
+
+            if (nextNoteIndex >= songData.length && activeNotes.length === 0) {
+                endGame();
+                return;
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function clearActiveNotes() {
+            while (activeNotes.length > 0) {
+                const note = activeNotes.pop();
+                notePool.push(note);
+            }
+        }
+
+        function startGame() {
+            initAudio();
+            initMic();
+
+            clearActiveNotes();
+
+            score = 0;
+            combo = 0;
+            nextNoteIndex = 0;
+            document.getElementById('score-val').textContent = '0';
+            document.getElementById('combo-val').textContent = '0';
+
+            uiOverlay.style.display = 'none';
+            isPlaying = true;
+            gameStartTime = performance.now();
+
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            isPlaying = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+
+            document.getElementById('overlay-title').textContent = i18n[currentLang].clear;
+            document.getElementById('description').textContent = i18n[currentLang].score + ": " + score;
+            startBtn.textContent = i18n[currentLang].retry;
+            uiOverlay.style.display = 'flex';
+        }
+
+        function stopMicStream() {
+            if (micSource) {
+                micSource.disconnect();
+                micSource = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+            }
+            analyser = null;
+            micDataArray = null;
+        }
+
+        window.addEventListener('pagehide', () => {
+            stopMicStream();
+            if (audioCtx) {
+                audioCtx.close();
+                audioCtx = null;
+            }
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        updateLanguage('ja');
+    </script>
+</body>
+</html>
