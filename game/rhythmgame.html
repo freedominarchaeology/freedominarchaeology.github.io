@@ -15,7 +15,7 @@
         }
         body {
             font-family: "MS Mincho", "MS 明朝", "Yu Mincho", "Hiragino Mincho ProN", serif;
-            background-color: #121212;
+            background-color: #0d0d11;
             color: #ffffff;
             overflow: hidden;
             display: flex;
@@ -27,19 +27,19 @@
         }
         #header {
             width: 100%;
-            padding: 10px;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: #1e1e1e;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            background-color: #16161f;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.7);
             z-index: 10;
         }
         #lang-select {
             padding: 5px 10px;
-            background-color: #333333;
+            background-color: #2a2a36;
             color: #ffffff;
-            border: 1px solid #555555;
+            border: 1px solid #444458;
             border-radius: 4px;
             font-family: inherit;
             font-size: 14px;
@@ -47,6 +47,7 @@
         #game-title {
             font-size: 18px;
             font-weight: bold;
+            letter-spacing: 1px;
         }
         #info-panel {
             display: flex;
@@ -64,7 +65,7 @@
             justify-content: center;
         }
         #canvas {
-            background-color: #000000;
+            background-color: #050508;
             width: 100%;
             height: 100%;
             display: block;
@@ -79,33 +80,38 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: rgba(0,0,0,0.85);
+            background-color: rgba(5, 5, 8, 0.88);
             z-index: 5;
         }
         .btn {
-            padding: 12px 24px;
+            padding: 12px 28px;
             font-size: 18px;
-            background-color: #3f51b5;
-            color: white;
+            background-color: #00e676;
+            color: #000;
+            font-weight: bold;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 20px;
             font-family: inherit;
+            box-shadow: 0 0 15px rgba(0,230,118,0.4);
+            transition: transform 0.1s;
         }
         .btn:active {
-            background-color: #303f9f;
+            transform: scale(0.95);
+            background-color: #00c853;
         }
         #description {
-            margin: 15px 20px;
+            margin: 15px 25px;
             text-align: center;
-            line-height: 1.5;
+            line-height: 1.6;
             font-size: 14px;
+            color: #cccccc;
         }
         #mic-status {
             font-size: 12px;
-            color: #ff9800;
-            margin-top: 10px;
+            color: #ffb74d;
+            margin-top: 12px;
         }
     </style>
 </head>
@@ -129,7 +135,7 @@
     <div id="game-container">
         <canvas id="canvas"></canvas>
         <div id="ui-overlay">
-            <div id="overlay-title" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;"></div>
+            <div id="overlay-title" style="font-size: 26px; font-weight: bold; margin-bottom: 10px; color: #00e676;"></div>
             <div id="description"></div>
             <button id="start-btn" class="btn"></button>
             <div id="mic-status"></div>
@@ -141,40 +147,40 @@
 
         const i18n = {
             ja: {
-                title: "リズムゲーム", score: "スコア", combo: "コンボ", start: "スタート", retry: "再挑戦",
-                desc: "流れてくるノーツが判定線に重なったら画面をタップ！黄色い「VOICE」ノーツは大きな声を出して消そう！",
+                title: "ビート＆ライト リズム", score: "スコア", combo: "コンボ", start: "スタート", retry: "再挑戦",
+                desc: "音楽と光のビートに合わせてタップ！黄色の「VOICE」ノーツは声を出して消そう！",
                 micOk: "マイク有効", micNg: "マイク無効（タップで代替可能）",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "ゲーム終了！"
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "ステージクリア！"
             },
             en: {
-                title: "Rhythm Game", score: "Score", combo: "Combo", start: "Start", retry: "Retry",
-                desc: "Tap the screen when notes reach the line! Shout loud for yellow 'VOICE' notes!",
+                title: "Beat & Light Rhythm", score: "Score", combo: "Combo", start: "Start", retry: "Retry",
+                desc: "Tap in sync with music and light flashes! Shout loud for yellow 'VOICE' notes!",
                 micOk: "Microphone Active", micNg: "Microphone Inactive (Tap works as fallback)",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "Game Over!"
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "Stage Clear!"
             },
             zh: {
-                title: "节奏游戏", score: "得分", combo: "连击", start: "开始游戏", retry: "再试一次",
-                desc: "当音符到达判定线时点击屏幕！黄色“VOICE”音符请大声喊叫！",
+                title: "光与节奏", score: "得分", combo: "连击", start: "开始游戏", retry: "再试一次",
+                desc: "跟随音乐与灯光节奏点击！黄色“VOICE”音符请大声喊叫！",
                 micOk: "麦克风已启用", micNg: "麦克风未启用（可点击代替）",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "游戏结束！"
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "关卡完成！"
             },
             ko: {
-                title: "리듬 게임", score: "점수", combo: "콤보", start: "시작", retry: "다시 시도",
-                desc: "노트가 판정선에 도달하면 화면을 탭하세요! 노란색 'VOICE' 노트는 큰 소리를 질러서 맞추세요!",
+                title: "비트 & 라이트 리듬", score: "점수", combo: "콤보", start: "시작", retry: "다시 시도",
+                desc: "음악과 빛의 비트에 맞춰 탭하세요! 노란색 'VOICE' 노트는 소리를 질러 맞추세요!",
                 micOk: "마이크 활성화됨", micNg: "마이크 비활성화됨 (탭으로 대체 가능)",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "게임 종료!"
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "스테이지 클리어!"
             },
             fr: {
-                title: "Jeu de Rythme", score: "Score", combo: "Combo", start: "Commencer", retry: "Recommencer",
-                desc: "Appuyez sur l'écran quand les notes atteignent la ligne! Criez fort pour les notes jaunes 'VOICE'!",
+                title: "Rythme & Lumière", score: "Score", combo: "Combo", start: "Commencer", retry: "Recommencer",
+                desc: "Appuyez en rythme avec la musique et les flashs! Criez pour les notes 'VOICE'!",
                 micOk: "Microphone activé", micNg: "Microphone inactif (Le tap fonctionne en secours)",
-                perfect: "PARFAIT!", great: "SUPER", miss: "RATÉ", voiceOk: "VOICE OK!", clear: "Partie terminée!"
+                perfect: "PARFAIT!", great: "SUPER", miss: "RATÉ", voiceOk: "VOICE OK!", clear: "Niveau terminé!"
             },
             es: {
-                title: "Juego de Ritmo", score: "Puntos", combo: "Combo", start: "Iniciar", retry: "Reintentar",
-                desc: "¡Toca la pantalla cuando las notas lleguen a la línea! ¡Grita fuerte para las notas amarillas 'VOICE'!",
+                title: "Ritmo y Luz", score: "Puntos", combo: "Combo", start: "Iniciar", retry: "Reintentar",
+                desc: "¡Toca al ritmo de la música y destellos! ¡Grita para las notas amarillas 'VOICE'!",
                 micOk: "Micrófono activo", micNg: "Micrófono inactivo (El toque funciona como alternativa)",
-                perfect: "¡PERFECTO!", great: "GENIAL", miss: "FALLO", voiceOk: "¡VOICE OK!", clear: "¡Juego terminado!"
+                perfect: "¡PERFECTO!", great: "GENIAL", miss: "FALLO", voiceOk: "¡VOICE OK!", clear: "¡Nivel Completado!"
             }
         };
 
@@ -191,36 +197,23 @@
         let animationFrameId = null;
         let gameStartTime = 0;
 
+        let bpm = 130;
+        let beatInterval = 60 / bpm;
+        let songData = [];
+        let scheduledAudioEvents = [];
+
         const notePool = [];
         const activeNotes = [];
-        const MAX_POOL_SIZE = 30;
+        const MAX_POOL_SIZE = 40;
 
         for (let i = 0; i < MAX_POOL_SIZE; i++) {
             notePool.push({ id: i, time: 0, lane: 0, type: 'tap', hit: false, missed: false, y: -100 });
         }
 
-        const songData = [
-            { time: 1.0, lane: 0, type: 'tap' },
-            { time: 1.8, lane: 1, type: 'tap' },
-            { time: 2.6, lane: 2, type: 'tap' },
-            { time: 3.4, lane: 1, type: 'voice' },
-            { time: 4.2, lane: 0, type: 'tap' },
-            { time: 5.0, lane: 2, type: 'tap' },
-            { time: 5.8, lane: 1, type: 'tap' },
-            { time: 6.6, lane: 0, type: 'voice' },
-            { time: 7.4, lane: 2, type: 'tap' },
-            { time: 8.2, lane: 1, type: 'tap' },
-            { time: 9.0, lane: 0, type: 'tap' },
-            { time: 9.8, lane: 2, type: 'voice' },
-            { time: 10.6, lane: 1, type: 'tap' },
-            { time: 11.4, lane: 0, type: 'tap' },
-            { time: 12.2, lane: 2, type: 'tap' },
-            { time: 13.0, lane: 1, type: 'voice' }
-        ];
-
         let nextNoteIndex = 0;
         let feedbackText = "";
         let feedbackTimer = 0;
+        let flashIntensity = 0;
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -285,7 +278,57 @@
             }
         }
 
-        function playSound(freq, duration, type = 'sine') {
+        function playKick(time) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(130, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.15);
+            gain.gain.setValueAtTime(0.8, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(time);
+            osc.stop(time + 0.15);
+        }
+
+        function playHiHat(time) {
+            if (!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 0.05;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 7000;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(time);
+        }
+
+        function playBass(time, freq) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(0.3, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(time);
+            osc.stop(time + 0.2);
+        }
+
+        function playSoundEffect(freq, duration, type = 'sine') {
             if (!audioCtx) return;
             try {
                 const osc = audioCtx.createOscillator();
@@ -298,12 +341,39 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
-                
-                osc.onended = () => {
-                    osc.disconnect();
-                    gain.disconnect();
-                };
             } catch (e) {}
+        }
+
+        function generateRandomMusicAndChart() {
+            bpm = Math.floor(Math.random() * 21) + 120;
+            beatInterval = 60 / bpm;
+            songData = [];
+            scheduledAudioEvents = [];
+
+            const totalBeats = 64; 
+            const bassNotes = [110, 130.81, 146.83, 164.81];
+
+            for (let i = 0; i < totalBeats; i++) {
+                const beatTime = (i + 2) * beatInterval;
+                
+                scheduledAudioEvents.push({ type: 'kick', time: beatTime });
+                if (i % 2 === 1) {
+                    scheduledAudioEvents.push({ type: 'hihat', time: beatTime });
+                }
+                
+                const bassFreq = bassNotes[Math.floor(Math.random() * bassNotes.length)];
+                scheduledAudioEvents.push({ type: 'bass', time: beatTime, freq: bassFreq });
+
+                if (Math.random() < 0.65) {
+                    const lane = Math.floor(Math.random() * 3);
+                    const isVoice = Math.random() < 0.25;
+                    songData.push({
+                        time: beatTime,
+                        lane: lane,
+                        type: isVoice ? 'voice' : 'tap'
+                    });
+                }
+            }
         }
 
         function checkVoiceInput() {
@@ -313,7 +383,7 @@
             for (let i = 0; i < micDataArray.length; i++) {
                 sum += micDataArray[i];
             }
-            return (sum / micDataArray.length) > 45;
+            return (sum / micDataArray.length) > 42;
         }
 
         function spawnNote(data) {
@@ -342,7 +412,7 @@
         function handleTap() {
             if (!isPlaying) return;
             
-            playSound(600, 0.05, 'square');
+            playSoundEffect(600, 0.05, 'square');
 
             const now = (performance.now() - gameStartTime) / 1000;
             let closestNote = null;
@@ -363,16 +433,17 @@
 
             if (closestNote && minDiff < 0.25) {
                 closestNote.hit = true;
+                flashIntensity = 1.0;
                 if (minDiff < 0.1) {
                     score += 100;
                     combo++;
                     triggerFeedback(i18n[currentLang].perfect);
-                    playSound(880, 0.1, 'sine');
+                    playSoundEffect(880, 0.1, 'sine');
                 } else {
                     score += 50;
                     combo++;
                     triggerFeedback(i18n[currentLang].great);
-                    playSound(660, 0.1, 'sine');
+                    playSoundEffect(660, 0.1, 'sine');
                 }
                 document.getElementById('score-val').textContent = score.toString();
                 document.getElementById('combo-val').textContent = combo.toString();
@@ -399,8 +470,21 @@
             if (!isPlaying) return;
 
             const now = (timestamp - gameStartTime) / 1000;
-            const targetY = canvas.height - 80;
-            const speed = 300;
+            const targetY = canvas.height - 90;
+            const speed = 320;
+
+            while (scheduledAudioEvents.length > 0 && scheduledAudioEvents[0].time <= now) {
+                const event = scheduledAudioEvents.shift();
+                const audioTime = audioCtx.currentTime;
+                if (event.type === 'kick') {
+                    playKick(audioTime);
+                    flashIntensity = 0.6;
+                } else if (event.type === 'hihat') {
+                    playHiHat(audioTime);
+                } else if (event.type === 'bass') {
+                    playBass(audioTime, event.freq);
+                }
+            }
 
             if (now >= 0 && nextNoteIndex < songData.length) {
                 if (songData[nextNoteIndex].time - now <= (targetY / speed)) {
@@ -411,10 +495,17 @@
 
             const isShouting = checkVoiceInput();
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#050508';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (flashIntensity > 0) {
+                ctx.fillStyle = `rgba(0, 230, 118, ${flashIntensity * 0.15})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                flashIntensity -= 0.04;
+            }
 
             const laneWidth = canvas.width / 3;
-            ctx.strokeStyle = '#333333';
+            ctx.strokeStyle = '#1f1f2e';
             ctx.lineWidth = 2;
             for (let i = 1; i < 3; i++) {
                 ctx.beginPath();
@@ -423,12 +514,15 @@
                 ctx.stroke();
             }
 
+            ctx.shadowBlur = flashIntensity > 0 ? 15 : 5;
+            ctx.shadowColor = '#00e676';
             ctx.strokeStyle = '#00e676';
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.moveTo(0, targetY);
             ctx.lineTo(canvas.width, targetY);
             ctx.stroke();
+            ctx.shadowBlur = 0;
 
             for (let i = activeNotes.length - 1; i >= 0; i--) {
                 const note = activeNotes[i];
@@ -438,10 +532,11 @@
                 if (note.type === 'voice' && !note.hit && !note.missed && isShouting) {
                     if (Math.abs(targetY - note.y) < 60) {
                         note.hit = true;
+                        flashIntensity = 1.0;
                         score += 150;
                         combo++;
                         triggerFeedback(i18n[currentLang].voiceOk);
-                        playSound(1046.5, 0.15, 'triangle');
+                        playSoundEffect(1046.5, 0.15, 'triangle');
                         document.getElementById('score-val').textContent = score.toString();
                         document.getElementById('combo-val').textContent = combo.toString();
                         recycleNote(note, i);
@@ -449,7 +544,7 @@
                     }
                 }
 
-                if (note.y > targetY + 40 && !note.hit && !note.missed) {
+                if (note.y > targetY + 45 && !note.hit && !note.missed) {
                     note.missed = true;
                     combo = 0;
                     triggerFeedback(i18n[currentLang].miss);
@@ -458,18 +553,27 @@
                     continue;
                 }
 
-                ctx.beginPath();
                 const x = note.lane * laneWidth + laneWidth / 2;
-                ctx.arc(x, note.y, 25, 0, Math.PI * 2);
-                ctx.fillStyle = note.type === 'voice' ? '#ffeb3b' : '#2196f3';
+                ctx.beginPath();
+                ctx.arc(x, note.y, 24, 0, Math.PI * 2);
+                
+                if (note.type === 'voice') {
+                    ctx.fillStyle = '#ffea00';
+                    ctx.shadowColor = '#ffea00';
+                } else {
+                    ctx.fillStyle = '#00b0ff';
+                    ctx.shadowColor = '#00b0ff';
+                }
+                ctx.shadowBlur = 10;
                 ctx.fill();
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2;
                 ctx.stroke();
+                ctx.shadowBlur = 0;
 
                 if (note.type === 'voice') {
                     ctx.fillStyle = '#000000';
-                    ctx.font = 'bold 12px "MS Mincho", "MS 明朝", serif';
+                    ctx.font = 'bold 11px "MS Mincho", "MS 明朝", serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText('VOICE', x, note.y);
@@ -477,7 +581,7 @@
             }
 
             if (feedbackTimer > 0) {
-                ctx.fillStyle = feedbackText === i18n[currentLang].miss ? '#f44336' : '#4caf50';
+                ctx.fillStyle = feedbackText === i18n[currentLang].miss ? '#ff5252' : '#00e676';
                 ctx.font = 'bold 28px "MS Mincho", "MS 明朝", serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -504,11 +608,13 @@
             initAudio();
             initMic();
 
+            generateRandomMusicAndChart();
             clearActiveNotes();
 
             score = 0;
             combo = 0;
             nextNoteIndex = 0;
+            flashIntensity = 0;
             document.getElementById('score-val').textContent = '0';
             document.getElementById('combo-val').textContent = '0';
 
