@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Rhythm Game</title>
+    <title>Beat Pulse Rhythm</title>
     <style>
         * {
             box-sizing: border-box;
@@ -15,7 +15,7 @@
         }
         body {
             font-family: "MS Mincho", "MS 明朝", "Yu Mincho", "Hiragino Mincho ProN", serif;
-            background-color: #0d0d11;
+            background-color: #08080c;
             color: #ffffff;
             overflow: hidden;
             display: flex;
@@ -31,13 +31,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: #16161f;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.7);
+            background-color: #12121a;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.8);
             z-index: 10;
         }
         #lang-select {
             padding: 5px 10px;
-            background-color: #2a2a36;
+            background-color: #222230;
             color: #ffffff;
             border: 1px solid #444458;
             border-radius: 4px;
@@ -80,7 +80,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: rgba(5, 5, 8, 0.88);
+            background-color: rgba(5, 5, 8, 0.92);
             z-index: 5;
         }
         .btn {
@@ -147,40 +147,40 @@
 
         const i18n = {
             ja: {
-                title: "ビート＆ライト リズム", score: "スコア", combo: "コンボ", start: "スタート", retry: "再挑戦",
-                desc: "音楽と光のビートに合わせてタップ！黄色の「VOICE」ノーツは声を出して消そう！",
-                micOk: "マイク有効", micNg: "マイク無効（タップで代替可能）",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "ステージクリア！"
+                title: "ビートパルス リズム", score: "スコア", combo: "コンボ", start: "スタート", retry: "再挑戦",
+                desc: "リングが重なる瞬間にタップ！真ん中の「VOICE」リングは大きな声を出すことでも消せるよ！連打はMISSになります。",
+                micOk: "マイク有効（声出しOK!）", micNg: "マイク無効（タップ操作のみ）",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "ステージクリア！"
             },
             en: {
-                title: "Beat & Light Rhythm", score: "Score", combo: "Combo", start: "Start", retry: "Retry",
-                desc: "Tap in sync with music and light flashes! Shout loud for yellow 'VOICE' notes!",
-                micOk: "Microphone Active", micNg: "Microphone Inactive (Tap works as fallback)",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "Stage Clear!"
+                title: "Beat Pulse Rhythm", score: "Score", combo: "Combo", start: "Start", retry: "Retry",
+                desc: "Tap when the rings match! Shout out loud for middle 'VOICE' rings! Mashing gives MISS.",
+                micOk: "Microphone Active (Voice On!)", micNg: "Microphone Inactive (Tap mode)",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "Stage Clear!"
             },
             zh: {
-                title: "光与节奏", score: "得分", combo: "连击", start: "开始游戏", retry: "再试一次",
-                desc: "跟随音乐与灯光节奏点击！黄色“VOICE”音符请大声喊叫！",
-                micOk: "麦克风已启用", micNg: "麦克风未启用（可点击代替）",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "关卡完成！"
+                title: "脉冲节奏", score: "得分", combo: "连击", start: "开始游戏", retry: "再试一次",
+                desc: "光环重合时点击！中间的“VOICE”光环可以通过喊叫触发！乱按会导致MISS。",
+                micOk: "麦克风已启用（可喊叫！）", micNg: "麦克风未启用（点击模式）",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "关卡完成！"
             },
             ko: {
-                title: "비트 & 라이트 리듬", score: "점수", combo: "콤보", start: "시작", retry: "다시 시도",
-                desc: "음악과 빛의 비트에 맞춰 탭하세요! 노란색 'VOICE' 노트는 소리를 질러 맞추세요!",
-                micOk: "마이크 활성화됨", micNg: "마이크 비활성화됨 (탭으로 대체 가능)",
-                perfect: "PERFECT!", great: "GREAT", miss: "MISS", voiceOk: "VOICE OK!", clear: "스테이지 클리어!"
+                title: "비트 펄스 리듬", score: "점수", combo: "콤보", start: "시작", retry: "다시 시도",
+                desc: "링이 겹치는 순간 탭하세요! 가운데 'VOICE' 링은 큰 소리를 질러서 맞출 수 있어요! 연타는 MISS!",
+                micOk: "마이크 활성화됨 (음성 가능)", micNg: "마이크 비활성화됨 (탭 전용)",
+                perfect: "PERFECT!", great: "GREAT", miss: "MISS!", voiceOk: "VOICE OK!", clear: "스테이지 클리어!"
             },
             fr: {
-                title: "Rythme & Lumière", score: "Score", combo: "Combo", start: "Commencer", retry: "Recommencer",
-                desc: "Appuyez en rythme avec la musique et les flashs! Criez pour les notes 'VOICE'!",
-                micOk: "Microphone activé", micNg: "Microphone inactif (Le tap fonctionne en secours)",
-                perfect: "PARFAIT!", great: "SUPER", miss: "RATÉ", voiceOk: "VOICE OK!", clear: "Niveau terminé!"
+                title: "Rythme Beat Pulse", score: "Score", combo: "Combo", start: "Commencer", retry: "Recommencer",
+                desc: "Appuyez quand l'anneau se superpose! Criez pour les anneaux 'VOICE'! Spammer donne un MISS.",
+                micOk: "Microphone activé (Voix OK)", micNg: "Microphone inactif (Mode tap)",
+                perfect: "PARFAIT!", great: "SUPER", miss: "RATÉ!", voiceOk: "VOICE OK!", clear: "Niveau terminé!"
             },
             es: {
-                title: "Ritmo y Luz", score: "Puntos", combo: "Combo", start: "Iniciar", retry: "Reintentar",
-                desc: "¡Toca al ritmo de la música y destellos! ¡Grita para las notas amarillas 'VOICE'!",
-                micOk: "Micrófono activo", micNg: "Micrófono inactivo (El toque funciona como alternativa)",
-                perfect: "¡PERFECTO!", great: "GENIAL", miss: "FALLO", voiceOk: "¡VOICE OK!", clear: "¡Nivel Completado!"
+                title: "Ritmo Beat Pulse", score: "Puntos", combo: "Combo", start: "Iniciar", retry: "Reintentar",
+                desc: "¡Toca al encajar los anillos! ¡Grita para el botón central 'VOICE'! Tocar sin ritmo da MISS.",
+                micOk: "Micrófono activo (¡Voz activa!)", micNg: "Micrófono inactif (Modo toque)",
+                perfect: "¡PERFECTO!", great: "GENIAL", miss: "¡FALLO!", voiceOk: "¡VOICE OK!", clear: "¡Nivel Completado!"
             }
         };
 
@@ -197,23 +197,15 @@
         let animationFrameId = null;
         let gameStartTime = 0;
 
-        let bpm = 130;
+        let bpm = 128;
         let beatInterval = 60 / bpm;
-        let songData = [];
+        let beats = [];
         let scheduledAudioEvents = [];
 
-        const notePool = [];
-        const activeNotes = [];
-        const MAX_POOL_SIZE = 40;
-
-        for (let i = 0; i < MAX_POOL_SIZE; i++) {
-            notePool.push({ id: i, time: 0, lane: 0, type: 'tap', hit: false, missed: false, y: -100 });
-        }
-
-        let nextNoteIndex = 0;
         let feedbackText = "";
         let feedbackTimer = 0;
         let flashIntensity = 0;
+        let lastVoiceTriggerTime = 0;
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -233,9 +225,7 @@
             startBtn.textContent = isPlaying ? t.retry : t.start;
         }
 
-        langSelect.addEventListener('change', (e) => {
-            updateLanguage(e.target.value);
-        });
+        langSelect.addEventListener('change', (e) => updateLanguage(e.target.value));
 
         function resizeCanvas() {
             const container = document.getElementById('game-container');
@@ -248,13 +238,9 @@
         function initAudio() {
             if (!audioCtx) {
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (AudioContextClass) {
-                    audioCtx = new AudioContextClass();
-                }
+                if (AudioContextClass) audioCtx = new AudioContextClass();
             }
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         }
 
         async function initMic() {
@@ -282,50 +268,34 @@
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.frequency.setValueAtTime(130, time);
-            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.15);
+            osc.frequency.setValueAtTime(140, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
             gain.gain.setValueAtTime(0.8, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(time);
-            osc.stop(time + 0.15);
+            osc.stop(time + 0.12);
         }
 
         function playHiHat(time) {
             if (!audioCtx) return;
-            const bufferSize = audioCtx.sampleRate * 0.05;
+            const bufferSize = audioCtx.sampleRate * 0.04;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
             const noise = audioCtx.createBufferSource();
             noise.buffer = buffer;
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'highpass';
-            filter.frequency.value = 7000;
+            filter.frequency.value = 8000;
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.2, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+            gain.gain.setValueAtTime(0.25, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.04);
             noise.connect(filter);
             filter.connect(gain);
             gain.connect(audioCtx.destination);
             noise.start(time);
-        }
-
-        function playBass(time, freq) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(0.3, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.2);
         }
 
         function playSoundEffect(freq, duration, type = 'sine') {
@@ -335,7 +305,7 @@
                 const gain = audioCtx.createGain();
                 osc.type = type;
                 osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -344,33 +314,26 @@
             } catch (e) {}
         }
 
-        function generateRandomMusicAndChart() {
-            bpm = Math.floor(Math.random() * 21) + 120;
+        function generateChart() {
+            bpm = Math.floor(Math.random() * 16) + 120;
             beatInterval = 60 / bpm;
-            songData = [];
+            beats = [];
             scheduledAudioEvents = [];
 
-            const totalBeats = 64; 
-            const bassNotes = [110, 130.81, 146.83, 164.81];
-
+            const totalBeats = 48;
             for (let i = 0; i < totalBeats; i++) {
-                const beatTime = (i + 2) * beatInterval;
-                
-                scheduledAudioEvents.push({ type: 'kick', time: beatTime });
-                if (i % 2 === 1) {
-                    scheduledAudioEvents.push({ type: 'hihat', time: beatTime });
-                }
-                
-                const bassFreq = bassNotes[Math.floor(Math.random() * bassNotes.length)];
-                scheduledAudioEvents.push({ type: 'bass', time: beatTime, freq: bassFreq });
+                const time = (i + 2) * beatInterval;
+                scheduledAudioEvents.push({ type: 'kick', time: time });
+                scheduledAudioEvents.push({ type: 'hihat', time: time + beatInterval / 2 });
 
-                if (Math.random() < 0.65) {
-                    const lane = Math.floor(Math.random() * 3);
-                    const isVoice = Math.random() < 0.25;
-                    songData.push({
-                        time: beatTime,
-                        lane: lane,
-                        type: isVoice ? 'voice' : 'tap'
+                if (Math.random() < 0.7) {
+                    const isVoice = Math.random() < 0.35;
+                    beats.push({
+                        time: time,
+                        padIndex: isVoice ? 1 : (Math.random() < 0.5 ? 0 : 2), // VOICEは中央レーン固定
+                        type: isVoice ? 'voice' : 'tap',
+                        hit: false,
+                        missed: false
                     });
                 }
             }
@@ -380,82 +343,90 @@
             if (!analyser || !micDataArray) return false;
             analyser.getByteFrequencyData(micDataArray);
             let sum = 0;
-            for (let i = 0; i < micDataArray.length; i++) {
-                sum += micDataArray[i];
-            }
-            return (sum / micDataArray.length) > 42;
-        }
-
-        function spawnNote(data) {
-            if (notePool.length > 0) {
-                const note = notePool.pop();
-                note.time = data.time;
-                note.lane = data.lane;
-                note.type = data.type;
-                note.hit = false;
-                note.missed = false;
-                note.y = -50;
-                activeNotes.push(note);
-            }
-        }
-
-        function recycleNote(note, index) {
-            activeNotes.splice(index, 1);
-            notePool.push(note);
+            for (let i = 0; i < micDataArray.length; i++) sum += micDataArray[i];
+            return (sum / micDataArray.length) > 38;
         }
 
         function triggerFeedback(text) {
             feedbackText = text;
-            feedbackTimer = 30;
+            feedbackTimer = 25;
         }
 
-        function handleTap() {
+        function processInput(padIndex, isVoiceAction = false) {
             if (!isPlaying) return;
-            
-            playSoundEffect(600, 0.05, 'square');
 
             const now = (performance.now() - gameStartTime) / 1000;
-            let closestNote = null;
-            let closestIndex = -1;
+            let targetBeat = null;
             let minDiff = Infinity;
 
-            for (let i = 0; i < activeNotes.length; i++) {
-                const note = activeNotes[i];
-                if (note.hit || note.missed) continue;
-                
-                const timeDiff = Math.abs(note.time - now);
-                if (timeDiff < minDiff) {
-                    minDiff = timeDiff;
-                    closestNote = note;
-                    closestIndex = i;
+            for (let i = 0; i < beats.length; i++) {
+                const b = beats[i];
+                if (b.hit || b.missed) continue;
+                if (padIndex !== undefined && b.padIndex !== padIndex) continue;
+
+                const diff = Math.abs(b.time - now);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    targetBeat = b;
                 }
             }
 
-            if (closestNote && minDiff < 0.25) {
-                closestNote.hit = true;
+            if (targetBeat && minDiff <= 0.18) {
+                targetBeat.hit = true;
                 flashIntensity = 1.0;
-                if (minDiff < 0.1) {
+
+                if (isVoiceAction || targetBeat.type === 'voice') {
+                    score += 150;
+                    combo++;
+                    triggerFeedback(i18n[currentLang].voiceOk);
+                    playSoundEffect(1046.5, 0.12, 'triangle');
+                } else if (minDiff < 0.08) {
                     score += 100;
                     combo++;
                     triggerFeedback(i18n[currentLang].perfect);
-                    playSoundEffect(880, 0.1, 'sine');
+                    playSoundEffect(880, 0.08, 'sine');
                 } else {
                     score += 50;
                     combo++;
                     triggerFeedback(i18n[currentLang].great);
-                    playSoundEffect(660, 0.1, 'sine');
+                    playSoundEffect(660, 0.08, 'sine');
                 }
-                document.getElementById('score-val').textContent = score.toString();
-                document.getElementById('combo-val').textContent = combo.toString();
-                recycleNote(closestNote, closestIndex);
+            } else {
+                combo = 0;
+                triggerFeedback(i18n[currentLang].miss);
+                playSoundEffect(150, 0.1, 'sawtooth');
             }
+
+            document.getElementById('score-val').textContent = score.toString();
+            document.getElementById('combo-val').textContent = combo.toString();
+        }
+
+        function handleCanvasClick(e) {
+            if (!isPlaying) return;
+            const rect = canvas.getBoundingClientRect();
+            const touchX = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+            const touchY = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+
+            const padWidth = canvas.width / 3;
+            const padY = canvas.height - 120;
+            const padRadius = 38;
+
+            for (let i = 0; i < 3; i++) {
+                const padX = i * padWidth + padWidth / 2;
+                const dist = Math.hypot(touchX - padX, touchY - padY);
+                if (dist <= padRadius + 15) {
+                    processInput(i, false);
+                    return;
+                }
+            }
+            processInput(undefined, false);
         }
 
         let isTouchHandled = false;
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             isTouchHandled = true;
-            handleTap();
+            handleCanvasClick(e.touches[0]);
         }, { passive: false });
 
         canvas.addEventListener('mousedown', (e) => {
@@ -463,158 +434,116 @@
                 isTouchHandled = false;
                 return;
             }
-            handleTap();
+            handleCanvasClick(e);
         });
 
         function gameLoop(timestamp) {
             if (!isPlaying) return;
 
             const now = (timestamp - gameStartTime) / 1000;
-            const targetY = canvas.height - 90;
-            const speed = 320;
 
             while (scheduledAudioEvents.length > 0 && scheduledAudioEvents[0].time <= now) {
                 const event = scheduledAudioEvents.shift();
                 const audioTime = audioCtx.currentTime;
-                if (event.type === 'kick') {
-                    playKick(audioTime);
-                    flashIntensity = 0.6;
-                } else if (event.type === 'hihat') {
-                    playHiHat(audioTime);
-                } else if (event.type === 'bass') {
-                    playBass(audioTime, event.freq);
+                if (event.type === 'kick') playKick(audioTime);
+                else if (event.type === 'hihat') playHiHat(audioTime);
+            }
+
+            // 見逃し（MISS）判定
+            for (let i = 0; i < beats.length; i++) {
+                const b = beats[i];
+                if (!b.hit && !b.missed && (now - b.time) > 0.18) {
+                    b.missed = true;
+                    combo = 0;
+                    triggerFeedback(i18n[currentLang].miss);
+                    document.getElementById('combo-val').textContent = '0';
                 }
             }
 
-            if (now >= 0 && nextNoteIndex < songData.length) {
-                if (songData[nextNoteIndex].time - now <= (targetY / speed)) {
-                    spawnNote(songData[nextNoteIndex]);
-                    nextNoteIndex++;
-                }
+            // マイク（声出し）リアルタイム判定
+            if (checkVoiceInput() && (now - lastVoiceTriggerTime) > 0.3) {
+                lastVoiceTriggerTime = now;
+                processInput(1, true); // VOICEボタン（中央レーン）入力として処理
             }
 
-            const isShouting = checkVoiceInput();
-
+            // 画面描画
             ctx.fillStyle = '#050508';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (flashIntensity > 0) {
-                ctx.fillStyle = `rgba(0, 230, 118, ${flashIntensity * 0.15})`;
+                ctx.fillStyle = `rgba(0, 230, 118, ${flashIntensity * 0.12})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                flashIntensity -= 0.04;
+                flashIntensity -= 0.05;
             }
 
-            const laneWidth = canvas.width / 3;
-            ctx.strokeStyle = '#1f1f2e';
-            ctx.lineWidth = 2;
-            for (let i = 1; i < 3; i++) {
+            // 3つのタップ/声出しボタン描画
+            const padWidth = canvas.width / 3;
+            const padY = canvas.height - 120;
+            const padRadius = 38;
+
+            for (let i = 0; i < 3; i++) {
+                const padX = i * padWidth + padWidth / 2;
+                const isVoicePad = (i === 1);
+
                 ctx.beginPath();
-                ctx.moveTo(i * laneWidth, 0);
-                ctx.lineTo(i * laneWidth, canvas.height);
+                ctx.arc(padX, padY, padRadius, 0, Math.PI * 2);
+                ctx.fillStyle = isVoicePad ? '#332b00' : '#161622';
+                ctx.fill();
+                ctx.strokeStyle = isVoicePad ? '#ffea00' : '#333348';
+                ctx.lineWidth = 3;
                 ctx.stroke();
-            }
 
-            ctx.shadowBlur = flashIntensity > 0 ? 15 : 5;
-            ctx.shadowColor = '#00e676';
-            ctx.strokeStyle = '#00e676';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(0, targetY);
-            ctx.lineTo(canvas.width, targetY);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
+                if (isVoicePad) {
+                    ctx.fillStyle = '#ffea00';
+                    ctx.font = 'bold 12px "MS Mincho", "MS 明朝", serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('VOICE', padX, padY + 4);
+                }
 
-            for (let i = activeNotes.length - 1; i >= 0; i--) {
-                const note = activeNotes[i];
-                const timeDiff = note.time - now;
-                note.y = targetY - (timeDiff * speed);
+                // 縮小するリズムリング描画
+                for (let j = 0; j < beats.length; j++) {
+                    const b = beats[j];
+                    if (b.padIndex !== i || b.hit || b.missed) continue;
 
-                if (note.type === 'voice' && !note.hit && !note.missed && isShouting) {
-                    if (Math.abs(targetY - note.y) < 60) {
-                        note.hit = true;
-                        flashIntensity = 1.0;
-                        score += 150;
-                        combo++;
-                        triggerFeedback(i18n[currentLang].voiceOk);
-                        playSoundEffect(1046.5, 0.15, 'triangle');
-                        document.getElementById('score-val').textContent = score.toString();
-                        document.getElementById('combo-val').textContent = combo.toString();
-                        recycleNote(note, i);
-                        continue;
+                    const timeDiff = b.time - now;
+                    if (timeDiff > 0 && timeDiff < 0.8) {
+                        const ringRadius = padRadius + (timeDiff * 140);
+                        ctx.beginPath();
+                        ctx.arc(padX, padY, ringRadius, 0, Math.PI * 2);
+                        ctx.strokeStyle = b.type === 'voice' ? '#ffea00' : '#00e676';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
                     }
                 }
-
-                if (note.y > targetY + 45 && !note.hit && !note.missed) {
-                    note.missed = true;
-                    combo = 0;
-                    triggerFeedback(i18n[currentLang].miss);
-                    document.getElementById('combo-val').textContent = '0';
-                    recycleNote(note, i);
-                    continue;
-                }
-
-                const x = note.lane * laneWidth + laneWidth / 2;
-                ctx.beginPath();
-                ctx.arc(x, note.y, 24, 0, Math.PI * 2);
-                
-                if (note.type === 'voice') {
-                    ctx.fillStyle = '#ffea00';
-                    ctx.shadowColor = '#ffea00';
-                } else {
-                    ctx.fillStyle = '#00b0ff';
-                    ctx.shadowColor = '#00b0ff';
-                }
-                ctx.shadowBlur = 10;
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-
-                if (note.type === 'voice') {
-                    ctx.fillStyle = '#000000';
-                    ctx.font = 'bold 11px "MS Mincho", "MS 明朝", serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('VOICE', x, note.y);
-                }
             }
 
+            // フィードバック表示
             if (feedbackTimer > 0) {
-                ctx.fillStyle = feedbackText === i18n[currentLang].miss ? '#ff5252' : '#00e676';
-                ctx.font = 'bold 28px "MS Mincho", "MS 明朝", serif';
+                ctx.fillStyle = feedbackText.includes("MISS") ? '#ff5252' : '#00e676';
+                ctx.font = 'bold 30px "MS Mincho", "MS 明朝", serif';
                 ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(feedbackText, canvas.width / 2, targetY - 100);
+                ctx.fillText(feedbackText, canvas.width / 2, canvas.height / 2 - 40);
                 feedbackTimer--;
             }
 
-            if (nextNoteIndex >= songData.length && activeNotes.length === 0) {
-                endGame();
+            // 全ノーツ終了判定
+            if (beats.every(b => b.hit || b.missed)) {
+                setTimeout(endGame, 500);
                 return;
             }
 
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        function clearActiveNotes() {
-            while (activeNotes.length > 0) {
-                const note = activeNotes.pop();
-                notePool.push(note);
-            }
-        }
-
         function startGame() {
             initAudio();
             initMic();
-
-            generateRandomMusicAndChart();
-            clearActiveNotes();
+            generateChart();
 
             score = 0;
             combo = 0;
-            nextNoteIndex = 0;
             flashIntensity = 0;
+            lastVoiceTriggerTime = 0;
             document.getElementById('score-val').textContent = '0';
             document.getElementById('combo-val').textContent = '0';
 
@@ -622,9 +551,7 @@
             isPlaying = true;
             gameStartTime = performance.now();
 
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
@@ -642,28 +569,18 @@
         }
 
         function stopMicStream() {
-            if (micSource) {
-                micSource.disconnect();
-                micSource = null;
-            }
-            if (micStream) {
-                micStream.getTracks().forEach(track => track.stop());
-                micStream = null;
-            }
+            if (micSource) { micSource.disconnect(); micSource = null; }
+            if (micStream) { micStream.getTracks().forEach(track => track.stop()); micStream = null; }
             analyser = null;
             micDataArray = null;
         }
 
         window.addEventListener('pagehide', () => {
             stopMicStream();
-            if (audioCtx) {
-                audioCtx.close();
-                audioCtx = null;
-            }
+            if (audioCtx) { audioCtx.close(); audioCtx = null; }
         });
 
         startBtn.addEventListener('click', startGame);
-
         updateLanguage('ja');
     </script>
 </body>
