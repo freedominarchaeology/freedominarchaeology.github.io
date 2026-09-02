@@ -150,7 +150,7 @@
         const i18n = {
             ja: {
                 title: "バランスゲーム",
-                desc: "スマホを傾けて、ボールを中央のターゲット内に維持してください。",
+                desc: "スマホを傾けて、ボールを緑のターゲット内に維持してください。時間が経つとターゲットが小さくなり動きます。",
                 start: "ゲーム開始",
                 gameOver: "ゲームオーバー",
                 score: "スコア",
@@ -159,7 +159,7 @@
             },
             en: {
                 title: "Balance Game",
-                desc: "Tilt your phone to keep the ball inside the central target area.",
+                desc: "Tilt your phone to keep the ball inside the target area. The target shrinks and moves over time.",
                 start: "Start Game",
                 gameOver: "Game Over",
                 score: "Score",
@@ -168,7 +168,7 @@
             },
             zh: {
                 title: "平衡游戏",
-                desc: "倾斜手机，将球保持在中央目标区域内。",
+                desc: "倾斜手机，将球保持在目标区域内。随着时间的推移，目标会变小并移动。",
                 start: "开始游戏",
                 gameOver: "游戏结束",
                 score: "得分",
@@ -177,7 +177,7 @@
             },
             ko: {
                 title: "밸런스 게임",
-                desc: "스마트폰을 기울여 공을 중앙 타겟 안에 유지하세요.",
+                desc: "스마트폰을 기울여 공을 타겟 안에 유지하세요. 시간이 지나면 타겟이 줄어들고 움직입니다.",
                 start: "게임 시작",
                 gameOver: "게임 오버",
                 score: "점수",
@@ -186,7 +186,7 @@
             },
             fr: {
                 title: "Jeu d'Équilibre",
-                desc: "Inclinez votre téléphone pour maintenir la balle dans la zone cible centrale.",
+                desc: "Inclinez votre téléphone pour maintenir la balle dans la zone cible. La cible rétrécit et se déplace avec le temps.",
                 start: "Commencer",
                 gameOver: "Partie Terminée",
                 score: "Score",
@@ -195,7 +195,7 @@
             },
             es: {
                 title: "Juego de Equilibrio",
-                desc: "Inclina tu teléfono para mantener la pelota dentro del área objetivo central.",
+                desc: "Inclina tu teléfono para mantener la pelota dentro del área objetivo. El objetivo se reduce y se mueve con el tiempo.",
                 start: "Iniciar Juego",
                 gameOver: "Juego Terminado",
                 score: "Puntuación",
@@ -230,7 +230,8 @@
             current: 0,
             animId: null,
             lastTime: 0,
-            score: 0
+            score: 0,
+            gracePeriod: 1.5 // 開始直後の猶予時間（秒）
         };
 
         const gameProps = {
@@ -238,7 +239,11 @@
             height: 0,
             centerX: 0,
             centerY: 0,
-            targetRadius: 60,
+            baseTargetRadius: 0,
+            currentTargetRadius: 0,
+            minTargetRadius: 0,
+            targetX: 0,
+            targetY: 0,
             ballRadius: 12
         };
 
@@ -253,7 +258,7 @@
 
         const physics = {
             friction: 0.95,
-            sensitivity: 15.0 // dt正規化に伴い感度数値を調整
+            sensitivity: 15.0
         };
 
         function updateLanguage(lang) {
@@ -279,8 +284,15 @@
             gameProps.height = window.innerHeight;
             gameProps.centerX = gameProps.width / 2;
             gameProps.centerY = gameProps.height / 2;
-            gameProps.targetRadius = Math.min(gameProps.width, gameProps.height) * 0.22;
-            gameProps.ballRadius = Math.min(gameProps.width, gameProps.height) * 0.035;
+            
+            // ターゲットサークルを従来の0.22から0.35へ大幅拡大
+            gameProps.baseTargetRadius = Math.min(gameProps.width, gameProps.height) * 0.35;
+            gameProps.minTargetRadius = Math.min(gameProps.width, gameProps.height) * 0.12;
+            gameProps.currentTargetRadius = gameProps.baseTargetRadius;
+            gameProps.ballRadius = Math.min(gameProps.width, gameProps.height) * 0.03;
+
+            gameProps.targetX = gameProps.centerX;
+            gameProps.targetY = gameProps.centerY;
 
             dom.canvas.width = gameProps.width;
             dom.canvas.height = gameProps.height;
@@ -339,6 +351,10 @@
             state.score = 0;
             state.lastTime = performance.now();
 
+            gameProps.currentTargetRadius = gameProps.baseTargetRadius;
+            gameProps.targetX = gameProps.centerX;
+            gameProps.targetY = gameProps.centerY;
+
             ball.x = gameProps.centerX;
             ball.y = gameProps.centerY;
             ball.vx = 0;
@@ -361,7 +377,7 @@
 
         function gameOver() {
             state.current = state.STATUS_GAMEOVER;
-            unbindOrientationEvent(); // ゲームオーバー時にセンサーリスナーを解放してメモリとCPU負荷を削減
+            unbindOrientationEvent();
 
             if (state.animId) {
                 cancelAnimationFrame(state.animId);
@@ -378,7 +394,7 @@
         function gameLoop(now) {
             if (state.current !== state.STATUS_PLAYING) return;
 
-            const dt = Math.min((now - state.lastTime) / 1000, 0.1); // 最大フレームギャップを0.1秒に制限
+            const dt = Math.min((now - state.lastTime) / 1000, 0.1);
             state.lastTime = now;
 
             if (dt > 0) {
@@ -386,7 +402,26 @@
                 dom.scoreBoard.textContent = i18n[currentLang].score + ": " + state.score.toFixed(1) + " " + i18n[currentLang].sec;
             }
 
-            // デルタタイムを使用したフレームレート非依存の物理計算
+            // --- 難易度の動的調整 ---
+            // 1. 時間経過に伴ってターゲット領域が徐々に縮小（最小サイズ制限あり）
+            const shrinkRate = 2.5; // 1秒ごとに2.5px縮小
+            gameProps.currentTargetRadius = Math.max(
+                gameProps.minTargetRadius, 
+                gameProps.baseTargetRadius - (state.score * shrinkRate)
+            );
+
+            // 2. スコア10秒以降、ターゲット自体が徐々に円運動・ゆらぎを開始
+            if (state.score > 10) {
+                const moveTime = state.score - 10;
+                const offsetR = Math.min(60, moveTime * 2); // 揺れの振幅
+                gameProps.targetX = gameProps.centerX + Math.sin(moveTime * 1.2) * offsetR;
+                gameProps.targetY = gameProps.centerY + Math.cos(moveTime * 0.8) * offsetR;
+            } else {
+                gameProps.targetX = gameProps.centerX;
+                gameProps.targetY = gameProps.centerY;
+            }
+
+            // 物理計算
             ball.vx += ball.ax * dt;
             ball.vy += ball.ay * dt;
             ball.vx *= Math.pow(physics.friction, dt * 60);
@@ -395,20 +430,23 @@
             ball.x += ball.vx * dt * 60;
             ball.y += ball.vy * dt * 60;
 
-            const dx = ball.x - gameProps.centerX;
-            const dy = ball.y - gameProps.centerY;
-            const distSq = dx * dx + dy * dy;
-            const maxDist = gameProps.targetRadius - gameProps.ballRadius;
+            // 判定処理（開始から猶予時間内はゲームオーバーにならない）
+            if (state.score > state.gracePeriod) {
+                const dx = ball.x - gameProps.targetX;
+                const dy = ball.y - gameProps.targetY;
+                const distSq = dx * dx + dy * dy;
+                const maxDist = gameProps.currentTargetRadius - gameProps.ballRadius;
 
-            if (distSq > maxDist * maxDist || 
-                ball.x - gameProps.ballRadius < 0 || 
-                ball.x + gameProps.ballRadius > gameProps.width || 
-                ball.y - gameProps.ballRadius < 0 || 
-                ball.y + gameProps.ballRadius > gameProps.height) {
-                
-                renderGame();
-                gameOver();
-                return;
+                if (distSq > maxDist * maxDist || 
+                    ball.x - gameProps.ballRadius < 0 || 
+                    ball.x + gameProps.ballRadius > gameProps.width || 
+                    ball.y - gameProps.ballRadius < 0 || 
+                    ball.y + gameProps.ballRadius > gameProps.height) {
+                    
+                    renderGame();
+                    gameOver();
+                    return;
+                }
             }
 
             renderGame();
@@ -419,16 +457,18 @@
             ctx.fillStyle = '#121212';
             ctx.fillRect(0, 0, gameProps.width, gameProps.height);
 
+            // ターゲットサークルを描画
             ctx.beginPath();
-            ctx.arc(gameProps.centerX, gameProps.centerY, gameProps.targetRadius, 0, Math.PI * 2);
+            ctx.arc(gameProps.targetX, gameProps.targetY, gameProps.currentTargetRadius, 0, Math.PI * 2);
             ctx.fillStyle = '#1e3a1e';
             ctx.fill();
             ctx.strokeStyle = '#4caf50';
             ctx.lineWidth = 3;
             ctx.stroke();
 
+            // ターゲット中心点
             ctx.beginPath();
-            ctx.arc(gameProps.centerX, gameProps.centerY, 4, 0, Math.PI * 2);
+            ctx.arc(gameProps.targetX, gameProps.targetY, 4, 0, Math.PI * 2);
             ctx.fillStyle = '#4caf50';
             ctx.fill();
         }
@@ -436,6 +476,7 @@
         function renderGame() {
             renderBackground();
 
+            // ボールを描画
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, gameProps.ballRadius, 0, Math.PI * 2);
             ctx.fillStyle = '#ff5252';
