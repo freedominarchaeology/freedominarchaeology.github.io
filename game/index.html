@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML5 BROWSER GAME PORTAL</title>
+    <style>
+        /* ベース設定：ダーク＆ネオンテーマ */
+        :root {
+            --bg-color: #0b0d12;         /* 全体背景：ディープダーク */
+            --card-bg: #131722;        /* カード背景：ダークグレーネイビー */
+            --text-main: #e6edf8;      /* メイン文字：明るいシルバーブルー */
+            --text-muted: #8b95a8;     /* サブ文字：グレー */
+            
+            --neon-cyan: #00f0ff;      /* ネオンシアン */
+            --neon-pink: #ff007f;      /* ネオンピンク */
+            --neon-purple: #a855f7;    /* ネオンパープル */
+            
+            --border-color: #232938;   /* 境界線 */
+            --border-hover: #00f0ff;    /* ホバー時境界線 */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Sans", "Meiryo", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            /* 背景にうっすらサイバーグリッドの模様を入れる */
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* ヘッダー */
+        header {
+            padding: 50px 20px 30px;
+            text-align: center;
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-pink), transparent);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 0%, var(--neon-cyan) 50%, var(--neon-pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        header p {
+            margin: 10px 0 0;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            font-weight: 500;
+        }
+
+        /* メインコンテンツ（グリッド） */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 50px 20px;
+            width: 100%;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        /* ゲームカード */
+        .game-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* カードのホバーエフェクト（ネオン発光） */
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 25px -5px rgba(0, 240, 255, 0.25),
+                        0 0 15px rgba(0, 240, 255, 0.15);
+        }
+
+        /* 上部ネオンアクセントライン */
+        .game-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        /* バッジ（ジャンルやタグ） */
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .badge-offline {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .game-card h2 {
+            margin: 0 0 12px 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.03em;
+        }
+
+        .game-card p {
+            margin: 0 0 25px 0;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* アクションエリア（ボタン群） */
+        .card-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        /* メインボタン（PLAY） */
+        .btn-play {
+            flex: 2;
+            text-align: center;
+            background: linear-gradient(135deg, var(--neon-cyan), #00a8ff);
+            color: #050811;
+            text-decoration: none;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .btn-play:hover {
+            background: linear-gradient(135deg, #33f3ff, #1ab0ff);
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
+        }
+
+        /* サブボタン（HOW TO PLAY / 説明書） */
+        .btn-manual {
+            flex: 1.2;
+            text-align: center;
+            background-color: transparent;
+            color: var(--text-main);
+            text-decoration: none;
+            padding: 9px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-manual:hover {
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+            box-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+        }
+
+        /* 準備中（Coming Soon）スタイル */
+        .card-disabled {
+            opacity: 0.5;
+            border-color: var(--border-color) !important;
+            box-shadow: none !important;
+        }
+
+        .card-disabled::before {
+            background: var(--border-color);
+        }
+
+        .btn-disabled,
+        .btn-disabled:hover {
+            background: #1c2230 !important;
+            color: #4a5568 !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* フッター */
+        footer {
+            text-align: center;
+            padding: 25px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>HTML5 GAME PORTAL</h1>
+        <p>OFFLINE PLAYABLE BROWSER GAMES</p>
+    </header>
+
+    <main>
+        <div class="game-grid">
+            
+            <!-- ▼▼ ここからゲームを追加・編集してください ▼▼ -->
+
+            <!-- ゲーム 1 -->
+            <div class="game-card">
+                <div class="card-meta">
+                    <span class="tag">ACTION</span>
+                    <span class="badge-offline">OFFLINE OK</span>
+                </div>
+                <h2>サイバーシューター</h2>
+                <p>ネオン街を舞台にした2Dサイドスクロール・アクションゲーム。キーボード操作で自機を操り敵を撃破します。</p>
+                <div class="card-actions">
+                    <a href="./games/game1.html" class="btn-play">PLAY NOW</a>
+                    <a href="./docs/game1-readme.txt" class="btn-manual">HOW TO PLAY</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 2 -->
+            <div class="game-card">
+                <div class="card-meta">
+                    <span class="tag">PUZZLE</span>
+                    <span class="badge-offline">OFFLINE OK</span>
+                </div>
+                <h2>ネオンブロック崩し</h2>
+                <p>クラシックなブロック崩しを近未来風にアレンジ。多彩なパワーアップアイテムと10個のステージを収録。</p>
+                <div class="card-actions">
+                    <a href="./games/game2.html" class="btn-play">PLAY NOW</a>
+                    <a href="./docs/game2-readme.txt" class="btn-manual">HOW TO PLAY</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 3 -->
+            <div class="game-card">
+                <div class="card-meta">
+                    <span class="tag">RPG / ADV</span>
+                    <span class="badge-offline">OFFLINE OK</span>
+                </div>
+                <h2>ダンジョンディガー</h2>
+                <p>ランダム生成されるダンジョンを踏破するローグライクRPG。ローカルストレージに自動セーブされます。</p>
+                <div class="card-actions">
+                    <a href="./games/game3.html" class="btn-play">PLAY NOW</a>
+                    <a href="./docs/game3-readme.txt" class="btn-manual">HOW TO PLAY</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 4 -->
+            <div class="game-card">
+                <div class="card-meta">
+                    <span class="tag">RACER</span>
+                    <span class="badge-offline">OFFLINE OK</span>
+                </div>
+                <h2>ナイトドライブ</h2>
+                <p>ハイスピードで障害物を回避し続ける、レトロスタイルのドライビングゲーム。</p>
+                <div class="card-actions">
+                    <a href="./games/game4.html" class="btn-play">PLAY NOW</a>
+                    <a href="./docs/game4-readme.txt" class="btn-manual">HOW TO PLAY</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 5 -->
+            <div class="game-card">
+                <div class="card-meta">
+                    <span class="tag">CARD GAME</span>
+                    <span class="badge-offline">OFFLINE OK</span>
+                </div>
+                <h2>サイバーソリティア</h2>
+                <p>シンプルで癖になる一人用トランプゲーム。隙間時間に最適です。</p>
+                <div class="card-actions">
+                    <a href="./games/game5.html" class="btn-play">PLAY NOW</a>
+                    <a href="./docs/game5-readme.txt" class="btn-manual">HOW TO PLAY</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 6（準備中） -->
+            <div class="game-card card-disabled">
+                <div class="card-meta">
+                    <span class="tag" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent;">COMING SOON</span>
+                </div>
+                <h2>GAME TITLE 06</h2>
+                <p>新しいゲームを開発中です。公開までしばらくお待ちください。</p>
+                <div class="card-actions">
+                    <a href="#" class="btn-play btn-disabled">COMING SOON</a>
+                    <a href="#" class="btn-manual btn-disabled">MANUAL</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 7（準備中） -->
+            <div class="game-card card-disabled">
+                <div class="card-meta">
+                    <span class="tag" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent;">COMING SOON</span>
+                </div>
+                <h2>GAME TITLE 07</h2>
+                <p>新しいゲームを開発中です。公開までしばらくお待ちください。</p>
+                <div class="card-actions">
+                    <a href="#" class="btn-play btn-disabled">COMING SOON</a>
+                    <a href="#" class="btn-manual btn-disabled">MANUAL</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 8（準備中） -->
+            <div class="game-card card-disabled">
+                <div class="card-meta">
+                    <span class="tag" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent;">COMING SOON</span>
+                </div>
+                <h2>GAME TITLE 08</h2>
+                <p>新しいゲームを開発中です。公開までしばらくお待ちください。</p>
+                <div class="card-actions">
+                    <a href="#" class="btn-play btn-disabled">COMING SOON</a>
+                    <a href="#" class="btn-manual btn-disabled">MANUAL</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 9（準備中） -->
+            <div class="game-card card-disabled">
+                <div class="card-meta">
+                    <span class="tag" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent;">COMING SOON</span>
+                </div>
+                <h2>GAME TITLE 09</h2>
+                <p>新しいゲームを開発中です。公開までしばらくお待ちください。</p>
+                <div class="card-actions">
+                    <a href="#" class="btn-play btn-disabled">COMING SOON</a>
+                    <a href="#" class="btn-manual btn-disabled">MANUAL</a>
+                </div>
+            </div>
+
+            <!-- ゲーム 10（準備中） -->
+            <div class="game-card card-disabled">
+                <div class="card-meta">
+                    <span class="tag" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent;">COMING SOON</span>
+                </div>
+                <h2>GAME TITLE 10</h2>
+                <p>新しいゲームを開発中です。公開までしばらくお待ちください。</p>
+                <div class="card-actions">
+                    <a href="#" class="btn-play btn-disabled">COMING SOON</a>
+                    <a href="#" class="btn-manual btn-disabled">MANUAL</a>
+                </div>
+            </div>
+
+            <!-- ▲▲ ここまで ▲▲ -->
+
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 BROWSER GAME ARCHIVE
+    </footer>
+
+</body>
+</html>
