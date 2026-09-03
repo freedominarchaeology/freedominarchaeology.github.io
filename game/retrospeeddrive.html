@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Speed Driver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'MS Mincho', 'ＭＳ 明朝', serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #ui-header {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        #lang-select {
+            background-color: #111;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 6px 10px;
+            font-family: 'MS Mincho', 'ＭＳ 明朝', serif;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            background-color: #000;
+            border: 2px solid #333;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            background-color: #0a0a0a;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .title {
+            font-size: 32px;
+            color: #0f0;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px #005500;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .instructions {
+            font-size: 14px;
+            color: #ccc;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .btn {
+            background-color: #000;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 12px 36px;
+            font-size: 18px;
+            font-family: 'MS Mincho', 'ＭＳ 明朝', serif;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .btn:hover {
+            background-color: #0f0;
+            color: #000;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #hud {
+            color: #0f0;
+            font-size: 18px;
+            z-index: 5;
+            pointer-events: none;
+            text-shadow: 1px 1px #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-header">
+        <div id="hud">
+            <span id="hud-score-label"></span>: <span id="score-val">0</span>
+        </div>
+        <div>
+            <select id="lang-select">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <canvas id="canvas" width="800" height="600"></canvas>
+
+        <div id="start-screen" class="overlay">
+            <h1 id="start-title" class="title"></h1>
+            <p id="start-desc" class="instructions"></p>
+            <button id="start-btn" class="btn"></button>
+        </div>
+
+        <div id="gameover-screen" class="overlay hidden">
+            <h1 id="gameover-title" class="title"></h1>
+            <p id="final-score-text" class="instructions"></p>
+            <button id="restart-btn" class="btn"></button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // --- 多言語辞書 ---
+            const i18n = {
+                ja: {
+                    title: "レトロ・スピード・ドライバー",
+                    desc: "【操作方法】\n← → / A D : 左右移動\nSPACE : アクロバットジャンプ\nギリギリで回避（ニアミス）やジャンプでボーナス！",
+                    start: "ゲーム開始",
+                    score: "スコア",
+                    gameover: "ゲームオーバー",
+                    finalScore: "最終スコア",
+                    restart: "再挑戦",
+                    appeal: "★ アクロバティック！ ★",
+                    nearMiss: "★ ニアミス！ ★"
+                },
+                en: {
+                    title: "RETRO SPEED DRIVER",
+                    desc: "[CONTROLS]\n← → / A D : Move Left/Right\nSPACE : Acrobat Jump\nDodge obstacles closely or jump for bonus points!",
+                    start: "START GAME",
+                    score: "SCORE",
+                    gameover: "GAME OVER",
+                    finalScore: "FINAL SCORE",
+                    restart: "TRY AGAIN",
+                    appeal: "★ ACROBATIC! ★",
+                    nearMiss: "★ NEAR MISS! ★"
+                },
+                zh: {
+                    title: "复古飙车狂人",
+                    desc: "【操作说明】\n← → / A D : 左右移动\n空格键 : 特技跳跃\n极限擦肩而过（近距离回避）或跳跃可获得额外奖励！",
+                    start: "开始游戏",
+                    score: "得分",
+                    gameover: "游戏结束",
+                    finalScore: "最终得分",
+                    restart: "再试一次",
+                    appeal: "★ 绝妙特技！ ★",
+                    nearMiss: "★ 惊险擦肩！ ★"
+                },
+                ko: {
+                    title: "레트로 스피드 드라이버",
+                    desc: "[조작 방법]\n← → / A D : 좌우 이동\nSPACE : 아크로바틱 점프\n아슬아슬한 회피(니어미스)나 점프로 보너스 획득!",
+                    start: "게임 시작",
+                    score: "점수",
+                    gameover: "게임 오버",
+                    finalScore: "최종 점수",
+                    restart: "다시 시도",
+                    appeal: "★ 아크로바틱! ★",
+                    nearMiss: "★ 아슬아슬! ★"
+                },
+                fr: {
+                    title: "RETRO SPEED DRIVER",
+                    desc: "[COMMANDES]\n← → / A D : Déplacer\nESPACE : Saut acrobatique\nÉvitez de près ou sautez pour gagner des bonus !",
+                    start: "JOUER",
+                    score: "SCORE",
+                    gameover: "FIN DE PARTIE",
+                    finalScore: "SCORE FINAL",
+                    restart: "RECOMMENCER",
+                    appeal: "★ ACROBATIQUE ! ★",
+                    nearMiss: "★ DE PRÈS ! ★"
+                },
+                es: {
+                    title: "RETRO SPEED DRIVER",
+                    desc: "[CONTROLES]\n← → / A D : Mover\nESPACIO : Salto acrobático\n¡Esquiva por poco o salta para ganar bonos!",
+                    start: "INICIAR",
+                    score: "PUNTOS",
+                    gameover: "JUEGO TERMINADO",
+                    finalScore: "PUNTUACIÓN FINAL",
+                    restart: "REINTENTAR",
+                    appeal: "★ ¡ACROBÁTICO! ★",
+                    nearMiss: "★ ¡CASI CASI! ★"
+                }
+            };
+
+            // --- DOM参照 ---
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const langSelect = document.getElementById('lang-select');
+            const startScreen = document.getElementById('start-screen');
+            const gameoverScreen = document.getElementById('gameover-screen');
+            const startTitle = document.getElementById('start-title');
+            const startDesc = document.getElementById('start-desc');
+            const startBtn = document.getElementById('start-btn');
+            const gameoverTitle = document.getElementById('gameover-title');
+            const finalScoreText = document.getElementById('final-score-text');
+            const restartBtn = document.getElementById('restart-btn');
+            const hudScoreLabel = document.getElementById('hud-score-label');
+            const scoreVal = document.getElementById('score-val');
+
+            // --- ゲーム状態 ---
+            let currentLang = 'ja';
+            let animId = null;
+            let isPlaying = false;
+            let score = 0;
+            let speed = 8;
+            let roadOffset = 0;
+            let lastTime = 0;
+
+            const keys = { left: false, right: false, space: false, spacePressed: false };
+
+            let player = null;
+            let obstacles = [];
+            let effects = [];
+
+            // 安全なテキスト設定 (XSS対策 & innerHTML非使用)
+            function setTextWithNewlines(element, text) {
+                element.textContent = '';
+                const lines = text.split('\n');
+                lines.forEach((line, index) => {
+                    element.appendChild(document.createTextNode(line));
+                    if (index < lines.length - 1) {
+                        element.appendChild(document.createElement('br'));
+                    }
+                });
+            }
+
+            function updateLanguage(lang) {
+                currentLang = lang;
+                const dict = i18n[lang];
+
+                startTitle.textContent = dict.title;
+                setTextWithNewlines(startDesc, dict.desc);
+                startBtn.textContent = dict.start;
+                gameoverTitle.textContent = dict.gameover;
+                restartBtn.textContent = dict.restart;
+                hudScoreLabel.textContent = dict.score;
+
+                if (!isPlaying) {
+                    finalScoreText.textContent = `${dict.finalScore}: ${Math.floor(score)}`;
+                }
+            }
+
+            function createPlayer() {
+                return {
+                    x: canvas.width / 2 - 20,
+                    y: canvas.height - 110,
+                    w: 40,
+                    h: 70,
+                    speed: 7,
+                    isJumping: false,
+                    jumpZ: 0,
+                    jumpVel: 0,
+                    cooldown: 0
+                };
+            }
+
+            // 完全メモリ解放（GC促進）
+            function releaseMemory() {
+                obstacles.length = 0;
+                effects.length = 0;
+            }
+
+            function resetGame() {
+                releaseMemory();
+                player = createPlayer();
+                score = 0;
+                speed = 8;
+                roadOffset = 0;
+                scoreVal.textContent = '0';
+            }
+
+            function spawnObstacle() {
+                const roadWidth = 400;
+                const roadLeft = (canvas.width - roadWidth) / 2;
+                const lanes = [
+                    roadLeft + 30,
+                    roadLeft + 150,
+                    roadLeft + 270
+                ];
+                
+                const lane = lanes[Math.floor(Math.random() * lanes.length)];
+                
+                obstacles.push({
+                    x: lane,
+                    y: -90,
+                    w: 40,
+                    h: 70,
+                    speed: Math.random() * 2 + 3,
+                    passed: false,
+                    nearMissed: false
+                });
+            }
+
+            function addEffect(text, x, y, color) {
+                effects.push({
+                    text: text,
+                    x: x,
+                    y: y,
+                    alpha: 1.0,
+                    vy: -1.5,
+                    color: color
+                });
+            }
+
+            function update(dt) {
+                // dt (Delta Time Scale): 60FPS基準で移動量を正規化
+                roadOffset = (roadOffset + speed * dt) % 40;
+                speed += 0.0008 * dt;
+
+                const roadLeft = (canvas.width - 400) / 2;
+                const roadRight = (canvas.width + 400) / 2;
+
+                // プレイヤー移動
+                if (keys.left && player.x > roadLeft + 10) {
+                    player.x -= player.speed * dt;
+                }
+                if (keys.right && player.x < roadRight - player.w - 10) {
+                    player.x += player.speed * dt;
+                }
+
+                // アクロバットジャンプ
+                if (keys.space && !keys.spacePressed && !player.isJumping && player.cooldown <= 0) {
+                    player.isJumping = true;
+                    player.jumpVel = 11;
+                    player.cooldown = 25;
+                    keys.spacePressed = true;
+                    score += 150;
+                    addEffect(i18n[currentLang].appeal, player.x - 30, player.y - 20, '#00ffff');
+                }
+
+                if (player.cooldown > 0) player.cooldown -= dt;
+
+                if (player.isJumping) {
+                    player.jumpZ += player.jumpVel * dt;
+                    player.jumpVel -= 0.65 * dt;
+                    if (player.jumpZ <= 0) {
+                        player.jumpZ = 0;
+                        player.isJumping = false;
+                    }
+                }
+
+                // スポーン
+                if (Math.random() < 0.03 * dt) {
+                    if (obstacles.length === 0 || obstacles[obstacles.length - 1].y > 140) {
+                        spawnObstacle();
+                    }
+                }
+
+                // 障害物・衝突・極小回避（ニアミス）判定
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    const obs = obstacles[i];
+                    obs.y += (speed - obs.speed) * dt;
+
+                    // 1. 極小回避 (ニアミス) 判定: 車体が横方向12px以内ですれ違った場合
+                    if (!obs.nearMissed && !player.isJumping) {
+                        const closeX = Math.abs((player.x + player.w / 2) - (obs.x + obs.w / 2)) < (player.w + 16);
+                        const passingY = Math.abs((player.y + player.h / 2) - (obs.y + obs.h / 2)) < player.h;
+                        if (closeX && passingY) {
+                            obs.nearMissed = true;
+                            score += 200;
+                            addEffect(i18n[currentLang].nearMiss, player.x - 20, player.y - 10, '#ff00ff');
+                        }
+                    }
+
+                    // 2. 通過スコア
+                    if (!obs.passed && obs.y > player.y + player.h) {
+                        obs.passed = true;
+                        score += 50;
+                    }
+
+                    // 3. AABB 衝突判定 (空中時は高所回避可能)
+                    if (!player.isJumping || player.jumpZ < 25) {
+                        if (player.x < obs.x + obs.w &&
+                            player.x + player.w > obs.x &&
+                            player.y < obs.y + obs.h &&
+                            player.y + player.h > obs.y) {
+                            gameOver();
+                            return;
+                        }
+                    }
+
+                    // 画面外自動解放
+                    if (obs.y > canvas.height + 100) {
+                        obstacles.splice(i, 1);
+                    }
+                }
+
+                // エフェクト更新
+                for (let i = effects.length - 1; i >= 0; i--) {
+                    const eff = effects[i];
+                    eff.y += eff.vy * dt;
+                    eff.alpha -= 0.02 * dt;
+                    if (eff.alpha <= 0) {
+                        effects.splice(i, 1);
+                    }
+                }
+
+                score += 0.1 * dt;
+                scoreVal.textContent = Math.floor(score).toString();
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const roadWidth = 400;
+                const roadLeft = (canvas.width - roadWidth) / 2;
+
+                // 道路
+                ctx.fillStyle = '#141414';
+                ctx.fillRect(roadLeft, 0, roadWidth, canvas.height);
+
+                // 道路フレーム (ネオングリーン)
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(roadLeft, 0);
+                ctx.lineTo(roadLeft, canvas.height);
+                ctx.moveTo(roadLeft + roadWidth, 0);
+                ctx.lineTo(roadLeft + roadWidth, canvas.height);
+                ctx.stroke();
+
+                // センターライン（高速スクロール）
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([20, 20]);
+                ctx.lineDashOffset = -roadOffset;
+
+                ctx.beginPath();
+                ctx.moveTo(roadLeft + roadWidth / 3, 0);
+                ctx.lineTo(roadLeft + roadWidth / 3, canvas.height);
+                ctx.moveTo(roadLeft + (roadWidth / 3) * 2, 0);
+                ctx.lineTo(roadLeft + (roadWidth / 3) * 2, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 障害物 (赤色レトロカー)
+                for (let i = 0; i < obstacles.length; i++) {
+                    const obs = obstacles[i];
+                    ctx.fillStyle = '#ff0055';
+                    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                    
+                    // リアライト
+                    ctx.fillStyle = '#ffff00';
+                    ctx.fillRect(obs.x + 4, obs.y + obs.h - 4, 8, 4);
+                    ctx.fillRect(obs.x + obs.w - 12, obs.y + obs.h - 4, 8, 4);
+                }
+
+                // プレイヤー (シアン色レトロカー)
+                const drawY = player.y - player.jumpZ;
+
+                // 影描画
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(player.x, player.y + player.h - 8, player.w, 8);
+
+                // 自車本体
+                ctx.fillStyle = '#00ffcc';
+                ctx.fillRect(player.x, drawY, player.w, player.h);
+
+                // ヘッドライト
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(player.x + 4, drawY, 8, 4);
+                ctx.fillRect(player.x + player.w - 12, drawY, 8, 4);
+
+                // 演出テキスト（アピール・ニアミス）
+                for (let i = 0; i < effects.length; i++) {
+                    const eff = effects[i];
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, eff.alpha);
+                    ctx.fillStyle = eff.color;
+                    ctx.font = "bold 18px 'MS Mincho', 'ＭＳ 明朝', serif";
+                    ctx.fillText(eff.text, eff.x, eff.y);
+                    ctx.restore();
+                }
+            }
+
+            function gameLoop(timestamp) {
+                if (!isPlaying) return;
+
+                if (!lastTime) lastTime = timestamp;
+                const elapsed = timestamp - lastTime;
+                lastTime = timestamp;
+
+                // デルタタイム計算 (60FPS = 1.0 に正規化、異常値対策Cap付)
+                const dt = Math.min(elapsed / 16.666, 2.0);
+
+                update(dt);
+                render();
+
+                animId = requestAnimationFrame(gameLoop);
+            }
+
+            function startGame() {
+                resetGame();
+                startScreen.classList.add('hidden');
+                gameoverScreen.classList.add('hidden');
+                isPlaying = true;
+                lastTime = performance.now();
+                animId = requestAnimationFrame(gameLoop);
+            }
+
+            function gameOver() {
+                isPlaying = false;
+                
+                // ループ即時停止 & 配列解放
+                if (animId) {
+                    cancelAnimationFrame(animId);
+                    animId = null;
+                }
+                releaseMemory();
+
+                finalScoreText.textContent = `${i18n[currentLang].finalScore}: ${Math.floor(score)}`;
+                gameoverScreen.classList.remove('hidden');
+            }
+
+            // --- 入力制御 ---
+            function onKeyDown(e) {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    keys.space = true;
+                    e.preventDefault();
+                }
+            }
+
+            function onKeyUp(e) {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    keys.space = false;
+                    keys.spacePressed = false;
+                }
+            }
+
+            function initEvents() {
+                window.addEventListener('keydown', onKeyDown);
+                window.addEventListener('keyup', onKeyUp);
+
+                langSelect.addEventListener('change', (e) => {
+                    updateLanguage(e.target.value);
+                });
+
+                startBtn.addEventListener('click', startGame);
+                restartBtn.addEventListener('click', startGame);
+            }
+
+            // 初期化
+            initEvents();
+            updateLanguage('ja');
+
+        })();
+    </script>
+</body>
+</html>
