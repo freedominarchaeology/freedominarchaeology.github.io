@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER SOLITAIRE</title>
+  <style>
+    :root {
+      --bg-color: #05050a;
+      --card-bg: #0d1117;
+      --accent-cyan: #00f3ff;
+      --accent-pink: #ff0055;
+      --text-color: #e0e6ed;
+      --font-family: "MS Mincho", "ＭＳ 明朝", serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      user-select: none;
+      overflow: hidden;
+    }
+    header {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--accent-cyan);
+      padding-bottom: 8px;
+    }
+    h1 {
+      font-size: 1.2rem;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 8px var(--accent-cyan);
+      letter-spacing: 2px;
+    }
+    select, button {
+      background: var(--card-bg);
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan);
+      font-family: var(--font-family);
+      padding: 4px 8px;
+      cursor: pointer;
+      outline: none;
+    }
+    select:hover, button:hover {
+      background: var(--accent-cyan);
+      color: var(--bg-color);
+    }
+    .stats-panel {
+      display: flex;
+      gap: 15px;
+      font-size: 0.9rem;
+      margin: 10px 0;
+    }
+    .stat-val { color: var(--accent-pink); font-weight: bold; }
+    .game-board {
+      width: 100%;
+      max-width: 800px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    .tableau {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+      min-height: 180px;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card {
+      width: 55px;
+      height: 80px;
+      background: var(--card-bg);
+      border: 1px solid var(--accent-cyan);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px;
+      font-size: 0.85rem;
+      box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .card.clickable {
+      cursor: pointer;
+    }
+    .card.clickable:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 12px var(--accent-cyan);
+    }
+    .card.red { border-color: var(--accent-pink); color: var(--accent-pink); }
+    .card.red.clickable:hover { box-shadow: 0 0 12px var(--accent-pink); }
+    .card-suit { align-self: flex-end; font-size: 1rem; }
+    .bottom-area {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+    }
+    .pile-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+    .empty-slot {
+      width: 55px;
+      height: 80px;
+      border: 1px dashed #334;
+      border-radius: 4px;
+    }
+    .message {
+      height: 20px;
+      color: var(--accent-pink);
+      font-weight: bold;
+      text-shadow: 0 0 5px var(--accent-pink);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 id="ui-title">CYBER SOLITAIRE</h1>
+    <div>
+      <select id="lang-select">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ko">한국어</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select>
+      <button id="btn-restart">RESET</button>
+    </div>
+  </header>
+
+  <div class="stats-panel">
+    <div><span id="ui-score-lbl">SCORE</span>: <span id="val-score" class="stat-val">0</span></div>
+    <div><span id="ui-combo-lbl">COMBO</span>: <span id="val-combo" class="stat-val">0</span></div>
+  </div>
+
+  <div class="message" id="ui-msg"></div>
+
+  <div class="game-board">
+    <div class="tableau" id="tableau-area"></div>
+    <div class="bottom-area">
+      <div class="pile-box">
+        <span id="ui-stock-lbl">STOCK</span>
+        <div id="stock-pile" class="card clickable" style="justify-content:center; align-items:center;">[DRAW]</div>
+      </div>
+      <div class="pile-box">
+        <span id="ui-waste-lbl">WASTE</span>
+        <div id="waste-pile"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // --- 多言語辞書 ---
+  const I18N = Object.freeze({
+    ja: { title: "サイバーソリティア", score: "スコア", combo: "コンボ", stock: "山札", waste: "組札", reset: "リセット", win: "ミッション完了！", lose: "移動不能！" },
+    en: { title: "CYBER SOLITAIRE", score: "SCORE", combo: "COMBO", stock: "STOCK", waste: "WASTE", reset: "RESET", win: "MISSION CLEAR!", lose: "NO MOVES!" },
+    zh: { title: "赛博纸牌", score: "得分", combo: "连击", stock: "牌堆", waste: "弃牌", reset: "重置", win: "任务完成！", lose: "无路可走！" },
+    ko: { title: "사이버 솔리테어", score: "점수", combo: "콤보", stock: "덱", waste: "버린카드", reset: "리셋", win: "미션 클리어!", lose: "이동 불가!" },
+    fr: { title: "CYBER SOLITAIRE", score: "SCORE", combo: "COMBO", stock: "PIOCHE", waste: "DÉFAUSSE", reset: "RAZ", win: "MISSION RÉUSSIE!", lose: "BLOQUÉ!" },
+    es: { title: "CIBER SOLITARIO", score: "PUNTOS", combo: "COMBO", stock: "MAZO", waste: "DESCARTE", reset: "REINICIAR", win: "¡MISIÓN CUMPLIDA!", lose: "¡SIN MOVIENTOS!" }
+  });
+
+  // --- Web Audio API (メモリ適正化・即時解放対応) ---
+  let audioCtx = null;
+  function playSynthSound(freq, type = 'sine', duration = 0.1) {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    // 発音終了時に即座にオーディオグラフから切断してメモリ解放
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  // --- 定数定義 ---
+  const SUITS = Object.freeze(['♠', '♥', '♦', '♣']);
+  const VALUES = Object.freeze(['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']);
+
+  // --- ゲーム状態変数 ---
+  const deck = [];
+  const tableau = [[], [], [], [], []];
+  const stock = [];
+  let waste = null;
+  let score = 0;
+  let combo = 0;
+  let currentLang = 'ja';
+
+  // --- DOM参照の固定化 ---
+  const elLangSelect = document.getElementById('lang-select');
+  const elBtnRestart = document.getElementById('btn-restart');
+  const elTableau = document.getElementById('tableau-area');
+  const elStock = document.getElementById('stock-pile');
+  const elWaste = document.getElementById('waste-pile');
+  const elScore = document.getElementById('val-score');
+  const elCombo = document.getElementById('val-combo');
+  const elMsg = document.getElementById('ui-msg');
+
+  // --- 多言語テキスト更新 ---
+  function updateLanguage(lang) {
+    currentLang = lang;
+    const t = I18N[lang] || I18N.ja;
+    document.getElementById('ui-title').textContent = t.title;
+    document.getElementById('ui-score-lbl').textContent = t.score;
+    document.getElementById('ui-combo-lbl').textContent = t.combo;
+    document.getElementById('ui-stock-lbl').textContent = t.stock;
+    document.getElementById('ui-waste-lbl').textContent = t.waste;
+    elBtnRestart.textContent = t.reset;
+  }
+
+  // --- ゲーム初期化 ---
+  function initGame() {
+    // メモリ領域の即時再利用・配列切り詰め
+    deck.length = 0;
+    for (let i = 0; i < tableau.length; i++) tableau[i].length = 0;
+    stock.length = 0;
+    waste = null;
+    score = 0;
+    combo = 0;
+    elMsg.textContent = '';
+    
+    updateStatsUI();
+
+    // デッキ生成
+    for (let s = 0; s < 4; s++) {
+      for (let v = 0; v < 13; v++) {
+        deck.push({ suit: SUITS[s], valIdx: v, label: VALUES[v], isRed: (s === 1 || s === 2) });
+      }
+    }
+
+    // シャッフル (Fisher-Yates)
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = deck[i];
+      deck[i] = deck[j];
+      deck[j] = temp;
+    }
+
+    // 場札配り (5列 × 各4枚)
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 4; j++) {
+        tableau[i].push(deck.pop());
+      }
+    }
+
+    waste = deck.pop();
+    while (deck.length > 0) {
+      stock.push(deck.pop());
+    }
+
+    renderBoard();
+  }
+
+  function updateStatsUI() {
+    elScore.textContent = score;
+    elCombo.textContent = combo;
+  }
+
+  // --- 描画ロジック（DocumentFragmentによる最適化） ---
+  function renderBoard() {
+    // 高速な子要素クリア
+    elTableau.replaceChildren();
+    
+    const fragment = document.createDocumentFragment();
+
+    tableau.forEach((col, colIdx) => {
+      const colEl = document.createElement('div');
+      colEl.className = 'column';
+
+      const lastIdx = col.length - 1;
+      col.forEach((card, rowIdx) => {
+        const isTop = (rowIdx === lastIdx);
+        const cardEl = createCardDOM(card, isTop);
+        if (isTop) {
+          cardEl.dataset.col = colIdx;
+        }
+        colEl.appendChild(cardEl);
+      });
+      fragment.appendChild(colEl);
+    });
+
+    elTableau.appendChild(fragment);
+
+    // 山札描画
+    if (stock.length > 0) {
+      elStock.style.visibility = 'visible';
+      elStock.textContent = `[${stock.length}]`;
+    } else {
+      elStock.style.visibility = 'hidden';
+    }
+
+    // 組札描画
+    elWaste.replaceChildren();
+    if (waste) {
+      elWaste.appendChild(createCardDOM(waste, false));
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'empty-slot';
+      elWaste.appendChild(empty);
+    }
+  }
+
+  function createCardDOM(card, isClickable) {
+    const div = document.createElement('div');
+    div.className = `card ${card.isRed ? 'red' : ''} ${isClickable ? 'clickable' : ''}`;
+    if (!isClickable) {
+      div.style.opacity = '0.65';
+    }
+
+    const valDiv = document.createElement('div');
+    valDiv.textContent = card.label;
+
+    const suitDiv = document.createElement('div');
+    suitDiv.className = 'card-suit';
+    suitDiv.textContent = card.suit;
+
+    div.appendChild(valDiv);
+    div.appendChild(suitDiv);
+    return div;
+  }
+
+  // --- アクション判定 ---
+  function isValidMove(valIdx1, valIdx2) {
+    const diff = Math.abs(valIdx1 - valIdx2);
+    return diff === 1 || diff === 12; // 通常の±1および K(12) ⇄ A(0) の循環
+  }
+
+  // イベント委譲（Event Delegation）によるクリック共通ハンドラ
+  elTableau.addEventListener('click', (e) => {
+    const cardEl = e.target.closest('.card.clickable');
+    if (!cardEl || !cardEl.dataset.col) return;
+
+    const colIdx = parseInt(cardEl.dataset.col, 10);
+    const col = tableau[colIdx];
+    if (!col || col.length === 0) return;
+
+    const card = col[col.length - 1];
+
+    if (waste && isValidMove(card.valIdx, waste.valIdx)) {
+      waste = col.pop();
+      combo++;
+      score += 100 * combo;
+      
+      playSynthSound(300 + (combo * 60), 'triangle', 0.12);
+
+      updateStatsUI();
+      renderBoard();
+      checkGameEnd();
+    } else {
+      playSynthSound(150, 'sawtooth', 0.1);
+    }
+  });
+
+  // 山札を引く
+  elStock.addEventListener('click', () => {
+    if (stock.length === 0) return;
+    waste = stock.pop();
+    combo = 0;
+    playSynthSound(220, 'sine', 0.08);
+    updateStatsUI();
+    renderBoard();
+    checkGameEnd();
+  });
+
+  // 勝敗チェック
+  function checkGameEnd() {
+    const isTableauEmpty = tableau.every(col => col.length === 0);
+    if (isTableauEmpty) {
+      elMsg.textContent = I18N[currentLang].win;
+      playSynthSound(880, 'sine', 0.4);
+      return;
+    }
+
+    if (stock.length === 0 && waste) {
+      let hasMove = false;
+      for (let i = 0; i < tableau.length; i++) {
+        const col = tableau[i];
+        if (col.length > 0) {
+          if (isValidMove(col[col.length - 1].valIdx, waste.valIdx)) {
+            hasMove = true;
+            break;
+          }
+        }
+      }
+      if (!hasMove) {
+        elMsg.textContent = I18N[currentLang].lose;
+        playSynthSound(100, 'sawtooth', 0.3);
+      }
+    }
+  }
+
+  // --- その他の固定イベント ---
+  elLangSelect.addEventListener('change', (e) => updateLanguage(e.target.value));
+  elBtnRestart.addEventListener('click', () => {
+    playSynthSound(440, 'square', 0.05);
+    initGame();
+  });
+
+  // 初期化実行
+  updateLanguage('ja');
+  initGame();
+})();
+</script>
+</body>
+</html>
