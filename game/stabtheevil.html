@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>悪を刺せ - Stab the Evil</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111;
+            font-family: "MS Mincho", "MS PMincho", "ＭＳ 明朝", serif;
+            color: #fff;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #ui-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+        .ui-element {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        select {
+            font-family: "MS Mincho", "MS PMincho", "ＭＳ 明朝", serif;
+            padding: 4px 8px;
+            font-size: 14px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #666;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        canvas {
+            background-color: #1a1a1a;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            touch-action: none;
+            cursor: crosshair;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+        #overlay-title {
+            font-size: 36px;
+            margin-bottom: 15px;
+            color: #e74c3c;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #overlay-desc {
+            font-size: 16px;
+            margin-bottom: 25px;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        #start-btn {
+            font-family: "MS Mincho", "MS PMincho", "ＭＳ 明朝", serif;
+            font-size: 20px;
+            padding: 12px 36px;
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #start-btn:hover {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-bar">
+        <div id="score-label" class="ui-element"></div>
+        <select id="lang-select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="overlay">
+        <div id="overlay-title"></div>
+        <div id="overlay-desc"></div>
+        <button id="start-btn"></button>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // 多言語辞書
+    const I18N = {
+        ja: {
+            title: "悪を刺せ",
+            score: "討伐数: ",
+            desc: "画面をスワイプして線を描き、棒人間を突進させよ！\n邪悪な赤の棒人間を刺して撃破せよ！",
+            start: "ゲーム開始",
+            gameover: "ゲームオーバー",
+            restart: "再挑戦"
+        },
+        en: {
+            title: "Stab the Evil",
+            score: "Defeated: ",
+            desc: "Swipe to draw a line and dash your stickman!\nStab and defeat the evil red stickmen!",
+            start: "Start Game",
+            gameover: "Game Over",
+            restart: "Try Again"
+        },
+        zh: {
+            title: "刺向邪恶",
+            score: "击杀数: ",
+            desc: "滑动划线，让火柴人冲锋！\n刺穿并消灭邪恶的红色火柴人！",
+            start: "开始游戏",
+            gameover: "游戏结束",
+            restart: "重新开始"
+        },
+        ko: {
+            title: "악을 찌르라",
+            score: "처치 수: ",
+            desc: "화면을 스와이프하여 선을 그리고 졸라맨을 돌진시키세요!\n사악한 빨간 졸라맨을 찔러 처단하세요!",
+            start: "게임 시작",
+            gameover: "게임 오버",
+            restart: "다시 도전"
+        },
+        fr: {
+            title: "Poignarder le Mal",
+            score: "Vaincus: ",
+            desc: "Glissez pour tracer une ligne et faire foncer votre stickman!\nPoignardez et éliminez les stickmans rouges!",
+            start: "Démarrer",
+            gameover: "Partie Terminée",
+            restart: "Recommencer"
+        },
+        es: {
+            title: "Apuñala al Mal",
+            score: "Derrotados: ",
+            desc: "¡Desliza para trazar una línea y hacer embestir a tu monigote!\n¡Apuñala y derrota a los malvados monigotes rojos!",
+            start: "Iniciar Juego",
+            gameover: "Juego Terminado",
+            restart: "Reintentar"
+        }
+    };
+
+    // UI Elements
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const scoreLabel = document.getElementById('score-label');
+    const langSelect = document.getElementById('lang-select');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayDesc = document.getElementById('overlay-desc');
+    const startBtn = document.getElementById('start-btn');
+
+    // State Variables
+    let currentLang = 'ja';
+    let gameState = 'START'; // START, PLAYING, GAMEOVER
+    let score = 0;
+    let animationFrameId = null;
+
+    // Line drawing state
+    let isDrawing = false;
+    const lineStart = { x: 0, y: 0 };
+    const lineEnd = { x: 0, y: 0 };
+    const tempPos = { x: 0, y: 0 }; // メモリ再利用用
+
+    // Player Object
+    const player = {
+        x: 0, y: 0, vx: 0, vy: 0, radius: 15, isDashing: false
+    };
+
+    // Enemy Pool (オブジェクトの新規生成を防ぎメモリ管理を最適化)
+    const MAX_ENEMIES = 12;
+    const enemies = [];
+    for (let i = 0; i < MAX_ENEMIES; i++) {
+        enemies.push({
+            active: false, x: 0, y: 0, vx: 0, vy: 0, radius: 15, changeDirTimer: 0
+        });
+    }
+
+    // Dynamic Canvas Scaling
+    function resizeCanvas() {
+        try {
+            const cssWidth = Math.min(window.innerWidth - 20, 800);
+            const cssHeight = Math.min(window.innerHeight - 80, 600);
+            canvas.style.width = cssWidth + 'px';
+            canvas.style.height = cssHeight + 'px';
+            canvas.width = cssWidth;
+            canvas.height = cssHeight;
+        } catch (e) {
+            console.error("Resize Error:", e);
+        }
+    }
+
+    // UI Language Update
+    function updateLanguage() {
+        try {
+            const lang = I18N[currentLang] ? currentLang : 'en';
+            scoreLabel.textContent = I18N[lang].score + score;
+
+            if (gameState === 'START') {
+                overlayTitle.textContent = I18N[lang].title;
+                overlayDesc.textContent = I18N[lang].desc;
+                startBtn.textContent = I18N[lang].start;
+            } else if (gameState === 'GAMEOVER') {
+                overlayTitle.textContent = I18N[lang].gameover;
+                overlayDesc.textContent = I18N[lang].score + score;
+                startBtn.textContent = I18N[lang].restart;
+            }
+        } catch (e) {
+            console.error("Language Update Error:", e);
+        }
+    }
+
+    // Initialize Game State
+    function initGame() {
+        score = 0;
+        player.x = canvas.width / 2;
+        player.y = canvas.height / 2;
+        player.vx = 0;
+        player.vy = 0;
+        player.isDashing = false;
+        isDrawing = false;
+
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            enemies[i].active = false;
+        }
+
+        spawnEnemy();
+        spawnEnemy();
+        updateLanguage();
+    }
+
+    function spawnEnemy() {
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            if (!enemies[i].active) {
+                const e = enemies[i];
+                e.active = true;
+                let ex, ey;
+                let attempts = 0;
+                // プレイヤーから安全な距離離れた位置に生成
+                do {
+                    ex = Math.random() * (canvas.width - 60) + 30;
+                    ey = Math.random() * (canvas.height - 60) + 30;
+                    attempts++;
+                } while (Math.hypot(ex - player.x, ey - player.y) < 150 && attempts < 50);
+
+                e.x = ex;
+                e.y = ey;
+                e.vx = (Math.random() - 0.5) * 2;
+                e.vy = (Math.random() - 0.5) * 2;
+                e.changeDirTimer = 0;
+                break;
+            }
+        }
+    }
+
+    // Main Game Loop
+    function loop() {
+        if (gameState !== 'PLAYING') return;
+
+        try {
+            update();
+            render();
+            animationFrameId = requestAnimationFrame(loop);
+        } catch (e) {
+            console.error("Game Loop Error:", e);
+            endGame();
+        }
+    }
+
+    // Update Game Logic
+    function update() {
+        // Player Physics
+        player.x += player.vx;
+        player.y += player.vy;
+        player.vx *= 0.95; // 摩擦
+        player.vy *= 0.95;
+
+        if (Math.hypot(player.vx, player.vy) < 0.8) {
+            player.isDashing = false;
+        }
+
+        // Wall Collision (透明な壁)
+        if (player.x < player.radius) { player.x = player.radius; player.vx = 0; }
+        if (player.x > canvas.width - player.radius) { player.x = canvas.width - player.radius; player.vx = 0; }
+        if (player.y < player.radius) { player.y = player.radius; player.vy = 0; }
+        if (player.y > canvas.height - player.radius) { player.y = canvas.height - player.radius; player.vy = 0; }
+
+        // Enemy AI & Collision
+        let activeCount = 0;
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            const e = enemies[i];
+            if (!e.active) continue;
+            activeCount++;
+
+            e.changeDirTimer--;
+            if (e.changeDirTimer <= 0) {
+                e.changeDirTimer = Math.floor(Math.random() * 50) + 30;
+                const angle = Math.atan2(player.y - e.y, player.x - e.x) + (Math.random() - 0.5);
+                const speed = 1.5 + Math.min(score * 0.08, 2.5);
+                e.vx = Math.cos(angle) * speed;
+                e.vy = Math.sin(angle) * speed;
+            }
+
+            e.x += e.vx;
+            e.y += e.vy;
+
+            // Enemy Wall Reflection
+            if (e.x < e.radius || e.x > canvas.width - e.radius) e.vx *= -1;
+            if (e.y < e.radius || e.y > canvas.height - e.radius) e.vy *= -1;
+
+            // Hit Detection
+            const dist = Math.hypot(player.x - e.x, player.y - e.y);
+            if (dist < player.radius + e.radius) {
+                if (player.isDashing) {
+                    e.active = false;
+                    score++;
+                    updateLanguage();
+                    spawnEnemy();
+                    if (score % 3 === 0) spawnEnemy();
+                } else {
+                    endGame();
+                    return;
+                }
+            }
+        }
+
+        if (activeCount === 0) spawnEnemy();
+    }
+
+    // Render Canvas
+    function render() {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Stage Border (透明壁のガイド表現)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+        // Swipe Line
+        if (isDrawing) {
+            ctx.beginPath();
+            ctx.moveTo(lineStart.x, lineStart.y);
+            ctx.lineTo(lineEnd.x, lineEnd.y);
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // Draw Player (Blue)
+        drawStickman(player.x, player.y, '#3498db', player.vx, player.vy);
+
+        // Draw Enemies (Red)
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            if (enemies[i].active) {
+                drawStickman(enemies[i].x, enemies[i].y, '#e74c3c', enemies[i].vx, enemies[i].vy);
+            }
+        }
+    }
+
+    // Stickman Drawing Utility
+    function drawStickman(x, y, color, vx, vy) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+
+        // Head
+        ctx.beginPath();
+        ctx.arc(x, y - 10, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        ctx.beginPath();
+        ctx.moveTo(x, y - 3);
+        ctx.lineTo(x, y + 10);
+
+        const moving = Math.hypot(vx, vy) > 0.5;
+        const angle = Math.atan2(vy, vx);
+        const legOffset = moving ? Math.sin(Date.now() * 0.015) * 8 : 5;
+
+        // Legs
+        ctx.lineTo(x - legOffset, y + 23);
+        ctx.moveTo(x, y + 10);
+        ctx.lineTo(x + legOffset, y + 23);
+
+        // Arms
+        if (moving) {
+            ctx.moveTo(x, y + 2);
+            ctx.lineTo(x + Math.cos(angle) * 14, y + Math.sin(angle) * 14);
+        } else {
+            ctx.moveTo(x - 8, y + 5);
+            ctx.lineTo(x + 8, y + 5);
+        }
+
+        ctx.stroke();
+    }
+
+    // Input Coordinate Parser
+    function updateCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        let clientX = 0, clientY = 0;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        tempPos.x = Math.max(0, Math.min(canvas.width, clientX - rect.left));
+        tempPos.y = Math.max(0, Math.min(canvas.height, clientY - rect.top));
+    }
+
+    function handleStart(e) {
+        if (gameState !== 'PLAYING') return;
+        isDrawing = true;
+        updateCoords(e);
+        lineStart.x = tempPos.x;
+        lineStart.y = tempPos.y;
+        lineEnd.x = tempPos.x;
+        lineEnd.y = tempPos.y;
+    }
+
+    function handleMove(e) {
+        if (!isDrawing || gameState !== 'PLAYING') return;
+        updateCoords(e);
+        lineEnd.x = tempPos.x;
+        lineEnd.y = tempPos.y;
+    }
+
+    function handleEnd() {
+        if (!isDrawing || gameState !== 'PLAYING') return;
+        isDrawing = false;
+
+        const dx = lineEnd.x - lineStart.x;
+        const dy = lineEnd.y - lineStart.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > 10) {
+            const power = Math.min(dist * 0.12, 20);
+            player.vx = (dx / dist) * power;
+            player.vy = (dy / dist) * power;
+            player.isDashing = true;
+        }
+    }
+
+    // Event Registration
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    canvas.addEventListener('touchstart', (e) => { handleStart(e); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    langSelect.addEventListener('change', (e) => {
+        currentLang = e.target.value;
+        updateLanguage();
+    });
+
+    startBtn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        gameState = 'PLAYING';
+        initGame();
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        loop();
+    });
+
+    function endGame() {
+        gameState = 'GAMEOVER';
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        updateLanguage();
+        overlay.style.display = 'flex';
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial Execution
+    resizeCanvas();
+    updateLanguage();
+
+})();
+</script>
+</body>
+</html>
