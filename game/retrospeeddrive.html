@@ -2,13 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Retro Speed Driver</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            touch-action: manipulation;
         }
 
         body {
@@ -28,7 +29,7 @@
 
         #ui-header {
             position: absolute;
-            top: 10px;
+            top: 5px;
             width: 100%;
             max-width: 800px;
             display: flex;
@@ -53,17 +54,22 @@
             position: relative;
             width: 100%;
             max-width: 800px;
-            height: 600px;
+            height: 100%;
+            max-height: 600px;
             background-color: #000;
             border: 2px solid #333;
             box-shadow: 0 0 25px rgba(0, 255, 0, 0.2);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
         }
 
         canvas {
             display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
             background-color: #0a0a0a;
         }
 
@@ -79,23 +85,24 @@
             justify-content: center;
             align-items: center;
             z-index: 20;
+            padding: 20px;
         }
 
         .title {
-            font-size: 32px;
+            font-size: 28px;
             color: #0f0;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-shadow: 2px 2px #005500;
             text-align: center;
             letter-spacing: 2px;
         }
 
         .instructions {
-            font-size: 14px;
+            font-size: 13px;
             color: #ccc;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             text-align: center;
-            line-height: 1.8;
+            line-height: 1.6;
         }
 
         .btn {
@@ -126,6 +133,62 @@
             pointer-events: none;
             text-shadow: 1px 1px #000;
         }
+
+        /* スマホ・タブレット用 タッチ操作パネル */
+        #touch-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .touch-group {
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .t-btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(0, 255, 0, 0.15);
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-size: 22px;
+            font-weight: bold;
+            font-family: 'MS Mincho', 'ＭＳ 明朝', serif;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .t-btn:active {
+            background: rgba(0, 255, 0, 0.6);
+            color: #000;
+        }
+
+        .t-btn-action {
+            width: 80px;
+            height: 65px;
+            border-radius: 12px;
+            background: rgba(0, 255, 255, 0.15);
+            border-color: #00ffff;
+            color: #00ffff;
+            font-size: 14px;
+        }
+
+        .t-btn-action:active {
+            background: rgba(0, 255, 255, 0.6);
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +212,16 @@
     <div id="game-container">
         <canvas id="canvas" width="800" height="600"></canvas>
 
+        <div id="touch-controls">
+            <div class="touch-group">
+                <div id="t-left" class="t-btn">◀</div>
+                <div id="t-right" class="t-btn">▶</div>
+            </div>
+            <div class="touch-group">
+                <div id="t-jump" class="t-btn t-btn-action">JUMP</div>
+            </div>
+        </div>
+
         <div id="start-screen" class="overlay">
             <h1 id="start-title" class="title"></h1>
             <p id="start-desc" class="instructions"></p>
@@ -166,77 +239,75 @@
         (function() {
             'use strict';
 
-            // --- 多言語辞書 ---
             const i18n = {
                 ja: {
-                    title: "レトロ・スピード・ドライバー",
-                    desc: "【操作方法】\n← → / A D : 左右移動\nSPACE : アクロバットジャンプ\nギリギリで回避（ニアミス）やジャンプでボーナス！",
-                    start: "ゲーム開始",
+                    title: "超極速スピード・ドライバー",
+                    desc: "【操作方法】\nPC: ← → / A D (移動), SPACE (アクロバット)\nスマホ: 画面下部ボタン / タップ\n限界スピードで障害物をギリギリ回避しボーナスを狙え！",
+                    start: "爆走開始",
                     score: "スコア",
-                    gameover: "ゲームオーバー",
+                    gameover: "クラッシュ！",
                     finalScore: "最終スコア",
                     restart: "再挑戦",
-                    appeal: "★ アクロバティック！ ★",
-                    nearMiss: "★ ニアミス！ ★"
+                    appeal: "★ ACROBATIC JUMP! ★",
+                    nearMiss: "⚡ ULTRA NEAR MISS! ⚡"
                 },
                 en: {
-                    title: "RETRO SPEED DRIVER",
-                    desc: "[CONTROLS]\n← → / A D : Move Left/Right\nSPACE : Acrobat Jump\nDodge obstacles closely or jump for bonus points!",
-                    start: "START GAME",
+                    title: "SUPER SPEED DRIVER",
+                    desc: "[CONTROLS]\nPC: ← → / A D (Move), SPACE (Jump)\nMobile: Touch Buttons / Tap Screen\nDodge closely at extreme speed for massive bonuses!",
+                    start: "DRIVE NOW",
                     score: "SCORE",
-                    gameover: "GAME OVER",
+                    gameover: "CRASHED!",
                     finalScore: "FINAL SCORE",
                     restart: "TRY AGAIN",
-                    appeal: "★ ACROBATIC! ★",
-                    nearMiss: "★ NEAR MISS! ★"
+                    appeal: "★ ACROBATIC JUMP! ★",
+                    nearMiss: "⚡ ULTRA NEAR MISS! ⚡"
                 },
                 zh: {
-                    title: "复古飙车狂人",
-                    desc: "【操作说明】\n← → / A D : 左右移动\n空格键 : 特技跳跃\n极限擦肩而过（近距离回避）或跳跃可获得额外奖励！",
-                    start: "开始游戏",
+                    title: "超极速飙车狂人",
+                    desc: "【操作说明】\nPC: ← → / A D (移动), 空格键 (特技)\n手机: 底部按钮 / 触摸屏幕\n极速避开障碍物，触发极限擦肩获得高分！",
+                    start: "开始爆走",
                     score: "得分",
-                    gameover: "游戏结束",
+                    gameover: "撞毁！",
                     finalScore: "最终得分",
-                    restart: "再试一次",
+                    restart: "再次挑战",
                     appeal: "★ 绝妙特技！ ★",
-                    nearMiss: "★ 惊险擦肩！ ★"
+                    nearMiss: "⚡ 极限擦肩！ ⚡"
                 },
                 ko: {
-                    title: "레트로 스피드 드라이버",
-                    desc: "[조작 방법]\n← → / A D : 좌우 이동\nSPACE : 아크로바틱 점프\n아슬아슬한 회피(니어미스)나 점프로 보너스 획득!",
-                    start: "게임 시작",
+                    title: "슈퍼 스피드 드라이버",
+                    desc: "[조작 방법]\nPC: ← → / A D (이동), SPACE (점프)\n모바일: 하단 버튼 / 화면 터치\n극상의 스피드로 장애물을 회피하고 보너스를 노리세요!",
+                    start: "질주 시작",
                     score: "점수",
-                    gameover: "게임 오버",
+                    gameover: "크래시!",
                     finalScore: "최종 점수",
                     restart: "다시 시도",
                     appeal: "★ 아크로바틱! ★",
-                    nearMiss: "★ 아슬아슬! ★"
+                    nearMiss: "⚡ 아슬아슬 아웃! ⚡"
                 },
                 fr: {
-                    title: "RETRO SPEED DRIVER",
-                    desc: "[COMMANDES]\n← → / A D : Déplacer\nESPACE : Saut acrobatique\nÉvitez de près ou sautez pour gagner des bonus !",
-                    start: "JOUER",
+                    title: "SUPER SPEED DRIVER",
+                    desc: "[COMMANDES]\nPC: ← → / A D (Déplacer), ESPACE (Saut)\nMobile: Boutons / Écran tactile\nEsquivez à toute vitesse pour accumuler des points !",
+                    start: "FONCER",
                     score: "SCORE",
-                    gameover: "FIN DE PARTIE",
+                    gameover: "CRASH !",
                     finalScore: "SCORE FINAL",
                     restart: "RECOMMENCER",
-                    appeal: "★ ACROBATIQUE ! ★",
-                    nearMiss: "★ DE PRÈS ! ★"
+                    appeal: "★ CASCADE ! ★",
+                    nearMiss: "⚡ FRÔLEMENT ! ⚡"
                 },
                 es: {
-                    title: "RETRO SPEED DRIVER",
-                    desc: "[CONTROLES]\n← → / A D : Mover\nESPACIO : Salto acrobático\n¡Esquiva por poco o salta para ganar bonos!",
-                    start: "INICIAR",
+                    title: "SUPER SPEED DRIVER",
+                    desc: "[CONTROLES]\nPC: ← → / A D (Mover), ESPACIO (Salto)\nMóvil: Botones táctiles / Pantalla\n¡Esquiva a máxima velocidad para ganar súper bonos!",
+                    start: "ACELERAR",
                     score: "PUNTOS",
-                    gameover: "JUEGO TERMINADO",
+                    gameover: "¡COLISIÓN!",
                     finalScore: "PUNTUACIÓN FINAL",
                     restart: "REINTENTAR",
-                    appeal: "★ ¡ACROBÁTICO! ★",
-                    nearMiss: "★ ¡CASI CASI! ★"
+                    appeal: "★ ¡ACROBACIA! ★",
+                    nearMiss: "⚡ ¡CASI CASI! ⚡"
                 }
             };
 
-            // --- DOM参照 ---
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
             const langSelect = document.getElementById('lang-select');
@@ -251,22 +322,22 @@
             const hudScoreLabel = document.getElementById('hud-score-label');
             const scoreVal = document.getElementById('score-val');
 
-            // --- ゲーム状態 ---
             let currentLang = 'ja';
             let animId = null;
             let isPlaying = false;
             let score = 0;
-            let speed = 8;
+            let speed = 12; // 初期スピード向上
             let roadOffset = 0;
             let lastTime = 0;
+            let shakeTime = 0; // 画面揺れ演出
 
             const keys = { left: false, right: false, space: false, spacePressed: false };
 
             let player = null;
             let obstacles = [];
             let effects = [];
+            let particles = []; // 爽快感演出用スピード粒子
 
-            // 安全なテキスト設定 (XSS対策 & innerHTML非使用)
             function setTextWithNewlines(element, text) {
                 element.textContent = '';
                 const lines = text.split('\n');
@@ -300,7 +371,7 @@
                     y: canvas.height - 110,
                     w: 40,
                     h: 70,
-                    speed: 7,
+                    speed: 9.5,
                     isJumping: false,
                     jumpZ: 0,
                     jumpVel: 0,
@@ -308,18 +379,19 @@
                 };
             }
 
-            // 完全メモリ解放（GC促進）
             function releaseMemory() {
                 obstacles.length = 0;
                 effects.length = 0;
+                particles.length = 0;
             }
 
             function resetGame() {
                 releaseMemory();
                 player = createPlayer();
                 score = 0;
-                speed = 8;
+                speed = 12;
                 roadOffset = 0;
+                shakeTime = 0;
                 scoreVal.textContent = '0';
             }
 
@@ -336,10 +408,10 @@
                 
                 obstacles.push({
                     x: lane,
-                    y: -90,
+                    y: -100,
                     w: 40,
                     h: 70,
-                    speed: Math.random() * 2 + 3,
+                    speed: Math.random() * 3 + 2,
                     passed: false,
                     nearMissed: false
                 });
@@ -351,15 +423,31 @@
                     x: x,
                     y: y,
                     alpha: 1.0,
-                    vy: -1.5,
+                    vy: -2.5,
                     color: color
                 });
             }
 
+            function triggerSparks(x, y, count, color) {
+                for (let i = 0; i < count; i++) {
+                    if (particles.length > 60) break; // メモリ・描画負荷制限
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 12,
+                        vy: (Math.random() - 0.5) * 12,
+                        size: Math.random() * 4 + 2,
+                        life: 1.0,
+                        color: color
+                    });
+                }
+            }
+
             function update(dt) {
-                // dt (Delta Time Scale): 60FPS基準で移動量を正規化
                 roadOffset = (roadOffset + speed * dt) % 40;
-                speed += 0.0008 * dt;
+                speed += 0.0015 * dt; // 高速加速度アップ
+
+                if (shakeTime > 0) shakeTime -= dt;
 
                 const roadLeft = (canvas.width - 400) / 2;
                 const roadRight = (canvas.width + 400) / 2;
@@ -375,44 +463,72 @@
                 // アクロバットジャンプ
                 if (keys.space && !keys.spacePressed && !player.isJumping && player.cooldown <= 0) {
                     player.isJumping = true;
-                    player.jumpVel = 11;
-                    player.cooldown = 25;
+                    player.jumpVel = 13;
+                    player.cooldown = 22;
                     keys.spacePressed = true;
-                    score += 150;
+                    shakeTime = 8;
+                    score += 200;
                     addEffect(i18n[currentLang].appeal, player.x - 30, player.y - 20, '#00ffff');
+                    triggerSparks(player.x + player.w / 2, player.y + player.h / 2, 15, '#00ffff');
                 }
 
                 if (player.cooldown > 0) player.cooldown -= dt;
 
                 if (player.isJumping) {
                     player.jumpZ += player.jumpVel * dt;
-                    player.jumpVel -= 0.65 * dt;
+                    player.jumpVel -= 0.8 * dt;
                     if (player.jumpZ <= 0) {
                         player.jumpZ = 0;
                         player.isJumping = false;
                     }
                 }
 
-                // スポーン
-                if (Math.random() < 0.03 * dt) {
-                    if (obstacles.length === 0 || obstacles[obstacles.length - 1].y > 140) {
+                // スピード感演出粒子（流星ライン）の生成
+                if (Math.random() < 0.6 * dt && particles.length < 50) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: -10,
+                        vx: 0,
+                        vy: speed * 1.5,
+                        size: Math.random() * 2 + 1,
+                        life: 1.0,
+                        color: '#00ffff'
+                    });
+                }
+
+                // 粒子更新
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.life -= 0.03 * dt;
+                    if (p.life <= 0 || p.y > canvas.height + 20) {
+                        particles.splice(i, 1);
+                    }
+                }
+
+                // 障害物スポーン
+                if (Math.random() < 0.045 * dt) {
+                    if (obstacles.length === 0 || obstacles[obstacles.length - 1].y > 120) {
                         spawnObstacle();
                     }
                 }
 
-                // 障害物・衝突・極小回避（ニアミス）判定
+                // 障害物・衝突・ニアミス判定
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     const obs = obstacles[i];
                     obs.y += (speed - obs.speed) * dt;
 
-                    // 1. 極小回避 (ニアミス) 判定: 車体が横方向12px以内ですれ違った場合
+                    // 1. ニアミス判定 (極小回避)
                     if (!obs.nearMissed && !player.isJumping) {
-                        const closeX = Math.abs((player.x + player.w / 2) - (obs.x + obs.w / 2)) < (player.w + 16);
+                        const closeX = Math.abs((player.x + player.w / 2) - (obs.x + obs.w / 2)) < (player.w + 18);
                         const passingY = Math.abs((player.y + player.h / 2) - (obs.y + obs.h / 2)) < player.h;
                         if (closeX && passingY) {
                             obs.nearMissed = true;
-                            score += 200;
-                            addEffect(i18n[currentLang].nearMiss, player.x - 20, player.y - 10, '#ff00ff');
+                            shakeTime = 10; // 画面揺れ演出
+                            score += 300;
+                            addEffect(i18n[currentLang].nearMiss, player.x - 30, player.y - 10, '#ff00ff');
+                            triggerSparks(player.x + player.w / 2, player.y + player.h / 2, 20, '#ff00ff');
                         }
                     }
 
@@ -422,7 +538,7 @@
                         score += 50;
                     }
 
-                    // 3. AABB 衝突判定 (空中時は高所回避可能)
+                    // 3. 衝突判定
                     if (!player.isJumping || player.jumpZ < 25) {
                         if (player.x < obs.x + obs.w &&
                             player.x + player.w > obs.x &&
@@ -433,7 +549,6 @@
                         }
                     }
 
-                    // 画面外自動解放
                     if (obs.y > canvas.height + 100) {
                         obstacles.splice(i, 1);
                     }
@@ -449,21 +564,43 @@
                     }
                 }
 
-                score += 0.1 * dt;
+                score += 0.2 * dt;
                 scoreVal.textContent = Math.floor(score).toString();
             }
 
             function render() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+
+                // 画面揺れ (Screen Shake) 演出
+                if (shakeTime > 0) {
+                    const offsetX = (Math.random() - 0.5) * 8;
+                    const offsetY = (Math.random() - 0.5) * 8;
+                    ctx.translate(offsetX, offsetY);
+                }
+
+                ctx.clearRect(-10, -10, canvas.width + 20, canvas.height + 20);
 
                 const roadWidth = 400;
                 const roadLeft = (canvas.width - roadWidth) / 2;
 
+                // 背景
+                ctx.fillStyle = '#050505';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // スピードライン（粒子）描画
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = Math.max(0, p.life);
+                    ctx.fillRect(p.x, p.y, p.size, p.size * 3);
+                }
+                ctx.globalAlpha = 1.0;
+
                 // 道路
-                ctx.fillStyle = '#141414';
+                ctx.fillStyle = '#111111';
                 ctx.fillRect(roadLeft, 0, roadWidth, canvas.height);
 
-                // 道路フレーム (ネオングリーン)
+                // ネオンフレーム
                 ctx.strokeStyle = '#00ff00';
                 ctx.lineWidth = 4;
                 ctx.beginPath();
@@ -473,10 +610,10 @@
                 ctx.lineTo(roadLeft + roadWidth, canvas.height);
                 ctx.stroke();
 
-                // センターライン（高速スクロール）
+                // センターライン
                 ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([20, 20]);
+                ctx.lineWidth = 3;
+                ctx.setLineDash([25, 25]);
                 ctx.lineDashOffset = -roadOffset;
 
                 ctx.beginPath();
@@ -492,8 +629,6 @@
                     const obs = obstacles[i];
                     ctx.fillStyle = '#ff0055';
                     ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-                    
-                    // リアライト
                     ctx.fillStyle = '#ffff00';
                     ctx.fillRect(obs.x + 4, obs.y + obs.h - 4, 8, 4);
                     ctx.fillRect(obs.x + obs.w - 12, obs.y + obs.h - 4, 8, 4);
@@ -502,11 +637,11 @@
                 // プレイヤー (シアン色レトロカー)
                 const drawY = player.y - player.jumpZ;
 
-                // 影描画
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                // 影
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.fillRect(player.x, player.y + player.h - 8, player.w, 8);
 
-                // 自車本体
+                // 本体
                 ctx.fillStyle = '#00ffcc';
                 ctx.fillRect(player.x, drawY, player.w, player.h);
 
@@ -515,16 +650,18 @@
                 ctx.fillRect(player.x + 4, drawY, 8, 4);
                 ctx.fillRect(player.x + player.w - 12, drawY, 8, 4);
 
-                // 演出テキスト（アピール・ニアミス）
+                // 演出テキスト
                 for (let i = 0; i < effects.length; i++) {
                     const eff = effects[i];
                     ctx.save();
                     ctx.globalAlpha = Math.max(0, eff.alpha);
                     ctx.fillStyle = eff.color;
-                    ctx.font = "bold 18px 'MS Mincho', 'ＭＳ 明朝', serif";
+                    ctx.font = "bold 20px 'MS Mincho', 'ＭＳ 明朝', serif";
                     ctx.fillText(eff.text, eff.x, eff.y);
                     ctx.restore();
                 }
+
+                ctx.restore();
             }
 
             function gameLoop(timestamp) {
@@ -534,7 +671,6 @@
                 const elapsed = timestamp - lastTime;
                 lastTime = timestamp;
 
-                // デルタタイム計算 (60FPS = 1.0 に正規化、異常値対策Cap付)
                 const dt = Math.min(elapsed / 16.666, 2.0);
 
                 update(dt);
@@ -555,7 +691,6 @@
             function gameOver() {
                 isPlaying = false;
                 
-                // ループ即時停止 & 配列解放
                 if (animId) {
                     cancelAnimationFrame(animId);
                     animId = null;
@@ -566,7 +701,7 @@
                 gameoverScreen.classList.remove('hidden');
             }
 
-            // --- 入力制御 ---
+            // --- キーボード操作 ---
             function onKeyDown(e) {
                 if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
                 if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
@@ -585,6 +720,46 @@
                 }
             }
 
+            // --- タッチ・スマホ操作の設定 ---
+            function initTouchControls() {
+                const btnLeft = document.getElementById('t-left');
+                const btnRight = document.getElementById('t-right');
+                const btnJump = document.getElementById('t-jump');
+
+                const bindTouch = (elem, pressFn, releaseFn) => {
+                    elem.addEventListener('touchstart', (e) => { e.preventDefault(); pressFn(); }, { passive: false });
+                    elem.addEventListener('touchend', (e) => { e.preventDefault(); releaseFn(); }, { passive: false });
+                    elem.addEventListener('touchcancel', (e) => { e.preventDefault(); releaseFn(); }, { passive: false });
+                };
+
+                bindTouch(btnLeft, () => { keys.left = true; }, () => { keys.left = false; });
+                bindTouch(btnRight, () => { keys.right = true; }, () => { keys.right = false; });
+                bindTouch(btnJump, () => { keys.space = true; }, () => { keys.space = false; keys.spacePressed = false; });
+
+                // キャンバスタップでの画面左右直感操作
+                canvas.addEventListener('touchstart', (e) => {
+                    if (!isPlaying) return;
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const touchX = touch.clientX - rect.left;
+
+                    if (touchX < rect.width * 0.4) {
+                        keys.left = true;
+                    } else if (touchX > rect.width * 0.6) {
+                        keys.right = true;
+                    } else {
+                        keys.space = true;
+                    }
+                }, { passive: true });
+
+                canvas.addEventListener('touchend', () => {
+                    keys.left = false;
+                    keys.right = false;
+                    keys.space = false;
+                    keys.spacePressed = false;
+                }, { passive: true });
+            }
+
             function initEvents() {
                 window.addEventListener('keydown', onKeyDown);
                 window.addEventListener('keyup', onKeyUp);
@@ -595,9 +770,10 @@
 
                 startBtn.addEventListener('click', startGame);
                 restartBtn.addEventListener('click', startGame);
+
+                initTouchControls();
             }
 
-            // 初期化
             initEvents();
             updateLanguage('ja');
 
