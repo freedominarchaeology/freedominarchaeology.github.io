@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Idea Planner</title>
+    <style>
+        /* 全要素にサイズ計算ルールを適用してレイアウト崩れを完全に防止 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* 汎用フォント（MS明朝優先）とレイアウト設定 */
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "YuMincho", serif;
+            background-color: #f4f6f9;
+            color: #222;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 25px;
+            border: 2px solid #333;
+            box-shadow: 4px 4px 0px #333;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        select, input, textarea, button {
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 8px;
+            border: 1px solid #333;
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .preset-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .preview-box {
+            border: 1px dashed #666;
+            padding: 10px;
+            margin-top: 10px;
+            min-height: 50px;
+            background-color: #fafafa;
+            word-break: break-all;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin-top: 10px;
+            object-fit: contain;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #eee;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #ddd;
+        }
+
+        button.primary {
+            background-color: #333;
+            color: #fff;
+        }
+
+        button.primary:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 id="ui-title">アプリアイディアシート</h1>
+        <div style="width: 150px;">
+            <label for="lang-select" style="display:none;">Language</label>
+            <select id="lang-select" onchange="app.changeLanguage(this.value)">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <!-- ジャンル選択 -->
+        <div class="form-group">
+            <label id="ui-genre-label">1. アプリのジャンル</label>
+            <select id="genre-select" onchange="app.onGenreChange(this.value)">
+                <option value="tool" id="ui-opt-tool">実用ツール</option>
+                <option value="game" id="ui-opt-game">ゲーム</option>
+            </select>
+        </div>
+
+        <!-- アプリの名称 -->
+        <div class="form-group">
+            <label id="ui-name-label">2. アプリのなまえ</label>
+            <input type="text" id="app-name" maxlength="100" placeholder="例: おかたづけタイマー">
+        </div>
+
+        <!-- アプリ構成・機能選択 -->
+        <div class="form-group">
+            <label id="ui-feature-label">3. おもな機能・画面構成</label>
+            <div class="preset-container">
+                <select id="feature-preset" onchange="app.applyPreset('feature-preset', 'app-feature')">
+                    <!-- JSで動的割り当て -->
+                </select>
+            </div>
+            <textarea id="app-feature" rows="3" placeholder="選択するか、自由に入力してください"></textarea>
+        </div>
+
+        <!-- デザイン・世界観 -->
+        <div class="form-group">
+            <label id="ui-design-label">4. デザイン・見た目</label>
+            <div class="preset-container">
+                <select id="design-preset" onchange="app.applyPreset('design-preset', 'app-design')">
+                    <!-- JSで動的割り当て -->
+                </select>
+            </div>
+            <textarea id="app-design" rows="2" placeholder="選択するか、自由に入力してください"></textarea>
+        </div>
+
+        <!-- 参考ファイル・写真の読み込み -->
+        <div class="form-group">
+            <label id="ui-file-label">5. 参考写真・ファイルの読み込み</label>
+            <input type="file" id="file-input" accept="image/*,.pdf,.txt" onchange="app.handleFileImport(event)">
+            <div id="file-preview" class="preview-box"></div>
+        </div>
+
+        <!-- 操作ボタン -->
+        <div class="btn-group">
+            <button class="primary" id="ui-btn-export" onclick="app.exportText()">テキストで保存</button>
+            <button id="ui-btn-clear" onclick="app.clearForm()">リセット</button>
+        </div>
+    </main>
+</div>
+
+<script>
+/**
+ * アプリケーション管理（完全スコープ分離・即時関数）
+ */
+const app = (() => {
+    'use strict';
+
+    let currentLang = 'ja';
+    let currentObjectUrl = null; // 画像オブジェクトURLの追跡用変数
+
+    // 多言語辞書データ
+    const i18n = {
+        ja: {
+            title: "アプリアイディアシート",
+            genreLabel: "1. アプリのジャンル",
+            optTool: "実用ツール",
+            optGame: "ゲーム",
+            nameLabel: "2. アプリのなまえ",
+            namePlaceholder: "例: おかたづけタイマー",
+            featureLabel: "3. おもな機能・画面構成",
+            designLabel: "4. デザイン・見た目",
+            fileLabel: "5. 参考写真・ファイルの読み込み",
+            exportBtn: "テキストで保存",
+            clearBtn: "リセット",
+            placeholderSelect: "-- プリセットからえらぶ --",
+            placeholderText: "選択するか、自由に入力してください",
+            presets: {
+                tool: {
+                    features: ["タイマー・通知機能", "計算・記録機能", "チェックリスト", "マップ・位置情報"],
+                    designs: ["シンプルでみやすい", "カラフルでたのしい", "ダークモード", "大きなボタン"]
+                },
+                game: {
+                    features: ["スコアアタック", "キャラクター育成", "パズル・クイズ", "対戦・協力"],
+                    designs: ["ドット絵（レトロ）", "3Dグラフィック", "かわいいイラスト", "リアルな質感"]
+                }
+            }
+        },
+        en: {
+            title: "App Idea Planner",
+            genreLabel: "1. App Genre",
+            optTool: "Utility Tool",
+            optGame: "Game",
+            nameLabel: "2. App Name",
+            namePlaceholder: "e.g., Clean-up Timer",
+            featureLabel: "3. Core Features & Structure",
+            designLabel: "4. Design & Look",
+            fileLabel: "5. Reference Files / Photos",
+            exportBtn: "Save as Text",
+            clearBtn: "Reset",
+            placeholderSelect: "-- Select Preset --",
+            placeholderText: "Select or type freely",
+            presets: {
+                tool: {
+                    features: ["Timer / Notification", "Calculator / Logger", "Checklist", "Map / Location"],
+                    designs: ["Simple & Clean", "Colorful & Fun", "Dark Mode", "Large Buttons"]
+                },
+                game: {
+                    features: ["Score Attack", "Character Nurturing", "Puzzle / Quiz", "Multiplayer / Co-op"],
+                    designs: ["Pixel Art (Retro)", "3D Graphics", "Cute Illustrations", "Realistic Texture"]
+                }
+            }
+        },
+        zh: {
+            title: "应用创意规划器",
+            genreLabel: "1. 应用类型",
+            optTool: "实用工具",
+            optGame: "游戏",
+            nameLabel: "2. 应用名称",
+            namePlaceholder: "例如：整理计时器",
+            featureLabel: "3. 主要功能与结构",
+            designLabel: "4. 设计与外观",
+            fileLabel: "5. 参考文件/照片",
+            exportBtn: "保存为文本",
+            clearBtn: "重置",
+            placeholderSelect: "-- 选择预设 --",
+            placeholderText: "请选择或自由输入",
+            presets: {
+                tool: {
+                    features: ["计时器/通知", "计算/记录", "检查清单", "地图/位置"],
+                    designs: ["简单清晰", "丰富多彩", "暗黑模式", "大按钮"]
+                },
+                game: {
+                    features: ["得分挑战", "角色养成", "益智/问答", "对战/合作"],
+                    designs: ["像素风", "3D图形", "可爱插画", "写实风格"]
+                }
+            }
+        },
+        ko: {
+            title: "앱 아이디어 플래너",
+            genreLabel: "1. 앱 장르",
+            optTool: "유틸리티 도구",
+            optGame: "게임",
+            nameLabel: "2. 앱 이름",
+            namePlaceholder: "예: 정리 타이머",
+            featureLabel: "3. 주요 기능 및 구성",
+            designLabel: "4. 디자인 및 외관",
+            fileLabel: "5. 참고 파일/사진",
+            exportBtn: "텍스트로 저장",
+            clearBtn: "리셋",
+            placeholderSelect: "-- 프리셋 선택 --",
+            placeholderText: "선택하거나 자유롭게 입력하세요",
+            presets: {
+                tool: {
+                    features: ["타이머/알림", "계산/기록", "체크리스트", "지도/위치"],
+                    designs: ["심플하고 깔끔함", "알록달록함", "다크 모드", "큰 버튼"]
+                },
+                game: {
+                    features: ["스코어 어택", "캐릭터 육성", "퍼즐/퀴즈", "대전/협력"],
+                    designs: ["픽셀 아트", "3D 그래픽", "귀여운 일러스트", "리얼한 질감"]
+                }
+            }
+        },
+        fr: {
+            title: "Planificateur d'idées d'applications",
+            genreLabel: "1. Genre d'application",
+            optTool: "Outil utilitaire",
+            optGame: "Jeu",
+            nameLabel: "2. Nom de l'application",
+            namePlaceholder: "ex: Minuteur de rangement",
+            featureLabel: "3. Fonctionnalités et Structure",
+            designLabel: "4. Design et Apparence",
+            fileLabel: "5. Fichiers de référence / Photos",
+            exportBtn: "Enregistrer en texte",
+            clearBtn: "Réinitialiser",
+            placeholderSelect: "-- Choisir un préréglage --",
+            placeholderText: "Choisissez ou tapez librement",
+            presets: {
+                tool: {
+                    features: ["Minuteur / Notification", "Calcul / Journal", "Liste de contrôle", "Carte / Localisation"],
+                    designs: ["Simple & Clair", "Coloré & Amusant", "Mode sombre", "Grands boutons"]
+                },
+                game: {
+                    features: ["Chasse au score", "Élevage de personnages", "Puzzle / Quiz", "Multijoueur"],
+                    designs: ["Pixel Art", "Graphismes 3D", "Illustrations mignonnes", "Texture réaliste"]
+                }
+            }
+        },
+        es: {
+            title: "Planificador de Ideas de Apps",
+            genreLabel: "1. Género de la aplicación",
+            optTool: "Herramienta de utilidad",
+            optGame: "Juego",
+            nameLabel: "2. Nombre de la aplicación",
+            namePlaceholder: "ej. Temporizador de limpieza",
+            featureLabel: "3. Funciones principales y Estructura",
+            designLabel: "4. Diseño y Apariencia",
+            fileLabel: "5. Archivos de referencia / Fotos",
+            exportBtn: "Guardar como texto",
+            clearBtn: "Restablecer",
+            placeholderSelect: "-- Seleccionar preajuste --",
+            placeholderText: "Seleccione o escriba libremente",
+            presets: {
+                tool: {
+                    features: ["Temporizador / Notificación", "Cálculo / Registro", "Lista de verificación", "Mapa / Ubicación"],
+                    designs: ["Simple y Claro", "Colorido y Divertido", "Modo oscuro", "Botones grandes"]
+                },
+                game: {
+                    features: ["Ataque de puntuación", "Crianza de personajes", "Rompecabezas / Quiz", "Multijugador"],
+                    designs: ["Arte de píxeles", "Gráficos 3D", "Ilustraciones lindas", "Textura realista"]
+                }
+            }
+        }
+    };
+
+    // セキュリティ対策: XSS防止エスケープ処理
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, (match) => {
+            const escapeMap = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return escapeMap[match];
+        });
+    };
+
+    // UIテキストおよびプリセット更新
+    const updateUI = () => {
+        const langData = i18n[currentLang] || i18n['ja'];
+
+        document.getElementById('ui-title').textContent = langData.title;
+        document.getElementById('ui-genre-label').textContent = langData.genreLabel;
+        document.getElementById('ui-opt-tool').textContent = langData.optTool;
+        document.getElementById('ui-opt-game').textContent = langData.optGame;
+        document.getElementById('ui-name-label').textContent = langData.nameLabel;
+        document.getElementById('app-name').placeholder = langData.namePlaceholder;
+        document.getElementById('ui-feature-label').textContent = langData.featureLabel;
+        document.getElementById('ui-design-label').textContent = langData.designLabel;
+        document.getElementById('ui-file-label').textContent = langData.fileLabel;
+        document.getElementById('ui-btn-export').textContent = langData.exportBtn;
+        document.getElementById('ui-btn-clear').textContent = langData.clearBtn;
+
+        document.getElementById('app-feature').placeholder = langData.placeholderText;
+        document.getElementById('app-design').placeholder = langData.placeholderText;
+
+        updatePresets();
+    };
+
+    // プリセット項目の生成
+    const updatePresets = () => {
+        const langData = i18n[currentLang] || i18n['ja'];
+        const genre = document.getElementById('genre-select').value;
+        const presetData = langData.presets[genre] || langData.presets['tool'];
+
+        const featureSelect = document.getElementById('feature-preset');
+        const designSelect = document.getElementById('design-preset');
+
+        featureSelect.innerHTML = `<option value="">${escapeHtml(langData.placeholderSelect)}</option>` +
+            presetData.features.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+
+        designSelect.innerHTML = `<option value="">${escapeHtml(langData.placeholderSelect)}</option>` +
+            presetData.designs.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+    };
+
+    // メモリ最適化: Blob URLの確実に即時破棄
+    const revokePreviousUrl = () => {
+        if (currentObjectUrl) {
+            URL.revokeObjectURL(currentObjectUrl);
+            currentObjectUrl = null;
+        }
+    };
+
+    // ウィンドウ終了時の安全なメモリ解放処理
+    window.addEventListener('beforeunload', () => {
+        revokePreviousUrl();
+    });
+
+    return {
+        init: () => {
+            updateUI();
+        },
+        changeLanguage: (lang) => {
+            currentLang = lang;
+            updateUI();
+        },
+        onGenreChange: () => {
+            updatePresets();
+        },
+        applyPreset: (selectId, targetId) => {
+            const select = document.getElementById(selectId);
+            const target = document.getElementById(targetId);
+            if (select.value) {
+                const currentVal = target.value;
+                target.value = currentVal ? `${currentVal}\n・${select.value}` : `・${select.value}`;
+                select.value = ""; // 選択後に初期化
+            }
+        },
+        handleFileImport: (event) => {
+            const file = event.target.files && event.target.files[0];
+            const previewContainer = document.getElementById('file-preview');
+            
+            // 既存のオブジェクトURLがあれば破棄してからUIをリセット
+            revokePreviousUrl();
+            previewContainer.innerHTML = '';
+
+            if (!file) return;
+
+            const fileName = escapeHtml(file.name);
+            const fileSize = (file.size / 1024).toFixed(1);
+
+            if (file.type && file.type.startsWith('image/')) {
+                // 画像の場合はプレビュー生成
+                currentObjectUrl = URL.createObjectURL(file);
+                previewContainer.innerHTML = `
+                    <div><strong>File:</strong> ${fileName} (${fileSize} KB)</div>
+                    <img src="${currentObjectUrl}" class="preview-image" alt="preview">
+                `;
+            } else {
+                previewContainer.innerHTML = `<div><strong>File:</strong> ${fileName} (${fileSize} KB)</div>`;
+            }
+        },
+        exportText: () => {
+            const nameInput = document.getElementById('app-name').value.trim();
+            const rawName = nameInput || "idea";
+            const genre = document.getElementById('genre-select').selectedOptions[0].text;
+            const feature = document.getElementById('app-feature').value;
+            const design = document.getElementById('app-design').value;
+
+            const content = 
+`========================================
+ ${document.getElementById('ui-title').textContent}
+========================================
+■ Genre: ${genre}
+■ Name: ${rawName}
+
+■ Features / Structure:
+${feature}
+
+■ Design / Appearance:
+${design}
+========================================`;
+
+            // ファイル名のサニタイズ（制御文字・システム予約文字の除去）
+            const safeFileName = rawName
+                .replace(/[\x00-\x1f\x7f-\x9f]/g, "")
+                .replace(/[/\\?%*:|"<>]/g, "_") || "idea";
+
+            // Blobの生成とダウンロード実行
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const tempUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = tempUrl;
+            a.download = `${safeFileName}_idea.txt`;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            // 処理後すぐに参照解除・URL解放
+            document.body.removeChild(a);
+            setTimeout(() => {
+                URL.revokeObjectURL(tempUrl);
+            }, 100);
+        },
+        clearForm: () => {
+            document.getElementById('app-name').value = '';
+            document.getElementById('app-feature').value = '';
+            document.getElementById('app-design').value = '';
+            document.getElementById('file-input').value = '';
+            
+            // プレビュー消去前にメモリ解放
+            revokePreviousUrl();
+            document.getElementById('file-preview').innerHTML = '';
+        }
+    };
+})();
+
+// 初期化実行
+document.addEventListener('DOMContentLoaded', app.init);
+</script>
+</body>
+</html>
