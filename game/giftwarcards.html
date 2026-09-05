@@ -11,7 +11,6 @@
             padding: 0;
             user-select: none;
             -webkit-user-select: none;
-            /* タップ時のダブルタップズームやピンチズームを防止 */
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
@@ -21,27 +20,29 @@
             color: #e0e0e0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            overflow-y: auto; /* スマホ等で画面全体を上下スクロール可能に */
+            overflow-x: hidden;
         }
         header {
             background-color: #1f1f1f;
-            padding: 10px 20px;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #333;
             flex-wrap: wrap;
             gap: 10px;
+            flex-shrink: 0;
         }
         h1 {
-            font-size: 1.2rem;
-            letter-spacing: 2px;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
             color: #d4af37;
         }
         .controls {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -50,10 +51,10 @@
             background: #2a2a2a;
             color: #fff;
             border: 1px solid #555;
-            padding: 6px 12px;
+            padding: 6px 10px;
             cursor: pointer;
             border-radius: 4px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             touch-action: manipulation;
         }
         select:hover, button:hover {
@@ -68,27 +69,27 @@
         }
         main {
             flex: 1;
-            display: grid;
-            grid-template-rows: auto 1fr auto;
+            display: flex;
+            flex-direction: column;
             gap: 10px;
             padding: 10px;
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
-            height: calc(100vh - 55px);
         }
         .status-panel {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 8px;
             background: #1e1e1e;
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
             border: 1px solid #333;
+            flex-shrink: 0;
         }
         .stat-box {
             background: #121212;
-            padding: 8px;
+            padding: 6px 4px;
             border-radius: 4px;
             text-align: center;
             border-left: 3px solid #d4af37;
@@ -97,12 +98,13 @@
             border-left-color: #9b59b6;
         }
         .stat-title {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #aaa;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
+            white-space: nowrap;
         }
         .stat-value {
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: bold;
             color: #fff;
         }
@@ -123,7 +125,7 @@
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 10px;
-            min-height: 0;
+            min-height: 180px;
         }
         .log-panel {
             background: #1e1e1e;
@@ -132,12 +134,13 @@
             padding: 10px;
             display: flex;
             flex-direction: column;
-            min-height: 0;
+            min-height: 150px;
+            max-height: 250px;
         }
         .panel-title {
             font-size: 0.85rem;
             color: #d4af37;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             border-bottom: 1px solid #333;
             padding-bottom: 4px;
             flex-shrink: 0;
@@ -145,8 +148,7 @@
         .log-content {
             flex: 1;
             overflow-y: auto;
-            max-height: 100%;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             line-height: 1.4;
             color: #ccc;
             display: flex;
@@ -156,7 +158,7 @@
             touch-action: pan-y;
         }
         .log-content::-webkit-scrollbar {
-            width: 6px;
+            width: 5px;
         }
         .log-content::-webkit-scrollbar-track {
             background: #121212;
@@ -165,9 +167,6 @@
         .log-content::-webkit-scrollbar-thumb {
             background: #444;
             border-radius: 3px;
-        }
-        .log-content::-webkit-scrollbar-thumb:hover {
-            background: #d4af37;
         }
         .log-entry {
             padding: 4px 8px;
@@ -188,6 +187,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            min-height: 150px;
         }
         .hand-area {
             background: #1e1e1e;
@@ -197,32 +197,33 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            flex-shrink: 0;
         }
         .cards-container {
             display: flex;
             gap: 10px;
-            justify-content: center;
+            justify-content: flex-start;
             overflow-x: auto;
-            padding: 5px 0;
+            padding: 5px 0 10px 0;
             touch-action: pan-x;
+            -webkit-overflow-scrolling: touch;
         }
         .card {
             background: #2a2a2a;
             border: 1px solid #444;
             border-radius: 6px;
-            width: 150px;
-            height: 190px;
-            padding: 10px;
+            width: 140px;
+            height: 175px;
+            padding: 8px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             cursor: pointer;
             transition: transform 0.2s, border-color 0.2s;
             flex-shrink: 0;
-            touch-action: none;
         }
         .card:hover:not(.disabled) {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             border-color: #d4af37;
             background: #333;
         }
@@ -232,21 +233,21 @@
             border-color: #222;
         }
         .card-title {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: bold;
             color: #d4af37;
             text-align: center;
             pointer-events: none;
         }
         .card-desc {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: #bbb;
-            line-height: 1.2;
+            line-height: 1.25;
             text-align: center;
             pointer-events: none;
         }
         .card-req {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: #e74c3c;
             text-align: center;
             font-weight: bold;
@@ -263,37 +264,32 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
-            touch-action: none;
+            padding: 10px;
         }
         .modal-content {
             background: #1e1e1e;
             border: 1px solid #d4af37;
             border-radius: 8px;
-            padding: 20px;
-            max-width: 650px;
-            width: 90%;
+            padding: 15px;
+            max-width: 600px;
+            width: 100%;
             max-height: 85vh;
             overflow-y: auto;
             touch-action: pan-y;
         }
         .modal-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #d4af37;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             border-bottom: 1px solid #444;
             padding-bottom: 6px;
         }
         .modal-body {
-            font-size: 0.88rem;
-            line-height: 1.6;
+            font-size: 0.85rem;
+            line-height: 1.5;
             color: #ddd;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             white-space: pre-line;
-        }
-        .modal-body h4 {
-            color: #d4af37;
-            margin-top: 10px;
-            font-size: 0.95rem;
         }
         .close-btn {
             background: #d4af37;
@@ -304,13 +300,53 @@
             padding: 10px;
             border-radius: 4px;
         }
+
+        /* スマホ向けレスポンシブ最適化 */
         @media (max-width: 768px) {
-            .status-panel { grid-template-columns: repeat(3, 1fr); }
-            .game-field { grid-template-columns: 1fr; }
-            .ai-panel { display: none; }
-            .card { width: 115px; height: 160px; padding: 6px; }
+            body {
+                height: auto;
+            }
+            header {
+                padding: 8px 10px;
+            }
+            h1 {
+                font-size: 1.0rem;
+            }
+            .status-panel { 
+                grid-template-columns: repeat(3, 1fr); 
+                gap: 6px;
+                padding: 8px;
+            }
+            .stat-box {
+                padding: 4px 2px;
+            }
+            .stat-title {
+                font-size: 0.65rem;
+            }
+            .stat-value {
+                font-size: 0.85rem;
+            }
+            .game-field { 
+                grid-template-columns: 1fr; 
+                gap: 8px;
+            }
+            .log-panel {
+                max-height: 180px;
+            }
+            .ai-panel { 
+                min-height: auto;
+                gap: 8px;
+            }
+            .cards-container {
+                justify-content: flex-start;
+            }
+            .card { 
+                width: 120px; 
+                height: 155px; 
+                padding: 6px; 
+            }
             .card-title { font-size: 0.75rem; }
-            .card-desc { font-size: 0.65rem; }
+            .card-desc { font-size: 0.62rem; }
         }
     </style>
 </head>
@@ -376,10 +412,10 @@
             </div>
             <div class="ai-panel">
                 <div class="panel-title" id="lbl-ai">外部・他者勢力 (AI)</div>
-                <div id="ai-status" style="font-size:0.85rem; color:#aaa; line-height:1.4;">
+                <div id="ai-status" style="font-size:0.8rem; color:#aaa; line-height:1.4;">
                     AI行動分析中...
                 </div>
-                <button id="btn-next" style="width: 100%; margin-top: 10px;">何もせず静観</button>
+                <button id="btn-next" style="width: 100%; margin-top: 6px;">何もせず静観</button>
             </div>
         </section>
 
@@ -400,20 +436,6 @@
     <script>
     (function() {
         'use strict';
-
-        // ズーム対策
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(event) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
-
-        document.addEventListener('gesturestart', function(event) {
-            event.preventDefault();
-        });
 
         // 5刻みの詳細データベース（狩猟採集 / 農耕）
         const SOC_DATABASE = {
@@ -654,7 +676,7 @@
                 score: "Puntaje Civ",
                 complexity: "Complejidad Social",
                 inequality: "Índice de Desigualdad",
-                cohesion: "Cohesión Social",
+                cohesion: "Social Cohesion",
                 stage: "Etapa Social",
                 giftCount: "Conteo de Dones",
                 log: "Registro Histórico",
@@ -967,7 +989,6 @@
             }
         }
 
-        // 5刻みで対応するデータベース情報を取得
         function getSocietyDetails(mode, complexity) {
             const roundedComp = Math.max(10, Math.min(mode === 'forager' ? 45 : 100, Math.round(complexity / 5) * 5));
             const data = SOC_DATABASE[mode] && SOC_DATABASE[mode][roundedComp];
