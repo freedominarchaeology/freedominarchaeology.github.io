@@ -52,6 +52,12 @@
             background: #3a3a3a;
             border-color: #d4af37;
         }
+        button:disabled {
+            background: #1a1a1a;
+            color: #555;
+            border-color: #333;
+            cursor: not-allowed;
+        }
         main {
             flex: 1;
             display: grid;
@@ -65,7 +71,7 @@
         }
         .status-panel {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 10px;
             background: #1e1e1e;
             padding: 12px;
@@ -85,7 +91,7 @@
             margin-bottom: 4px;
         }
         .stat-value {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: #fff;
         }
@@ -115,6 +121,7 @@
             padding: 10px;
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
         .panel-title {
             font-size: 0.85rem;
@@ -122,24 +129,43 @@
             margin-bottom: 8px;
             border-bottom: 1px solid #333;
             padding-bottom: 4px;
+            flex-shrink: 0;
         }
         .log-content {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: scroll;
+            max-height: 100%;
             font-size: 0.85rem;
             line-height: 1.4;
             color: #ccc;
             display: flex;
             flex-direction: column;
             gap: 6px;
+            padding-right: 5px;
+        }
+        .log-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .log-content::-webkit-scrollbar-track {
+            background: #121212;
+            border-radius: 3px;
+        }
+        .log-content::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        .log-content::-webkit-scrollbar-thumb:hover {
+            background: #d4af37;
         }
         .log-entry {
             padding: 4px 8px;
             border-radius: 3px;
             background: rgba(255,255,255,0.03);
+            word-break: break-all;
         }
         .log-entry.event { border-left: 2px solid #e74c3c; }
         .log-entry.action { border-left: 2px solid #2ecc71; }
+        .log-entry.info { border-left: 2px solid #3498db; }
         .ai-panel {
             background: #1e1e1e;
             border-radius: 6px;
@@ -169,8 +195,8 @@
             background: #2a2a2a;
             border: 1px solid #444;
             border-radius: 6px;
-            width: 140px;
-            height: 180px;
+            width: 150px;
+            height: 190px;
             padding: 10px;
             display: flex;
             flex-direction: column;
@@ -179,10 +205,15 @@
             transition: transform 0.2s, border-color 0.2s;
             flex-shrink: 0;
         }
-        .card:hover {
+        .card:hover:not(.disabled) {
             transform: translateY(-5px);
             border-color: #d4af37;
             background: #333;
+        }
+        .card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #222;
         }
         .card-title {
             font-size: 0.85rem;
@@ -196,10 +227,11 @@
             line-height: 1.2;
             text-align: center;
         }
-        .card-cost {
-            font-size: 0.7rem;
-            color: #888;
-            text-align: right;
+        .card-req {
+            font-size: 0.65rem;
+            color: #e74c3c;
+            text-align: center;
+            font-weight: bold;
         }
         .modal {
             display: none;
@@ -243,10 +275,10 @@
             padding: 8px;
         }
         @media (max-width: 768px) {
-            .status-panel { grid-template-columns: repeat(2, 1fr); }
+            .status-panel { grid-template-columns: repeat(3, 1fr); }
             .game-field { grid-template-columns: 1fr; }
             .ai-panel { display: none; }
-            .card { width: 110px; height: 150px; padding: 6px; }
+            .card { width: 115px; height: 160px; padding: 6px; }
             .card-title { font-size: 0.75rem; }
             .card-desc { font-size: 0.65rem; }
         }
@@ -276,6 +308,11 @@
                 <div class="stat-bar"><div class="stat-fill" style="width: 100%;"></div></div>
             </div>
             <div class="stat-box">
+                <div class="stat-title" id="lbl-score">文明スコア</div>
+                <div class="stat-value" id="val-score">0</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-score" style="width: 0%;"></div></div>
+            </div>
+            <div class="stat-box">
                 <div class="stat-title" id="lbl-complexity">社会的複雑度</div>
                 <div class="stat-value" id="val-complexity">10</div>
                 <div class="stat-bar"><div class="stat-fill" id="bar-complexity"></div></div>
@@ -302,7 +339,7 @@
                 <div id="ai-status" style="font-size:0.85rem; color:#aaa; line-height:1.4;">
                     AI行動分析中...
                 </div>
-                <button id="btn-next" style="width: 100%; margin-top: 10px;">次へ経過</button>
+                <button id="btn-next" style="width: 100%; margin-top: 10px;">何もせず静観</button>
             </div>
         </section>
 
@@ -329,30 +366,34 @@
                 title: "GIFT WAR: 贈与の社会的機能",
                 help: "解説",
                 turn: "生存年数",
+                score: "文明スコア",
                 complexity: "社会的複雑度",
                 inequality: "格差インデックス",
                 cohesion: "社会的結束度",
                 log: "社会履歴ログ",
                 ai: "外部・他者勢力",
                 hand: "実行可能な戦略カード",
-                next: "何もせず年数経過",
+                next: "何もせず静観",
                 close: "閉じる",
                 gameOver: "社会が崩壊しました！",
                 win: "文明の維持に成功しています",
                 aiText: "他勢力は資源蓄積を進めています。",
+                reqPotlatch: "条件: 複雑度30以上 & 格差40%以上",
+                reqFreeGift: "条件: 結束度20以上消費",
                 cards: {
-                    accumulate: { name: "資源蓄積", desc: "自身の資源を貯め、複雑度を上げるが格差も拡大する。" },
-                    directGift: { name: "直接贈与", desc: "資源を他者に与え、格差を抑え結束度を上げる。" },
-                    obligatory: { name: "義務的返礼", desc: "相互に返礼義務を生み、中間的な結束度を維持する。" },
-                    potlatch: { name: "ポトラッチ(破棄)", desc: "過剰な財を破棄し威信を得る。格差を大幅低減。" },
-                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。崩壊を防ぎ複雑度を最大維持。" }
+                    accumulate: { name: "資源蓄積", desc: "複雑度+12、格差+15。高得点を目指す基本成長。" },
+                    directGift: { name: "直接贈与", desc: "格差-10、結束度+5、複雑度-2。" },
+                    obligatory: { name: "義務的返礼", desc: "結束度+8、格差+3。安定した社会維持。" },
+                    potlatch: { name: "ポトラッチ(破棄)", desc: "財を破壊し格差-30、結束度+15。代償: 複雑度-15。" },
+                    freeGift: { name: "無償の贈与", desc: "見返りなし。格差-15、結束度+10。代償: 複雑度+0(成長停滞)。" }
                 },
-                helpContent: "このゲームはPLOS Complex Systemsに掲載された論文に基づくシミュレーションです。社会的複雑度が高まるにつれて資源格差が拡大し、放置すると社会的結束度が低下して崩壊を迎えます。「無償の贈与」や「ポトラッチ」を適切に組み込むことで格差を解消し、社会の崩壊を防ぐことが目標です。"
+                helpContent: "【ゲームシステム要件】\n1. 社会的複雑度が高まるほど、毎ターン得られる文明スコア（複雑度×ボーナス）が増加します。\n2. ポトラッチは「複雑度30以上かつ格差40%以上」の危機状態でのみ発動可能で、格差を激減させる代わりに積み上げた複雑度を大きく損ないます。\n3. 無償の贈与は安全に格差を下げられますが、複雑度の成長がストップするためスコアが伸び悩みます。"
             },
             en: {
                 title: "GIFT WAR: Social Dynamics of Giving",
                 help: "Help",
                 turn: "Years Survived",
+                score: "Civ Score",
                 complexity: "Social Complexity",
                 inequality: "Inequality Index",
                 cohesion: "Social Cohesion",
@@ -364,19 +405,22 @@
                 gameOver: "Society Collapsed!",
                 win: "Civilization Maintained",
                 aiText: "Other factions are accumulating resources.",
+                reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40%",
+                reqFreeGift: "Req: Consumes Cohesion",
                 cards: {
-                    accumulate: { name: "Accumulate", desc: "Increases complexity but widens inequality." },
-                    directGift: { name: "Direct Gift", desc: "Gives resources, reducing inequality and boosting cohesion." },
-                    obligatory: { name: "Obligatory Reciprocity", desc: "Creates mutual obligation, maintaining moderate cohesion." },
-                    potlatch: { name: "Potlatch", desc: "Destroys excess wealth to gain prestige. Drastically cuts inequality." },
-                    freeGift: { name: "Pure Free Gift", desc: "Unconditional giving. Prevents collapse and sustains high complexity." }
+                    accumulate: { name: "Accumulate", desc: "Complexity +12, Inequality +15. High score driver." },
+                    directGift: { name: "Direct Gift", desc: "Inequality -10, Cohesion +5, Complexity -2." },
+                    obligatory: { name: "Obligatory Reciprocity", desc: "Cohesion +8, Inequality +3. Stable maintenance." },
+                    potlatch: { name: "Potlatch", desc: "Destroys wealth: Inequality -30, Cohesion +15. Cost: Complexity -15." },
+                    freeGift: { name: "Pure Free Gift", desc: "Unconditional: Inequality -15, Cohesion +10. Cost: Zero complexity growth." }
                 },
-                helpContent: "Based on PLOS Complex Systems research. As social complexity grows, inequality naturally increases. Unchecked inequality lowers social cohesion, leading to societal collapse. Strategically use 'Pure Free Gift' and 'Potlatch' to reduce inequality and preserve society."
+                helpContent: "1. Higher Social Complexity increases the Civilization Score multiplier per turn.\n2. Potlatch requires Complexity ≥ 30 and Inequality ≥ 40%. It drastically cuts inequality but sacrifices complexity.\n3. Pure Free Gift lowers inequality safely, but freezes complexity growth, limiting score expansion."
             },
             zh: {
                 title: "GIFT WAR: 馈赠的社会功能",
                 help: "说明",
                 turn: "生存年数",
+                score: "文明积分",
                 complexity: "社会复杂度",
                 inequality: "不平等指数",
                 cohesion: "社会凝聚力",
@@ -388,19 +432,22 @@
                 gameOver: "社会已崩溃！",
                 win: "文明成功延续",
                 aiText: "其他势力正在积累资源。",
+                reqPotlatch: "条件: 复杂度≥30 且 不平等≥40%",
+                reqFreeGift: "条件: 消耗凝聚力",
                 cards: {
-                    accumulate: { name: "资源积累", desc: "增加复杂度，但会扩大贫富差距。" },
-                    directGift: { name: "直接馈赠", desc: "赠予资源，减少差距并提高凝聚力。" },
-                    obligatory: { name: "义务互惠", desc: "产生互惠义务，维持中等凝聚力。" },
-                    potlatch: { name: "夸富宴(毁财)", desc: "销毁过剩财富以获得声望，大幅降低差距。" },
-                    freeGift: { name: "无偿馈赠", desc: "不求回报的赠与，防止社会崩溃并维持极高复杂度。" }
+                    accumulate: { name: "资源积累", desc: "复杂度+12，不平等+15。高分主驱动力。" },
+                    directGift: { name: "直接馈赠", desc: "不平等-10，凝聚力+5，复杂度-2。" },
+                    obligatory: { name: "义务互惠", desc: "凝聚力+8，不平等+3。维持稳定。" },
+                    potlatch: { name: "夸富宴(毁财)", desc: "毁财: 不平等-30，凝聚力+15。代价: 复杂度-15。" },
+                    freeGift: { name: "无偿馈赠", desc: "无条件: 不平等-15，凝聚力+10。代价: 复杂度停滞。" }
                 },
-                helpContent: "基于PLOS Complex Systems发表的研究。随着社会复杂度提高，不平等自然加剧。通过策略性地使用“无偿馈赠”和“夸富宴”，可以有效消除差距，防止社会崩溃。"
+                helpContent: "1. 社会复杂度越高，每回合获得的文明积分越多。\n2. 夸富宴仅在复杂度≥30且不平等≥40%时可用，可大幅降低不平等但会牺牲复杂度。\n3. 无偿馈赠可安全降低不平等，但会使复杂度停止增长。"
             },
             ko: {
                 title: "GIFT WAR: 증여의 사회적 기능",
                 help: "설명",
                 turn: "생존 년수",
+                score: "문명 점수",
                 complexity: "사회적 복잡성",
                 inequality: "불평등 지수",
                 cohesion: "사회적 결속도",
@@ -412,19 +459,22 @@
                 gameOver: "사회가 붕괴했습니다!",
                 win: "문명 유지 성공",
                 aiText: "타 세력이 자원을 축적하고 있습니다.",
+                reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
+                reqFreeGift: "조건: 결속도 소비",
                 cards: {
-                    accumulate: { name: "자원 축적", desc: "복잡성을 올리지만 불평등도 확대됨." },
-                    directGift: { name: "직접 증여", desc: "자원을 주어 불평등을 줄이고 결속도를 올림." },
-                    obligatory: { name: "의무적 답례", desc: "상호 답례 의무를 생성, 결속도 유지." },
-                    potlatch: { name: "포트래치(파기)", desc: "과잉 재화를 파기하여 위신 획득. 불평등 대폭 감소." },
-                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 붕괴를 막고 복잡성 최대 유지." }
+                    accumulate: { name: "자원 축적", desc: "복잡성 +12, 불평등 +15. 고득점 필수." },
+                    directGift: { name: "직접 증여", desc: "불평등 -10, 결속도 +5, 복잡성 -2." },
+                    obligatory: { name: "의무적 답례", desc: "결속도 +8, 불평등 +3. 안정 유지." },
+                    potlatch: { name: "포트래치(파기)", desc: "재화 파기: 불평등 -30, 결속도 +15. 대가: 복잡성 -15." },
+                    freeGift: { name: "무상 증여", desc: "대가 없음: 불평등 -15, 결속도 +10. 대가: 복잡성 성장 정지." }
                 },
-                helpContent: "PLOS Complex Systems 논문에 기반한 시뮬레이션입니다. 무상 증여와 포트래치를 적절히 활용하여 불평등을 해소하고 사회 붕괴를 막으세요."
+                helpContent: "1. 복잡성이 높을수록 턴당 문명 점수 획득량이 증가합니다.\n2. 포트래치는 복잡성 30 이상, 불평등 40% 이상일 때만 발동 가능하며 복잡성을 크게 깎습니다.\n3. 무상 증여는 안전하지만 복잡성 성장이 정지됩니다."
             },
             fr: {
                 title: "GIFT WAR: Fonction Sociale du Don",
                 help: "Aide",
                 turn: "Années Survécues",
+                score: "Score Civ",
                 complexity: "Complexité Sociale",
                 inequality: "Indice d'Inégalité",
                 cohesion: "Cohésion Sociale",
@@ -436,19 +486,22 @@
                 gameOver: "La société s'est effondrée !",
                 win: "Civilisation Maintenue",
                 aiText: "D'autres factions accumulent des ressources.",
+                reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40%",
+                reqFreeGift: "Req: Consomme de la cohésion",
                 cards: {
-                    accumulate: { name: "Accumulation", desc: "Augmente la complexité mais creuse l'inégalité." },
-                    directGift: { name: "Don Direct", desc: "Offre des ressources, réduisant l'inégalité et renforçant la cohésion." },
-                    obligatory: { name: "Réciprocité Obligatoire", desc: "Crée des obligations mutuelles, maintenant une cohésion modérée." },
-                    potlatch: { name: "Potlatch", desc: "Détruit les richesses excessives pour gagner du prestige. Réduit fortement l'inégalité." },
-                    freeGift: { name: "Don Pur et Gratuit", desc: "Don inconditionnel. Empêche effondrement et maintient une complexité élevée." }
+                    accumulate: { name: "Accumulation", desc: "Complexité +12, Inégalité +15. Moteur de score." },
+                    directGift: { name: "Don Direct", desc: "Inégalité -10, Cohésion +5, Complexité -2." },
+                    obligatory: { name: "Réciprocité Obligatoire", desc: "Cohésion +8, Inégalité +3. Maintien stable." },
+                    potlatch: { name: "Potlatch", desc: "Détruit la richesse: Inégalité -30, Cohésion +15. Coût: Complexité -15." },
+                    freeGift: { name: "Don Pur et Gratuit", desc: "Inconditionnel: Inégalité -15, Cohésion +10. Coût: Croissance stoppée." }
                 },
-                helpContent: "Basé sur les recherches de PLOS Complex Systems. Utilisez le 'Don Pur' et le 'Potlatch' pour éviter l'effondrement social."
+                helpContent: "1. Une complexité sociale plus élevée augmente le score de civilisation.\n2. Le Potlatch nécessite Complexité ≥ 30 et Inégalité ≥ 40%.\n3. Le Don Pur stoppe la croissance de la complexité."
             },
             es: {
                 title: "GIFT WAR: Función Social del Don",
                 help: "Ayuda",
                 turn: "Años Sobrevividos",
+                score: "Puntaje Civ",
                 complexity: "Complejidad Social",
                 inequality: "Índice de Desigualdad",
                 cohesion: "Cohesión Social",
@@ -460,20 +513,23 @@
                 gameOver: "¡La sociedad ha colapsado!",
                 win: "Civilización Mantenida",
                 aiText: "Otras facciones están acumulando recursos.",
+                reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40%",
+                reqFreeGift: "Req: Consume cohesión",
                 cards: {
-                    accumulate: { name: "Acumulación", desc: "Aumenta la complejidad pero amplía la desigualdad." },
-                    directGift: { name: "Don Directo", desc: "Entrega recursos, reduciendo la desigualdad y aumentando la cohesión." },
-                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Crea obligaciones mutuas, manteniendo una cohesión moderada." },
-                    potlatch: { name: "Potlatch", desc: "Destruye el exceso de riqueza para ganar prestigio. Reduce drásticamente la desigualdad." },
-                    freeGift: { name: "Don Puro y Gratuito", desc: "Don incondicional. Evita el colapso y mantiene una alta complejidad." }
+                    accumulate: { name: "Acumulación", desc: "Complejidad +12, Desigualdad +15. Clave de puntaje." },
+                    directGift: { name: "Don Directo", desc: "Desigualdad -10, Cohesión +5, Complejidad -2." },
+                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Cohesión +8, Desigualdad +3. Mantenimiento estable." },
+                    potlatch: { name: "Potlatch", desc: "Destruye riqueza: Desigualdad -30, Cohesión +15. Costo: Complejidad -15." },
+                    freeGift: { name: "Don Puro y Gratuito", desc: "Incondicional: Desigualdad -15, Cohesión +10. Costo: Crecimiento cero." }
                 },
-                helpContent: "Basado en la investigación de PLOS Complex Systems. Utilice el 'Don Puro' y el 'Potlatch' para evitar el colapso social."
+                helpContent: "1. Mayor complejidad social aumenta los puntos por turno.\n2. Potlatch requiere Complejidad ≥ 30 y Desigualdad ≥ 40%.\n3. El Don Puro congela el crecimiento de la complejidad."
             }
         };
 
         let state = {
             lang: 'ja',
             turn: 1,
+            score: 0,
             complexity: 10,
             inequality: 10,
             cohesion: 100,
@@ -486,6 +542,9 @@
             btnHelp: document.getElementById('btn-help'),
             lblTurn: document.getElementById('lbl-turn'),
             valTurn: document.getElementById('val-turn'),
+            lblScore: document.getElementById('lbl-score'),
+            valScore: document.getElementById('val-score'),
+            barScore: document.getElementById('bar-score'),
             lblComplexity: document.getElementById('lbl-complexity'),
             valComplexity: document.getElementById('val-complexity'),
             barComplexity: document.getElementById('bar-complexity'),
@@ -527,6 +586,7 @@
             DOM.appTitle.textContent = t.title;
             DOM.btnHelp.textContent = t.help;
             DOM.lblTurn.textContent = t.turn;
+            DOM.lblScore.textContent = t.score;
             DOM.lblComplexity.textContent = t.complexity;
             DOM.lblInequality.textContent = t.inequality;
             DOM.lblCohesion.textContent = t.cohesion;
@@ -546,25 +606,48 @@
 
             if (state.isGameOver) return;
 
-            const t = I18N[state.lang].cards;
+            const t = I18N[state.lang];
             const cardKeys = ['accumulate', 'directGift', 'obligatory', 'potlatch', 'freeGift'];
 
             cardKeys.forEach(key => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'card';
                 
+                let isExecutable = true;
+                let reqMsg = "";
+
+                if (key === 'potlatch') {
+                    if (state.complexity < 30 || state.inequality < 40) {
+                        isExecutable = false;
+                        reqMsg = t.reqPotlatch;
+                    }
+                }
+
+                if (!isExecutable) {
+                    cardEl.classList.add('disabled');
+                }
+
                 const title = document.createElement('div');
                 title.className = 'card-title';
-                title.textContent = t[key].name;
+                title.textContent = t.cards[key].name;
 
                 const desc = document.createElement('div');
                 desc.className = 'card-desc';
-                desc.textContent = t[key].desc;
+                desc.textContent = t.cards[key].desc;
 
                 cardEl.appendChild(title);
                 cardEl.appendChild(desc);
 
-                cardEl.addEventListener('click', () => processTurn(key));
+                if (reqMsg) {
+                    const req = document.createElement('div');
+                    req.className = 'card-req';
+                    req.textContent = reqMsg;
+                    cardEl.appendChild(req);
+                }
+
+                if (isExecutable) {
+                    cardEl.addEventListener('click', () => processTurn(key));
+                }
                 DOM.cardsBox.appendChild(cardEl);
             });
         }
@@ -583,11 +666,19 @@
                 addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
             }
 
-            state.inequality += Math.floor(state.complexity * 0.3);
+            // 複雑度に基づくスコア算定（複雑度が高いほど文明獲得ポイントが跳ね上がる）
+            const turnScore = Math.floor(state.complexity * (1 + state.complexity / 50));
+            state.score += turnScore;
+            addLog(`+${turnScore} ${t.score}`, 'info');
+
+            // 格差の自動増加と結束度へのダメージ計算
+            state.inequality += Math.floor(state.complexity * 0.25);
             if (state.inequality > 50) {
-                state.cohesion -= Math.floor((state.inequality - 50) * 0.5);
+                const penalty = Math.floor((state.inequality - 50) * 0.6);
+                state.cohesion -= penalty;
             }
 
+            // ステータス範囲制限
             state.complexity = Math.max(10, Math.min(100, state.complexity));
             state.inequality = Math.max(0, Math.min(100, state.inequality));
             state.cohesion = Math.max(0, Math.min(100, state.cohesion));
@@ -595,43 +686,48 @@
             if (state.cohesion <= 0) {
                 state.isGameOver = true;
                 addLog(`[CRASH] ${t.gameOver}`, 'event');
-                showModal(t.gameOver, `${t.gameOver} (Turn: ${state.turn})`);
+                showModal(t.gameOver, `${t.gameOver}\n${t.turn}: ${state.turn}\n${t.score}: ${state.score}`);
             } else {
                 state.turn++;
             }
 
+            renderHand();
             updateUI();
         }
 
         function applyCardEffect(key) {
             switch(key) {
                 case 'accumulate':
-                    state.complexity += 8;
-                    state.inequality += 12;
+                    state.complexity += 12;
+                    state.inequality += 15;
                     break;
                 case 'directGift':
                     state.inequality = Math.max(0, state.inequality - 10);
                     state.cohesion += 5;
+                    state.complexity = Math.max(10, state.complexity - 2);
                     break;
                 case 'obligatory':
                     state.cohesion += 8;
-                    state.inequality += 2;
+                    state.inequality += 3;
                     break;
                 case 'potlatch':
-                    state.inequality = Math.max(0, state.inequality - 25);
-                    state.complexity = Math.max(10, state.complexity - 5);
-                    state.cohesion += 10;
+                    state.inequality = Math.max(0, state.inequality - 30);
+                    state.cohesion += 15;
+                    state.complexity = Math.max(10, state.complexity - 15); // デメリット：破壊により高度な社会的複雑度を喪失
                     break;
                 case 'freeGift':
-                    state.inequality = Math.max(0, state.inequality - 18);
-                    state.cohesion += 15;
-                    state.complexity += 3;
+                    state.inequality = Math.max(0, state.inequality - 15);
+                    state.cohesion += 10;
+                    // デメリット：純粋贈与のみでは技術・複雑度の進化が停止する
                     break;
             }
         }
 
         function updateUI() {
             DOM.valTurn.textContent = state.turn;
+            DOM.valScore.textContent = state.score;
+            DOM.barScore.style.width = `${Math.min(100, state.score / 50)}%`;
+
             DOM.valComplexity.textContent = state.complexity;
             DOM.barComplexity.style.width = `${state.complexity}%`;
             
@@ -647,6 +743,8 @@
             entry.className = `log-entry ${type}`;
             entry.textContent = msg;
             DOM.logBox.appendChild(entry);
+            
+            // ログの自動スクロール調整（最新行へスクロール）
             DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
         }
 
