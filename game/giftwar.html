@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIFT WAR</title>
+    <title>GIFT WAR - Action & Economy</title>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -36,19 +36,18 @@
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             color: #f0c040;
             text-shadow: 2px 2px #000;
-            letter-spacing: 2px;
         }
 
-        .lang-select {
+        .lang-select, select, button {
             background: #1a1a24;
             color: #f0c040;
             border: 2px solid #8a785d;
-            padding: 5px;
+            padding: 4px 8px;
             font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer;
         }
 
@@ -69,24 +68,23 @@
         .panel {
             background-color: #2a2a38;
             border: 4px ridge #8a785d;
-            padding: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .panel-title {
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: #f0c040;
             border-bottom: 2px dashed #8a785d;
             padding-bottom: 4px;
-            margin-bottom: 4px;
         }
 
         .stat-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
 
         .stat-value {
@@ -98,10 +96,8 @@
             background-color: #4a3b5c;
             color: #f0c040;
             border: 2px outset #8a785d;
-            padding: 8px 12px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            cursor: pointer;
+            padding: 6px 10px;
+            font-size: 0.85rem;
             text-align: center;
             user-select: none;
         }
@@ -127,60 +123,54 @@
         }
 
         .log-box {
-            height: 120px;
+            height: 100px;
             background-color: #101018;
             border: 2px solid #5a4b3d;
-            padding: 8px;
+            padding: 6px;
             overflow-y: auto;
-            font-size: 0.85rem;
-            line-height: 1.4;
+            font-size: 0.8rem;
+            line-height: 1.3;
         }
 
         .log-entry {
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             border-bottom: 1px dotted #333;
-            min-height: 1.2em;
+            min-height: 1.1em;
             word-break: break-all;
         }
 
-        .grid-dosojin {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+        /* Action Combat Panel */
+        #combatCanvas {
+            width: 100%;
+            height: 140px;
+            background-color: #050508;
+            border: 2px solid #8a785d;
+            touch-action: none;
+            cursor: crosshair;
         }
 
-        .dosojin-card {
-            background: #1a1a24;
-            border: 2px solid #5a4b3d;
-            padding: 6px;
-            text-align: center;
-            font-size: 0.85rem;
-        }
-
-        .purity-bar-container {
+        .hp-bar-container {
             width: 100%;
             background-color: #333;
-            height: 10px;
-            margin-top: 4px;
+            height: 12px;
             border: 1px solid #666;
+            margin-bottom: 4px;
         }
 
-        .purity-bar {
+        .hp-bar {
             height: 100%;
             background-color: #a83232;
-            width: 0%;
-            transition: width 0.3s ease;
+            width: 100%;
+            transition: width 0.1s linear;
         }
 
         .hero-badge {
             color: #55ffff;
             font-weight: bold;
-            text-shadow: 0 0 4px #00ffff;
         }
 
         .status-boost {
             color: #55ff55;
-            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -199,70 +189,77 @@
     </header>
 
     <div class="main-container">
-        <!-- Status -->
+        <!-- Status & Equipment -->
         <div class="panel">
-            <div class="panel-title" id="t-status">ステータス</div>
+            <div class="panel-title" id="t-status">ステータス・装備</div>
             <div class="stat-row"><span id="t-class">階級:</span> <span id="valClass" class="stat-value">平民</span></div>
-            <div class="stat-row"><span id="t-hero">英雄称号:</span> <span id="valHero" class="stat-value">なし</span></div>
+            <div class="stat-row"><span id="t-hero">称号:</span> <span id="valHero" class="stat-value">なし</span></div>
             <div class="stat-row"><span id="t-prestige">威信:</span> <span id="valPrestige" class="stat-value">0</span></div>
             <div class="stat-row"><span id="t-fame">名声:</span> <span id="valFame" class="stat-value">0</span></div>
-            <div class="stat-row"><span id="t-valour">武勇値:</span> <span id="valValour" class="stat-value">0</span></div>
-            <div class="stat-row"><span id="t-decision">決定権pt:</span> <span id="valDecision" class="stat-value">0</span></div>
-            <div class="stat-row"><span id="t-boost">能力強化:</span> <span id="valBoost" class="stat-value status-boost">なし</span></div>
+            <div class="stat-row"><span id="t-valour">武勇:</span> <span id="valValour" class="stat-value">0</span></div>
+            <div class="stat-row"><span id="t-gift-count">贈与実績:</span> <span id="valGiftCount" class="stat-value">0</span></div>
+            <div class="stat-row"><span id="t-weapon">装備武具:</span> <span id="valWeapon" class="stat-value">素手 (ATK: 5)</span></div>
         </div>
 
-        <!-- Potlatch Mechanics -->
+        <!-- Potlatch & Strategy -->
         <div class="panel">
-            <div class="panel-title" id="t-gift-system">ポトラッチ (贈与の儀)</div>
-            <div class="stat-row"><span id="t-gift-goods">所持贈与品:</span> <span id="valGoods" class="stat-value">5</span></div>
-            <div class="stat-row"><span id="t-decay-timer">減少カウントダウン:</span> <span id="valTimer" class="stat-value">10s</span></div>
-            <button id="btnGiveGift" class="btn">贈り物を贈る (+威信/名声)</button>
-            <button id="btnReceiveGift" class="btn">贈り物を受け取る (+強化)</button>
-            <button id="btnProduceGoods" class="btn">贈与品を生産する</button>
-        </div>
-
-        <!-- Dosojin & Combat -->
-        <div class="panel full-width">
-            <div class="panel-title" id="t-dosojin-title">四隅の道祖神と穢れ</div>
-            <div class="grid-dosojin">
-                <div class="dosojin-card">
-                    <div id="t-dosojin-1">東の道祖神</div>
-                    <div class="purity-bar-container"><div id="defileBar0" class="purity-bar"></div></div>
-                    <button id="btnPurify0" class="btn" style="margin-top: 4px; padding: 4px; width: 100%;">浄化/討伐</button>
-                </div>
-                <div class="dosojin-card">
-                    <div id="t-dosojin-2">西の道祖神</div>
-                    <div class="purity-bar-container"><div id="defileBar1" class="purity-bar"></div></div>
-                    <button id="btnPurify1" class="btn" style="margin-top: 4px; padding: 4px; width: 100%;">浄化/討伐</button>
-                </div>
-                <div class="dosojin-card">
-                    <div id="t-dosojin-3">南の道祖神</div>
-                    <div class="purity-bar-container"><div id="defileBar2" class="purity-bar"></div></div>
-                    <button id="btnPurify3" class="btn" style="margin-top: 4px; padding: 4px; width: 100%;">浄化/討伐</button>
-                </div>
-                <div class="dosojin-card">
-                    <div id="t-dosojin-4">北の道祖神</div>
-                    <div class="purity-bar-container"><div id="defileBar3" class="purity-bar"></div></div>
-                    <button id="btnPurify2" class="btn" style="margin-top: 4px; padding: 4px; width: 100%;">浄化/討伐</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Governance -->
-        <div class="panel full-width">
-            <div class="panel-title" id="t-governance">統治と領域拡張</div>
+            <div class="panel-title" id="t-potlatch">贈与と対戦相手</div>
             <div class="stat-row">
-                <span id="t-domain">支配領域:</span> <span id="valDomain" class="stat-value">なし</span>
+                <span id="t-target">贈与対象:</span>
+                <select id="targetSelect">
+                    <option value="rivalA">ライバルA (威信:0)</option>
+                    <option value="rivalB">ライバルB (威信:0)</option>
+                </select>
             </div>
-            <div style="display: flex; gap: 8px; margin-top: 4px;">
-                <button id="btnClassUp" class="btn" style="flex: 1;">階級昇格</button>
-                <button id="btnCouncil" class="btn" style="flex: 1;">領域決定会議に参加</button>
+            <div class="stat-row">
+                <span id="t-gift-type">贈与品ランク:</span>
+                <select id="giftRankSelect">
+                    <option value="0">初級品 (所有:0)</option>
+                    <option value="1">中級品 (所有:0)</option>
+                    <option value="2">高級品 (所有:0)</option>
+                    <option value="3">特級品 (所有:0)</option>
+                </select>
             </div>
+            <button id="btnGiveGift" class="btn">選択相手に贈与を行う</button>
+            <button id="btnReceiveGift" class="btn">返礼を受け取る (+バフ)</button>
+            <div class="stat-row"><span id="t-decay">減少まで:</span> <span id="valTimer" class="stat-value">10s</span></div>
+        </div>
+
+        <!-- Action Combat Panel -->
+        <div class="panel full-width">
+            <div class="panel-title" id="t-combat">討伐 (タップ/スワイプで攻撃)</div>
+            <div class="stat-row">
+                <span id="valMonsterName" class="stat-value">道祖神の穢れモンスター</span>
+                <span id="valMonsterHpText" class="stat-value">HP: 100/100</span>
+            </div>
+            <div class="hp-bar-container"><div id="valMonsterHpBar" class="hp-bar"></div></div>
+            <canvas id="combatCanvas" width="800" height="200"></canvas>
+        </div>
+
+        <!-- Crafting & Taxes -->
+        <div class="panel full-width">
+            <div class="panel-title" id="t-craft">生産と税収</div>
+            <div class="stat-row">
+                <span id="valMaterials">素材: 皮革[0] 鉱石[0] 霊木[0] | 税収: 宝珠[0]</span>
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                <button id="btnCollectTax" class="btn" style="flex: 1;">拠点から税を徴収</button>
+                <button id="btnCraftGift" class="btn" style="flex: 1;">贈与品をクラフト</button>
+            </div>
+        </div>
+
+        <!-- Class & Domain Expansion -->
+        <div class="panel full-width">
+            <div class="panel-title" id="t-governance">統治と階級</div>
+            <div class="stat-row">
+                <span id="t-domain">支配拠点:</span> <span id="valDomain" class="stat-value">なし</span>
+            </div>
+            <button id="btnClassUp" class="btn" style="margin-top: 4px;">階級昇格申請 (要:贈与数&威信)</button>
         </div>
 
         <!-- Log Panel -->
         <div class="panel full-width">
-            <div class="panel-title" id="t-log">記録 (Log)</div>
+            <div class="panel-title" id="t-log">記録</div>
             <div id="logBox" class="log-box"></div>
         </div>
     </div>
@@ -271,438 +268,377 @@
         (function() {
             'use strict';
 
-            const MAX_LOGS = 15;
+            const MAX_LOGS = 12;
 
-            // --- Multi-language Dictionary ---
             const I18N = {
                 ja: {
-                    status: "ステータス", class: "階級:", hero: "英雄称号:", prestige: "威信:", fame: "名声:",
-                    valour: "武勇値:", decision: "決定権pt:", boost: "能力強化:", giftSystem: "ポトラッチ (贈与の儀)",
-                    giftGoods: "所持贈与品:", decayTimer: "減少カウントダウン:", btnGive: "贈り物を贈る (+威信/名声)",
-                    btnReceive: "贈り物を受け取る (+強化)", btnProduce: "贈与品を生産する", dosojinTitle: "四隅の道祖神と穢れ",
-                    dosojin1: "東の道祖神", dosojin2: "西の道祖神", dosojin3: "南の道祖神", dosojin4: "北の道祖神",
-                    btnPurify: "浄化/討伐", governance: "統治と領域拡張", domain: "支配領域:", btnClassUp: "階級昇格",
-                    btnCouncil: "領域決定会議に参加", logTitle: "記録 (Log)", none: "なし", heroTitle: "英雄",
-                    boostActive: "活性中", classes: ["平民", "長", "公", "王", "大君", "皇帝"],
+                    status: "ステータス・装備", class: "階級:", hero: "称号:", prestige: "威信:", fame: "名声:",
+                    valour: "武勇:", giftCount: "贈与実績:", weapon: "装備武具:", potlatch: "贈与と対戦相手",
+                    target: "贈与対象:", giftType: "贈与品ランク:", btnGive: "選択相手に贈与を行う",
+                    btnReceive: "返礼を受け取る (+バフ)", decay: "減少まで:", combat: "討伐 (タップ/スワイプで攻撃)",
+                    craft: "生産と税収", governance: "統治と階級", domain: "支配拠点:", btnClassUp: "階級昇格申請",
+                    btnCollectTax: "拠点から税を徴収", btnCraftGift: "贈与品をクラフト", logTitle: "記録", none: "なし",
+                    heroTitle: "伝説の英雄", classes: ["平民", "長", "公", "王", "大君", "皇帝"],
                     domains: ["なし", "村", "町", "国", "大国", "帝国"],
-                    msgGive: "贈り物を贈り、威信と名声が高まった。",
-                    msgReceive: "贈り物を受け取り、能力が一時的に強化された！",
-                    msgProduce: "贈与品を1つ生産した。",
-                    msgNoGoods: "贈与品が足りません！",
-                    msgDecay: "一定時間贈り物をしなかったため、威信と名声が低下した...",
-                    msgPurify: "道祖神の穢れを浄化し、武勇値と名声を得た。",
-                    msgBoss: "穢れが極限に達しボスが出現！無事に撃破した！",
-                    msgHero: "武勇と名声が極まり、英雄として覚醒した！",
-                    msgClassUp: "階級が昇格した: ",
-                    msgClassFail: "昇格に必要な威信・名声が不足しています。",
-                    msgCouncilSuccess: "決定権を行使し、新たな領域を確立した: ",
-                    msgCouncilFail: "決定権ポイントが不足しているか、会議参加資格がありません。",
-                    msgNoCouncilAuth: "威信が低すぎるため、決定会議の出席を拒否された。"
+                    giftRanks: ["初級品", "中級品", "高級品", "特級品"],
+                    msgHit: "攻撃ヒット! ダメージ: ",
+                    msgKill: "モンスターを撃破! 素材を獲得。",
+                    msgBossKill: "ボス撃破! 伝説の武具を獲得した！",
+                    msgGiftSuccess: "へ贈与を行った。威信・名声が上昇！",
+                    msgNoGift: "指定したランクの贈与品を持っていません。",
+                    msgTaxCollected: "拠点から税（宝珠）を徴収しました。",
+                    msgNoTaxDomain: "税を徴収するには「長」以上の階級と拠点が必要です。",
+                    msgCraftSuccess: "素材を組み合わせて贈与品を作成しました。",
+                    msgCraftFail: "クラフトに必要な素材が不足しています。",
+                    msgDecay: "贈与を怠ったため、威信と名声が衰退した...",
+                    msgClassUp: "階級が昇格しました: ",
+                    msgClassFail: "昇格要件（威信・名声・贈与実績）を満たしていません。"
                 },
                 en: {
-                    status: "Status", class: "Class:", hero: "Hero Title:", prestige: "Prestige:", fame: "Fame:",
-                    valour: "Valour:", decision: "Decision Pt:", boost: "Buff:", giftSystem: "Potlatch (Gifting)",
-                    giftGoods: "Gifts Held:", decayTimer: "Decay In:", btnGive: "Give Gift (+Prestige/Fame)",
-                    btnReceive: "Receive Gift (+Buff)", btnProduce: "Produce Gift Goods", dosojinTitle: "Shrine Guardians & Impurity",
-                    dosojin1: "East Shrine", dosojin2: "West Shrine", dosojin3: "South Shrine", dosojin4: "North Shrine",
-                    btnPurify: "Purify/Defeat", governance: "Governance & Expansion", domain: "Territory:", btnClassUp: "Advance Class",
-                    btnCouncil: "Attend Decision Council", logTitle: "Log", none: "None", heroTitle: "HERO",
-                    boostActive: "Active", classes: ["Commoner", "Chief", "Duke", "King", "Overlord", "Emperor"],
+                    status: "Status & Equipment", class: "Class:", hero: "Title:", prestige: "Prestige:", fame: "Fame:",
+                    valour: "Valour:", giftCount: "Gifts Sent:", weapon: "Weapon:", potlatch: "Gifting & Rivals",
+                    target: "Target:", giftType: "Gift Rank:", btnGive: "Send Gift to Target",
+                    btnReceive: "Receive Return Gift", decay: "Decay In:", combat: "Combat (Tap/Swipe to Attack)",
+                    craft: "Crafting & Taxes", governance: "Governance", domain: "Territory:", btnClassUp: "Apply for Promotion",
+                    btnCollectTax: "Collect Taxes", btnCraftGift: "Craft Gift Goods", logTitle: "Log", none: "None",
+                    heroTitle: "Legendary Hero", classes: ["Commoner", "Chief", "Duke", "King", "Overlord", "Emperor"],
                     domains: ["None", "Village", "Town", "Kingdom", "Great Nation", "Empire"],
-                    msgGive: "You gave a gift. Prestige and Fame increased.",
-                    msgReceive: "You received a gift and gained a power buff!",
-                    msgProduce: "Produced 1 Gift Good.",
-                    msgNoGoods: "Not enough Gift Goods!",
-                    msgDecay: "Failing to gift caused Prestige and Fame to decay...",
-                    msgPurify: "Purified shrine impurity, gaining Valour and Fame.",
-                    msgBoss: "Impurity peaked! A Boss appeared and was defeated!",
-                    msgHero: "Your martial feats turned you into a legendary Hero!",
-                    msgClassUp: "Class advanced to: ",
-                    msgClassFail: "Insufficient Prestige/Fame for advancement.",
-                    msgCouncilSuccess: "Used decision points to claim domain: ",
-                    msgCouncilFail: "Insufficient decision points or lacking council rights.",
-                    msgNoCouncilAuth: "Denied entrance to council due to low prestige."
-                },
-                zh: {
-                    status: "状态", class: "阶级:", hero: "英雄称号:", prestige: "威望:", fame: "声望:",
-                    valour: "武勇:", decision: "决策点:", boost: "能力强化:", giftSystem: "波特拉奇 (赠予仪式)",
-                    giftGoods: "持有赠品:", decayTimer: "衰减倒计时:", btnGive: "赠送礼物 (+威望/声望)",
-                    btnReceive: "接受礼物 (+强化)", btnProduce: "生产赠品", dosojinTitle: "四隅道祖神与污秽",
-                    dosojin1: "东之道祖神", dosojin2: "西之道祖神", dosojin3: "南之道祖神", dosojin4: "北之道祖神",
-                    btnPurify: "净化/讨伐", governance: "统治与领域扩张", domain: "支配领域:", btnClassUp: "阶级晋升",
-                    btnCouncil: "参加领域决策会议", logTitle: "记录 (Log)", none: "无", heroTitle: "英雄",
-                    boostActive: "激活", classes: ["平民", "酋长", "公爵", "国王", "大君", "皇帝"],
-                    domains: ["无", "村庄", "城镇", "国家", "大国", "帝国"],
-                    msgGive: "赠送了礼物，威望与声望提升了。",
-                    msgReceive: "接受了礼物，能力获得临时强化！",
-                    msgProduce: "生产了1件赠品。",
-                    msgNoGoods: "赠品不足！",
-                    msgDecay: "长时间未赠送礼物，威望与声望下降了...",
-                    msgPurify: "净化了道祖神的污秽，获得了武勇与声望。",
-                    msgBoss: "污秽达到极限， Boss 出现！成功击退！",
-                    msgHero: "武勇与声望极其显赫，觉醒为英雄！",
-                    msgClassUp: "阶级已晋升为: ",
-                    msgClassFail: "晋升所需的威望或声望不足。",
-                    msgCouncilSuccess: "行使决策权，建立了新的领域: ",
-                    msgCouncilFail: "决策点不足或无权参加会议。",
-                    msgNoCouncilAuth: "因威望过低，被拒绝参加决策会议。"
-                },
-                ko: {
-                    status: "스테이터스", class: "계급:", hero: "영웅 칭호:", prestige: "위신:", fame: "명성:",
-                    valour: "무용:", decision: "결정권pt:", boost: "능력 강화:", giftSystem: "포트래치 (증여 의식)",
-                    giftGoods: "소지 증여품:", decayTimer: "감소 카운트다운:", btnGive: "선물하기 (+위신/명성)",
-                    btnReceive: "선물 받기 (+강화)", btnProduce: "증여품 생산", dosojinTitle: "네 귀퉁이의 도조신과 부정",
-                    dosojin1: "동쪽 도조신", dosojin2: "서쪽 도조신", dosojin3: "남쪽 도조신", dosojin4: "북쪽 도조신",
-                    btnPurify: "정화/토벌", governance: "통치와 영역 확장", domain: "지배 영역:", btnClassUp: "계급 승격",
-                    btnCouncil: "영역 결정 회의 참가", logTitle: "기록 (Log)", none: "없음", heroTitle: "영웅",
-                    boostActive: "활성", classes: ["평민", "추장", "공작", "국왕", "대군", "황제"],
-                    domains: ["없음", "마을", "도시", "국가", "대국", "제국"],
-                    msgGive: "선물을 증여하여 위신과 명성이 상승했습니다.",
-                    msgReceive: "선물을 받아 능力が 일시적으로 강화되었습니다!",
-                    msgProduce: "증여품 1개를 생산했습니다.",
-                    msgNoGoods: "증여품이 부족합니다!",
-                    msgDecay: "일정 시간 선물을 하지 않아 위신과 명성이 감소했습니다...",
-                    msgPurify: "도조신의 부정을 정화하여 무용과 명성을 얻었습니다.",
-                    msgBoss: "부정이 극에 달해 보스가 출현! 무사히 처치했습니다!",
-                    msgHero: "무용과 명성이 극에 달해 영웅으로 각성했습니다!",
-                    msgClassUp: "계급이 승격되었습니다: ",
-                    msgClassFail: "승격에 필요한 위신/명성이 부족합니다.",
-                    msgCouncilSuccess: "결정권을 행사하여 새로운 영역을 확립했습니다: ",
-                    msgCouncilFail: "결정권 포인트가 부족하거나 회의 참가 자격이 없습니다.",
-                    msgNoCouncilAuth: "위신이 너무 낮아 결정 회의 참석이 거부되었습니다."
-                },
-                fr: {
-                    status: "Statut", class: "Classe:", hero: "Titre d'Héros:", prestige: "Prestige:", fame: "Renommée:",
-                    valour: "Valeur:", decision: "Pts Décision:", boost: "Amélioration:", giftSystem: "Potlatch (Rituels de don)",
-                    giftGoods: "Cadeaux:", decayTimer: "Déclin dans:", btnGive: "Offrir un cadeau (+Prestige/Renommée)",
-                    btnReceive: "Recevoir un cadeau (+Bonus)", btnProduce: "Produire des cadeaux", dosojinTitle: "Gardiens & Impureté",
-                    dosojin1: "Sanctuaire Est", dosojin2: "Sanctuaire Ouest", dosojin3: "Sanctuaire Sud", dosojin4: "Sanctuaire Nord",
-                    btnPurify: "Purifier/Vaincre", governance: "Gouvernance & Expansion", domain: "Territoire:", btnClassUp: "Promouvoir Classe",
-                    btnCouncil: "Participer au Conseil", logTitle: "Journal (Log)", none: "Aucun", heroTitle: "HÉRUS",
-                    boostActive: "Actif", classes: ["Roturier", "Chef", "Duc", "Roi", "Suzerain", "Empereur"],
-                    domains: ["Aucun", "Village", "Ville", "Royaume", "Grande Nation", "Empire"],
-                    msgGive: "Vous avez offert un cadeau. Prestige et Renommée augmentent.",
-                    msgReceive: "Vous avez reçu un cadeau! Bonus temporaire accordé.",
-                    msgProduce: "1 cadeau a été produit.",
-                    msgNoGoods: "Pas assez de cadeaux!",
-                    msgDecay: "Absence de don prolongée... Le Prestige et la Renommée déclinent.",
-                    msgPurify: "Impureté purifiée! Gain de Valeur et Renommée.",
-                    msgBoss: "L'impureté est au maximum! Un Boss est apparu et a été vaincu!",
-                    msgHero: "Vos hauts faits vous ont élevé au rang d'Héros légendaire!",
-                    msgClassUp: "Classe promue à: ",
-                    msgClassFail: "Prestige ou Renommée insuffisant pour la promotion.",
-                    msgCouncilSuccess: "Points de décision utilisés! Nouveau territoire: ",
-                    msgCouncilFail: "Points insuffisants ou non autorisé à siéger.",
-                    msgNoCouncilAuth: "Refusé au conseil en raison d'un faible prestige."
-                },
-                es: {
-                    status: "Estado", class: "Clase:", hero: "Título de Héroe:", prestige: "Prestigio:", fame: "Fama:",
-                    valour: "Valor:", decision: "Pts Decisión:", boost: "Mejora:", giftSystem: "Potlatch (Ritual de Don)",
-                    giftGoods: "Regalos:", decayTimer: "Declive en:", btnGive: "Dar Regalo (+Prestigio/Fama)",
-                    btnReceive: "Recibir Regalo (+Mejora)", btnProduce: "Producir Regalos", dosojinTitle: "Guardianes & Impureza",
-                    dosojin1: "Santuario Este", dosojin2: "Santuario Oeste", dosojin3: "Santuario Sur", dosojin4: "Santuario Norte",
-                    btnPurify: "Purificar/Derrotar", governance: "Gobernanza y Expansión", domain: "Territorio:", btnClassUp: "Ascender de Clase",
-                    btnCouncil: "Asistir al Consejo", logTitle: "Registro (Log)", none: "Ninguno", heroTitle: "HÉROE",
-                    boostActive: "Activo", classes: ["Plebeyo", "Jefe", "Duque", "Rey", "Soberano", "Emperador"],
-                    domains: ["Ninguno", "Aldea", "Pueblo", "Reino", "Gran Nación", "Imperio"],
-                    msgGive: "Diste un regalo. Tu Prestigio y Fama aumentaron.",
-                    msgReceive: "¡Recibiste un regalo! Mejora temporal activada.",
-                    msgProduce: "Producido 1 regalo.",
-                    msgNoGoods: "¡No tienes suficientes regalos!",
-                    msgDecay: "No dar regalos causó la caída de tu Prestigio y Fama...",
-                    msgPurify: "¡Impureza purificada! Obtienes Valor y Fama.",
-                    msgBoss: "¡La impureza llegó al límite! ¡Apareció un Jefe y fue derrotado!",
-                    msgHero: "¡Tus hazañas te convirtieron en un Héroe legendario!",
-                    msgClassUp: "Clase ascendida a: ",
-                    msgClassFail: "Prestigio o Fama insuficiente para el ascenso.",
-                    msgCouncilSuccess: "¡Puntos de decisión usados! Nuevo territorio: ",
-                    msgCouncilFail: "Puntos insuficientes o sin derecho a asistir.",
-                    msgNoCouncilAuth: "Entrada denegada al consejo por bajo prestigio."
+                    giftRanks: ["Basic", "Medium", "High", "Special"],
+                    msgHit: "Hit! Damage: ",
+                    msgKill: "Monster defeated! Materials dropped.",
+                    msgBossKill: "BOSS Defeated! Legendary weapon acquired!",
+                    msgGiftSuccess: "Sent gift. Prestige & Fame increased!",
+                    msgNoGift: "You do not have a gift of the selected rank.",
+                    msgTaxCollected: "Collected tax gems from your domain.",
+                    msgNoTaxDomain: "Requires 'Chief' rank or higher to collect taxes.",
+                    msgCraftSuccess: "Crafted a new gift from materials.",
+                    msgCraftFail: "Insufficient materials for crafting.",
+                    msgDecay: "Failure to give gifts caused prestige to decay...",
+                    msgClassUp: "Class Promoted: ",
+                    msgClassFail: "Promotion requirements not met."
                 }
             };
 
-            // State
             let currentLang = 'ja';
             let timerId = null;
 
+            // Weapons Definition
+            const WEAPONS = [
+                { name: "素手", atk: 5 },
+                { name: "鉄の剣", atk: 15 },
+                { name: "名工の刀", atk: 35 },
+                { name: "神殺しの槍 (伝説)", atk: 80 }
+            ];
+
+            // Game State
             const state = {
                 prestige: 0,
                 fame: 0,
                 valour: 0,
-                decisionPoints: 0,
-                goods: 5,
+                giftCount: 0,
                 classLevel: 0,
+                weaponIdx: 0,
                 isHero: false,
                 boostTimer: 0,
-                decayCountdown: 10,
-                dosojinDefile: [10, 20, 15, 5]
+                decayTimer: 10,
+                // Materials
+                leather: 0,
+                ore: 0,
+                wood: 0,
+                gems: 0,
+                // Inventory of gifts [Basic, Medium, High, Special]
+                gifts: [2, 0, 0, 0],
+                // Rivals
+                rivals: {
+                    rivalA: { name: "ライバルA", prestige: 5 },
+                    rivalB: { name: "ライバルB", prestige: 10 }
+                },
+                // Current Monster
+                monster: {
+                    name: "穢れ鬼",
+                    hp: 50,
+                    maxHp: 50,
+                    isBoss: false
+                }
             };
 
-            // Circular Log Buffer Memory Pool (Allocated once, zero garbage collection)
+            // Memory-Optimized Log Buffer
             const logBuffer = new Array(MAX_LOGS).fill("");
-            const logElements = [];
+            const logNodes = [];
 
-            // UI Elements
-            const elements = {
+            // DOM Cache
+            const el = {
                 langSelect: document.getElementById('langSelect'),
+                targetSelect: document.getElementById('targetSelect'),
+                giftRankSelect: document.getElementById('giftRankSelect'),
                 logBox: document.getElementById('logBox'),
-                tStatus: document.getElementById('t-status'),
-                tClass: document.getElementById('t-class'),
-                tHero: document.getElementById('t-hero'),
-                tPrestige: document.getElementById('t-prestige'),
-                tFame: document.getElementById('t-fame'),
-                tValour: document.getElementById('t-valour'),
-                tDecision: document.getElementById('t-decision'),
-                tBoost: document.getElementById('t-boost'),
-                tGiftSystem: document.getElementById('t-gift-system'),
-                tGiftGoods: document.getElementById('t-gift-goods'),
-                tDecayTimer: document.getElementById('t-decay-timer'),
-                tDosojinTitle: document.getElementById('t-dosojin-title'),
-                tDosojin: [
-                    document.getElementById('t-dosojin-1'),
-                    document.getElementById('t-dosojin-2'),
-                    document.getElementById('t-dosojin-3'),
-                    document.getElementById('t-dosojin-4')
-                ],
-                tGovernance: document.getElementById('t-governance'),
-                tDomain: document.getElementById('t-domain'),
-                tLog: document.getElementById('t-log'),
+                canvas: document.getElementById('combatCanvas'),
                 valClass: document.getElementById('valClass'),
                 valHero: document.getElementById('valHero'),
                 valPrestige: document.getElementById('valPrestige'),
                 valFame: document.getElementById('valFame'),
                 valValour: document.getElementById('valValour'),
-                valDecision: document.getElementById('valDecision'),
-                valBoost: document.getElementById('valBoost'),
-                valGoods: document.getElementById('valGoods'),
+                valGiftCount: document.getElementById('valGiftCount'),
+                valWeapon: document.getElementById('valWeapon'),
                 valTimer: document.getElementById('valTimer'),
+                valMonsterName: document.getElementById('valMonsterName'),
+                valMonsterHpText: document.getElementById('valMonsterHpText'),
+                valMonsterHpBar: document.getElementById('valMonsterHpBar'),
+                valMaterials: document.getElementById('valMaterials'),
                 valDomain: document.getElementById('valDomain'),
                 btnGiveGift: document.getElementById('btnGiveGift'),
                 btnReceiveGift: document.getElementById('btnReceiveGift'),
-                btnProduceGoods: document.getElementById('btnProduceGoods'),
-                btnClassUp: document.getElementById('btnClassUp'),
-                btnCouncil: document.getElementById('btnCouncil'),
-                btnPurify: [
-                    document.getElementById('btnPurify0'),
-                    document.getElementById('btnPurify1'),
-                    document.getElementById('btnPurify2'),
-                    document.getElementById('btnPurify3')
-                ],
-                defileBar: [
-                    document.getElementById('defileBar0'),
-                    document.getElementById('defileBar1'),
-                    document.getElementById('defileBar2'),
-                    document.getElementById('defileBar3')
-                ]
+                btnCollectTax: document.getElementById('btnCollectTax'),
+                btnCraftGift: document.getElementById('btnCraftGift'),
+                btnClassUp: document.getElementById('btnClassUp')
             };
 
-            // Pre-allocate Log DOM Node Slots
+            const ctx = el.canvas.getContext('2d');
+
             function setupLogDOM() {
-                elements.logBox.textContent = '';
+                el.logBox.textContent = '';
                 for (let i = 0; i < MAX_LOGS; i++) {
-                    const el = document.createElement('div');
-                    el.className = 'log-entry';
-                    elements.logBox.appendChild(el);
-                    logElements.push(el);
+                    const node = document.createElement('div');
+                    node.className = 'log-entry';
+                    el.logBox.appendChild(node);
+                    logNodes.push(node);
                 }
             }
 
-            function addLog(msgKey, extraText = '') {
-                const dict = I18N[currentLang];
-                const text = (dict[msgKey] || msgKey) + extraText;
-                
-                // Shift array in-place
+            function addLog(msgKey, extra = '') {
+                const dict = I18N[currentLang] || I18N.ja;
+                const msg = (dict[msgKey] || msgKey) + extra;
                 logBuffer.pop();
-                logBuffer.unshift(text);
-
-                // Update text without dynamic DOM creation
+                logBuffer.unshift(msg);
                 for (let i = 0; i < MAX_LOGS; i++) {
-                    logElements[i].textContent = logBuffer[i] ? `> ${logBuffer[i]}` : '';
+                    logNodes[i].textContent = logBuffer[i] ? `> ${logBuffer[i]}` : '';
                 }
             }
 
             function updateUI() {
-                const dict = I18N[currentLang];
+                const dict = I18N[currentLang] || I18N.ja;
 
-                // Dynamic Labels
-                elements.tStatus.textContent = dict.status;
-                elements.tClass.textContent = dict.class;
-                elements.tHero.textContent = dict.hero;
-                elements.tPrestige.textContent = dict.prestige;
-                elements.tFame.textContent = dict.fame;
-                elements.tValour.textContent = dict.valour;
-                elements.tDecision.textContent = dict.decision;
-                elements.tBoost.textContent = dict.boost;
-                elements.tGiftSystem.textContent = dict.giftSystem;
-                elements.tGiftGoods.textContent = dict.giftGoods;
-                elements.tDecayTimer.textContent = dict.decayTimer;
-                elements.tDosojinTitle.textContent = dict.dosojinTitle;
-                elements.tDosojin[0].textContent = dict.dosojin1;
-                elements.tDosojin[1].textContent = dict.dosojin2;
-                elements.tDosojin[2].textContent = dict.dosojin3;
-                elements.tDosojin[3].textContent = dict.dosojin4;
-                elements.tGovernance.textContent = dict.governance;
-                elements.tDomain.textContent = dict.domain;
-                elements.tLog.textContent = dict.logTitle;
+                el.valClass.textContent = dict.classes[state.classLevel];
+                el.valHero.textContent = state.isHero ? dict.heroTitle : dict.none;
+                el.valPrestige.textContent = state.prestige;
+                el.valFame.textContent = state.fame;
+                el.valValour.textContent = state.valour;
+                el.valGiftCount.textContent = state.giftCount;
+                
+                const w = WEAPONS[state.weaponIdx];
+                el.valWeapon.textContent = `${w.name} (ATK:${w.atk})`;
+                
+                el.valTimer.textContent = `${state.decayTimer}s`;
+                el.valDomain.textContent = dict.domains[state.classLevel];
 
-                elements.btnGiveGift.textContent = dict.btnGive;
-                elements.btnReceiveGift.textContent = dict.btnReceive;
-                elements.btnProduceGoods.textContent = dict.btnProduce;
-                elements.btnClassUp.textContent = dict.btnClassUp;
-                elements.btnCouncil.textContent = dict.btnCouncil;
+                // Materials
+                el.valMaterials.textContent = `皮革[${state.leather}] 鉱石[${state.ore}] 霊木[${state.wood}] | 税収: 宝珠[${state.gems}]`;
+
+                // Select options
+                el.targetSelect.options[0].text = `${state.rivals.rivalA.name} (威信:${state.rivals.rivalA.prestige})`;
+                el.targetSelect.options[1].text = `${state.rivals.rivalB.name} (威信:${state.rivals.rivalB.prestige})`;
 
                 for (let i = 0; i < 4; i++) {
-                    elements.btnPurify[i].textContent = dict.btnPurify;
+                    el.giftRankSelect.options[i].text = `${dict.giftRanks[i]} (所有:${state.gifts[i]})`;
                 }
 
-                // Dynamic Values
-                elements.valClass.textContent = dict.classes[state.classLevel];
-                
-                if (state.isHero) {
-                    elements.valHero.textContent = dict.heroTitle;
-                    elements.valHero.className = 'stat-value hero-badge';
-                } else {
-                    elements.valHero.textContent = dict.none;
-                    elements.valHero.className = 'stat-value';
-                }
+                // Monster HP
+                el.valMonsterName.textContent = state.monster.isBoss ? `【BOSS】${state.monster.name}` : state.monster.name;
+                el.valMonsterHpText.textContent = `HP: ${state.monster.hp}/${state.monster.maxHp}`;
+                const pct = Math.max(0, (state.monster.hp / state.monster.maxHp) * 100);
+                el.valMonsterHpBar.style.width = `${pct}%`;
 
-                elements.valPrestige.textContent = state.prestige;
-                elements.valFame.textContent = state.fame;
-                elements.valValour.textContent = state.valour;
-                elements.valDecision.textContent = state.decisionPoints;
-                
-                if (state.boostTimer > 0) {
-                    elements.valBoost.textContent = `${dict.boostActive} (${state.boostTimer}s)`;
-                } else {
-                    elements.valBoost.textContent = dict.none;
-                }
-
-                elements.valGoods.textContent = state.goods;
-                elements.valTimer.textContent = `${state.decayCountdown}s`;
-                elements.valDomain.textContent = dict.domains[state.classLevel];
-
-                // Progress Bars
-                for (let i = 0; i < 4; i++) {
-                    elements.defileBar[i].style.width = `${state.dosojinDefile[i]}%`;
-                }
+                renderCanvas();
             }
 
+            // Canvas Render for Action Combat
+            function renderCanvas() {
+                ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
+                
+                // Background Grid
+                ctx.strokeStyle = "#2a2a38";
+                ctx.lineWidth = 2;
+                for (let x = 0; x < el.canvas.width; x += 40) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, el.canvas.height); ctx.stroke();
+                }
+
+                // Draw Monster (Retro Pixel Square)
+                const cx = el.canvas.width / 2;
+                const cy = el.canvas.height / 2;
+                const size = state.monster.isBoss ? 70 : 40;
+
+                ctx.fillStyle = state.monster.isBoss ? "#ff3333" : "#44bb55";
+                ctx.fillRect(cx - size/2, cy - size/2, size, size);
+                ctx.strokeStyle = "#ffffff";
+                ctx.strokeRect(cx - size/2, cy - size/2, size, size);
+
+                // Monster Eyes
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(cx - size/4, cy - size/4, size/5, size/5);
+                ctx.fillRect(cx + size/8, cy - size/4, size/5, size/5);
+            }
+
+            // Action Input (Tap / Swipe Detection)
+            let touchStartX = 0, touchStartY = 0;
+
+            function handleAttack(isSwipe = false) {
+                const w = WEAPONS[state.weaponIdx];
+                let dmg = w.atk * (state.boostTimer > 0 ? 2 : 1);
+                if (isSwipe) dmg = Math.floor(dmg * 1.5); // Swipe Bonus
+
+                state.monster.hp -= dmg;
+                addLog('msgHit', `${dmg} ${isSwipe ? '(スワイプ波及!)' : ''}`);
+
+                if (state.monster.hp <= 0) {
+                    // Defeated
+                    state.valour += state.monster.isBoss ? 50 : 10;
+                    state.fame += state.monster.isBoss ? 30 : 5;
+
+                    if (state.monster.isBoss) {
+                        if (state.weaponIdx < WEAPONS.length - 1) {
+                            state.weaponIdx = WEAPONS.length - 1; // Drop Legendary Weapon
+                            addLog('msgBossKill');
+                        }
+                    } else {
+                        // Drop Materials
+                        state.leather += Math.floor(Math.random() * 2) + 1;
+                        state.ore += Math.floor(Math.random() * 2);
+                        state.wood += Math.floor(Math.random() * 2);
+                        addLog('msgKill');
+                    }
+
+                    // Respawn Monster
+                    const spawnBoss = Math.random() < 0.2 || state.valour > 80 && state.weaponIdx < 3;
+                    state.monster.isBoss = spawnBoss;
+                    state.monster.name = spawnBoss ? "大陰摩羅鬼 (BOSS)" : "穢れ妖怪";
+                    state.monster.maxHp = spawnBoss ? 250 : 60;
+                    state.monster.hp = state.monster.maxHp;
+                }
+                updateUI();
+            }
+
+            el.canvas.addEventListener('pointerdown', (e) => {
+                touchStartX = e.clientX;
+                touchStartY = e.clientY;
+            });
+
+            el.canvas.addEventListener('pointerup', (e) => {
+                const dx = e.clientX - touchStartX;
+                const dy = e.clientY - touchStartY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 30) {
+                    handleAttack(true); // Swipe
+                } else {
+                    handleAttack(false); // Tap
+                }
+            });
+
+            // Gifting System (PLOS Complex Systems Paper Reference)
             function giveGift() {
-                if (state.goods <= 0) {
-                    addLog('msgNoGoods');
+                const rank = parseInt(el.giftRankSelect.value, 10);
+                if (state.gifts[rank] <= 0) {
+                    addLog('msgNoGift');
                     return;
                 }
-                state.goods--;
-                const mult = state.boostTimer > 0 ? 2 : 1;
-                state.prestige += 10 * mult;
-                state.fame += 5 * mult;
-                state.decayCountdown = 10;
-                state.decisionPoints += Math.floor(state.prestige / 10);
-                addLog('msgGive');
+
+                state.gifts[rank]--;
+                state.giftCount++;
+                state.decayTimer = 10;
+
+                const targetKey = el.targetSelect.value;
+                const target = state.rivals[targetKey];
+
+                // Rank Multipliers for Prestige
+                const prestigeGain = (rank + 1) * 15;
+                const fameGain = (rank + 1) * 10;
+
+                state.prestige += prestigeGain;
+                state.fame += fameGain;
+
+                // Competitive dynamics: Target receives gift & gains slight prestige, but donor's relative gain is higher
+                target.prestige += Math.floor(prestigeGain * 0.3);
+
+                addLog('msgGiftSuccess', ` [${target.name}]`);
                 updateUI();
             }
 
-            function receiveGift() {
-                state.boostTimer = 15;
-                addLog('msgReceive');
-                updateUI();
-            }
-
-            function produceGoods() {
-                state.goods++;
-                addLog('msgProduce');
-                updateUI();
-            }
-
-            function purifyShrine(idx) {
-                const defile = state.dosojinDefile[idx];
-                if (defile <= 0) return;
-
-                const power = (state.isHero ? 3 : 1) * (state.boostTimer > 0 ? 2 : 1);
-                
-                if (defile >= 100) {
-                    state.dosojinDefile[idx] = 0;
-                    state.valour += 30 * power;
-                    state.fame += 20 * power;
-                    addLog('msgBoss');
+            function craftGift() {
+                // Costs based on Materials
+                if (state.leather >= 2 && state.wood >= 1) {
+                    state.leather -= 2;
+                    state.wood -= 1;
+                    state.gifts[0]++; // Basic
+                    addLog('msgCraftSuccess');
+                } else if (state.gems >= 1 && state.ore >= 2) {
+                    state.gems -= 1;
+                    state.ore -= 2;
+                    state.gifts[1]++; // Medium
+                    addLog('msgCraftSuccess');
                 } else {
-                    state.dosojinDefile[idx] = Math.max(0, defile - (25 * power));
-                    state.valour += 5 * power;
-                    state.fame += 3 * power;
-                    addLog('msgPurify');
-                }
-
-                if (!state.isHero && state.valour >= 100 && state.fame >= 100) {
-                    state.isHero = true;
-                    addLog('msgHero');
+                    addLog('msgCraftFail');
                 }
                 updateUI();
             }
 
-            function classUp() {
-                if (state.classLevel >= 5) return;
-                const reqP = (state.classLevel + 1) * 30;
-                const reqF = (state.classLevel + 1) * 20;
+            function collectTax() {
+                if (state.classLevel < 1) {
+                    addLog('msgNoTaxDomain');
+                    return;
+                }
+                const amount = state.classLevel * 2;
+                state.gems += amount;
+                addLog('msgTaxCollected', ` (+${amount})`);
+                updateUI();
+            }
 
-                if (state.prestige >= reqP && state.fame >= reqF) {
+            function applyClassUp() {
+                const dict = I18N[currentLang] || I18N.ja;
+                if (state.classLevel >= 5) return;
+
+                // Exponentially scaling requirements based on paper
+                const reqGifts = (state.classLevel + 1) * 5;
+                const reqPrestige = Math.pow(state.classLevel + 1, 2) * 25;
+
+                if (state.giftCount >= reqGifts && state.prestige >= reqPrestige) {
                     state.classLevel++;
-                    addLog('msgClassUp', I18N[currentLang].classes[state.classLevel]);
+                    addLog('msgClassUp', dict.classes[state.classLevel]);
                 } else {
                     addLog('msgClassFail');
                 }
                 updateUI();
             }
 
-            function attendCouncil() {
-                if (state.prestige < 10) {
-                    addLog('msgNoCouncilAuth');
-                    return;
-                }
-                if (state.decisionPoints >= 20) {
-                    state.decisionPoints -= 20;
-                    addLog('msgCouncilSuccess', I18N[currentLang].domains[state.classLevel]);
-                } else {
-                    addLog('msgCouncilFail');
-                }
-                updateUI();
-            }
-
+            // Timer Loop
             function tick() {
                 if (state.boostTimer > 0) state.boostTimer--;
 
-                state.decayCountdown--;
-                if (state.decayCountdown <= 0) {
-                    state.prestige = Math.max(0, state.prestige - 5);
-                    state.fame = Math.max(0, state.fame - 3);
-                    state.decayCountdown = 10;
+                state.decayTimer--;
+                if (state.decayTimer <= 0) {
+                    state.prestige = Math.max(0, state.prestige - 8);
+                    state.fame = Math.max(0, state.fame - 4);
+                    state.decayTimer = 10;
                     addLog('msgDecay');
                 }
 
-                for (let i = 0; i < 4; i++) {
-                    if (Math.random() < 0.35) {
-                        state.dosojinDefile[i] = Math.min(100, state.dosojinDefile[i] + 5);
-                    }
-                }
                 updateUI();
             }
 
             function init() {
                 setupLogDOM();
 
-                elements.langSelect.addEventListener('change', (e) => {
+                el.langSelect.addEventListener('change', (e) => {
                     currentLang = e.target.value;
                     updateUI();
                 });
 
-                elements.btnGiveGift.addEventListener('click', giveGift);
-                elements.btnReceiveGift.addEventListener('click', receiveGift);
-                elements.btnProduceGoods.addEventListener('click', produceGoods);
-                elements.btnClassUp.addEventListener('click', classUp);
-                elements.btnCouncil.addEventListener('click', attendCouncil);
-
-                for (let i = 0; i < 4; i++) {
-                    elements.btnPurify[i].addEventListener('click', () => purifyShrine(i));
-                }
+                el.btnGiveGift.addEventListener('click', giveGift);
+                el.btnReceiveGift.addEventListener('click', () => {
+                    state.boostTimer = 15;
+                    updateUI();
+                });
+                el.btnCollectTax.addEventListener('click', collectTax);
+                el.btnCraftGift.addEventListener('click', craftGift);
+                el.btnClassUp.addEventListener('click', applyClassUp);
 
                 if (timerId) clearInterval(timerId);
                 timerId = setInterval(tick, 1000);
