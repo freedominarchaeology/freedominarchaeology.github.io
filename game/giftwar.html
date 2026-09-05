@@ -2,1144 +2,336 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GIFT WAR - Advanced Slash Action</title>
+    <title>Action Game - Boss Update</title>
     <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0; padding: 0;
-            user-select: none; -webkit-user-select: none;
-        }
-
-        body {
-            background-color: #0d0d11;
-            color: #e0e0e0;
-            font-family: 'MS Mincho', 'ＭＳ 明朝', serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 8px;
-            overflow-x: hidden;
-        }
-
-        header {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 3px double #8a785d;
-            background-color: #1f1f28;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-        }
-
-        h1 {
-            font-size: 1.1rem;
-            color: #f0c040;
-            text-shadow: 2px 2px #000;
-        }
-
-        select, button {
-            background: #141419;
-            color: #f0c040;
-            border: 2px solid #8a785d;
-            padding: 4px 8px;
-            font-family: inherit;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        .main-container {
-            width: 100%;
-            max-width: 900px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        @media (max-width: 768px) {
-            .main-container { grid-template-columns: 1fr; }
-        }
-
-        .panel {
-            background-color: #1f1f28;
-            border: 3px ridge #8a785d;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .panel-title {
-            font-size: 0.9rem;
-            color: #f0c040;
-            border-bottom: 2px dashed #8a785d;
-            padding-bottom: 3px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-        }
-
-        .stat-value {
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .btn {
-            background-color: #3b2d4a;
-            color: #f0c040;
-            border: 2px outset #8a785d;
-            padding: 5px 8px;
-            font-size: 0.8rem;
-            text-align: center;
-        }
-
-        .btn:hover:not(:disabled) { background-color: #4c3a5e; }
-        .btn:active:not(:disabled) { border-style: inset; background-color: #281e33; }
-
-        .full-width { grid-column: 1 / -1; }
-
-        .log-box {
-            height: 100px;
-            background-color: #08080c;
-            border: 2px solid #5a4b3d;
-            padding: 4px;
-            overflow-y: auto;
-            font-size: 0.75rem;
-            line-height: 1.3;
-        }
-
-        .log-entry {
-            margin-bottom: 2px;
-            border-bottom: 1px dotted #222;
-            min-height: 1.1em;
-            word-break: break-all;
-        }
-
-        #canvasContainer {
-            position: relative;
-            width: 100%;
-            height: 240px;
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-            background-color: #141419;
-            border: 2px solid #8a785d;
-            touch-action: none;
-        }
-
-        .skill-banner {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #f39c12;
-            text-shadow: 0 0 8px #ff0000, 2px 2px #000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .controls-overlay {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 4px;
-            gap: 8px;
-        }
-
-        .control-group { display: flex; gap: 6px; }
-
-        .ctrl-btn {
-            background: #2a2a35;
-            border: 2px solid #8a785d;
-            color: #fff;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            border-radius: 4px;
-        }
-
-        .battle-btn-start { background: #1e824c; border-color: #2ecc71; color: #fff; }
-        .battle-btn-retreat { background: #96281b; border-color: #e74c3c; color: #fff; }
-
-        #battleOverlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 15, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            z-index: 10;
-        }
-
-        #battleMsg {
-            font-size: 1.2rem;
-            color: #e74c3c;
-            font-weight: bold;
-            text-shadow: 0 0 6px #000;
-        }
-
-        .skill-guide {
-            font-size: 0.7rem;
-            color: #aaa;
-            line-height: 1.2;
-            background: #141419;
-            padding: 4px;
-            border: 1px solid #444;
-        }
+        body { margin: 0; background: #222; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        canvas { background: #000; border: 2px solid #fff; display: block; }
+        .controls { margin-top: 10px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #444; color: #fff; border: 1px solid #888; border-radius: 5px; }
+        button:active { background: #666; }
+        #download-btn { display: none; background: #28a745; border-color: #28a745; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>GIFT WAR - Advanced Slash Action</h1>
-        <select id="langSelect">
-            <option value="ja">日本語</option>
-            <option value="en">English</option>
-        </select>
-    </header>
+<canvas id="gameCanvas" width="800" height="450"></canvas>
 
-    <div class="main-container">
-        <!-- Status & Equipment -->
-        <div class="panel">
-            <div class="panel-title">ステータス・階級・領地</div>
-            <div class="stat-row"><span>階級:</span> <span id="valClass" class="stat-value">長</span></div>
-            <div class="stat-row"><span>称号:</span> <span id="valHero" class="stat-value">なし</span></div>
-            <div class="stat-row"><span>領域内人口:</span> <span id="valPopulation" class="stat-value">10 人</span></div>
-            <div class="stat-row"><span>威信:</span> <span id="valPrestige" class="stat-value">50</span></div>
-            <div class="stat-row"><span>名声:</span> <span id="valFame" class="stat-value">0</span></div>
-            <div class="stat-row"><span>武勇:</span> <span id="valValour" class="stat-value">0</span></div>
-            <div class="stat-row"><span>装備:</span> <span id="valWeapon" class="stat-value">木刀</span></div>
-        </div>
+<!-- 左移動の左側にガードボタンを配置 -->
+<div class="controls">
+    <button id="btn-guard">ガード (G)</button>
+    <button id="btn-left">← 左 (A)</button>
+    <button id="btn-right">右 → (D)</button>
+    <button id="btn-attack">攻撃 (J)</button>
+</div>
 
-        <!-- Potlatch & Power-Up System -->
-        <div class="panel">
-            <div class="panel-title">贈与と外交対戦 (ポトラッチ)</div>
-            <div class="stat-row">
-                <span>贈与相手:</span>
-                <select id="targetSelect">
-                    <option value="rivalA">部族長A</option>
-                    <option value="rivalB">部族長B</option>
-                </select>
-            </div>
-            <div class="stat-row">
-                <span>贈与品所持:</span>
-                <span id="valGiftsList" class="stat-value" style="font-size:0.75rem;">初:0 中:0 高:0 特:0</span>
-            </div>
-            <div class="stat-row">
-                <span>送る品:</span>
-                <select id="giftRankSelect">
-                    <option value="0">初級品</option>
-                    <option value="1">中級品</option>
-                    <option value="2">高級品</option>
-                    <option value="3">特級品</option>
-                </select>
-            </div>
-            <button id="btnGiveGift" class="btn">選択相手に贈与を行う</button>
-            <button id="btnReceiveGift" class="btn" style="background-color:#8e44ad; margin-top:2px;">贈与を受け入れ魔力・武具強化(威信・名声低下)</button>
-            <div class="stat-row"><span>威信減衰まで:</span> <span id="valTimer" class="stat-value">10s</span></div>
-        </div>
+<button id="download-btn">成績をダウンロード</button>
 
-        <!-- Action Combat Panel -->
-        <div class="panel full-width">
-            <div class="panel-title">ジェスチャーアクションバトル</div>
-            <div class="stat-row">
-                <span id="valPlayerHpText" class="stat-value" style="color:#2ecc71;">自HP: 100/100</span>
-                <span id="valMonsterHpText" class="stat-value" style="color:#e74c3c;">敵HP: ---</span>
-            </div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-            <div id="canvasContainer">
-                <canvas id="gameCanvas"></canvas>
-                <div id="skillBanner" class="skill-banner">連続突き！</div>
-                <div id="battleOverlay">
-                    <div id="battleMsg">戦闘準備</div>
-                    <button id="btnStartBattle" class="btn battle-btn-start" style="padding: 10px 24px; font-size: 1rem;">戦闘開始</button>
-                </div>
-            </div>
+// --- ゲーム状態管理 ---
+let startTime = Date.now();
+let clearTimeSeconds = 0;
+let isGameOver = false;
+let isGameClear = false;
 
-            <div class="skill-guide">
-                <b>【コマンド入力技】</b><br>
-                ・連打: <b>連続突き</b> | ・後ろ→前フリック: <b>突進突き</b> | ・左右往復: <b>燕返し</b><br>
-                ・1回転→下フリック: <b>唐割</b> | ・上下/左右/斜め 6連続スワイプ: <b>八華閃</b>
-            </div>
+// スコア関連
+let scoreData = {
+    damageDealt: 0,
+    damageTaken: 0,
+    bossesDefeated: 0
+};
 
-            <div class="controls-overlay">
-                <div class="control-group">
-                    <button class="ctrl-btn" id="btnLeft">◀ 左</button>
-                    <button class="ctrl-btn" id="btnRight">右 ▶</button>
-                    <button class="ctrl-btn" id="btnJump">▲ 飛</button>
-                </div>
-                <div class="control-group">
-                    <button class="ctrl-btn battle-btn-retreat" id="btnRetreat">退却</button>
-                </div>
-            </div>
-        </div>
+// --- プレイヤー設定 ---
+const player = {
+    x: 100, y: 350, width: 30, height: 50,
+    hp: 100, maxHp: 100, speed: 5,
+    isGuarding: false,
+    isAttacking: false,
+    vx: 0
+};
 
-        <!-- Strategy & Crafting & Class Up -->
-        <div class="panel full-width">
-            <div class="panel-title">素材・領域開発・クラフト・昇格</div>
-            <div class="stat-row">
-                <span id="valMaterials">素材: 皮革[0] 鉱石[0] 霊木[0] | 宝珠[0]</span>
-            </div>
-            <div class="stat-row" style="margin-top: 2px;">
-                <span>開発:</span>
-                <button id="btnDevAgri" class="btn" style="padding:2px 6px;">農業開墾(霊木3)</button>
-                <button id="btnDevEcon" class="btn" style="padding:2px 6px;">経済開発(鉱石3)</button>
-            </div>
-            <div class="stat-row" style="margin-top: 2px;">
-                <span>クラフト:</span>
-                <select id="craftRankSelect">
-                    <option value="0">初級品 (皮革2)</option>
-                    <option value="1">中級品 (皮革3/鉱石2)</option>
-                    <option value="2">高級品 (鉱石4/霊木3)</option>
-                    <option value="3">特級品 (霊木5/宝珠1)</option>
-                </select>
-                <button id="btnCraftGift" class="btn" style="padding:2px 8px;">作成</button>
-            </div>
-            <div class="stat-row" style="margin-top: 3px;">
-                <span id="valReqs" style="font-size:0.75rem; color:#f39c12;">昇格要件: ---</span>
-            </div>
-            <button id="btnClassUp" class="btn" style="margin-top: 2px;">階級昇格申請</button>
-        </div>
+// --- ラスボスデータ ---
+const bosses = [
+    { name: "バハムート", hp: 150, maxHp: 150, type: "bahamut", color: "#d9534f" },
+    { name: "サムエル", hp: 180, maxHp: 180, type: "samuel", color: "#f0ad4e" },
+    { name: "ルシファー", hp: 250, maxHp: 250, type: "lucifer", color: "#5bc0de" }
+];
 
-        <!-- Log Panel -->
-        <div class="panel full-width">
-            <div class="panel-title">記録・物語</div>
-            <div id="logBox" class="log-box"></div>
-        </div>
-    </div>
+let currentBossIndex = 0;
+let currentBoss = null;
 
-    <script>
-        (function() {
-            'use strict';
+function initBoss(index) {
+    if (index >= bosses.length) {
+        // 全ラスボス撃破
+        isGameClear = true;
+        clearTimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('download-btn').style.display = 'block';
+        return;
+    }
+    const b = bosses[index];
+    currentBoss = {
+        ...b,
+        x: 600, y: 300, width: 60, height: 100,
+        timer: 0, state: "idle",
+        // 特殊攻撃プロパティ
+        chargeVx: 0,
+        flames: [],
+        beam: { active: false, charging: false, x: 0, y: 0, width: 0, height: 0 },
+        screenAttack: false
+    };
+}
+initBoss(0);
 
-            const MAX_LOGS = 10;
-            const CLASSES = ["長", "公", "王", "大公", "皇帝"];
+// --- 入力判定 ---
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-            const WEAPONS = [
-                { name: "木刀", atk: 15, color: "#2ecc71" },
-                { name: "鉄製の剛剣", atk: 35, color: "#f1c40f" },
-                { name: "魔剣グラム", atk: 75, color: "#e74c3c" },
-                { name: "聖剣エクスカリバー", atk: 180, color: "#9b59b6" }
-            ];
+// ボタン操作対応
+const setupBtn = (id, keyName) => {
+    const btn = document.getElementById(id);
+    btn.addEventListener('mousedown', () => keys[keyName] = true);
+    btn.addEventListener('mouseup', () => keys[keyName] = false);
+    btn.addEventListener('mouseleave', () => keys[keyName] = false);
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; });
+    btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
+};
+setupBtn('btn-guard', 'g');
+setupBtn('btn-left', 'a');
+setupBtn('btn-right', 'd');
+setupBtn('btn-attack', 'j');
 
-            const state = {
-                prestige: 50, fame: 0, valour: 0, giftCount: 0, classLevel: 0,
-                population: 10, weaponIdx: 0, isHero: false, decayTimer: 10,
-                leather: 0, ore: 0, wood: 0, gems: 0, gifts: [0, 0, 0, 0],
-                killCount: 0, extraAtk: 0,
-                rivals: {
-                    rivalA: { name: "部族長A", prestige: 30 },
-                    rivalB: { name: "部族長B", prestige: 45 }
-                },
-                inBattle: false
-            };
+// --- ダメージ処理 (ガード判定付き) ---
+function takePlayerDamage(amount) {
+    if (player.isGuarding) {
+        amount = Math.floor(amount * 0.2); // ガードでダメージ80%軽減
+    }
+    player.hp -= amount;
+    scoreData.damageTaken += amount;
+    if (player.hp <= 0) {
+        player.hp = 0;
+        isGameOver = true;
+    }
+}
 
-            const player = {
-                x: 60, y: 0, vx: 0, vy: 0,
-                hp: 120, maxHp: 120,
-                isGrounded: false, facing: 1, invulnerable: 0,
-                dashTimer: 0
-            };
+// --- 更新ロジック ---
+function update() {
+    if (isGameOver || isGameClear) return;
 
-            const monster = {
-                x: 300, y: 0, vx: 0, vy: 0,
-                hp: 150, maxHp: 150,
-                name: "赤鬼怪異",
-                type: "ground",
-                hitTimer: 0,
-                flyAngle: 0,
-                stepTimer: 0,
-                teleportTimer: 0,
-                chargeTimer: 0,
-                isCharging: false,
-                trail: []
-            };
+    // 1. プレイヤー移動・アクション
+    player.isGuarding = !!keys['g'];
+    player.vx = 0;
+    if (!player.isGuarding) {
+        if (keys['a']) player.vx = -player.speed;
+        if (keys['d']) player.vx = player.speed;
+    }
+    player.x += player.vx;
+    player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
 
-            const slashes = [];
-            const gestureHistory = [];
-            let tapCount = 0;
-            let tapTimer = null;
+    // 攻撃処理
+    if (keys['j'] && !player.isAttacking) {
+        player.isAttacking = true;
+        setTimeout(() => player.isAttacking = false, 300);
+        
+        // 攻撃判定
+        if (currentBoss && Math.abs((player.x + player.width/2) - (currentBoss.x + currentBoss.width/2)) < 80) {
+            const dmg = 10;
+            currentBoss.hp -= dmg;
+            scoreData.damageDealt += dmg;
+            if (currentBoss.hp <= 0) {
+                scoreData.bossesDefeated++;
+                currentBossIndex++;
+                initBoss(currentBossIndex);
+            }
+        }
+    }
 
-            const logBuffer = new Array(MAX_LOGS).fill("");
-            const logNodes = [];
-            let canvas, ctx;
-            const keys = { left: false, right: false, jump: false };
+    // 2. ラスボスのAI・攻撃パターン
+    if (currentBoss) {
+        currentBoss.timer++;
 
-            let touchPath = [];
-            let isSwiping = false;
-
-            function setupLogDOM() {
-                const box = document.getElementById('logBox');
-                box.textContent = '';
-                for (let i = 0; i < MAX_LOGS; i++) {
-                    const node = document.createElement('div');
-                    node.className = 'log-entry';
-                    box.appendChild(node);
-                    logNodes.push(node);
-                }
+        // --- バハムート：炎吐き ＆ 突進 ---
+        if (currentBoss.type === 'bahamut') {
+            if (currentBoss.timer % 180 === 0) {
+                // 炎を吐く
+                currentBoss.flames.push({ x: currentBoss.x, y: currentBoss.y + 30, vx: -6 });
+            } else if (currentBoss.timer % 240 === 120) {
+                // 突進開始
+                currentBoss.chargeVx = -10;
             }
 
-            function addLog(msg) {
-                logBuffer.pop();
-                logBuffer.unshift(msg);
-                for (let i = 0; i < MAX_LOGS; i++) {
-                    logNodes[i].textContent = logBuffer[i] ? `> ${logBuffer[i]}` : '';
-                }
-            }
-
-            function generateOpeningStory() {
-                const stories = [
-                    "【開幕】魔王の軍勢により世界は暗黒に包まれた。貴殿は「長」として立ち上がり、内政・外交・武勇で領域内人口を増やし「皇帝」を目指す！",
-                    "【開幕】邪竜の咆哮が天を裂いた。開墾と開拓で民を呼び寄せ、階級を上げて世界を統率せよ。",
-                    "【開幕】過酷な怪異が蔓延る時代。強力なポトラッチ外交と武勇で領土を発展させ、覇道を進め！"
-                ];
-                addLog(stories[Math.floor(Math.random() * stories.length)]);
-            }
-
-            setInterval(() => {
-                if (state.decayTimer > 0) {
-                    state.decayTimer--;
-                } else {
-                    state.decayTimer = 10;
-                    if (state.prestige > 0) {
-                        state.prestige = Math.max(0, state.prestige - 4);
-                        addLog("【威信減衰】時間が経過し、威信が少し減少した。");
-                    }
-                }
-                updateUI();
-            }, 1000);
-
-            function showSkillBanner(text) {
-                const b = document.getElementById('skillBanner');
-                b.textContent = text;
-                b.style.opacity = '1';
-                setTimeout(() => { b.style.opacity = '0'; }, 1000);
-            }
-
-            function updateUI() {
-                if (state.classLevel >= 4 && state.population >= 300 && state.valour >= 400) {
-                    if (!state.isHero) {
-                        state.isHero = true;
-                        addLog("【伝説誕生】圧倒的繁栄と武勇により★伝説の英雄★として覚醒した！");
-                    }
-                }
-
-                document.getElementById('valClass').textContent = CLASSES[state.classLevel];
-                document.getElementById('valHero').textContent = state.isHero ? "★伝説の英雄★" : "なし";
-                document.getElementById('valPopulation').textContent = `${state.population} 人`;
-                document.getElementById('valPrestige').textContent = state.prestige;
-                document.getElementById('valFame').textContent = state.fame;
-                document.getElementById('valValour').textContent = state.valour;
-
-                const w = WEAPONS[state.weaponIdx];
-                const totalAtk = w.atk + state.extraAtk;
-                const wEl = document.getElementById('valWeapon');
-                wEl.textContent = `${w.name} (ATK:${totalAtk})`;
-                wEl.style.color = w.color;
-
-                document.getElementById('valGiftsList').textContent = `初:${state.gifts[0]} 中:${state.gifts[1]} 高:${state.gifts[2]} 特:${state.gifts[3]}`;
-                document.getElementById('valTimer').textContent = `${state.decayTimer}s`;
-                document.getElementById('valMaterials').textContent = `皮革[${state.leather}] 鉱石[${state.ore}] 霊木[${state.wood}] | 宝珠[${state.gems}]`;
-
-                const reqGifts = [5, 12, 22, 35][state.classLevel] || 50;
-                const reqValour = [60, 150, 280, 450][state.classLevel] || 600;
-                const reqPop = [10, 50, 150, 300][state.classLevel] || 500;
-
-                if (state.classLevel < 4) {
-                    document.getElementById('valReqs').textContent = `次階級要件: 贈与${reqGifts}回 / 武勇${reqValour} / 人口${reqPop}人`;
-                } else {
-                    document.getElementById('valReqs').textContent = `英雄覚醒条件: 人口300人 / 武勇400`;
-                }
-
-                document.getElementById('valPlayerHpText').textContent = `自HP: ${Math.max(0, player.hp)}/${player.maxHp}`;
-                document.getElementById('valMonsterHpText').textContent = state.inBattle ? `${monster.name} HP: ${Math.max(0, monster.hp)}/${monster.maxHp}` : `敵HP: ---`;
-            }
-
-            function processGesture(dirHistory) {
-                if (!state.inBattle) return;
-
-                const baseAtk = WEAPONS[state.weaponIdx].atk + state.extraAtk;
-                const strDirs = dirHistory.join('');
-
-                if (dirHistory.length >= 6) {
-                    executeSkill("八華閃 (8連斬)", baseAtk * 4.5, "#9b59b6", 8);
-                    return;
-                }
-
-                if (strDirs.includes('RDLURD') || strDirs.includes('LDRULD') || (strDirs.length >= 3 && dirHistory[dirHistory.length - 1] === 'D')) {
-                    if (dirHistory.length >= 3) {
-                        executeSkill("唐割 (兜割り)", baseAtk * 2.8, "#e67e22", 1);
-                        return;
-                    }
-                }
-
-                if (strDirs.includes('LR') || strDirs.includes('RL')) {
-                    executeSkill("燕返し (二段斬)", baseAtk * 2.0, "#3498db", 2);
-                    return;
-                }
-
-                const backDir = player.facing === 1 ? 'L' : 'R';
-                const fwdDir = player.facing === 1 ? 'R' : 'L';
-                if (strDirs.includes(backDir + fwdDir)) {
-                    player.dashTimer = 10;
-                    player.vx = player.facing * 12;
-                    executeSkill("突進突き！", baseAtk * 2.2, "#f1c40f", 1);
-                    return;
-                }
-
-                executeSkill("通常斬り", baseAtk, "#ffffff", 1);
-            }
-
-            function executeSkill(name, damage, color, hits) {
-                showSkillBanner(name);
-                for (let i = 0; i < hits; i++) {
-                    setTimeout(() => {
-                        slashes.push({
-                            x: player.x + player.facing * (40 + i * 10),
-                            y: player.y - 25 + (Math.random() * 20 - 10),
-                            radius: 40,
-                            color: color,
-                            life: 6
-                        });
-
-                        const dist = Math.hypot(monster.x - player.x, (monster.y - 20) - (player.y - 25));
-                        if (dist < 120) {
-                            monster.hp -= Math.floor(damage / hits);
-                            monster.hitTimer = 6;
-                            monster.vx = player.facing * 4;
-                            if (monster.hp <= 0) onMonsterDefeated();
-                            updateUI();
-                        }
-                    }, i * 60);
-                }
-            }
-
-            function onMonsterDefeated() {
-                addLog(`討伐完了！ [${monster.name}] を撃破した。`);
+            // 突進処理
+            if (currentBoss.chargeVx !== 0) {
+                currentBoss.x += currentBoss.chargeVx;
+                if (currentBoss.x < 50) currentBoss.chargeVx = 8; // 跳ね返り
+                if (currentBoss.x > 600) { currentBoss.x = 600; currentBoss.chargeVx = 0; } // 元の位置へ
                 
-                const isMidBoss = monster.type === "midboss";
-                const isBoss = isMidBoss || monster.type === "maou" || monster.type === "dragon" || monster.type === "angel";
-                
-                state.valour += isBoss ? 100 : 25;
-                state.fame += isBoss ? 40 : 12;
+                // 接触ダメージ
+                if (Math.abs(player.x - currentBoss.x) < 30) {
+                    takePlayerDamage(1);
+                }
+            }
 
-                state.leather += Math.floor(Math.random() * 2) + 1;
-                if (Math.random() < 0.7) state.ore += 1;
-                if (Math.random() < 0.6) state.wood += 1;
-                if (isBoss && Math.random() < 0.5) state.gems += 1;
+            // 炎の移動＆判定
+            currentBoss.flames.forEach((f, i) => {
+                f.x += f.vx;
+                if (Math.abs(f.x - player.x) < 20 && Math.abs(f.y - player.y) < 40) {
+                    takePlayerDamage(15);
+                    currentBoss.flames.splice(i, 1);
+                }
+            });
+        }
 
-                if (isMidBoss) {
-                    if (state.weaponIdx < 1) {
-                        state.weaponIdx = 1;
-                        addLog("【戦利品】中ボスを討伐し『鉄製の剛剣』を獲得・装備した！");
+        // --- サムエル：ビーム攻撃 ---
+        else if (currentBoss.type === 'samuel') {
+            if (currentBoss.timer % 200 === 100) {
+                // 溜め動作（予兆）
+                currentBoss.beam.charging = true;
+            } else if (currentBoss.timer % 200 === 150) {
+                // ビーム発射
+                currentBoss.beam.charging = false;
+                currentBoss.beam.active = true;
+                currentBoss.beam.y = currentBoss.y + 20;
+                setTimeout(() => { currentBoss.beam.active = false; }, 500);
+            }
+
+            if (currentBoss.beam.active) {
+                // プレイヤーがビームの高さ（Y軸）にいる場合に命中
+                if (player.y + player.height > currentBoss.beam.y && player.y < currentBoss.beam.y + 40) {
+                    takePlayerDamage(2); // 持続ダメージ
+                }
+            }
+        }
+
+        // --- ルシファー：全体攻撃 ＆ ワープ ---
+        else if (currentBoss.type === 'lucifer') {
+            if (currentBoss.timer % 200 === 0) {
+                // ランダムワープ
+                currentBoss.x = 100 + Math.random() * 550;
+            } else if (currentBoss.timer % 300 === 150) {
+                // 強力な全体攻撃
+                currentBoss.screenAttack = true;
+                setTimeout(() => {
+                    if (currentBoss) {
+                        takePlayerDamage(25);
+                        currentBoss.screenAttack = false;
                     }
-                }
-
-                if (!isBoss) {
-                    state.killCount++;
-                }
-
-                if (state.isHero && state.weaponIdx < 3) {
-                    state.weaponIdx = 3;
-                    addLog("【武功】英雄の領域に達し、聖剣エクスカリバーを手に入れた！");
-                }
-
-                spawnMonster();
+                }, 600);
             }
+        }
+    }
+}
+
+// --- 描画処理 ---
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. 地面
+    ctx.fillStyle = "#555";
+    ctx.fillRect(0, 400, canvas.width, 50);
+
+    // 2. プレイヤー描画
+    ctx.fillStyle = player.isGuarding ? "#4a90e2" : "#fff"; // ガード中は青っぽく変化
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    if (player.isAttacking) {
+        ctx.fillStyle = "#ff0";
+        ctx.fillRect(player.x + player.width, player.y + 10, 30, 10);
+    }
+
+    // UI: プレイヤーHP
+    ctx.fillStyle = "#fff";
+    ctx.fillText(`Player HP: ${player.hp}/${player.maxHp}`, 20, 30);
+
+    // 3. ラスボス描画
+    if (currentBoss) {
+        ctx.fillStyle = currentBoss.color;
+        ctx.fillRect(currentBoss.x, currentBoss.y, currentBoss.width, currentBoss.height);
+
+        // ボスUI
+        ctx.fillStyle = "#fff";
+        ctx.fillText(`${currentBoss.name} HP: ${currentBoss.hp}/${currentBoss.maxHp}`, 600, 30);
+
+        // バハムート：炎のエフェクト
+        ctx.fillStyle = "#ff4500";
+        currentBoss.flames.forEach(f => {
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, 12, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // サムエル：ビーム＆予兆エフェクト
+        if (currentBoss.beam.charging) {
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, currentBoss.y + 40);
+            ctx.lineTo(currentBoss.x, currentBoss.y + 40);
+            ctx.stroke();
+        }
+        if (currentBoss.beam.active) {
+            ctx.fillStyle = "rgba(255, 255, 0, 0.8)";
+            ctx.fillRect(0, currentBoss.y + 20, currentBoss.x, 40);
+        }
+
+        // ルシファー：全体攻撃フラッシュ
+        if (currentBoss.screenAttack) {
+            ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    // ゲームオーバー／クリア画面
+    if (isGameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ff4d4d";
+        ctx.font = "30px sans-serif";
+        ctx.fillText("GAME OVER", 320, 225);
+    } else if (isGameClear) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#28a745";
+        ctx.font = "30px sans-serif";
+        ctx.fillText("ALL BOSSES DEFEATED!", 240, 200);
+        ctx.fillStyle = "#fff";
+        ctx.font = "18px sans-serif";
+        ctx.fillText(`Clear Time: ${clearTimeSeconds}s`, 340, 240);
+    }
+}
+
+// --- メインループ ---
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+// --- 戦績テキストのダウンロード機能 ---
+document.getElementById('download-btn').addEventListener('click', () => {
+    const textContent = 
+`=================================
+      GAME CLEAR RESULT
+=================================
+クリア時間    : ${clearTimeSeconds} 秒
+撃破ボス数    : ${scoreData.bossesDefeated} / ${bosses.length}
+与ダメージ合計: ${scoreData.damageDealt}
+被ダメージ合計: ${scoreData.damageTaken}
+最終残りHP    : ${player.hp}
+=================================`;
+
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'clear_result.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+});
+</script>
 
-            function spawnMonster() {
-                monster.teleportTimer = 0;
-                monster.chargeTimer = 0;
-                monster.isCharging = false;
-                monster.trail = [];
-
-                if (state.isHero) {
-                    const bosses = [
-                        { name: "【ラスボス】魔王ルシファー", hp: 850, type: "maou" },
-                        { name: "【ラスボス】破滅の邪竜バハムート", hp: 1100, type: "dragon" },
-                        { name: "【ラスボス】堕天使サマエル", hp: 950, type: "angel" }
-                    ];
-                    const b = bosses[Math.floor(Math.random() * bosses.length)];
-                    monster.name = b.name;
-                    monster.maxHp = b.hp;
-                    monster.type = b.type;
-                } else if (state.killCount >= 5) {
-                    state.killCount = 0;
-                    monster.name = "【強敵】獄炎将軍";
-                    monster.maxHp = 450;
-                    monster.type = "midboss";
-                    addLog("【警告】圧倒的妖気を放つ強敵が瞬身の構えで現れた！");
-                } else {
-                    const r = Math.random();
-                    if (r < 0.5) {
-                        monster.name = "赤鬼怪異";
-                        monster.maxHp = 180;
-                        monster.type = "ground";
-                    } else {
-                        monster.name = "鴉天狗";
-                        monster.maxHp = 140;
-                        monster.type = "fly";
-                    }
-                }
-                monster.hp = monster.maxHp;
-                monster.x = canvas.width - 60;
-            }
-
-            function startBattle() {
-                state.inBattle = true;
-                player.hp = player.maxHp;
-                player.x = 60;
-                spawnMonster();
-                document.getElementById('battleOverlay').style.display = 'none';
-                updateUI();
-            }
-
-            function retreatBattle() {
-                state.inBattle = false;
-                document.getElementById('battleOverlay').style.display = 'flex';
-                document.getElementById('battleMsg').textContent = "戦闘退却";
-                document.getElementById('btnStartBattle').textContent = "戦闘再開";
-                addLog("戦闘から安全圏へ退却しました。");
-                updateUI();
-            }
-
-            function playerDeath() {
-                state.inBattle = false;
-                state.prestige = Math.floor(state.prestige * 0.5);
-                state.fame = Math.floor(state.fame * 0.5);
-                state.valour = Math.floor(state.valour * 0.5);
-
-                document.getElementById('battleOverlay').style.display = 'flex';
-                document.getElementById('battleMsg').textContent = "力尽きた... (名声・威信低下)";
-                document.getElementById('btnStartBattle').textContent = "リスタート";
-                addLog("【敗北】HPが0になり倒れた。名声と威信が半減した。");
-                updateUI();
-            }
-
-            function updatePhysics() {
-                if (!state.inBattle) return;
-
-                const groundY = canvas.height - 25;
-
-                if (keys.left) { player.vx = -4; player.facing = -1; }
-                else if (keys.right) { player.vx = 4; player.facing = 1; }
-                else if (player.dashTimer <= 0) { player.vx *= 0.7; }
-
-                if (player.dashTimer > 0) player.dashTimer--;
-
-                if (keys.jump && player.isGrounded) {
-                    player.vy = -9.5;
-                    player.isGrounded = false;
-                }
-
-                player.vy += 0.5;
-                player.x += player.vx;
-                player.y += player.vy;
-
-                if (player.y >= groundY) {
-                    player.y = groundY;
-                    player.vy = 0;
-                    player.isGrounded = true;
-                }
-
-                player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
-                if (player.invulnerable > 0) player.invulnerable--;
-
-                // モンスターAI
-                monster.x += monster.vx;
-                monster.vx *= 0.8;
-
-                if (monster.type === "midboss") {
-                    monster.y = groundY;
-
-                    // 1. トリッキーなワープ移動
-                    monster.teleportTimer++;
-                    if (monster.teleportTimer > 100) {
-                        monster.teleportTimer = 0;
-                        // プレイヤーの背面または前方の画面内にワープ
-                        const targetX = player.x + (Math.random() < 0.5 ? 120 : -120);
-                        monster.x = Math.max(40, Math.min(canvas.width - 40, targetX));
-                        monster.trail.push({ x: monster.x, y: monster.y, life: 10 });
-                    }
-
-                    // 2. 頻度の低い強力な突進攻撃（予備動作後に急速突進）
-                    if (!monster.isCharging) {
-                        monster.chargeTimer++;
-                        if (monster.chargeTimer > 150) {
-                            monster.isCharging = true;
-                            monster.chargeTimer = 0;
-                        } else {
-                            monster.x += (player.x < monster.x ? -1 : 1) * 0.5;
-                        }
-                    } else {
-                        monster.chargeTimer++;
-                        if (monster.chargeTimer < 25) {
-                            // 溜め動作（赤く光る予備動作）
-                            monster.vx = (player.x < monster.x ? 1 : -1) * 0.5;
-                        } else if (monster.chargeTimer < 40) {
-                            // 一気に高速突進！
-                            monster.vx = (player.x < monster.x ? -1 : 1) * 14;
-                            monster.trail.push({ x: monster.x, y: monster.y, life: 8 });
-                        } else {
-                            monster.isCharging = false;
-                            monster.chargeTimer = 0;
-                        }
-                    }
-
-                } else if (monster.type === "fly" || monster.type === "angel") {
-                    monster.flyAngle += 0.06;
-                    monster.y = groundY - 35 + Math.sin(monster.flyAngle) * 35;
-                    monster.x += (player.x < monster.x ? -1 : 1) * 1.5;
-                } else if (monster.type === "ground") {
-                    monster.y = groundY;
-                    monster.stepTimer--;
-                    if (monster.stepTimer <= 0) {
-                        monster.stepTimer = 30 + Math.floor(Math.random() * 40);
-                        const moveDir = Math.random() < 0.6 ? (player.x < monster.x ? -1 : 1) : (player.x < monster.x ? 1 : -1);
-                        monster.vx = moveDir * (Math.random() * 5 + 3);
-                    }
-                } else {
-                    monster.y = groundY;
-                    monster.x += (player.x < monster.x ? -1 : 1) * 0.8;
-                }
-
-                // 画面外逃走防止
-                monster.x = Math.max(25, Math.min(canvas.width - 25, monster.x));
-
-                if (monster.hitTimer > 0) monster.hitTimer--;
-
-                // 衝突ダメージ計算
-                const hitDist = Math.hypot(player.x - monster.x, (player.y - 20) - (monster.y - 20));
-                if (hitDist < 35 && player.invulnerable <= 0) {
-                    let dmg = 14;
-                    if (monster.type === "midboss") {
-                        dmg = monster.isCharging ? 38 : 22; // 突進攻撃時は大ダメージ
-                    } else if (monster.type === "maou" || monster.type === "dragon" || monster.type === "angel") {
-                        dmg = 35;
-                    }
-                    
-                    player.hp -= dmg;
-                    player.invulnerable = 25;
-                    player.vx = player.x < monster.x ? -7 : 7;
-                    addLog(`被弾！ -${dmg} HP`);
-                    if (player.hp <= 0) playerDeath();
-                    updateUI();
-                }
-            }
-
-            function render() {
-                ctx.fillStyle = '#141419';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                const groundY = canvas.height - 25;
-
-                ctx.strokeStyle = '#8a785d';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY);
-                ctx.stroke();
-
-                if (state.inBattle) {
-                    if (player.invulnerable % 4 < 2) {
-                        drawStickman(player.x, player.y, WEAPONS[state.weaponIdx].color, player.facing);
-                    }
-
-                    // 中ボスの残像を描画
-                    for (let i = monster.trail.length - 1; i >= 0; i--) {
-                        const tr = monster.trail[i];
-                        ctx.globalAlpha = tr.life / 10;
-                        drawMonster(tr.x, tr.y, monster.type);
-                        ctx.globalAlpha = 1.0;
-                        tr.life--;
-                        if (tr.life <= 0) monster.trail.splice(i, 1);
-                    }
-
-                    drawMonster(monster.x, monster.y, monster.type);
-                }
-
-                for (let i = slashes.length - 1; i >= 0; i--) {
-                    const s = slashes[i];
-                    ctx.strokeStyle = s.color;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.arc(s.x, s.y, s.radius, -Math.PI / 3, Math.PI / 3);
-                    ctx.stroke();
-                    s.life--;
-                    if (s.life <= 0) slashes.splice(i, 1);
-                }
-            }
-
-            function drawStickman(x, y, color, facing) {
-                ctx.strokeStyle = color;
-                ctx.fillStyle = color;
-                ctx.lineWidth = 2.5;
-
-                ctx.beginPath(); ctx.arc(x, y - 35, 7, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x, y - 28); ctx.lineTo(x, y - 12);
-                ctx.lineTo(x - 8 * facing, y);
-                ctx.moveTo(x, y - 12); ctx.lineTo(x + 8 * facing, y);
-                ctx.moveTo(x, y - 22); ctx.lineTo(x + 12 * facing, y - 25);
-                ctx.stroke();
-            }
-
-            function drawMonster(x, y, type) {
-                ctx.save();
-                
-                if (monster.hitTimer > 0) {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.strokeStyle = '#ffffff';
-                }
-
-                if (type === "fly") {
-                    const mY = y - 15;
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
-                    ctx.beginPath(); ctx.ellipse(x, mY, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
-
-                    if (monster.hitTimer <= 0) ctx.strokeStyle = '#be2edd';
-                    ctx.lineWidth = 3;
-                    const wingFlap = Math.sin(Date.now() * 0.01) * 12;
-                    ctx.beginPath();
-                    ctx.moveTo(x - 5, mY); ctx.lineTo(x - 24, mY - 15 + wingFlap);
-                    ctx.moveTo(x + 5, mY); ctx.lineTo(x + 24, mY - 15 + wingFlap);
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#f1c40f';
-                    ctx.beginPath(); ctx.arc(x - 5, mY - 2, 3, 0, Math.PI * 2); ctx.arc(x + 5, mY - 2, 3, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#e67e22';
-                    ctx.beginPath(); ctx.moveTo(x - 4, mY + 2); ctx.lineTo(x + 4, mY + 2); ctx.lineTo(x, mY + 10); ctx.fill();
-
-                } else if (type === "ground") {
-                    const mY = y - 22;
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#c0392b';
-                    ctx.beginPath(); ctx.arc(x, mY, 22, 0, Math.PI * 2); ctx.fill();
-
-                    ctx.fillStyle = '#f1c40f';
-                    ctx.beginPath();
-                    ctx.moveTo(x - 10, mY - 18); ctx.lineTo(x - 18, mY - 36); ctx.lineTo(x - 3, mY - 20);
-                    ctx.fill();
-
-                    ctx.fillStyle = '#ff0000';
-                    ctx.beginPath(); ctx.arc(x - 8, mY - 4, 4, 0, Math.PI * 2); ctx.arc(x + 8, mY - 4, 4, 0, Math.PI * 2); ctx.fill();
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.moveTo(x - 10, mY + 8); ctx.lineTo(x - 6, mY + 16); ctx.lineTo(x - 2, mY + 8);
-                    ctx.moveTo(x + 2, mY + 8); ctx.lineTo(x + 6, mY + 16); ctx.lineTo(x + 10, mY + 8);
-                    ctx.fill();
-
-                } else if (type === "midboss") {
-                    const mY = y - 30;
-                    if (monster.hitTimer <= 0) {
-                        ctx.fillStyle = monster.isCharging ? '#ff0000' : '#d35400';
-                    }
-                    ctx.beginPath(); ctx.arc(x, mY, 28, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#f39c12';
-                    ctx.beginPath();
-                    ctx.moveTo(x - 15, mY - 20); ctx.lineTo(x - 25, mY - 45); ctx.lineTo(x - 5, mY - 25);
-                    ctx.moveTo(x + 5, mY - 25); ctx.lineTo(x + 25, mY - 45); ctx.lineTo(x + 15, mY - 20);
-                    ctx.fill();
-
-                } else if (type === "maou") {
-                    const mY = y - 30;
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#2c3e50';
-                    ctx.beginPath(); ctx.arc(x, mY, 30, 0, Math.PI * 2); ctx.fill();
-
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
-                    ctx.beginPath();
-                    ctx.moveTo(x - 20, mY); ctx.lineTo(x - 55, mY - 35); ctx.lineTo(x - 35, mY + 10);
-                    ctx.moveTo(x + 20, mY); ctx.lineTo(x + 55, mY - 35); ctx.lineTo(x + 35, mY + 10);
-                    ctx.fill();
-
-                    ctx.fillStyle = '#f39c12';
-                    ctx.beginPath();
-                    ctx.moveTo(x - 15, mY - 25); ctx.lineTo(x - 28, mY - 50); ctx.lineTo(x - 8, mY - 30);
-                    ctx.lineTo(x, mY - 45);
-                    ctx.lineTo(x + 8, mY - 30); ctx.lineTo(x + 28, mY - 50); ctx.lineTo(x + 15, mY - 25);
-                    ctx.fill();
-
-                    ctx.fillStyle = '#9b59b6';
-                    ctx.beginPath(); ctx.arc(x - 10, mY - 4, 5, 0, Math.PI * 2); ctx.arc(x + 10, mY - 4, 5, 0, Math.PI * 2); ctx.fill();
-
-                } else if (type === "dragon") {
-                    const mY = y - 25;
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#7f8c8d';
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(x - 30, mY - 15); ctx.lineTo(x + 10, mY - 25);
-                    ctx.lineTo(x + 35, mY); ctx.lineTo(x + 10, mY + 20);
-                    ctx.lineTo(x - 30, mY + 10); ctx.closePath(); ctx.fill();
-
-                    ctx.fillStyle = '#e74c3c';
-                    ctx.beginPath();
-                    ctx.moveTo(x - 20, mY - 20); ctx.lineTo(x - 45, mY - 45); ctx.lineTo(x - 10, mY - 22);
-                    ctx.moveTo(x - 10, mY - 22); ctx.lineTo(x - 30, mY - 50); ctx.lineTo(x, mY - 24);
-                    ctx.fill();
-
-                    ctx.fillStyle = '#f1c40f';
-                    ctx.beginPath(); ctx.arc(x - 5, mY - 6, 6, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.moveTo(x + 15, mY + 5); ctx.lineTo(x + 22, mY + 18); ctx.lineTo(x + 28, mY + 5); ctx.fill();
-
-                } else if (type === "angel") {
-                    const mY = y - 28;
-                    
-                    ctx.strokeStyle = '#f1c40f';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.ellipse(x, mY - 38, 18, 6, 0, 0, Math.PI * 2); ctx.stroke();
-
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#111111';
-                    for (let i = -1; i <= 1; i++) {
-                        ctx.beginPath();
-                        ctx.moveTo(x - 10, mY + i * 10); ctx.lineTo(x - 50, mY - 20 + i * 18); ctx.lineTo(x - 20, mY + 10 + i * 10);
-                        ctx.moveTo(x + 10, mY + i * 10); ctx.lineTo(x + 50, mY - 20 + i * 18); ctx.lineTo(x + 20, mY + 10 + i * 10);
-                        ctx.fill();
-                    }
-
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#ecf0f1';
-                    ctx.beginPath(); ctx.arc(x, mY, 20, 0, Math.PI * 2); ctx.fill();
-
-                    ctx.fillStyle = '#e74c3c';
-                    ctx.beginPath(); ctx.arc(x, mY - 2, 6, 0, Math.PI * 2); ctx.fill();
-                }
-
-                ctx.restore();
-            }
-
-            function gameLoop() {
-                updatePhysics();
-                render();
-                requestAnimationFrame(gameLoop);
-            }
-
-            function getDirection(dx, dy) {
-                const absX = Math.abs(dx);
-                const absY = Math.abs(dy);
-                if (absX < 10 && absY < 10) return null;
-                if (absX > absY) return dx > 0 ? 'R' : 'L';
-                return dy > 0 ? 'D' : 'U';
-            }
-
-            function initGestureEvents() {
-                canvas.addEventListener('touchstart', (e) => {
-                    touchPath = [];
-                    isSwiping = true;
-                    const t = e.touches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    touchPath.push({ x: t.clientX - rect.left, y: t.clientY - rect.top });
-                });
-
-                canvas.addEventListener('touchmove', (e) => {
-                    if (!isSwiping) return;
-                    const t = e.touches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    const pt = { x: t.clientX - rect.left, y: t.clientY - rect.top };
-                    const lastPt = touchPath[touchPath.length - 1];
-
-                    const dir = getDirection(pt.x - lastPt.x, pt.y - lastPt.y);
-                    if (dir && (gestureHistory.length === 0 || gestureHistory[gestureHistory.length - 1] !== dir)) {
-                        gestureHistory.push(dir);
-                    }
-                    touchPath.push(pt);
-                });
-
-                canvas.addEventListener('touchend', () => {
-                    isSwiping = false;
-                    if (gestureHistory.length > 0) {
-                        processGesture(gestureHistory);
-                        gestureHistory.length = 0;
-                    } else {
-                        tapCount++;
-                        clearTimeout(tapTimer);
-                        tapTimer = setTimeout(() => {
-                            if (tapCount >= 2) {
-                                executeSkill("連続突き！", (WEAPONS[state.weaponIdx].atk + state.extraAtk) * 1.8, "#2ecc71", 3);
-                            } else {
-                                executeSkill("通常斬り", WEAPONS[state.weaponIdx].atk + state.extraAtk, "#ffffff", 1);
-                            }
-                            tapCount = 0;
-                        }, 200);
-                    }
-                });
-            }
-
-            function giveGift() {
-                const rank = parseInt(document.getElementById('giftRankSelect').value, 10);
-                const targetKey = document.getElementById('targetSelect').value;
-                const target = state.rivals[targetKey];
-
-                if (state.gifts[rank] <= 0) {
-                    addLog("選択した等級の贈与品がありません。クラフトしてください。");
-                    return;
-                }
-
-                state.gifts[rank]--;
-                state.giftCount++;
-                const gainPrestige = (rank + 1) * 20;
-                state.prestige += gainPrestige;
-                state.fame += (rank + 1) * 15;
-
-                target.prestige = Math.max(0, target.prestige - (rank + 1) * 8);
-
-                addLog(`【贈与外交】${target.name} へ贈与！ (威信+${gainPrestige} / 相手威信抑制)`);
-                updateUI();
-            }
-
-            // 贈与受け入れシステム（パワーアップ＆外交的負債）
-            function receiveGift() {
-                state.extraAtk += 15;
-                state.prestige = Math.max(0, state.prestige - 30);
-                state.fame = Math.max(0, state.fame - 25);
-                addLog("【負債の契約】他国から強力な魔具の贈与を受け入れATK+15！ 代償として威信-30・名声-25を被った。");
-                updateUI();
-            }
-
-            function craftGift() {
-                const rank = parseInt(document.getElementById('craftRankSelect').value, 10);
-                let success = false;
-
-                if (rank === 0) {
-                    if (state.leather >= 2) { state.leather -= 2; success = true; }
-                } else if (rank === 1) {
-                    if (state.leather >= 3 && state.ore >= 2) { state.leather -= 3; state.ore -= 2; success = true; }
-                } else if (rank === 2) {
-                    if (state.ore >= 4 && state.wood >= 3) { state.ore -= 4; state.wood -= 3; success = true; }
-                } else if (rank === 3) {
-                    if (state.wood >= 5 && state.gems >= 1) { state.wood -= 5; state.gems -= 1; success = true; }
-                }
-
-                if (success) {
-                    state.gifts[rank]++;
-                    addLog(`【生産】ランク ${rank + 1} の贈与品をクラフトしました！`);
-                } else {
-                    addLog("クラフトに必要な素材が不足しています。");
-                }
-                updateUI();
-            }
-
-            function devAgriculture() {
-                if (state.wood >= 3) {
-                    state.wood -= 3;
-                    const popGain = Math.floor(Math.random() * 8) + 12;
-                    state.population += popGain;
-                    addLog(`【内政】農地を開墾。領域内人口が ${popGain} 人増加した！`);
-                } else {
-                    addLog("開墾には霊木が3つ必要です。");
-                }
-                updateUI();
-            }
-
-            function devEconomy() {
-                if (state.ore >= 3) {
-                    state.ore -= 3;
-                    const popGain = Math.floor(Math.random() * 10) + 18;
-                    state.population += popGain;
-                    addLog(`【内政】市場・街道を整備。領域内人口が ${popGain} 人増加した！`);
-                } else {
-                    addLog("経済開発には鉱石が3つ必要です。");
-                }
-                updateUI();
-            }
-
-            function applyClassUp() {
-                if (state.classLevel >= 4) {
-                    addLog("既に最高の階級（皇帝）に達しています。");
-                    return;
-                }
-
-                const reqGifts = [5, 12, 22, 35][state.classLevel];
-                const reqValour = [60, 150, 280, 450][state.classLevel];
-                const reqPop = [10, 50, 150, 300][state.classLevel];
-
-                if (state.giftCount >= reqGifts && state.valour >= reqValour && state.population >= reqPop) {
-                    state.classLevel++;
-                    addLog(`【階級昇格】「${CLASSES[state.classLevel]}」 の位に即位しました！`);
-                    if (state.classLevel === 4) {
-                        addLog("【皇帝即位】皇帝に即位！ 英雄条件（人口300/武勇400）を満たしてラスボスを解放せよ！");
-                    }
-                } else {
-                    addLog(`昇格条件不完全 (要: 贈与${reqGifts}回 / 武勇${reqValour} / 人口${reqPop}人)`);
-                }
-                updateUI();
-            }
-
-            function initController() {
-                const bindBtn = (id, keyName) => {
-                    const btn = document.getElementById(id);
-                    btn.addEventListener('touchstart', (e) => { keys[keyName] = true; e.preventDefault(); });
-                    btn.addEventListener('touchend', (e) => { keys[keyName] = false; e.preventDefault(); });
-                    btn.addEventListener('mousedown', () => { keys[keyName] = true; });
-                    btn.addEventListener('mouseup', () => { keys[keyName] = false; });
-                };
-
-                bindBtn('btnLeft', 'left');
-                bindBtn('btnRight', 'right');
-                bindBtn('btnJump', 'jump');
-
-                window.addEventListener('keydown', (e) => {
-                    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
-                    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = true;
-                });
-
-                window.addEventListener('keyup', (e) => {
-                    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
-                    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
-                });
-            }
-
-            function resizeCanvas() {
-                const container = document.getElementById('canvasContainer');
-                canvas.width = container.clientWidth;
-                canvas.height = container.clientHeight;
-                player.y = canvas.height - 25;
-            }
-
-            function init() {
-                canvas = document.getElementById('gameCanvas');
-                ctx = canvas.getContext('2d');
-
-                setupLogDOM();
-                resizeCanvas();
-                initController();
-                initGestureEvents();
-
-                window.addEventListener('resize', resizeCanvas);
-
-                document.getElementById('btnStartBattle').addEventListener('click', startBattle);
-                document.getElementById('btnRetreat').addEventListener('click', retreatBattle);
-                document.getElementById('btnGiveGift').addEventListener('click', giveGift);
-                document.getElementById('btnReceiveGift').addEventListener('click', receiveGift);
-                document.getElementById('btnCraftGift').addEventListener('click', craftGift);
-                document.getElementById('btnDevAgri').addEventListener('click', devAgriculture);
-                document.getElementById('btnDevEcon').addEventListener('click', devEconomy);
-                document.getElementById('btnClassUp').addEventListener('click', applyClassUp);
-
-                generateOpeningStory();
-                updateUI();
-                requestAnimationFrame(gameLoop);
-            }
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', init);
-            } else {
-                init();
-            }
-        })();
-    </script>
 </body>
 </html>
