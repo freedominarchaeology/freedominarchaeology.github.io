@@ -440,35 +440,224 @@
         // 5刻みの詳細データベース（狩猟採集 / 農耕）
         const SOC_DATABASE = {
             forager: {
-                10: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統的移動生活期）、ハザ族" },
-                15: { system: "遊動バンド連合", diff: "複数家族の季節的集積。個人的所有はないが贈与を通じた広域相互扶助が成立。", ex: "イヌイットの冬季集落、オーストラリア先住民の移動バンド" },
-                20: { system: "半定住型部族（初期）", diff: "特定の豊かな漁場や採取地に定住を開始。道具や装身具の個人的所有の萌芽。", ex: "縄文時代早期・前期の集落、北米カリフォルニア先住民" },
-                25: { system: "定住型狩猟採集部族", diff: "特定の資源（鮭・どんぐり等）の大規模貯蔵。長老や呪術師による儀礼的調整の発生。", ex: "縄文時代中期（三内丸山遺跡など）、パプアニューギニア高地狩猟採集民" },
-                30: { system: "高度貯蔵・複合部族", diff: "特定資源の独占と貯蔵施設の管理。身分階層の萌芽と交易ネットワークの拡大。", ex: "北米太平洋北西海岸先住民（トリンギット族・初期クワキウトル族）" },
-                35: { system: "複合狩猟採集首長制", diff: "世襲首長と平民・奴隷の層化。富の誇示と再分配のための大規模儀礼（ポトラッチ）の成立。", ex: "19世紀北米クワキウトル族・ハイダ族（ポトラッチ全盛期）" },
-                40: { system: "特化型定住首長制", diff: "巨大な構造物や巨石遺構の建造。広域な地域間贈与体系の組織化と領有権の主張。", ex: "縄文時代後期・晩期（巨大木柱列遺構等）、ギョベクリ・テペ建造社会" },
-                45: { system: "狩猟採集複雑性の極致", diff: "非農耕でありながら高度な階層化と広域同盟を維持。これ以上の複雑化は農耕化を要する限界点。", ex: "カリフォルニア・チュマシュ族（貝貨通貨経済と世襲首長）" }
+                10: {
+                    ja: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統的移動生活期）、ハザ族" },
+                    en: { system: "Micro Mobile Band", diff: "Fully egalitarian group of 15–30 kin. No concept of resource ownership; immediate consumption.", ex: "Kalahari San (traditional mobile era), Hadza" },
+                    zh: { system: "极小游动游群", diff: "以血缘为中心的15-30人完全平等群体。无资源所有权概念，即时消费。", ex: "喀拉哈里桑人（传统游牧期）、哈扎人" },
+                    ko: { system: "극소 유목 밴드", diff: "혈연 중심 15~30인의 완전 평등 집단. 자원 소유 개념 없이 즉시 소비.", ex: "칼라하리 산족(전통 이동기), 하다자족" },
+                    fr: { system: "Micro-bande mobile", diff: "Groupe égalitaire de 15-30 proches. Pas de propriété ; consommation immédiate.", ex: "San du Kalahari (ère mobile), Hadza" },
+                    es: { system: "Microbanda móvil", diff: "Grupo igualitario de 15-30 parientes. Sin propiedad; consumo inmediato.", ex: "San del Kalahari (era móvil), Hadza" }
+                },
+                15: {
+                    ja: { system: "遊動バンド連合", diff: "複数家族の季節的集積。個人的所有はないが贈与を通じた広域相互扶助が成立。", ex: "イヌイットの冬季集落、オーストラリア先住民の移動バンド" },
+                    en: { system: "Mobile Band Coalition", diff: "Seasonal gathering of families. Wide-area mutual aid through gifts without personal property.", ex: "Inuit winter camps, Australian Aboriginal bands" },
+                    zh: { system: "游动游群联盟", diff: "多家庭的季节性聚集。无个人财产，但通过馈赠实现广域互助。", ex: "因纽特人冬季营地、澳大利亚原住民游群" },
+                    ko: { system: "유목 밴드 연합", diff: "다수 가족의 계절적 집적. 개인 소유 없이 증여를 통한 광역 상호부조.", ex: "이누이트 겨울 집락, 호주 원주민 이동 밴드" },
+                    fr: { system: "Coalition de bandes mobiles", diff: "Rassemblement saisonnier. Entraide via le don sans propriété privée.", ex: "Camps d'hiver inuits, bandes aborigènes" },
+                    es: { system: "Coalición de bandas móviles", diff: "Reunión estacional de familias. Ayuda mutua mediante dones sin propiedad privada.", ex: "Campamentos invernales inuit, bandas aborígenes" }
+                },
+                20: {
+                    ja: { system: "半定住型部族（初期）", diff: "特定の豊かな漁場や採取地に定住を開始。道具や装身具の個人的所有の萌芽。", ex: "縄文時代早期・前期の集落、北米カリフォルニア先住民" },
+                    en: { system: "Semi-sedentary Tribe (Early)", diff: "Settlement near rich fishing/gathering spots. Emergence of personal tools and ornaments.", ex: "Early Jomon villages, California Native Americans" },
+                    zh: { system: "半定居部落（初期）", diff: "开始在丰富渔场/采集地定居。出现工具和饰品的个人所有权萌芽。", ex: "绳文时代早期/前期聚落、加州原住民" },
+                    ko: { system: "반정주 부족 (초기)", diff: "풍부한 어장/채집지 정주 시작. 도구 및 장신구의 개인 소유 싹트기.", ex: "조몬 시대 조/전기 집락, 캘리포니아 원주민" },
+                    fr: { system: "Tribu semi-sédentaire (Début)", diff: "Sédentarisation près de zones riches. Début de la propriété personnelle d'outils.", ex: "Villages Jomon anciens, Amérindiens de Californie" },
+                    es: { system: "Tribu semisedentaria (Incipiente)", diff: "Asentamiento en zonas ricas. Aparición de propiedad personal de herramientas.", ex: "Aldeas Jomon tempranas, nativos de California" }
+                },
+                25: {
+                    ja: { system: "定住型狩猟採集部族", diff: "特定の資源（鮭・どんぐり等）の大規模貯蔵。長老や呪術師による儀礼的調整の発生。", ex: "縄文時代中期（三内丸山遺跡など）、パプアニューギニア高地狩猟採集民" },
+                    en: { system: "Sedentary Forager Tribe", diff: "Massive storage of key resources (salmon, acorns). Ritual mediation by elders/shamans.", ex: "Middle Jomon (Sannai-Maruyama), PNG Highland foragers" },
+                    zh: { system: "定居型猎采集落", diff: "大规模储存特定资源（鲑鱼、橡子等）。长老和巫师进行仪式性调解。", ex: "绳文时代中期（三内丸山遗址等）、巴布亚新几内亚高地采集民" },
+                    ko: { system: "정주형 수렵채집 부족", diff: "특정 자원(연어, 도토리) 대규모 저장. 장로/주술사에 의한 의례적 조정.", ex: "조몬 시대 중기(산나이마루야마 유적), 파푸아뉴기니 고지 수렵채집민" },
+                    fr: { system: "Tribu de chasseurs-cueilleurs sédentaires", diff: "Stockage massif (saumon, glands). Régulation rituelle par les aînés/chamans.", ex: "Jomon moyen (Sannai-Maruyama), Chasseurs de PNG" },
+                    es: { system: "Tribu cazadora-recolectora sedentaria", diff: "Almacenamiento masivo (salmón, bellotas). Mediación ritual de ancianos o chamanes.", ex: "Jomon Medio (Sannai-Maruyama), recolectores de Nueva Guinea" }
+                },
+                30: {
+                    ja: { system: "高度貯蔵・複合部族", diff: "特定資源の独占と貯蔵施設の管理。身分階層の萌芽と交易ネットワークの拡大。", ex: "北米太平洋北西海岸先住民（トリンギット族・初期クワキウトル族）" },
+                    en: { system: "Advanced Storage Complex Tribe", diff: "Monopolization of key resources and storage facilities. Early stratification and trade networks.", ex: "Pacific NW Coast peoples (Tlingit, early Kwakiutl)" },
+                    zh: { system: "高度储存复合部落", diff: "垄断特定资源与储存设施。社会阶层萌芽与贸易网络扩张。", ex: "北美太平洋西北海岸原住民（特林吉特人、早期克瓦基特尔人）" },
+                    ko: { system: "고도 저장 복합 부족", diff: "특정 자원 독점 및 저장 시설 관리. 신분 계층 싹트기 및 교역망 확대.", ex: "북미 태평양 북서해안 원주민(틀링깃족, 초기 크와키우틀족)" },
+                    fr: { system: "Tribu complexe à stockage avancé", diff: "Monopole des ressources et des stocks. Début de stratification et réseaux marchands.", ex: "Peuples du Nord-Ouest pacifique (Tlingit, début Kwakiutl)" },
+                    es: { system: "Tribu compleja de almacenamiento avanzado", diff: "Monopolio de recursos y almacenes. Inicio de estratificación y redes comerciales.", ex: "Pueblos del Noroeste del Pacífico (Tlingit, Kwakiutl temprano)" }
+                },
+                35: {
+                    ja: { system: "複合狩猟採集首長制", diff: "世襲首長と平民・奴隷の層化。富の誇示と再分配のための大規模儀礼（ポトラッチ）の成立。", ex: "19世紀北米クワキウトル族・ハイダ族（ポトラッチ全盛期）" },
+                    en: { system: "Complex Forager Chiefdom", diff: "Hereditary chiefs, commoners, slaves. Large-scale redistributive rituals (Potlatch).", ex: "19th c. Kwakiutl, Haida (Potlatch peak era)" },
+                    zh: { system: "复合采集酋邦", diff: "世袭酋长、平民与奴隶分化。设立用于炫耀财富与再分配的大型仪式（夸富宴）。", ex: "19世纪克瓦基特尔人、海达人（夸富宴鼎盛期）" },
+                    ko: { system: "복합 수렵채집 군장국", diff: "세습 군장, 평민, 노예 계층화. 부의 과시와 재분배를 위한 대규모 의례(포트래치) 성립.", ex: "19세기 크와키우틀족, 하이다족 (포트래치 전성기)" },
+                    fr: { system: "Chefferie complexe de chasseurs-cueilleurs", diff: "Chefs héréditaires, roturiers, esclaves. Rituel de redistribution massif (Potlatch).", ex: "Kwakiutl du XIXe siècle, Haida (apogée du Potlatch)" },
+                    es: { system: "Jefatura compleja cazadora-recolectora", diff: "Jefes hereditarios, plebeyos, esclavos. Rituales masivos de redistribución (Potlatch).", ex: "Kwakiutl del siglo XIX, Haida (apogeo del Potlatch)" }
+                },
+                40: {
+                    ja: { system: "特化型定住首長制", diff: "巨大な構造物や巨石遺構の建造。広域な地域間贈与体系の組織化と領有権の主張。", ex: "縄文時代後期・晩期（巨大木柱列遺構等）、ギョベクリ・テペ建造社会" },
+                    en: { system: "Specialized Sedentary Chiefdom", diff: "Construction of megaliths and massive structures. Organized regional gift exchanges.", ex: "Late Jomon (wooden pillar circles), Göbekli Tepe builders" },
+                    zh: { system: "专业化定居酋邦", diff: "建造大型建筑物或巨石遗迹。组织广域区域间赠与体系与领土主张。", ex: "绳文时代后期/晚期（巨型木柱遗迹等）、哥贝克力石阵建造社会" },
+                    ko: { system: "특화형 정주 군장국", diff: "거대 구조물 및 거석 유적 건조. 광역 지역 간 증여 체계 조직화.", ex: "조몬 시대 후/만기(거대 목주열 유적 등), 괴베클리 테페 건조 사회" },
+                    fr: { system: "Chefferie sédentaire spécialisée", diff: "Mégalithes et structures massives. Réseaux de dons régionaux organisés.", ex: "Jomon tardif (cercle de poteaux), bâtisseurs de Göbekli Tepe" },
+                    es: { system: "Jefatura sedentaria especializada", diff: "Construcción de megalitos y grandes estructuras. Redes organizadas de intercambio.", ex: "Jomon tardío (círculos de madera), constructores de Göbekli Tepe" }
+                },
+                45: {
+                    ja: { system: "狩猟採集複雑性の極致", diff: "非農耕でありながら高度な階層化と広域同盟を維持。これ以上の複雑化は農耕化を要する限界点。", ex: "カリフォルニア・チュマシュ族（貝貨通貨経済と世襲首長）" },
+                    en: { system: "Peak Forager Complexity", diff: "High stratification without agriculture. Maximum complexity possible before farming.", ex: "Chumash of California (shell-money economy, hereditary chiefs)" },
+                    zh: { system: "采集社会复杂性极致", diff: "非农耕却维持着高度阶层化与广域同盟。进一步复杂化需向农耕转型的极限。", ex: "加州丘马什人（贝币货币经济与世袭酋长）" },
+                    ko: { system: "수렵채집 복잡성의 극치", diff: "비농경임에도 고도 계층화 및 광역 동맹 유지. 농경화 없이 도달 가능한 정점.", ex: "캘리포니아 추마시족(패화 화폐 경제 및 세습 군장)" },
+                    fr: { system: "Sommet de la complexité de cueillette", diff: "Stratification élevée sans agriculture. Limite maximale avant l'agriculture.", ex: "Chumash de Californie (monnaie de coquillage, chefs héréditaires)" },
+                    es: { system: "Cúspide de complejidad recolectora", diff: "Alta estratificación sin agricultura. Límite máximo alcanzable sin cultivar.", ex: "Chumash de California (moneda de conchas, jefes hereditarios)" }
+                }
             },
             agrarian: {
-                10: { system: "初期農耕集落（バンド・部族）", diff: "小規模な刀耕火種農耕。土地の私有はなく共同体全体での共同耕作と再分配。", ex: "新石器時代初期ヤンシャオ文化（仰韶文化）、初期新石器ヨーロッパ" },
-                15: { system: "定住農耕村落複合", diff: "村落間のゆるやかな同盟。長老会による土地利用の調整と互恵的贈与体系。", ex: "縄文晩期〜初期弥生集落（板付遺跡等）、新石器時代バンチェン文化" },
-                20: { system: "部族制農耕社会", diff: "祖先崇拝と儀礼的再分配。特定の家系が再分配の中心的役割を担い始める。", ex: "弥生時代中期（環濠集落）、ニュージーランド・マオリ族の伝統社会" },
-                25: { system: "初期首長制（統合部族）", diff: "農産物・金属器の集積と長による再分配。地域間の小規模な対立と交易の拡大。", ex: "弥生時代後期（吉野ヶ里遺跡等）、青銅器時代初期ヨーロッパ" },
-                30: { system: "首長制社会", diff: "首長の権力確立と身分差の定着。貢納制度と大規模墳墓（墳丘墓）の建造。", ex: "古墳時代出現期（箸墓古墳等）、ハワイ諸島伝統首長制社会" },
-                35: { system: "高度首長制（連合首長制）", diff: "複数の首長域の統合。広域な交易路の支配と軍事指導者の台頭。", ex: "古墳時代中期（巨大前方後円墳造営期）、ケルト人首長国" },
-                40: { system: "初期都市国家（王国萌芽）", diff: "灌漑農業と神殿・王宮による中央集権的備蓄。文字や記号による管理の開始。", ex: "初期メソポタミア都市国家（ウルク期）、夏王朝（二里頭文化）" },
-                45: { system: "都市国家連合・初期王国", diff: "官僚制の萌芽と税制の導入。専門職人・兵士・農民の明確な分業構造。", ex: "メソポタミア初期王朝時代（ウル第1王朝）、シュメール都市国家" },
-                50: { system: "中央集権的王国", diff: "成文法や単位の統一。広大な領域の支配と身分制社会の全盛。", ex: "エジプト古王国（ピラミッド造営期）、商（殷）王朝" },
-                55: { system: "領域国家・軍事帝国", diff: "常備軍の形成と積極的な外征。莫大な戦利品と奴隷労働による富の集中。", ex: "アッシリア帝国、周王朝（西周時代）" },
-                60: { system: "複合領域帝国", diff: "大規模なインフラ（道路・用水路）の整備。貨幣経済の浸透と格差の激化。", ex: "アケメネス朝ペルシア、秦・前漢帝国" },
-                65: { system: "高度専制帝国", diff: "貴族層による大土地所有と小作農化。農民反乱のリスクと警察・官僚組織の肥大化。", ex: "後漢時代、ローマ帝国（帝政初期）" },
-                70: { system: "成熟封建帝国", diff: "荘園制・中央と地方の権力闘争。高い生産性と高度な都市文化・市場経済。", ex: "唐・宋王朝、中世ヨーロッパ（12-13世紀）" },
-                75: { system: "高密度都市文明", diff: "高度な金融・信用の発達と極度な富の偏在。再分配機能の不全による社会的緊張。", ex: "明王朝（江南都市部）、ヴェネツィア共和国全盛期" },
-                80: { system: "再分配型高度巨大帝国", diff: "貨幣を持たず、国家による完全な労働・物資の再分配ネットワークで統合された超高度国家。", ex: "インカ帝国（タワティンスウユ）" },
-                85: { system: "晩期専制帝国", diff: "構造的格差と官僚の腐敗。税収不足と特権階級への偏重による社会的結束の崩壊期。", ex: "清王朝（19世紀末）、末期ローマ帝国" },
-                90: { system: "過度肥大化帝国", diff: "維持コストが限界に達した超巨大国家。内部動乱と外圧への脆弱性。", ex: "西ローマ帝国末期、ビザンツ帝国末期" },
-                95: { system: "システム不全寸前文明", diff: "資源の枯渇、極度な格差、信頼の失墜により社会基盤が完全に目詰まりした状態。", ex: "マヤ文明末期（古典期崩壊直前）" },
-                100: { system: "社会的複雑性の飽和極限", diff: "複雑性を維持するためのコストが限界を突破。極小のショックで全崩壊する状態。", ex: "崩壊直前の超巨大古代帝国" }
+                10: {
+                    ja: { system: "初期農耕集落（バンド・部族）", diff: "小規模な刀耕火種農耕。土地の私有はなく共同体全体での共同耕作と再分配。", ex: "新石器時代初期ヤンシャオ文化（仰韶文化）、初期新石器ヨーロッパ" },
+                    en: { system: "Early Agrarian Village", diff: "Small-scale slash-and-burn. No land ownership; collective farming and sharing.", ex: "Early Neolithic Yangshao culture, Early Neolithic Europe" },
+                    zh: { system: "早期农耕聚落（游群/部落）", diff: "小规模刀耕火种。无土地私有，全共同体共同耕作与再分配。", ex: "新石器时代早期仰韶文化、早期新石器欧洲" },
+                    ko: { system: "초기 농경 집락 (밴드/부족)", diff: "소규모 화전 농경. 토지 사유 없이 공동체 전체의 공동 경작 및 재분배.", ex: "신석기 시대 초기 앙소 문화, 초기 신석기 유럽" },
+                    fr: { system: "Village agricole primitif", diff: "Culture sur brûlis à petite échelle. Pas de propriété foncière ; partage communautaire.", ex: "Culture Yangshao néolithique, Europe néolithique initiale" },
+                    es: { system: "Aldea agrícola incipiente", diff: "Cultivo de roza y quema a pequeña escala. Sin propiedad de la tierra; trabajo comunitario.", ex: "Cultura Yangshao del Neolítico temprano, Europa neolítica temprana" }
+                },
+                15: {
+                    ja: { system: "定住農耕村落複合", diff: "村落間のゆるやかな同盟。長老会による土地利用の調整と互恵的贈与体系。", ex: "縄文晩期〜初期弥生集落（板付遺跡等）、新石器時代バンチェン文化" },
+                    en: { system: "Sedentary Village Complex", diff: "Loose alliances between villages. Elder councils coordinate land use and gift exchanges.", ex: "Late Jomon to Early Yayoi (Itazuke site), Ban Chiang culture" },
+                    zh: { system: "定居农耕村落复合体", diff: "村落间松散同盟。长老会对土地利用进行协调与互惠赠与。", ex: "绳文晚期至弥生初期聚落（板付遗址等）、班清文化" },
+                    ko: { system: "정주 농경 마을 복합체", diff: "마을 간 느슨한 동맹. 장로회에 의한 토지 이용 조정 및 호혜적 증여.", ex: "조몬 만기~초기 야요이 집락(이타즈케 유적), 반창 문화" },
+                    fr: { system: "Complexe de villages sédentaires", diff: "Alliances lâches inter-villages. Conseil des aînés pour réguler les terres et les dons.", ex: "Fin Jomon à Yayoi (site d'Itazuke), Culture de Ban Chiang" },
+                    es: { system: "Complejo de aldeas sedentarias", diff: "Alianzas lazas entre aldeas. El consejo de ancianos gestiona tierras y dones.", ex: "Jomon final a Yayoi temprano (sitio Itazuke), Cultura Ban Chiang" }
+                },
+                20: {
+                    ja: { system: "部族制農耕社会", diff: "祖先崇拝と儀礼的再分配。特定の家系が再分配の中心的役割を担い始める。", ex: "弥生時代中期（環濠集落）、ニュージーランド・マオリ族の伝統社会" },
+                    en: { system: "Tribal Agrarian Society", diff: "Ancestor worship and ceremonial redistribution. Specific lineages emerge as central nodes.", ex: "Middle Yayoi (moated settlements), Traditional Maori society" },
+                    zh: { system: "部落制农耕社会", diff: "祖先崇拜与仪式性再分配。特定家族开始承担再分配的核心角色。", ex: "弥生时代中期（环濠聚落）、新西兰毛利人传统社会" },
+                    ko: { system: "부족제 농경 사회", diff: "조상 숭배와 의례적 재분배. 특정 가계가 재분배의 중심 역할 담당.", ex: "야요이 시대 중기(환호 집락), 뉴질랜드 마오리족 전통 사회" },
+                    fr: { system: "Société tribale agricole", diff: "Culte des ancêtres et redistribution rituelle. Émergence de lignées centrales.", ex: "Yayoi moyen (villages entourés de fossés), Société maorie" },
+                    es: { system: "Sociedad tribal agrícola", diff: "Culto a los antepasados y redistribución ritual. Linajes principales organizan recursos.", ex: "Yayoi Medio (asentamientos con foso), sociedad tradicional maorí" }
+                },
+                25: {
+                    ja: { system: "初期首長制（統合部族）", diff: "農産物・金属器の集積と長による再分配。地域間の小規模な対立と交易の拡大。", ex: "弥生時代後期（吉野ヶ里遺跡等）、青銅器時代初期ヨーロッパ" },
+                    en: { system: "Early Chiefdom (Integrated Tribe)", diff: "Accumulation of crops/bronze; chiefs redistribute. Regional rivalries and expanding trade.", ex: "Late Yayoi (Yoshinogari site), Early Bronze Age Europe" },
+                    zh: { system: "初期酋邦（整合部落）", diff: "农产品与金属器集聚，由首领再分配。区域间小规模冲突与贸易扩张。", ex: "弥生时代后期（吉野里遗址等）、青铜时代早期欧洲" },
+                    ko: { system: "초기 군장국 (통합 부족)", diff: "농산물/금속기 집적 및 군장에 의한 재분배. 소규모 지역 대립과 교역 확대.", ex: "야요이 시대 후기(요시노가리 유적), 청동기 시대 초기 유럽" },
+                    fr: { system: "Chefferie précoce", diff: "Accumulation de cultures/bronze rédistribués par le chef. Rivalités et commerce.", ex: "Yayoi tardif (Yoshinogari), Âge du bronze européen" },
+                    es: { system: "Jefatura temprana", diff: "Acumulación de cosechas y metales redistribuidos por el jefe. Rivalidades regionales.", ex: "Yayoi tardío (sitio Yoshinogari), Edad del Bronce temprana en Europa" }
+                },
+                30: {
+                    ja: { system: "首長制社会", diff: "首長の権力確立と身分差の定着。貢納制度と大規模墳墓（墳丘墓）の建造。", ex: "古墳時代出現期（箸墓古墳等）、ハワイ諸島伝統首長制社会" },
+                    en: { system: "Chiefdom Society", diff: "Established chief authority and social ranks. Tribute systems and monumental tombs.", ex: "Emergent Kofun period (Hashihaka Kofun), Hawaiian Chiefdoms" },
+                    zh: { system: "酋邦社会", diff: "首长权力确立与等级制度定型。纳贡制度与大规模坟墓（土丘墓）建造。", ex: "古坟时代出现期（箸墓古坟等）、夏威夷群岛传统酋邦" },
+                    ko: { system: "군장국 사회", diff: "군장의 권력 확립 및 신분 차이 정착. 공납 제도와 대규모 분묘 건조.", ex: "고분 시대 출현기(하시하카 고분), 하와이 제도 전통 군장국" },
+                    fr: { system: "Société de chefferie", diff: "Autorité du chef et classes sociales fixées. Tributs et tombes monumentales.", ex: "Période Kofun émergente (Hashihaka), Chefferies d'Hawaï" },
+                    es: { system: "Sociedad de jefatura", diff: "Consolidación del poder del jefe y rangos. Sistemas de tributo y túmulos gigantes.", ex: "Periodo Kofun incipiente (túmulo Hashihaka), Jefaturas de Hawái" }
+                },
+                35: {
+                    ja: { system: "高度首長制（連合首長制）", diff: "複数の首長域の統合。広域な交易路の支配と軍事指導者の台頭。", ex: "古墳時代中期（巨大前方後円墳造営期）、ケルト人首長国" },
+                    en: { system: "Paramount Chiefdom", diff: "Integration of multiple chiefdoms. Control of key trade routes; rise of military leaders.", ex: "Middle Kofun period (keyhole tombs), Celtic Chiefdoms" },
+                    zh: { system: "高度酋邦（联合酋邦）", diff: "多个酋长领地整合。支配广域贸易路线与军事领袖崛起。", ex: "古坟时代中期（前方后圆坟造营期）、凯尔特人酋长国" },
+                    ko: { system: "고도 군장국 (연합 군장국)", diff: "복수 군장 영역의 통합. 광역 교역로 지배 및 군사 지도자 대두.", ex: "고분 시대 중기(거대 전방후원분 조영기), 켈트족 군장국" },
+                    fr: { system: "Chefferie suprême", diff: "Union de plusieurs chefferies. Contrôle des routes marchandes et chefs militaires.", ex: "Kofun moyen (grands tumulus), Chefferies celtes" },
+                    es: { system: "Jefatura suprema", diff: "Unión de varias jefaturas. Control de rutas comerciales y líderes militares.", ex: "Kofun Medio (grandes túmulos), jefaturas celtas" }
+                },
+                40: {
+                    ja: { system: "初期都市国家（王国萌芽）", diff: "灌漑農業と神殿・王宮による中央集権的備蓄。文字や記号による管理の開始。", ex: "初期メソポタミア都市国家（ウルク期）、夏王朝（二里頭文化）" },
+                    en: { system: "Early City-State (Nascent Kingdom)", diff: "Irrigation agriculture, centralized storage via temples/palaces. Early writing/record-keeping.", ex: "Early Mesopotamian city-states (Uruk), Erlitou culture (Xia)" },
+                    zh: { system: "早期城市国家（王国萌芽）", diff: "灌溉农业与神殿/王宫中央集权备荒。开始采用文字与符号管理。", ex: "早期美索不达米亚城邦（乌鲁克期）、夏朝（二里头文化）" },
+                    ko: { system: "초기 도시 국가 (왕국 싹트기)", diff: "관개 농업과 신전/왕궁에 의한 중앙집권적 비축. 문자 및 기호 관리 시작.", ex: "초기 메소포타미아 도시 국가(우루크기), 하나라(이리두 문화)" },
+                    fr: { system: "Cité-État primitive", diff: "Agriculture d'irrigation, stockage centralisé (temples/palais). Début de l'écriture.", ex: "Cités sumériennes (Uruk), Culture d'Erlitou (Dynastie Xia)" },
+                    es: { system: "Ciudad-Estado temprana", diff: "Agricultura de regadío y almacenes centrales (templos/palacios). Primeros escritos.", ex: "Ciudades mesopotámicas (Uruk), Cultura Erlitou (Dinastía Xia)" }
+                },
+                45: {
+                    ja: { system: "都市国家連合・初期王国", diff: "官僚制の萌芽と税制の導入。専門職人・兵士・農民の明確な分業構造。", ex: "メソポタミア初期王朝時代（ウル第1王朝）、シュメール都市国家" },
+                    en: { system: "City-State League / Early Kingdom", diff: "Emerging bureaucracy and taxation. Clear division of labor (craftsmen, soldiers, farmers).", ex: "Mesopotamian Early Dynastic (First Dynasty of Ur), Sumerian states" },
+                    zh: { system: "城邦联盟/早期王国", diff: "官僚制萌芽与税制引入。手工业者、士兵、农民的明确分工。", ex: "美索不达米亚早期王朝时代（乌尔第一王朝）、苏美尔城邦" },
+                    ko: { system: "도시 국가 연합 / 초기 왕국", diff: "관료제 싹트기 및 조세 제도 도입. 장인, 군인, 농민의 명확한 분업.", ex: "메소포타미아 초기 왕조 시대(우르 제1왕조), 슈메르 도시 국가" },
+                    fr: { system: "Ligue de cités-États / Royaume primitif", diff: "Bureaucratie et taxes naissantes. Division claire du travail (artisans, soldats, paysans).", ex: "Dynastique archaïque sumérien (Ur I), Cités de Sumer" },
+                    es: { system: "Liga de Ciudades-Estado / Reino temprano", diff: "Inicio de burocracia e impuestos. División del trabajo (artesanos, soldados, agricultores).", ex: "Dinástico Temprano sumerio (Primera Dinastía de Ur)" }
+                },
+                50: {
+                    ja: { system: "中央集権的王国", diff: "成文法や単位の統一。広大な領域の支配と身分制社会の全盛。", ex: "エジプト古王国（ピラミッド造営期）、商（殷）王朝" },
+                    en: { system: "Centralized Kingdom", diff: "Written laws and standardized units. Broad territorial rule and strict legal social strata.", ex: "Old Kingdom Egypt (Pyramid age), Shang Dynasty" },
+                    zh: { system: "中央集权王国", diff: "成文法与度量衡统一。统治广袤领土，等级制社会鼎盛。", ex: "埃及古王国（金字塔建造期）、商朝" },
+                    ko: { system: "중앙집권적 왕국", diff: "성문법 및 단위 통일. 광대한 영역 지배와 신분제 사회의 전성.", ex: "이집트 고왕국(피라미드 조영기), 상(은) 왕조" },
+                    fr: { system: "Royaume centralisé", diff: "Lois écrites, unités standardisées. Règne territorial étendu et classes strictes.", ex: "Ancien Empire égyptien (Pyramides), Dynastie Shang" },
+                    es: { system: "Reino centralizado", diff: "Leyes escritas y estandarización de medidas. Imperio territorial y estamentos fijos.", ex: "Imperio Antiguo de Egipto (Era de las Pirámides), Dinastía Shang" }
+                },
+                55: {
+                    ja: { system: "領域国家・軍事帝国", diff: "常備軍の形成と積極的な外征。莫大な戦利品と奴隷労働による富の集中。", ex: "アッシリア帝国、周王朝（西周時代）" },
+                    en: { system: "Territorial State / Military Empire", diff: "Standing armies and expansionist campaigns. Concentration of wealth via conquest and slaves.", ex: "Assyrian Empire, Western Zhou Dynasty" },
+                    zh: { system: "领土国家/军事帝国", diff: "常备军建设与积极外征。依靠大量战利品与奴隶劳动实现财富集中。", ex: "亚述帝国、周朝（西周）" },
+                    ko: { system: "영역 국가 / 군사 제국", diff: "상비군 형성 및 적극적 외정. 막대한 전리품과 노예 노동을 통한 부의 집중.", ex: "아시리아 제국, 주 왕조(서주 시대)" },
+                    fr: { system: "État territorial / Empire militaire", diff: "Armées permanentes et guerres d'expansion. Richesse via conquêtes et esclavage.", ex: "Empire assyrien, Dynastie Zhou occidentale" },
+                    es: { system: "Estado territorial / Imperio militar", diff: "Ejércitos permanentes y expansión. Concentración de riqueza mediante conquistas y esclavos.", ex: "Imperio Asirio, Dinastía Zhou Occidental" }
+                },
+                60: {
+                    ja: { system: "複合領域帝国", diff: "大規模なインフラ（道路・用水路）の整備。貨幣経済の浸透と格差の激化。", ex: "アケメネス朝ペルシア、秦・前漢帝国" },
+                    en: { system: "Composite Territorial Empire", diff: "Massive infrastructure (roads, canals). Spread of monetary economy and widening inequality.", ex: "Achaemenid Persian Empire, Qin & Western Han Dynasties" },
+                    zh: { system: "复合领土帝国", diff: "大规模基础设施（道路、水渠）建设。货币经济渗透与贫富差距加剧。", ex: "阿契美尼德王朝波斯、秦朝/西汉帝国" },
+                    ko: { system: "복합 영역 제국", diff: "대규모 인프라(도로, 수로) 정비. 화폐 경제 침투와 양극화 심화.", ex: "아케메네스 왕조 페르시아, 진/전한 제국" },
+                    fr: { system: "Empire composite", diff: "Infrastructures colossales (routes, canaux). Économie monétaire et inégalités accrues.", ex: "Empire perse achéménide, Dynasties Qin et Han occidentaux" },
+                    es: { system: "Imperio territorial compuesto", diff: "Infraestructuras masivas (caminos, canales). Expansión de moneda y mayor desigualdad.", ex: "Imperio Aqueménida, dinastías Qin y Han Occidental" }
+                },
+                65: {
+                    ja: { system: "高度専制帝国", diff: "貴族層による大土地所有と小作農化。農民反乱のリスクと警察・官僚組織の肥大化。", ex: "後漢時代、ローマ帝国（帝政初期）" },
+                    en: { system: "Advanced Autocratic Empire", diff: "Large aristocratic estates; tenant farming. Risk of peasant revolts; bloat of bureaucracy.", ex: "Eastern Han Dynasty, Early Roman Empire" },
+                    zh: { system: "高度专制帝国", diff: "贵族大土地所有制与佃农化。农民起义风险与官僚警察机构膨胀。", ex: "东汉时代、罗马帝国（帝政初期）" },
+                    ko: { system: "고도 전제 제국", diff: "귀족층의 대토지 소유 및 소작농화. 농민 반란 위험과 관료 조직의 비대화.", ex: "후한 시대, 로마 제국(제정 초기)" },
+                    fr: { system: "Empire autocratique avancé", diff: "Grands domaines aristocratiques, métayage. Risque de révoltes et bureaucratie enflée.", ex: "Dynastie Han orientaux, Haut-Empire romain" },
+                    es: { system: "Imperio autocrático avanzado", diff: "Latifundios aristocráticos y arrendamiento. Riesgo de revueltas y burocracia excesiva.", ex: "Dinastía Han Oriental, Principado del Imperio Romano" }
+                },
+                70: {
+                    ja: { system: "成熟封建帝国", diff: "荘園制・中央と地方の権力闘争。高い生産性と高度な都市文化・市場経済。", ex: "唐・宋王朝、中世ヨーロッパ（12-13世紀）" },
+                    en: { system: "Mature Feudal Empire", diff: "Manorialism; power struggles between center and regions. High urban culture and markets.", ex: "Tang & Song Dynasties, High Medieval Europe (12-13th c.)" },
+                    zh: { system: "成熟封建帝国", diff: "庄园制、中央与地方权力斗争。极高的生产力与发达的城市市场经济。", ex: "唐/宋朝、中世纪欧洲（12-13世纪）" },
+                    ko: { system: "성숙 봉건 제국", diff: "장원제, 중앙과 지방의 권력 투쟁. 높은 생산성과 도시 문화, 시장 경제.", ex: "당/송 왕조, 중세 유럽(12-13세기)" },
+                    fr: { system: "Empire féodal mûr", diff: "Manorialisme ; luttes de pouvoir centre/régions. Économie marchande et culture urbaine.", ex: "Dynasties Tang et Song, Europe du Moyen Âge central" },
+                    es: { system: "Imperio feudal maduro", diff: "Señoríos; luchas de poder centro-región. Alta cultura urbana y economía de mercado.", ex: "Dinastías Tang y Song, Europa Plena Edad Media" }
+                },
+                75: {
+                    ja: { system: "高密度都市文明", diff: "高度な金融・信用の発達と極度な富の偏在。再分配機能の不全による社会的緊張。", ex: "明王朝（江南都市部）、ヴェネツィア共和国全盛期" },
+                    en: { system: "Dense Urban Civilization", diff: "Advanced finance and credit; extreme wealth disparity. Breakdown of redistribution.", ex: "Ming Dynasty (Jiangnan urban centers), Republic of Venice peak" },
+                    zh: { system: "高密度城市文明", diff: "金融与信用高度发达，财富极度集中。再分配机制失灵引发社会紧张。", ex: "明朝（江南城市）、威尼斯共和国全盛期" },
+                    ko: { system: "고밀도 도시 문명", diff: "고도의 금융/신용 발달과 극심한 부의 편중. 재분배 기능 마비로 인한 사회적 긴장.", ex: "명 왕조(강남 도시부), 베네치아 공화국 전성기" },
+                    fr: { system: "Civilisation urbaine dense", diff: "Finance avancée et disparité extrême. Panne des mécanismes de redistribution.", ex: "Dynastie Ming (villes du Jiangnan), République de Venise à son apogée" },
+                    es: { system: "Civilización urbana densa", diff: "Finanzas avanzadas; enorme brecha de riqueza. Fallo de las redes de redistribución.", ex: "Dinastía Ming (centros urbanos del Jiangnan), República de Venecia" }
+                },
+                80: {
+                    ja: { system: "再分配型高度巨大帝国", diff: "貨幣を持たず、国家による完全な労働・物資の再分配ネットワークで統合された超高度国家。", ex: "インカ帝国（タワティンスウユ）" },
+                    en: { system: "Command Redistribution Empire", diff: "Moneyless giant empire integrated entirely via state labor/resource redistribution networks.", ex: "Inca Empire (Tawantinsuyu)" },
+                    zh: { system: "再分配型高度巨型帝国", diff: "不使用货币，完全通过国家的劳动与物资再分配网络进行整合的超高度国家。", ex: "印加帝国（印加帝国全境）" },
+                    ko: { system: "재분배형 고도 거대 제국", diff: "화폐 없이 국가에 의한 완전한 노동/물자 재분배 네트워크로 통합된 초고도 국가.", ex: "잉카 제국 (타완틴수유)" },
+                    fr: { system: "Empire planifié de redistribution", diff: "Sans monnaie, entièrement intégré par un réseau d'État de redistribution du travail.", ex: "Empire inca (Tawantinsuyu)" },
+                    es: { system: "Imperio de redistribución estatal", diff: "Sin moneda, integrado por una red estatal de redistribución de trabajo y bienes.", ex: "Imperio Inca (Tawantinsuyu)" }
+                },
+                85: {
+                    ja: { system: "晩期専制帝国", diff: "構造的格差と官僚の腐敗。税収不足と特権階級への偏重による社会的結束の崩壊期。", ex: "清王朝（19世紀末）、末期ローマ帝国" },
+                    en: { system: "Late Autocratic Empire", diff: "Structural inequality and bureaucratic corruption. Tax shortages and failing cohesion.", ex: "Late Qing Dynasty (late 19th c.), Late Roman Empire" },
+                    zh: { system: "晚期专制帝国", diff: "结构性差距与官僚腐败。税收不足与特权阶级偏重导致凝聚力崩溃。", ex: "清朝（19世纪末）、末期罗马帝国" },
+                    ko: { system: "말기 전제 제국", diff: "구조적 불평등과 관료 부패. 세수 부족과 특권층 편중으로 인한 결속력 붕괴.", ex: "청 왕조(19세기 말), 말기 로마 제국" },
+                    fr: { system: "Empire autocratique tardif", diff: "Inégalités structurelles et corruption. Pénurie fiscale et perte de cohésion.", ex: "Fin de la Dynastie Qing, Empire romain tardif" },
+                    es: { system: "Imperio autocrático tardío", diff: "Desigualdad estructural y corrupción. Déficit fiscal y colapso de la cohesión.", ex: "Dinastía Qing tardía (fines del S. XIX), Imperio Romano tardío" }
+                },
+                90: {
+                    ja: { system: "過度肥大化帝国", diff: "維持コストが限界に達した超巨大国家。内部動乱と外圧への脆弱性。", ex: "西ローマ帝国末期、ビザンツ帝国末期" },
+                    en: { system: "Overexpanded Empire", diff: "Maintenance costs exceed limits. Extremely vulnerable to internal rebellions and external pressures.", ex: "Western Roman Empire (end era), Late Byzantine Empire" },
+                    zh: { system: "过度膨胀帝国", diff: "维系成本达到极限的超巨型国家。对内部动乱与外部压力极其脆弱。", ex: "西罗马帝国末期、拜占庭帝国末期" },
+                    ko: { system: "과도 비대화 제국", diff: "유지 비용이 한계에 달한 초거대 국가. 내부 동란과 외압에 대한 극도의 취약성.", ex: "서로마 제국 말기, 비잔티움 제국 말기" },
+                    fr: { system: "Empire surexploité", diff: "Les coûts de maintien dépassent les limites. Vulnérabilité aux révoltes et pressions.", ex: "Fin de l'Empire romain d'Occident, Empire byzantin tardif" },
+                    es: { system: "Imperio sobredimensionado", diff: "Costes de mantenimiento insostenibles. Extrema vulnerabilidad interna y externa.", ex: "Imperio Romano de Occidente final, Imperio Bizantino tardío" }
+                },
+                95: {
+                    ja: { system: "システム不全寸前文明", diff: "資源の枯渇、極度な格差、信頼の失墜により社会基盤が完全に目詰まりした状態。", ex: "マヤ文明末期（古典期崩壊直前）" },
+                    en: { system: "Near-System Collapse Civ", diff: "Resource depletion, extreme gap, loss of trust. Social foundation is completely clogged.", ex: "Terminal Classic Maya civilization (pre-collapse)" },
+                    zh: { system: "系统失灵边缘文明", diff: "资源枯竭、极度贫富差距、信任破产导致社会基石完全瘫痪。", ex: "玛雅文明末期（古典期崩溃前夕）" },
+                    ko: { system: "시스템 기능 마비 직전 문명", diff: "자원 고갈, 극심한 격차, 신뢰 실추로 사회 기반이 완전히 마비된 상태.", ex: "마야 문명 말기(고전기 붕괴 직전)" },
+                    fr: { system: "Civilisation au bord de l'effondrement", diff: "Épuisement des ressources, fossé extrême, perte de confiance. Blocage total.", ex: "Civilisation maya classique tardive (avant effondrement)" },
+                    es: { system: "Civilización al borde del colapso", diff: "Agotamiento de recursos, desigualdad extrema, pérdida de confianza. Parálisis total.", ex: "Maya Clásico Terminal (previo al colapso)" }
+                },
+                100: {
+                    ja: { system: "社会的複雑性の飽和極限", diff: "複雑性を維持するためのコストが限界を突破。極小のショックで全崩壊する状態。", ex: "崩壊直前の超巨大古代帝国" },
+                    en: { system: "Saturated Complexity Limit", diff: "Cost to maintain complexity exceeds total capacity. Minor shocks cause total collapse.", ex: "Imminent collapse of oversized ancient empires" },
+                    zh: { system: "社会复杂性饱和极限", diff: "维持复杂的成本突破极限。微小的冲击即可引发全面崩溃。", ex: "崩潰直前的超巨型古代帝国" },
+                    ko: { system: "사회적 복잡성 포화 극한", diff: "복잡성을 유지하기 위한 비용이 한계를 돌파. 극소의 충격으로도 전면 붕괴.", ex: "붕괴 직전의 초거대 고대 제국" },
+                    fr: { system: "Limite de complexité saturée", diff: "Le coût du maintien dépasse les capacités. Le moindre choc provoque l'effondrement.", ex: "Effondrement imminente des super-empires anciens" },
+                    es: { system: "Límite de complejidad saturada", diff: "El coste de mantener la estructura supera la capacidad. Un choque mínimo provoca colapso.", ex: "Colapso inminente de superimperios antiguos" }
+                }
             }
         };
 
@@ -497,6 +686,32 @@
                 similarHeader: "【該当する現実世界・歴史上の社会モデル】",
                 warnFreeGift: "一方的な無償贈与の連投により依存と過度の負い目が発生！結束度が急激に低下しています。",
                 evolutionMsg: "【社会進化】贈与のネットワーク強化と成長により社会構造が「{0}」へと移行しました！",
+                modes: { forager: "狩猟採集社会", agrarian: "農耕社会" },
+                infoModal: {
+                    title: "現在の該当社会モデル ({0})",
+                    statusHeader: "【現在の社会ステータス】",
+                    lblStage: "形態",
+                    lblComp: "社会的複雑度",
+                    lblIndex: "対応インデックス",
+                    lblIneq: "格差インデックス",
+                    lblCoh: "社会的結束度",
+                    secSystem: "【社会制度】",
+                    secDiff: "【社会構造と特徴（現実世界での変化）】",
+                    secEx: "【具体的歴史・人類学の例】"
+                },
+                resultModal: {
+                    lblMode: "生産形態",
+                    lblStage: "最終到達段階",
+                    lblTurn: "生存年数",
+                    lblGift: "贈与累積回数",
+                    lblScore: "文明スコア",
+                    lblComp: "最終社会的複雑度",
+                    lblIndex: "インデックス",
+                    lblSystem: "制度形態",
+                    lblDiff: "社会構造の特質",
+                    lblEx: "該当する歴史的社会・文明例"
+                },
+                unknownSoc: { system: "不明な社会形態", diff: "データが存在しません。", ex: "該当なし" },
                 stages: {
                     band: "バンド",
                     tribe: "部族",
@@ -536,6 +751,32 @@
                 similarHeader: "[Corresponding Historical Society Model]",
                 warnFreeGift: "Repeated pure gifts caused extreme debt and dependency! Cohesion is dropping.",
                 evolutionMsg: "[EVOLUTION] Through gift networking and growth, society evolved to '{0}'!",
+                modes: { forager: "Forager Society", agrarian: "Agrarian Society" },
+                infoModal: {
+                    title: "Current Society Model ({0})",
+                    statusHeader: "[Current Social Status]",
+                    lblStage: "Stage",
+                    lblComp: "Social Complexity",
+                    lblIndex: "Index Key",
+                    lblIneq: "Inequality Index",
+                    lblCoh: "Social Cohesion",
+                    secSystem: "[Institutional System]",
+                    secDiff: "[Social Structure & Real-world Characteristics]",
+                    secEx: "[Historical & Anthropological Examples]"
+                },
+                resultModal: {
+                    lblMode: "Mode",
+                    lblStage: "Final Stage",
+                    lblTurn: "Years Survived",
+                    lblGift: "Gift Count",
+                    lblScore: "Civ Score",
+                    lblComp: "Final Complexity",
+                    lblIndex: "Index Key",
+                    lblSystem: "System",
+                    lblDiff: "Structural Traits",
+                    lblEx: "Historical Examples"
+                },
+                unknownSoc: { system: "Unknown Society", diff: "No data available.", ex: "None" },
                 stages: {
                     band: "Band",
                     tribe: "Tribe",
@@ -575,6 +816,32 @@
                 similarHeader: "【对应的现实与历史社会模型】",
                 warnFreeGift: "连续无偿赠与导致严重依赖与债务感！凝聚力急剧下降。",
                 evolutionMsg: "【社会演化】通过馈赠网络的建立与发展，社会结构成功演化为「{0}」！",
+                modes: { forager: "狩猎采集社会", agrarian: "农耕社会" },
+                infoModal: {
+                    title: "当前对应社会模型 ({0})",
+                    statusHeader: "【当前社会状态】",
+                    lblStage: "形态",
+                    lblComp: "社会复杂度",
+                    lblIndex: "对应索引",
+                    lblIneq: "不平等指数",
+                    lblCoh: "社会凝聚力",
+                    secSystem: "【社会制度】",
+                    secDiff: "【社会结构与特征（现实演变）】",
+                    secEx: "【具体历史/人类学实例】"
+                },
+                resultModal: {
+                    lblMode: "生产形态",
+                    lblStage: "最终阶段",
+                    lblTurn: "生存年数",
+                    lblGift: "馈赠累计次数",
+                    lblScore: "文明积分",
+                    lblComp: "最终社会复杂度",
+                    lblIndex: "对应索引",
+                    lblSystem: "制度形态",
+                    lblDiff: "社会结构特质",
+                    lblEx: "对应历史社会/文明实例"
+                },
+                unknownSoc: { system: "未知社会形态", diff: "暂无数据。", ex: "无" },
                 stages: {
                     band: "游群 (Band)",
                     tribe: "部落 (Tribe)",
@@ -614,6 +881,32 @@
                 similarHeader: "[해당하는 역사적 사회 모델]",
                 warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성発生! 결속도가 급감합니다.",
                 evolutionMsg: "[사회 진화] 증여 네트워크 구축과 성장을 통해 사회 구조가 '{0}'(으)로 진화했습니다!",
+                modes: { forager: "수렵채집 사회", agrarian: "농경 사회" },
+                infoModal: {
+                    title: "현재 해당하는 사회 모델 ({0})",
+                    statusHeader: "[현재 사회 상태]",
+                    lblStage: "형태",
+                    lblComp: "사회적 복잡성",
+                    lblIndex: "대응 인덱스",
+                    lblIneq: "불평등 지수",
+                    lblCoh: "사회적 결속도",
+                    secSystem: "[사회 제도]",
+                    secDiff: "[사회 구조 및 특징 (현실의 변화)]",
+                    secEx: "[구체적 역사/인류학 사례]"
+                },
+                resultModal: {
+                    lblMode: "생산 형태",
+                    lblStage: "최종 도달 단계",
+                    lblTurn: "생존 년수",
+                    lblGift: "증여 누적 횟수",
+                    lblScore: "문명 점수",
+                    lblComp: "최종 사회적 복잡성",
+                    lblIndex: "인덱스",
+                    lblSystem: "제도 형태",
+                    lblDiff: "사회 구조의 특성",
+                    lblEx: "해당하는 역사적 사회/문명 사례"
+                },
+                unknownSoc: { system: "알 수 없는 사회 형태", diff: "데이터가 존재하지 않습니다.", ex: "해당 없음" },
                 stages: {
                     band: "밴드 (Band)",
                     tribe: "부족 (Tribe)",
@@ -625,7 +918,7 @@
                     directGift: { name: "직접 증여", desc: "불평등を 줄이고 결속도를 향상. 진화に 필요한 증여 횟数 증가." },
                     obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계を 통해 안정한 사회 통합을 도모." },
                     potlatch: { name: "포트래치(파기)", desc: "재화를 파기/분배하여 불평등を 대폭 감소시키는 의식적 증여." },
-                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존性を 유발하여 결속도 붕괴." }
+                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존성을 유발하여 결속도 붕괴." }
                 },
                 helpContent: "1. 사회 통합 4단계: 밴드 ➔ 부족 ➔ 군장국 ➔ 왕국. 진화には 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여の 함정: 무상 증여 남용은 일방적 부채感を 주어 의존性と 결속도 붕괴를 초래합니다.\n4. 포트래치: 극단적 불평등を 강제로 리셋하는 의식적 재화 파기 행사입니다."
             },
@@ -653,6 +946,32 @@
                 similarHeader: "[Modèle de société historique correspondant]",
                 warnFreeGift: "Les dons gratuits répétés ont créé de la dépendance ! La cohésion chute.",
                 evolutionMsg: "[ÉVOLUTION] Grâce au réseau de dons et à la croissance, la société évolue vers '{0}' !",
+                modes: { forager: "Société de chasseurs-cueilleurs", agrarian: "Société agricole" },
+                infoModal: {
+                    title: "Modèle social actuel ({0})",
+                    statusHeader: "[Statut social actuel]",
+                    lblStage: "Stade",
+                    lblComp: "Complexité sociale",
+                    lblIndex: "Indice correspondant",
+                    lblIneq: "Indice d'inégalité",
+                    lblCoh: "Cohésion sociale",
+                    secSystem: "[Système institutionnel]",
+                    secDiff: "[Structure sociale & Caractéristiques]",
+                    secEx: "[Exemples historiques & anthropologiques]"
+                },
+                resultModal: {
+                    lblMode: "Mode de production",
+                    lblStage: "Stade final",
+                    lblTurn: "Années survécues",
+                    lblGift: "Total des dons",
+                    lblScore: "Score de civilisation",
+                    lblComp: "Complexité finale",
+                    lblIndex: "Indice",
+                    lblSystem: "Système",
+                    lblDiff: "Traits structurels",
+                    lblEx: "Exemples historiques"
+                },
+                unknownSoc: { system: "Société inconnue", diff: "Pas de données.", ex: "Aucun" },
                 stages: {
                     band: "Bande",
                     tribe: "Tribu",
@@ -692,6 +1011,32 @@
                 similarHeader: "[Modelo de sociedad histórica correspondiente]",
                 warnFreeGift: "¡Los dones puros repetidos crearon dependencia! La cohesión se derrumba.",
                 evolutionMsg: "¡[EVOLUCIÓN] Mediante la red de dones y el crecimiento, la sociedad evolucionó a '{0}'!",
+                modes: { forager: "Sociedad cazadora-recolectora", agrarian: "Sociedad agrícola" },
+                infoModal: {
+                    title: "Modelo social actual ({0})",
+                    statusHeader: "[Estado social actual]",
+                    lblStage: "Etapa",
+                    lblComp: "Complejidad social",
+                    lblIndex: "Índice clave",
+                    lblIneq: "Índice de desigualdad",
+                    lblCoh: "Cohesión social",
+                    secSystem: "[Sistema institucional]",
+                    secDiff: "[Estructura social y características]",
+                    secEx: "[Ejemplos históricos y antropológicos]"
+                },
+                resultModal: {
+                    lblMode: "Modo",
+                    lblStage: "Etapa final",
+                    lblTurn: "Años sobrevividos",
+                    lblGift: "Conteo de dones",
+                    lblScore: "Puntaje Civ",
+                    lblComp: "Complejidad final",
+                    lblIndex: "Índice clave",
+                    lblSystem: "Sistema",
+                    lblDiff: "Rasgos estructurales",
+                    lblEx: "Ejemplos históricos"
+                },
+                unknownSoc: { system: "Sociedad desconocida", diff: "Sin datos disponibles.", ex: "Ninguno" },
                 stages: {
                     band: "Banda",
                     tribe: "Tribu",
@@ -991,33 +1336,37 @@
 
         function getSocietyDetails(mode, complexity) {
             const roundedComp = Math.max(10, Math.min(mode === 'forager' ? 45 : 100, Math.round(complexity / 5) * 5));
-            const data = SOC_DATABASE[mode] && SOC_DATABASE[mode][roundedComp];
+            const entry = SOC_DATABASE[mode] && SOC_DATABASE[mode][roundedComp];
+            const lang = state.lang;
+            const t = I18N[lang];
+            const data = (entry && (entry[lang] || entry.ja)) || t.unknownSoc;
             return {
                 compKey: roundedComp,
-                data: data || { system: "不明な社会形態", diff: "データが存在しません。", ex: "該当なし" }
+                data: data
             };
         }
 
         function showCurrentSocietyInfo() {
             const t = I18N[state.lang];
-            const modeText = state.mode === 'forager' ? '狩猟採集社会' : '農耕社会';
+            const modeText = t.modes[state.mode];
             const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
+            const infoT = t.infoModal;
 
-            const title = `現在の該当社会モデル (${modeText})`;
-            const body = `【現在の社会ステータス】
-・形態: ${t.stages[state.stage]}
-・社会的複雑度: ${state.complexity} (対応インデックス: ${compKey})
-・格差インデックス: ${state.inequality}%
-・社会的結束度: ${state.cohesion}
+            const title = infoT.title.replace('{0}', modeText);
+            const body = `${infoT.statusHeader}
+・${infoT.lblStage}: ${t.stages[state.stage]}
+・${infoT.lblComp}: ${state.complexity} (${infoT.lblIndex}: ${compKey})
+・${infoT.lblIneq}: ${state.inequality}%
+・${infoT.lblCoh}: ${state.cohesion}
 
 ----------------------------------------
-【社会制度】
+${infoT.secSystem}
 ${data.system}
 
-【社会構造と特徴（現実世界での変化）】
+${infoT.secDiff}
 ${data.diff}
 
-【具体的歴史・人類学の例】
+${infoT.secEx}
 ■ ${data.ex}`;
 
             showModal(title, body);
@@ -1025,20 +1374,21 @@ ${data.diff}
 
         function showGameOverResult() {
             const t = I18N[state.lang];
-            const modeText = state.mode === 'forager' ? '狩猟採集社会' : '農耕社会';
+            const modeText = t.modes[state.mode];
             const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
+            const resT = t.resultModal;
 
             const resultText = `${t.gameOver}\n\n` +
-                `・生産形態: ${modeText}\n` +
-                `・最終到達段階: ${t.stages[state.stage]}\n` +
-                `・生存年数: ${state.turn}\n` +
-                `・贈与累積回数: ${state.giftCount}\n` +
-                `・文明スコア: ${state.score}\n` +
-                `・最終社会的複雑度: ${state.complexity} (インデックス: ${compKey})\n\n` +
+                `・${resT.lblMode}: ${modeText}\n` +
+                `・${resT.lblStage}: ${t.stages[state.stage]}\n` +
+                `・${resT.lblTurn}: ${state.turn}\n` +
+                `・${resT.lblGift}: ${state.giftCount}\n` +
+                `・${resT.lblScore}: ${state.score}\n` +
+                `・${resT.lblComp}: ${state.complexity} (${resT.lblIndex}: ${compKey})\n\n` +
                 `${t.similarHeader}\n` +
-                `■ 制度形態: ${data.system}\n` +
-                `■ 社会構造の特質:\n${data.diff}\n` +
-                `■ 該当する歴史的社会・文明例:\n${data.ex}`;
+                `■ ${resT.lblSystem}: ${data.system}\n` +
+                `■ ${resT.lblDiff}:\n${data.diff}\n` +
+                `■ ${resT.lblEx}:\n${data.ex}`;
 
             showModal(t.gameOver, resultText);
         }
