@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GIFT WAR - アクションバトル</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            user-select: none; -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: #0d0d11;
+            color: #e0e0e0;
+            font-family: 'MS Mincho', 'ＭＳ 明朝', serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 8px;
+            overflow-x: hidden;
+        }
+
+        header {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 3px double #8a785d;
+            background-color: #1f1f28;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            color: #f0c040;
+            text-shadow: 2px 2px #000;
+        }
+
+        select, button {
+            background: #141419;
+            color: #f0c040;
+            border: 2px solid #8a785d;
+            padding: 4px 8px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background-color: #1f1f28;
+            border: 3px ridge #8a785d;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            color: #f0c040;
+            border-bottom: 2px dashed #8a785d;
+            padding-bottom: 3px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .stat-value {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .btn {
+            background-color: #3b2d4a;
+            color: #f0c040;
+            border: 2px outset #8a785d;
+            padding: 5px 8px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .btn:hover:not(:disabled) { background-color: #4c3a5e; }
+        .btn:active:not(:disabled) { border-style: inset; background-color: #281e33; }
+
+        .full-width { grid-column: 1 / -1; }
+
+        .log-box {
+            height: 100px;
+            background-color: #08080c;
+            border: 2px solid #5a4b3d;
+            padding: 4px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .log-entry {
+            margin-bottom: 2px;
+            border-bottom: 1px dotted #222;
+            min-height: 1.1em;
+            word-break: break-all;
+        }
+
+        #canvasContainer {
+            position: relative;
+            width: 100%;
+            height: 240px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            background-color: #141419;
+            border: 2px solid #8a785d;
+            touch-action: none;
+        }
+
+        .skill-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #f39c12;
+            text-shadow: 0 0 8px #ff0000, 2px 2px #000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .controls-overlay {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            gap: 8px;
+        }
+
+        .control-group { display: flex; gap: 6px; }
+
+        .ctrl-btn {
+            background: #2a2a35;
+            border: 2px solid #8a785d;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .ctrl-btn-guard { background: #2980b9; border-color: #3498db; }
+        .battle-btn-start { background: #1e824c; border-color: #2ecc71; color: #fff; }
+        .battle-btn-retreat { background: #96281b; border-color: #e74c3c; color: #fff; }
+
+        #battleOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        #battleMsg {
+            font-size: 1.2rem;
+            color: #e74c3c;
+            font-weight: bold;
+            text-shadow: 0 0 6px #000;
+        }
+
+        #btnDownloadResult {
+            display: none;
+            background: #27ae60;
+            border-color: #2ecc71;
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .skill-guide {
+            font-size: 0.7rem;
+            color: #aaa;
+            line-height: 1.2;
+            background: #141419;
+            padding: 4px;
+            border: 1px solid #444;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>GIFT WAR - あくしょんバトル</h1>
+        <select id="langSelect">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+        </select>
+    </header>
+
+    <div class="main-container">
+        <!-- Status & Equipment -->
+        <div class="panel">
+            <div class="panel-title">つよさ・くらい・くに</div>
+            <div class="stat-row"><span>くらい:</span> <span id="valClass" class="stat-value">おさ</span></div>
+            <div class="stat-row"><span>しょうごう:</span> <span id="valHero" class="stat-value">なし</span></div>
+            <div class="stat-row"><span>くにのひとびと:</span> <span id="valPopulation" class="stat-value">10 にん</span></div>
+            <div class="stat-row"><span>いしん（すごさ）:</span> <span id="valPrestige" class="stat-value">50</span></div>
+            <div class="stat-row"><span>めいせい（有名さ）:</span> <span id="valFame" class="stat-value">0</span></div>
+            <div class="stat-row"><span>たたかいのパワー:</span> <span id="valValour" class="stat-value">0</span></div>
+            <div class="stat-row"><span>ぶき:</span> <span id="valWeapon" class="stat-value">きのおおたち</span></div>
+        </div>
+
+        <!-- Potlatch & Power-Up System -->
+        <div class="panel">
+            <div class="panel-title">プレゼント（ポトラッチ）</div>
+            <div class="stat-row">
+                <span>おくるあいて:</span>
+                <select id="targetSelect">
+                    <option value="rivalA">ライバルA</option>
+                    <option value="rivalB">ライバルB</option>
+                </select>
+            </div>
+            <div class="stat-row">
+                <span>もっているプレゼント:</span>
+                <span id="valGiftsList" class="stat-value" style="font-size:0.75rem;">しょ:0 ちゅう:0 こう:0 とく:0</span>
+            </div>
+            <div class="stat-row">
+                <span>おくるもの:</span>
+                <select id="giftRankSelect">
+                    <option value="0">しょきゅう（初級）</option>
+                    <option value="1">ちゅうきゅう（中級）</option>
+                    <option value="2">こうきゅう（高級）</option>
+                    <option value="3">とっきゅう（特級）</option>
+                </select>
+            </div>
+            <button id="btnGiveGift" class="btn">あいてにプレゼントをおくる</button>
+            <button id="btnReceiveGift" class="btn" style="background-color:#8e44ad; margin-top:2px;">プレゼントをもらってきょうか（いしんがへる）</button>
+            <div class="stat-row"><span>いしんがへるまで:</span> <span id="valTimer" class="stat-value">10びょう</span></div>
+        </div>
+
+        <!-- Action Combat Panel -->
+        <div class="panel full-width">
+            <div class="panel-title">アクションバトル</div>
+            <div class="stat-row">
+                <span id="valPlayerHpText" class="stat-value" style="color:#2ecc71;">じぶんHP: 100/100</span>
+                <span id="valMonsterHpText" class="stat-value" style="color:#e74c3c;">てきHP: ---</span>
+            </div>
+
+            <div id="canvasContainer">
+                <canvas id="gameCanvas"></canvas>
+                <div id="skillBanner" class="skill-banner">れんぞくつき！</div>
+                <div id="battleOverlay">
+                    <div id="battleMsg">せんとうじゅんび</div>
+                    <button id="btnStartBattle" class="btn battle-btn-start" style="padding: 10px 24px; font-size: 1rem;">せんとうかいし</button>
+                    <button id="btnDownloadResult" class="btn">きろくをダウンロード</button>
+                </div>
+            </div>
+
+            <div class="skill-guide">
+                <b>【わざのくりだしかた】</b><br>
+                ・トントン（２かいタップ）: <b>れんぞくつき</b> | ・うしろ→まえになぞる: <b>とっしんつき</b> | ・みぎひだりになぞる: <b>つばめがえし</b><br>
+                ・ぐるっと１かい＝したになぞる: <b>からわり</b> | ・６かいなぞる: <b>はっかせん（８れんぎり）</b>
+            </div>
+
+            <div class="controls-overlay">
+                <div class="control-group">
+                    <button class="ctrl-btn ctrl-btn-guard" id="btnGuard">🛡 ガード</button>
+                    <button class="ctrl-btn" id="btnLeft">◀ ひだり</button>
+                    <button class="ctrl-btn" id="btnRight">みぎ ▶</button>
+                    <button class="ctrl-btn" id="btnJump">▲ ジャンプ</button>
+                </div>
+                <div class="control-group">
+                    <button class="ctrl-btn battle-btn-retreat" id="btnRetreat">にげる</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy & Crafting & Class Up -->
+        <div class="panel full-width">
+            <div class="panel-title">そざい・くにのこうさく・くらいアップ</div>
+            <div class="stat-row">
+                <span id="valMaterials">そざい: かわ[0] こうせき[0] ふしぎなき[0] | たま[0]</span>
+            </div>
+            <div class="stat-row" style="margin-top: 2px;">
+                <span>くにづくり:</span>
+                <button id="btnDevAgri" class="btn" style="padding:2px 6px;">たんぼをたがやす(ふしぎなき3)</button>
+                <button id="btnDevEcon" class="btn" style="padding:2px 6px;">まちをはってんさせる(こうせき3)</button>
+            </div>
+            <div class="stat-row" style="margin-top: 2px;">
+                <span>つくったプレゼント:</span>
+                <select id="craftRankSelect">
+                    <option value="0">しょきゅう (かわ2)</option>
+                    <option value="1">ちゅうきゅう (かわ3/こうせき2)</option>
+                    <option value="2">こうきゅう (こうせき4/ふしぎなき3)</option>
+                    <option value="3">とっきゅう (ふしぎなき5/たま1)</option>
+                </select>
+                <button id="btnCraftGift" class="btn" style="padding:2px 8px;">つくる</button>
+            </div>
+            <div class="stat-row" style="margin-top: 3px;">
+                <span id="valReqs" style="font-size:0.75rem; color:#f39c12;">つぎのくらいにいくには: ---</span>
+            </div>
+            <button id="btnClassUp" class="btn" style="margin-top: 2px;">くらいをあげる</button>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="panel full-width">
+            <div class="panel-title">ものがたり・きろく</div>
+            <div id="logBox" class="log-box"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const MAX_LOGS = 10;
+            const CLASSES = ["おさ", "こうしゃく", "おう", "だいこうしゃく", "こうてい"];
+
+            const WEAPONS = [
+                { name: "きのおおたち", atk: 15, color: "#2ecc71" },
+                { name: "てつのけん", atk: 35, color: "#f1c40f" },
+                { name: "まけんグラム", atk: 75, color: "#e74c3c" },
+                { name: "せいけんエクスカリバー", atk: 180, color: "#9b59b6" }
+            ];
+
+            const state = {
+                prestige: 50, fame: 0, valour: 0, giftCount: 0, classLevel: 0,
+                population: 10, weaponIdx: 0, isHero: false, decayTimer: 10,
+                leather: 0, ore: 0, wood: 0, gems: 0, gifts: [0, 0, 0, 0],
+                killCount: 0, extraAtk: 0,
+                rivals: {
+                    rivalA: { name: "ライバルA", prestige: 30 },
+                    rivalB: { name: "ライバルB", prestige: 45 }
+                },
+                inBattle: false
+            };
+
+            const scoreData = {
+                startTime: Date.now(),
+                clearTimeSeconds: 0,
+                damageDealt: 0,
+                damageTaken: 0,
+                bossesDefeated: 0,
+                defeatedBossNames: []
+            };
+
+            const player = {
+                x: 60, y: 0, vx: 0, vy: 0,
+                hp: 120, maxHp: 120,
+                isGrounded: false, facing: 1, invulnerable: 0,
+                dashTimer: 0, isGuarding: false
+            };
+
+            const monster = {
+                x: 300, y: 0, vx: 0, vy: 0,
+                hp: 150, maxHp: 150,
+                name: "あかおに",
+                type: "ground",
+                hitTimer: 0,
+                flyAngle: 0,
+                stepTimer: 0,
+                teleportTimer: 0,
+                chargeTimer: 0,
+                isCharging: false,
+                trail: [],
+                actionTimer: 0,
+                flames: [],
+                beam: { active: false, charging: false },
+                screenAttack: false
+            };
+
+            const bossPool = [
+                { name: "はかいのりゅう バハムート", hp: 1100, type: "dragon" },
+                { name: "だてんし サマエル", hp: 950, type: "angel" },
+                { name: "まおう ルシファー", hp: 850, type: "maou" }
+            ];
+            let currentBossIndex = 0;
+
+            const slashes = [];
+            const gestureHistory = [];
+            let tapCount = 0;
+            let tapTimer = null;
+            let isLoopRunning = false; // ループ制御フラグ
+
+            const logBuffer = new Array(MAX_LOGS).fill("");
+            const logNodes = [];
+            let canvas, ctx;
+            const keys = { left: false, right: false, jump: false, guard: false };
+
+            let touchPath = [];
+            let isSwiping = false;
+
+            function setupLogDOM() {
+                const box = document.getElementById('logBox');
+                box.textContent = '';
+                for (let i = 0; i < MAX_LOGS; i++) {
+                    const node = document.createElement('div');
+                    node.className = 'log-entry';
+                    box.appendChild(node);
+                    logNodes.push(node);
+                }
+            }
+
+            function addLog(msg) {
+                logBuffer.pop();
+                logBuffer.unshift(msg);
+                for (let i = 0; i < MAX_LOGS; i++) {
+                    logNodes[i].textContent = logBuffer[i] ? `> ${logBuffer[i]}` : '';
+                }
+            }
+
+            function generateOpeningStory() {
+                const stories = [
+                    "【スタート】まおうのぐんぜいによって くらやみになった！ 「おさ」となって「こうてい」をめざそう！",
+                    "【スタート】ドラゴンがたけり声をあげた。ひとびとをあつめて「こうてい」をめざそう！",
+                    "【スタート】こわいオバケがいっぱいだ。プレゼントをあげて、たたかいのちからをつけよう！"
+                ];
+                addLog(stories[Math.floor(Math.random() * stories.length)]);
+            }
+
+            setInterval(() => {
+                if (state.decayTimer > 0) {
+                    state.decayTimer--;
+                } else {
+                    state.decayTimer = 10;
+                    if (state.prestige > 0) {
+                        state.prestige = Math.max(0, state.prestige - 4);
+                        addLog("【じかんけいか】時間がたって、いしんがすこし減った。");
+                    }
+                }
+                updateUI();
+            }, 1000);
+
+            function showSkillBanner(text) {
+                const b = document.getElementById('skillBanner');
+                b.textContent = text;
+                b.style.opacity = '1';
+                setTimeout(() => { b.style.opacity = '0'; }, 1000);
+            }
+
+            function updateUI() {
+                if (state.classLevel >= 4 && state.population >= 300 && state.valour >= 400) {
+                    if (!state.isHero) {
+                        state.isHero = true;
+                        addLog("【かくせい】圧倒的なすごさで ★でんせつのゆうしゃ★ になった！");
+                    }
+                }
+
+                document.getElementById('valClass').textContent = CLASSES[state.classLevel];
+                document.getElementById('valHero').textContent = state.isHero ? "★でんせつのゆうしゃ★" : "なし";
+                document.getElementById('valPopulation').textContent = `${state.population} にん`;
+                document.getElementById('valPrestige').textContent = state.prestige;
+                document.getElementById('valFame').textContent = state.fame;
+                document.getElementById('valValour').textContent = state.valour;
+
+                const w = WEAPONS[state.weaponIdx];
+                const totalAtk = w.atk + state.extraAtk;
+                const wEl = document.getElementById('valWeapon');
+                wEl.textContent = `${w.name} (こうげきりょく:${totalAtk})`;
+                wEl.style.color = w.color;
+
+                document.getElementById('valGiftsList').textContent = `しょ:${state.gifts[0]} ちゅう:${state.gifts[1]} こう:${state.gifts[2]} とく:${state.gifts[3]}`;
+                document.getElementById('valTimer').textContent = `${state.decayTimer}びょう`;
+                document.getElementById('valMaterials').textContent = `かわ[${state.leather}] こうせき[${state.ore}] ふしぎなき[${state.wood}] | たま[${state.gems}]`;
+
+                const reqGifts = [5, 12, 22, 35][state.classLevel] || 50;
+                const reqValour = [60, 150, 280, 450][state.classLevel] || 600;
+                const reqPop = [10, 50, 150, 300][state.classLevel] || 500;
+
+                if (state.classLevel < 4) {
+                    document.getElementById('valReqs').textContent = `つぎのくらい: プレゼント${reqGifts}かい / たたかいのパワー${reqValour} / ひとびと${reqPop}にん`;
+                } else {
+                    document.getElementById('valReqs').textContent = `ゆうしゃのじょうけん: ひとびと300にん / たたかいのパワー400`;
+                }
+
+                document.getElementById('valPlayerHpText').textContent = `じぶんHP: ${Math.max(0, player.hp)}/${player.maxHp}${player.isGuarding ? ' [ガードちゅう]' : ''}`;
+                document.getElementById('valMonsterHpText').textContent = state.inBattle ? `${monster.name} HP: ${Math.max(0, monster.hp)}/${monster.maxHp}` : `てきHP: ---`;
+            }
+
+            function processGesture(dirHistory) {
+                if (!state.inBattle) return;
+
+                const baseAtk = WEAPONS[state.weaponIdx].atk + state.extraAtk;
+                const strDirs = dirHistory.join('');
+
+                if (dirHistory.length >= 6) {
+                    executeSkill("はっかせん (8れんぎり)", baseAtk * 4.5, "#9b59b6", 8);
+                    return;
+                }
+
+                if (strDirs.includes('RDLURD') || strDirs.includes('LDRULD') || (strDirs.length >= 3 && dirHistory[dirHistory.length - 1] === 'D')) {
+                    if (dirHistory.length >= 3) {
+                        executeSkill("からわり (かぶとわり)", baseAtk * 2.8, "#e67e22", 1);
+                        return;
+                    }
+                }
+
+                if (strDirs.includes('LR') || strDirs.includes('RL')) {
+                    executeSkill("つばめがえし (2だんぎり)", baseAtk * 2.0, "#3498db", 2);
+                    return;
+                }
+
+                const backDir = player.facing === 1 ? 'L' : 'R';
+                const fwdDir = player.facing === 1 ? 'R' : 'L';
+                if (strDirs.includes(backDir + fwdDir)) {
+                    player.dashTimer = 10;
+                    player.vx = player.facing * 12;
+                    executeSkill("とっしんつき！", baseAtk * 2.2, "#f1c40f", 1);
+                    return;
+                }
+
+                executeSkill("つうじょうぎり", baseAtk, "#ffffff", 1);
+            }
+
+            function executeSkill(name, damage, color, hits) {
+                if (!state.inBattle) return;
+                showSkillBanner(name);
+                for (let i = 0; i < hits; i++) {
+                    setTimeout(() => {
+                        if (!state.inBattle) return;
+                        slashes.push({
+                            x: player.x + player.facing * (40 + i * 10),
+                            y: player.y - 25 + (Math.random() * 20 - 10),
+                            radius: 40,
+                            color: color,
+                            life: 6
+                        });
+
+                        const dist = Math.hypot(monster.x - player.x, (monster.y - 20) - (player.y - 25));
+                        if (dist < 120) {
+                            const dealDmg = Math.floor(damage / hits);
+                            monster.hp -= dealDmg;
+                            scoreData.damageDealt += dealDmg;
+                            monster.hitTimer = 6;
+                            monster.vx = player.facing * 4;
+                            if (monster.hp <= 0) onMonsterDefeated();
+                            updateUI();
+                        }
+                    }, i * 60);
+                }
+            }
+
+            function onMonsterDefeated() {
+                addLog(`やったね！ [${monster.name}] をたおした！`);
+                
+                const isMidBoss = monster.type === "midboss";
+                const isBoss = isMidBoss || monster.type === "maou" || monster.type === "dragon" || monster.type === "angel";
+                
+                state.valour += isBoss ? 100 : 25;
+                state.fame += isBoss ? 40 : 12;
+
+                state.leather += Math.floor(Math.random() * 2) + 1;
+                if (Math.random() < 0.7) state.ore += 1;
+                if (Math.random() < 0.6) state.wood += 1;
+                if (isBoss && Math.random() < 0.5) state.gems += 1;
+
+                if (isMidBoss) {
+                    if (state.weaponIdx < 1) {
+                        state.weaponIdx = 1;
+                        addLog("【たからもの】きょうてきをたおして『てつのけん』をてにいれた！");
+                    }
+                }
+
+                if (monster.type === "maou" || monster.type === "dragon" || monster.type === "angel") {
+                    scoreData.bossesDefeated++;
+                    scoreData.defeatedBossNames.push(monster.name);
+                    currentBossIndex++;
+
+                    if (currentBossIndex >= bossPool.length) {
+                        onAllBossesDefeated();
+                        return;
+                    }
+                }
+
+                if (!isBoss) {
+                    state.killCount++;
+                }
+
+                if (state.isHero && state.weaponIdx < 3) {
+                    state.weaponIdx = 3;
+                    addLog("【しょうごう】でんせつのゆうしゃになり、『せいけんエクスカリバー』をてにいれた！");
+                }
+
+                spawnMonster();
+            }
+
+            function onAllBossesDefeated() {
+                state.inBattle = false;
+                scoreData.clearTimeSeconds = Math.floor((Date.now() - scoreData.startTime) / 1000);
+
+                const overlay = document.getElementById('battleOverlay');
+                const msg = document.getElementById('battleMsg');
+                const btnStart = document.getElementById('btnStartBattle');
+                const btnDl = document.getElementById('btnDownloadResult');
+
+                overlay.style.display = 'flex';
+                msg.textContent = "ぜんぶのラスボスをたおした！ せかいにへいわがやってきた！";
+                msg.style.color = "#f1c40f";
+                btnStart.textContent = "たたかいをつづける";
+                btnDl.style.display = "block";
+
+                addLog("【クリア！】すべてのボスを退治しました！ きろくがダウンロードできます。");
+            }
+
+            function spawnMonster() {
+                monster.teleportTimer = 0;
+                monster.chargeTimer = 0;
+                monster.isCharging = false;
+                monster.actionTimer = 0;
+                monster.flames = [];
+                monster.beam = { active: false, charging: false };
+                monster.screenAttack = false;
+                monster.trail = [];
+
+                if (state.isHero) {
+                    const b = bossPool[currentBossIndex % bossPool.length];
+                    monster.name = b.name;
+                    monster.maxHp = b.hp;
+                    monster.type = b.type;
+                } else if (state.killCount >= 5) {
+                    state.killCount = 0;
+                    monster.name = "【きょうてき】ごくえんしょうぐん";
+                    monster.maxHp = 450;
+                    monster.type = "midboss";
+                    addLog("【けいこく】とてもつよい てきが あらわれた！");
+                } else {
+                    const r = Math.random();
+                    if (r < 0.5) {
+                        monster.name = "あかおに";
+                        monster.maxHp = 180;
+                        monster.type = "ground";
+                    } else {
+                        monster.name = "からすてんぐ";
+                        monster.maxHp = 140;
+                        monster.type = "fly";
+                    }
+                }
+                monster.hp = monster.maxHp;
+                monster.x = canvas.width - 60;
+            }
+
+            function startBattle() {
+                state.inBattle = true;
+                player.hp = player.maxHp;
+                player.x = 60;
+                spawnMonster();
+                document.getElementById('battleOverlay').style.display = 'none';
+                updateUI();
+            }
+
+            function retreatBattle() {
+                state.inBattle = false;
+                document.getElementById('battleOverlay').style.display = 'flex';
+                document.getElementById('battleMsg').textContent = "にげだした！";
+                document.getElementById('btnStartBattle').textContent = "もういちどたたかう";
+                addLog("安全なところへにげだしました。");
+                updateUI();
+            }
+
+            function playerDeath() {
+                state.inBattle = false;
+                state.prestige = Math.floor(state.prestige * 0.5);
+                state.fame = Math.floor(state.fame * 0.5);
+                state.valour = Math.floor(state.valour * 0.5);
+
+                document.getElementById('battleOverlay').style.display = 'flex';
+                document.getElementById('battleMsg').textContent = "たおれてしまった... (いしん・めいせいがへった)";
+                document.getElementById('btnStartBattle').textContent = "リスタート";
+                addLog("【ざんねん】HPが0になってたおれた。いしんやめいせいがはんぶんになった。");
+                updateUI();
+            }
+
+            function takePlayerDamage(amount) {
+                if (player.invulnerable > 0) return;
+
+                let finalDmg = amount;
+                if (player.isGuarding) {
+                    finalDmg = Math.floor(amount * 0.2);
+                }
+
+                player.hp -= finalDmg;
+                scoreData.damageTaken += finalDmg;
+                player.invulnerable = 25;
+                player.vx = player.x < monster.x ? -7 : 7;
+                addLog(`こうげきをうけた！ -${finalDmg} HP${player.isGuarding ? ' (ガードせいこう！)' : ''}`);
+
+                if (player.hp <= 0) {
+                    player.hp = 0;
+                    playerDeath();
+                }
+                updateUI();
+            }
+
+            function updatePhysics() {
+                if (!state.inBattle) return;
+
+                const groundY = canvas.height - 25;
+
+                player.isGuarding = !!keys.guard;
+
+                if (!player.isGuarding) {
+                    if (keys.left) { player.vx = -4; player.facing = -1; }
+                    else if (keys.right) { player.vx = 4; player.facing = 1; }
+                    else if (player.dashTimer <= 0) { player.vx *= 0.7; }
+                } else {
+                    player.vx *= 0.5;
+                }
+
+                if (player.dashTimer > 0) player.dashTimer--;
+
+                if (keys.jump && player.isGrounded && !player.isGuarding) {
+                    player.vy = -9.5;
+                    player.isGrounded = false;
+                }
+
+                player.vy += 0.5;
+                player.x += player.vx;
+                player.y += player.vy;
+
+                if (player.y >= groundY) {
+                    player.y = groundY;
+                    player.vy = 0;
+                    player.isGrounded = true;
+                }
+
+                player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
+                if (player.invulnerable > 0) player.invulnerable--;
+
+                monster.x += monster.vx;
+                monster.vx *= 0.8;
+                monster.actionTimer++;
+
+                if (monster.type === "dragon") {
+                    monster.y = groundY - 20;
+
+                    if (monster.actionTimer % 140 === 0) {
+                        monster.flames.push({ x: monster.x - 20, y: monster.y - 10, vx: -5, vy: 0 });
+                        monster.flames.push({ x: monster.x - 20, y: monster.y - 10, vx: -4, vy: -2 });
+                    }
+
+                    if (monster.actionTimer % 220 === 120) {
+                        monster.isCharging = true;
+                    }
+                    if (monster.actionTimer % 220 === 170 && monster.isCharging) {
+                        monster.vx = -15;
+                        monster.isCharging = false;
+                    }
+
+                    monster.flames.forEach((f, i) => {
+                        f.x += f.vx;
+                        f.y += f.vy;
+                        if (Math.hypot(f.x - player.x, f.y - (player.y - 20)) < 25) {
+                            takePlayerDamage(18);
+                            monster.flames.splice(i, 1);
+                        }
+                    });
+
+                } else if (monster.type === "angel") {
+                    monster.flyAngle += 0.05;
+                    monster.y = groundY - 45 + Math.sin(monster.flyAngle) * 20;
+                    monster.x += (player.x < monster.x ? -1 : 1) * 1.2;
+
+                    if (monster.actionTimer % 180 === 100) {
+                        monster.beam.charging = true;
+                    }
+                    if (monster.actionTimer % 180 === 150) {
+                        monster.beam.charging = false;
+                        monster.beam.active = true;
+                        setTimeout(() => { monster.beam.active = false; }, 600);
+                    }
+
+                    if (monster.beam.active) {
+                        if (Math.abs((player.y - 20) - (monster.y)) < 40 && player.x < monster.x) {
+                            takePlayerDamage(22);
+                        }
+                    }
+
+                } else if (monster.type === "maou") {
+                    monster.y = groundY - 10;
+
+                    if (monster.actionTimer % 160 === 0) {
+                        monster.x = Math.max(50, Math.min(canvas.width - 50, player.x + (Math.random() < 0.5 ? 150 : -150)));
+                        monster.trail.push({ x: monster.x, y: monster.y, life: 10 });
+                    }
+
+                    if (monster.actionTimer % 260 === 180) {
+                        monster.screenAttack = true;
+                        setTimeout(() => {
+                            if (state.inBattle && monster.type === "maou") {
+                                takePlayerDamage(30);
+                            }
+                            monster.screenAttack = false;
+                        }, 700);
+                    }
+
+                } else if (monster.type === "midboss") {
+                    monster.y = groundY;
+                    monster.teleportTimer++;
+                    if (monster.teleportTimer > 100) {
+                        monster.teleportTimer = 0;
+                        const targetX = player.x + (Math.random() < 0.5 ? 120 : -120);
+                        monster.x = Math.max(40, Math.min(canvas.width - 40, targetX));
+                        monster.trail.push({ x: monster.x, y: monster.y, life: 10 });
+                    }
+
+                    if (!monster.isCharging) {
+                        monster.chargeTimer++;
+                        if (monster.chargeTimer > 150) {
+                            monster.isCharging = true;
+                            monster.chargeTimer = 0;
+                        } else {
+                            monster.x += (player.x < monster.x ? -1 : 1) * 0.5;
+                        }
+                    } else {
+                        monster.chargeTimer++;
+                        if (monster.chargeTimer < 25) {
+                            monster.vx = (player.x < monster.x ? 1 : -1) * 0.5;
+                        } else if (monster.chargeTimer < 40) {
+                            monster.vx = (player.x < monster.x ? -1 : 1) * 14;
+                            monster.trail.push({ x: monster.x, y: monster.y, life: 8 });
+                        } else {
+                            monster.isCharging = false;
+                            monster.chargeTimer = 0;
+                        }
+                    }
+
+                } else if (monster.type === "fly") {
+                    monster.flyAngle += 0.06;
+                    monster.y = groundY - 35 + Math.sin(monster.flyAngle) * 35;
+                    monster.x += (player.x < monster.x ? -1 : 1) * 1.5;
+                } else if (monster.type === "ground") {
+                    monster.y = groundY;
+                    monster.stepTimer--;
+                    if (monster.stepTimer <= 0) {
+                        monster.stepTimer = 30 + Math.floor(Math.random() * 40);
+                        const moveDir = Math.random() < 0.6 ? (player.x < monster.x ? -1 : 1) : (player.x < monster.x ? 1 : -1);
+                        monster.vx = moveDir * (Math.random() * 5 + 3);
+                    }
+                }
+
+                monster.x = Math.max(25, Math.min(canvas.width - 25, monster.x));
+                if (monster.hitTimer > 0) monster.hitTimer--;
+
+                const hitDist = Math.hypot(player.x - monster.x, (player.y - 20) - (monster.y - 20));
+                if (hitDist < 35) {
+                    let dmg = 14;
+                    if (monster.type === "midboss") {
+                        dmg = monster.isCharging ? 38 : 22;
+                    } else if (monster.type === "maou" || monster.type === "dragon" || monster.type === "angel") {
+                        dmg = 28;
+                    }
+                    takePlayerDamage(dmg);
+                }
+            }
+
+            function render() {
+                ctx.fillStyle = '#141419';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const groundY = canvas.height - 25;
+
+                ctx.strokeStyle = '#8a785d';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY);
+                ctx.stroke();
+
+                if (state.inBattle) {
+                    if (monster.type === "maou" && monster.screenAttack) {
+                        ctx.fillStyle = "rgba(231, 76, 60, 0.3)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+
+                    if (player.invulnerable % 4 < 2) {
+                        drawStickman(player.x, player.y, WEAPONS[state.weaponIdx].color, player.facing);
+                    }
+
+                    for (let i = monster.trail.length - 1; i >= 0; i--) {
+                        const tr = monster.trail[i];
+                        ctx.globalAlpha = tr.life / 10;
+                        drawMonster(tr.x, tr.y, monster.type);
+                        ctx.globalAlpha = 1.0;
+                        tr.life--;
+                        if (tr.life <= 0) monster.trail.splice(i, 1);
+                    }
+
+                    drawMonster(monster.x, monster.y, monster.type);
+                }
+
+                for (let i = slashes.length - 1; i >= 0; i--) {
+                    const s = slashes[i];
+                    ctx.strokeStyle = s.color;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.radius, -Math.PI / 3, Math.PI / 3);
+                    ctx.stroke();
+                    s.life--;
+                    if (s.life <= 0) slashes.splice(i, 1);
+                }
+            }
+
+            function drawStickman(x, y, color, facing) {
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 2.5;
+
+                if (player.isGuarding) {
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillRect(x + facing * 8 - 4, y - 30, 8, 20);
+                }
+
+                ctx.beginPath(); ctx.arc(x, y - 35, 7, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x, y - 28); ctx.lineTo(x, y - 12);
+                ctx.lineTo(x - 8 * facing, y);
+                ctx.moveTo(x, y - 12); ctx.lineTo(x + 8 * facing, y);
+                ctx.moveTo(x, y - 22); ctx.lineTo(x + 12 * facing, y - 25);
+                ctx.stroke();
+            }
+
+            function drawMonster(x, y, type) {
+                ctx.save();
+                
+                if (monster.hitTimer > 0) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#ffffff';
+                }
+
+                if (type === "fly") {
+                    const mY = y - 15;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
+                    ctx.beginPath(); ctx.ellipse(x, mY, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
+
+                    if (monster.hitTimer <= 0) ctx.strokeStyle = '#be2edd';
+                    ctx.lineWidth = 3;
+                    const wingFlap = Math.sin(Date.now() * 0.01) * 12;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 5, mY); ctx.lineTo(x - 24, mY - 15 + wingFlap);
+                    ctx.moveTo(x + 5, mY); ctx.lineTo(x + 24, mY - 15 + wingFlap);
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath(); ctx.arc(x - 5, mY - 2, 3, 0, Math.PI * 2); ctx.arc(x + 5, mY - 2, 3, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#e67e22';
+                    ctx.beginPath(); ctx.moveTo(x - 4, mY + 2); ctx.lineTo(x + 4, mY + 2); ctx.lineTo(x, mY + 10); ctx.fill();
+
+                } else if (type === "ground") {
+                    const mY = y - 22;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#c0392b';
+                    ctx.beginPath(); ctx.arc(x, mY, 22, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, mY - 18); ctx.lineTo(x - 18, mY - 36); ctx.lineTo(x - 3, mY - 20);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath(); ctx.arc(x - 8, mY - 4, 4, 0, Math.PI * 2); ctx.arc(x + 8, mY - 4, 4, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, mY + 8); ctx.lineTo(x - 6, mY + 16); ctx.lineTo(x - 2, mY + 8);
+                    ctx.moveTo(x + 2, mY + 8); ctx.lineTo(x + 6, mY + 16); ctx.lineTo(x + 10, mY + 8);
+                    ctx.fill();
+
+                } else if (type === "midboss") {
+                    const mY = y - 30;
+                    if (monster.hitTimer <= 0) {
+                        ctx.fillStyle = monster.isCharging ? '#ff0000' : '#d35400';
+                    }
+                    ctx.beginPath(); ctx.arc(x, mY, 28, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#f39c12';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 15, mY - 20); ctx.lineTo(x - 25, mY - 45); ctx.lineTo(x - 5, mY - 25);
+                    ctx.moveTo(x + 5, mY - 25); ctx.lineTo(x + 25, mY - 45); ctx.lineTo(x + 15, mY - 20);
+                    ctx.fill();
+
+                } else if (type === "maou") {
+                    const mY = y - 30;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#2c3e50';
+                    ctx.beginPath(); ctx.arc(x, mY, 30, 0, Math.PI * 2); ctx.fill();
+
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 20, mY); ctx.lineTo(x - 55, mY - 35); ctx.lineTo(x - 35, mY + 10);
+                    ctx.moveTo(x + 20, mY); ctx.lineTo(x + 55, mY - 35); ctx.lineTo(x + 35, mY + 10);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#f39c12';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 15, mY - 25); ctx.lineTo(x - 28, mY - 50); ctx.lineTo(x - 8, mY - 30);
+                    ctx.lineTo(x, mY - 45);
+                    ctx.lineTo(x + 8, mY - 30); ctx.lineTo(x + 28, mY - 50); ctx.lineTo(x + 15, mY - 25);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#9b59b6';
+                    ctx.beginPath(); ctx.arc(x - 10, mY - 4, 5, 0, Math.PI * 2); ctx.arc(x + 10, mY - 4, 5, 0, Math.PI * 2); ctx.fill();
+
+                } else if (type === "dragon") {
+                    const mY = y - 25;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = monster.isCharging ? '#e74c3c' : '#7f8c8d';
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x - 30, mY - 15); ctx.lineTo(x + 10, mY - 25);
+                    ctx.lineTo(x + 35, mY); ctx.lineTo(x + 10, mY + 20);
+                    ctx.lineTo(x - 30, mY + 10); ctx.closePath(); ctx.fill();
+
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 20, mY - 20); ctx.lineTo(x - 45, mY - 45); ctx.lineTo(x - 10, mY - 22);
+                    ctx.moveTo(x - 10, mY - 22); ctx.lineTo(x - 30, mY - 50); ctx.lineTo(x, mY - 24);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath(); ctx.arc(x - 5, mY - 6, 6, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#e67e22';
+                    monster.flames.forEach(f => {
+                        ctx.beginPath(); ctx.arc(f.x, f.y, 8, 0, Math.PI * 2); ctx.fill();
+                    });
+
+                } else if (type === "angel") {
+                    const mY = y - 28;
+                    
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.ellipse(x, mY - 38, 18, 6, 0, 0, Math.PI * 2); ctx.stroke();
+
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#111111';
+                    for (let i = -1; i <= 1; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(x - 10, mY + i * 10); ctx.lineTo(x - 50, mY - 20 + i * 18); ctx.lineTo(x - 20, mY + 10 + i * 10);
+                        ctx.moveTo(x + 10, mY + i * 10); ctx.lineTo(x + 50, mY - 20 + i * 18); ctx.lineTo(x + 20, mY + 10 + i * 10);
+                        ctx.fill();
+                    }
+
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#ecf0f1';
+                    ctx.beginPath(); ctx.arc(x, mY, 20, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.beginPath(); ctx.arc(x, mY - 2, 6, 0, Math.PI * 2); ctx.fill();
+
+                    if (monster.beam.charging) {
+                        ctx.strokeStyle = "rgba(231, 76, 60, 0.6)";
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(0, mY); ctx.lineTo(x, mY);
+                        ctx.stroke();
+                    }
+                    if (monster.beam.active) {
+                        ctx.fillStyle = "rgba(241, 196, 15, 0.8)";
+                        ctx.fillRect(0, mY - 15, x, 30);
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            function gameLoop() {
+                updatePhysics();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function getDirection(dx, dy) {
+                const absX = Math.abs(dx);
+                const absY = Math.abs(dy);
+                if (absX < 10 && absY < 10) return null;
+                if (absX > absY) return dx > 0 ? 'R' : 'L';
+                return dy > 0 ? 'D' : 'U';
+            }
+
+            function initGestureEvents() {
+                canvas.addEventListener('touchstart', (e) => {
+                    touchPath = [];
+                    isSwiping = true;
+                    const t = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    touchPath.push({ x: t.clientX - rect.left, y: t.clientY - rect.top });
+                }, { passive: true });
+
+                canvas.addEventListener('touchmove', (e) => {
+                    if (!isSwiping) return;
+                    const t = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const pt = { x: t.clientX - rect.left, y: t.clientY - rect.top };
+                    const lastPt = touchPath[touchPath.length - 1];
+
+                    const dir = getDirection(pt.x - lastPt.x, pt.y - lastPt.y);
+                    if (dir && (gestureHistory.length === 0 || gestureHistory[gestureHistory.length - 1] !== dir)) {
+                        gestureHistory.push(dir);
+                    }
+                    touchPath.push(pt);
+                }, { passive: true });
+
+                canvas.addEventListener('touchend', () => {
+                    isSwiping = false;
+                    if (gestureHistory.length > 0) {
+                        processGesture(gestureHistory);
+                        gestureHistory.length = 0;
+                    } else {
+                        tapCount++;
+                        clearTimeout(tapTimer);
+                        tapTimer = setTimeout(() => {
+                            if (tapCount >= 2) {
+                                executeSkill("れんぞくつき！", (WEAPONS[state.weaponIdx].atk + state.extraAtk) * 1.8, "#2ecc71", 3);
+                            } else {
+                                executeSkill("つうじょうぎり", WEAPONS[state.weaponIdx].atk + state.extraAtk, "#ffffff", 1);
+                            }
+                            tapCount = 0;
+                        }, 200);
+                    }
+                });
+            }
+
+            function giveGift() {
+                const rank = parseInt(document.getElementById('giftRankSelect').value, 10);
+                const targetKey = document.getElementById('targetSelect').value;
+                const target = state.rivals[targetKey];
+
+                if (state.gifts[rank] <= 0) {
+                    addLog("プレゼントがありません。まずはつくりましょう！");
+                    return;
+                }
+
+                state.gifts[rank]--;
+                state.giftCount++;
+                const gainPrestige = (rank + 1) * 20;
+                state.prestige += gainPrestige;
+                state.fame += (rank + 1) * 15;
+
+                target.prestige = Math.max(0, target.prestige - (rank + 1) * 8);
+
+                addLog(`【プレゼント】${target.name} へあげました！ (いしん+${gainPrestige})`);
+                updateUI();
+            }
+
+            function receiveGift() {
+                state.extraAtk += 15;
+                state.prestige = Math.max(0, state.prestige - 30);
+                state.fame = Math.max(0, state.fame - 25);
+                addLog("【プレゼントをもらった】あいてからすごいものをもらって パワー+15！ でもいしんとめいせいが下がった。");
+                updateUI();
+            }
+
+            function craftGift() {
+                const rank = parseInt(document.getElementById('craftRankSelect').value, 10);
+                let success = false;
+
+                if (rank === 0) {
+                    if (state.leather >= 2) { state.leather -= 2; success = true; }
+                } else if (rank === 1) {
+                    if (state.leather >= 3 && state.ore >= 2) { state.leather -= 3; state.ore -= 2; success = true; }
+                } else if (rank === 2) {
+                    if (state.ore >= 4 && state.wood >= 3) { state.ore -= 4; state.wood -= 3; success = true; }
+                } else if (rank === 3) {
+                    if (state.wood >= 5 && state.gems >= 1) { state.wood -= 5; state.gems -= 1; success = true; }
+                }
+
+                if (success) {
+                    state.gifts[rank]++;
+                    addLog(`【せいさく】ランク ${rank + 1} のプレゼントを作りました！`);
+                } else {
+                    addLog("プレゼントをつくるための そざい がたりません。");
+                }
+                updateUI();
+            }
+
+            function devAgriculture() {
+                if (state.wood >= 3) {
+                    state.wood -= 3;
+                    const popGain = Math.floor(Math.random() * 8) + 12;
+                    state.population += popGain;
+                    addLog(`【くにづくり】たんぼを耕したよ。ひとびとが ${popGain} にん増えた！`);
+                } else {
+                    addLog("たんぼを耕すには「ふしぎなき」が3つ必要です。");
+                }
+                updateUI();
+            }
+
+            function devEconomy() {
+                if (state.ore >= 3) {
+                    state.ore -= 3;
+                    const popGain = Math.floor(Math.random() * 10) + 18;
+                    state.population += popGain;
+                    addLog(`【くにづくり】まちを発展させたよ。ひとびとが ${popGain} にん増えた！`);
+                } else {
+                    addLog("まちを発展させるには「こうせき」が3つ必要です。");
+                }
+                updateUI();
+            }
+
+            function applyClassUp() {
+                if (state.classLevel >= 4) {
+                    addLog("もう1ばん高い「こうてい」になっています！");
+                    return;
+                }
+
+                const reqGifts = [5, 12, 22, 35][state.classLevel];
+                const reqValour = [60, 150, 280, 450][state.classLevel];
+                const reqPop = [10, 50, 150, 300][state.classLevel];
+
+                if (state.giftCount >= reqGifts && state.valour >= reqValour && state.population >= reqPop) {
+                    state.classLevel++;
+                    addLog(`【くらいアップ】「${CLASSES[state.classLevel]}」 になった！`);
+                    if (state.classLevel === 4) {
+                        addLog("【こうてい】こうていになった！ ゆうしゃの条件を満たしてラスボスをたおそう！");
+                    }
+                } else {
+                    addLog(`くらいがあがりません (ひつよう: プレゼント${reqGifts}かい / パワー${reqValour} / ひとびと${reqPop}にん)`);
+                }
+                updateUI();
+            }
+
+            function downloadResult() {
+                const textContent = 
+`=================================
+      GIFT WAR - クリアきろく
+=================================
+かかった時間     : ${scoreData.clearTimeSeconds} びょう
+たおしたボス     : ${scoreData.bossesDefeated} / ${bossPool.length}
+あたえたダメージ : ${scoreData.damageDealt}
+うけたダメージ   : ${scoreData.damageTaken}
+さいごのひとびと : ${state.population} にん
+さいごのくらい   : ${CLASSES[state.classLevel]}
+=================================
+たおしたボスたち:
+${scoreData.defeatedBossNames.map(n => ` ・ ${n}`).join('\n')}
+=================================`;
+
+                const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'gift_war_clear_result.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            function initController() {
+                const bindBtn = (id, keyName) => {
+                    const btn = document.getElementById(id);
+                    btn.addEventListener('touchstart', (e) => { keys[keyName] = true; e.preventDefault(); });
+                    btn.addEventListener('touchend', (e) => { keys[keyName] = false; e.preventDefault(); });
+                    btn.addEventListener('mousedown', () => { keys[keyName] = true; });
+                    btn.addEventListener('mouseup', () => { keys[keyName] = false; });
+                };
+
+                bindBtn('btnGuard', 'guard');
+                bindBtn('btnLeft', 'left');
+                bindBtn('btnRight', 'right');
+                bindBtn('btnJump', 'jump');
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+                    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = true;
+                    if (e.key === 'g' || e.key === 'G') keys.guard = true;
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+                    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
+                    if (e.key === 'g' || e.key === 'G') keys.guard = false;
+                });
+            }
+
+            function resizeCanvas() {
+                const container = document.getElementById('canvasContainer');
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                player.y = canvas.height - 25;
+            }
+
+            function init() {
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+
+                setupLogDOM();
+                resizeCanvas();
+                initController();
+                initGestureEvents();
+
+                window.addEventListener('resize', resizeCanvas);
+
+                document.getElementById('btnStartBattle').addEventListener('click', startBattle);
+                document.getElementById('btnRetreat').addEventListener('click', retreatBattle);
+                document.getElementById('btnGiveGift').addEventListener('click', giveGift);
+                document.getElementById('btnReceiveGift').addEventListener('click', receiveGift);
+                document.getElementById('btnCraftGift').addEventListener('click', craftGift);
+                document.getElementById('btnDevAgri').addEventListener('click', devAgriculture);
+                document.getElementById('btnDevEcon').addEventListener('click', devEconomy);
+                document.getElementById('btnClassUp').addEventListener('click', applyClassUp);
+                document.getElementById('btnDownloadResult').addEventListener('click', downloadResult);
+
+                generateOpeningStory();
+                updateUI();
+
+                if (!isLoopRunning) {
+                    isLoopRunning = true;
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>
