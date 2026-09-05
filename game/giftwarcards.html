@@ -41,8 +41,9 @@
         }
         .controls {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
+            flex-wrap: wrap;
         }
         select, button {
             font-family: inherit;
@@ -218,7 +219,6 @@
             cursor: pointer;
             transition: transform 0.2s, border-color 0.2s;
             flex-shrink: 0;
-            /* カード上のすべてのジェスチャー・ダブルタップズームを完全に禁止 */
             touch-action: none;
         }
         .card:hover:not(.disabled) {
@@ -259,7 +259,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             justify-content: center;
             align-items: center;
             z-index: 100;
@@ -270,9 +270,9 @@
             border: 1px solid #d4af37;
             border-radius: 8px;
             padding: 20px;
-            max-width: 600px;
+            max-width: 650px;
             width: 90%;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
             touch-action: pan-y;
         }
@@ -280,13 +280,20 @@
             font-size: 1.2rem;
             color: #d4af37;
             margin-bottom: 12px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
         }
         .modal-body {
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             line-height: 1.6;
             color: #ddd;
             margin-bottom: 20px;
             white-space: pre-line;
+        }
+        .modal-body h4 {
+            color: #d4af37;
+            margin-top: 10px;
+            font-size: 0.95rem;
         }
         .close-btn {
             background: #d4af37;
@@ -294,7 +301,8 @@
             border: none;
             font-weight: bold;
             width: 100%;
-            padding: 8px;
+            padding: 10px;
+            border-radius: 4px;
         }
         @media (max-width: 768px) {
             .status-panel { grid-template-columns: repeat(3, 1fr); }
@@ -314,6 +322,7 @@
                 <option value="forager">狩猟採集社会</option>
                 <option value="agrarian" selected>農耕社会</option>
             </select>
+            <button id="btn-soc">参照 (Societies)</button>
             <button id="btn-help">HELP</button>
             <select id="lang-select">
                 <option value="ja">日本語</option>
@@ -392,7 +401,7 @@
     (function() {
         'use strict';
 
-        // iOS/Safariなどのダブルタップによるズーム動作を強制無効化
+        // ズーム対策
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(event) {
             const now = (new Date()).getTime();
@@ -402,15 +411,50 @@
             lastTouchEnd = now;
         }, false);
 
-        // ピンチイン・ピンチアウトによるズーム動作を無効化
         document.addEventListener('gesturestart', function(event) {
             event.preventDefault();
         });
+
+        // 5刻みの詳細データベース（狩猟採集 / 農耕）
+        const SOC_DATABASE = {
+            forager: {
+                10: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統的移動生活期）、ハザ族" },
+                15: { system: "遊動バンド連合", diff: "複数家族の季節的集積。個人的所有はないが贈与を通じた広域相互扶助が成立。", ex: "イヌイットの冬季集落、オーストラリア先住民の移動バンド" },
+                20: { system: "半定住型部族（初期）", diff: "特定の豊かな漁場や採取地に定住を開始。道具や装身具の個人的所有の萌芽。", ex: "縄文時代早期・前期の集落、北米カリフォルニア先住民" },
+                25: { system: "定住型狩猟採集部族", diff: "特定の資源（鮭・どんぐり等）の大規模貯蔵。長老や呪術師による儀礼的調整の発生。", ex: "縄文時代中期（三内丸山遺跡など）、パプアニューギニア高地狩猟採集民" },
+                30: { system: "高度貯蔵・複合部族", diff: "特定資源の独占と貯蔵施設の管理。身分階層の萌芽と交易ネットワークの拡大。", ex: "北米太平洋北西海岸先住民（トリンギット族・初期クワキウトル族）" },
+                35: { system: "複合狩猟採集首長制", diff: "世襲首長と平民・奴隷の層化。富の誇示と再分配のための大規模儀礼（ポトラッチ）の成立。", ex: "19世紀北米クワキウトル族・ハイダ族（ポトラッチ全盛期）" },
+                40: { system: "特化型定住首長制", diff: "巨大な構造物や巨石遺構の建造。広域な地域間贈与体系の組織化と領有権の主張。", ex: "縄文時代後期・晩期（巨大木柱列遺構等）、ギョベクリ・テペ建造社会" },
+                45: { system: "狩猟採集複雑性の極致", diff: "非農耕でありながら高度な階層化と広域同盟を維持。これ以上の複雑化は農耕化を要する限界点。", ex: "カリフォルニア・チュマシュ族（貝貨通貨経済と世襲首長）" }
+            },
+            agrarian: {
+                10: { system: "初期農耕集落（バンド・部族）", diff: "小規模な刀耕火種農耕。土地の私有はなく共同体全体での共同耕作と再分配。", ex: "新石器時代初期ヤンシャオ文化（仰韶文化）、初期新石器ヨーロッパ" },
+                15: { system: "定住農耕村落複合", diff: "村落間のゆるやかな同盟。長老会による土地利用の調整と互恵的贈与体系。", ex: "縄文晩期〜初期弥生集落（板付遺跡等）、新石器時代バンチェン文化" },
+                20: { system: "部族制農耕社会", diff: "祖先崇拝と儀礼的再分配。特定の家系が再分配の中心的役割を担い始める。", ex: "弥生時代中期（環濠集落）、ニュージーランド・マオリ族の伝統社会" },
+                25: { system: "初期首長制（統合部族）", diff: "農産物・金属器の集積と長による再分配。地域間の小規模な対立と交易の拡大。", ex: "弥生時代後期（吉野ヶ里遺跡等）、青銅器時代初期ヨーロッパ" },
+                30: { system: "首長制社会", diff: "首長の権力確立と身分差の定着。貢納制度と大規模墳墓（墳丘墓）の建造。", ex: "古墳時代出現期（箸墓古墳等）、ハワイ諸島伝統首長制社会" },
+                35: { system: "高度首長制（連合首長制）", diff: "複数の首長域の統合。広域な交易路の支配と軍事指導者の台頭。", ex: "古墳時代中期（巨大前方後円墳造営期）、ケルト人首長国" },
+                40: { system: "初期都市国家（王国萌芽）", diff: "灌漑農業と神殿・王宮による中央集権的備蓄。文字や記号による管理の開始。", ex: "初期メソポタミア都市国家（ウルク期）、夏王朝（二里頭文化）" },
+                45: { system: "都市国家連合・初期王国", diff: "官僚制の萌芽と税制の導入。専門職人・兵士・農民の明確な分業構造。", ex: "メソポタミア初期王朝時代（ウル第1王朝）、シュメール都市国家" },
+                50: { system: "中央集権的王国", diff: "成文法や単位の統一。広大な領域の支配と身分制社会の全盛。", ex: "エジプト古王国（ピラミッド造営期）、商（殷）王朝" },
+                55: { system: "領域国家・軍事帝国", diff: "常備軍の形成と積極的な外征。莫大な戦利品と奴隷労働による富の集中。", ex: "アッシリア帝国、周王朝（西周時代）" },
+                60: { system: "複合領域帝国", diff: "大規模なインフラ（道路・用水路）の整備。貨幣経済の浸透と格差の激化。", ex: "アケメネス朝ペルシア、秦・前漢帝国" },
+                65: { system: "高度専制帝国", diff: "貴族層による大土地所有と小作農化。農民反乱のリスクと警察・官僚組織の肥大化。", ex: "後漢時代、ローマ帝国（帝政初期）" },
+                70: { system: "成熟封建帝国", diff: "荘園制・中央と地方の権力闘争。高い生産性と高度な都市文化・市場経済。", ex: "唐・宋王朝、中世ヨーロッパ（12-13世紀）" },
+                75: { system: "高密度都市文明", diff: "高度な金融・信用の発達と極度な富の偏在。再分配機能の不全による社会的緊張。", ex: "明王朝（江南都市部）、ヴェネツィア共和国全盛期" },
+                80: { system: "再分配型高度巨大帝国", diff: "貨幣を持たず、国家による完全な労働・物資の再分配ネットワークで統合された超高度国家。", ex: "インカ帝国（タワティンスウユ）" },
+                85: { system: "晩期専制帝国", diff: "構造的格差と官僚の腐敗。税収不足と特権階級への偏重による社会的結束の崩壊期。", ex: "清王朝（19世紀末）、末期ローマ帝国" },
+                90: { system: "過度肥大化帝国", diff: "維持コストが限界に達した超巨大国家。内部動乱と外圧への脆弱性。", ex: "西ローマ帝国末期、ビザンツ帝国末期" },
+                95: { system: "システム不全寸前文明", diff: "資源の枯渇、極度な格差、信頼の失墜により社会基盤が完全に目詰まりした状態。", ex: "マヤ文明末期（古典期崩壊直前）" },
+                100: { system: "社会的複雑性の飽和極限", diff: "複雑性を維持するためのコストが限界を突破。極小のショックで全崩壊する状態。", ex: "崩壊直前の超巨大古代帝国" }
+            }
+        };
 
         const I18N = {
             ja: {
                 title: "GIFT WAR: 贈与ダイナミクスと社会進化",
                 help: "解説",
+                socBtn: "参照 (Societies)",
                 turn: "生存年数",
                 score: "文明スコア",
                 complexity: "社会的複雑度",
@@ -428,7 +472,7 @@
                 aiText: "他勢力は贈与関係の動向を監視しています。",
                 reqPotlatch: "条件: 複雑度30以上 & 格差40%以上",
                 reqFreeGift: "条件: 結束度消費",
-                similarHeader: "【類似する歴史的社会・文明】",
+                similarHeader: "【該当する現実世界・歴史上の社会モデル】",
                 warnFreeGift: "一方的な無償贈与の連投により依存と過度の負い目が発生！結束度が急激に低下しています。",
                 evolutionMsg: "【社会進化】贈与のネットワーク強化と成長により社会構造が「{0}」へと移行しました！",
                 stages: {
@@ -444,20 +488,12 @@
                     potlatch: { name: "ポトラッチ(破棄)", desc: "財を誇示・破壊し格差を劇的に削減。高度な富の再分配贈与。" },
                     freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。連投すると依存を生み結束が崩壊します。" }
                 },
-                helpContent: "【社会進化と贈与のメカニクス】\n1. 社会統合の4段階: バンド ➔ 部族 ➔ 首長制 ➔ 王国の順に社会が進化します。進化には【社会的複雑度】と【贈与累積回数】の双方が必要です。\n2. 贈与の影響: 贈与（返礼・ポトラッチ含む）を重ねることで社会相互作用が強まり社会進化を推進しますが、不平等な贈与は社会を揺るがします。\n3. 無償の贈与の罠: 連続で無償の贈与を行うと相手の返礼能力を奪い、「依存」と「負い目」を生み出して結束度が急減します。\n4. ポトラッチ: 莫大な富の集積でしか発動できませんが、過度な格差を一気にリセットする儀礼的贈与破壊です。",
-                societies: {
-                    nauru: { name: "ナウル共和国 / 依存経済崩壊社会", desc: "過度な一方的援助や不労所得に依存した結果、自立的生産基盤と社会的規範が失われ破綻した社会。" },
-                    san: { name: "サン（ブッシュマン）社会（外来援助依存期）", desc: "本来の高度な相互共有メカニズムが、外部からの継続的・無償の食料援助によって無効化され自立的結束力を喪失した例。" },
-                    jomon: { name: "縄文社会 / パプアニューギニア高地部族", desc: "技術や資源の過度な蓄積を避け、平等と贈与関係を維持することで長期間にわたり安定した社会。" },
-                    kwakiutl: { name: "北米太平洋北西海岸先住民（クワキウトル族など）", desc: "蓄積された過剰な財をポトラッチ儀礼によって盛大に破壊・分配し、極度な格差拡大を抑えつつ高い威信と結束力を維持した社会。" },
-                    mesopotamia: { name: "初期メソポタミア都市国家（ウル・ウルク等）", desc: "急速な資源蓄積と都市化を進めるも、富の集中と激しい格差拡大により内紛を招き崩壊した急進的文明。" },
-                    roman: { name: "後代ローマ帝国 / 王朝末期文明", desc: "高い複雑性と莫大な富を獲得したものの、富裕層への偏重と不平等の放置により社会的結束度が破綻した社会。" },
-                    inca: { name: "インカ帝国（タワティンスウユ）", desc: "市場通貨を持たず、高度な社会的複雑度と大規模な再分配（互恵・贈与システム）を強固に融合させて栄えた巨大帝国。" }
-                }
+                helpContent: "【社会進化と贈与のメカニクス】\n1. 社会統合の4段階: バンド ➔ 部族 ➔ 首長制 ➔ 王国の順に社会が進化します。進化には【社会的複雑度】と【贈与累積回数】の双方が必要です。\n2. 贈与の影響: 贈与（返礼・ポトラッチ含む）を重ねることで社会相互作用が強まり社会進化を推進しますが、不平等な贈与は社会を揺るがします。\n3. 無償の贈与の罠: 連続で無償の贈与を行うと相手の返礼能力を奪い、「依存」と「負い目」を生み出して結束度が急減します。\n4. ポトラッチ: 莫大な富の集積でしか発動できませんが、過度な格差を一気にリセットする儀礼的贈与破壊です。"
             },
             en: {
                 title: "GIFT WAR: Social Dynamics & Evolution",
                 help: "Help",
+                socBtn: "Societies",
                 turn: "Years Survived",
                 score: "Civ Score",
                 complexity: "Social Complexity",
@@ -475,7 +511,7 @@
                 aiText: "Other factions are monitoring gift networks.",
                 reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40%",
                 reqFreeGift: "Req: Consumes Cohesion",
-                similarHeader: "[Similar Historical Society]",
+                similarHeader: "[Corresponding Historical Society Model]",
                 warnFreeGift: "Repeated pure gifts caused extreme debt and dependency! Cohesion is dropping.",
                 evolutionMsg: "[EVOLUTION] Through gift networking and growth, society evolved to '{0}'!",
                 stages: {
@@ -491,20 +527,12 @@
                     potlatch: { name: "Potlatch", desc: "Destroys wealth to dramatically cut inequality. A massive gift ceremony." },
                     freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Repeated use creates dependency and breaks cohesion." }
                 },
-                helpContent: "1. 4 Stages of Integration: Band ➔ Tribe ➔ Chiefdom ➔ State. Evolution requires both Complexity and Gift Count.\n2. Role of Gifts: Gift exchanges build social networks for evolution, but asymmetric gifts trigger instability.\n3. Pure Gift Trap: Consecutive free gifts destroy reciprocity, causing debt and severe cohesion drop.\n4. Potlatch: A drastic ceremonial gift destruction resetting extreme wealth inequality.",
-                societies: {
-                    nauru: { name: "Republic of Nauru / Foreign Aid Dependency Collapse", desc: "Relied excessively on unearned wealth, losing self-sufficiency and social norms." },
-                    san: { name: "San (Bushmen) / Post-Aid Dependency Era", desc: "Traditional sharing networks collapsed when unearned, continuous aid broke autonomous cohesion." },
-                    jomon: { name: "Jomon Society / New Guinea Highlands", desc: "Avoided excessive accumulation, maintaining equality and gift relations for centuries." },
-                    kwakiutl: { name: "Northwest Coast Indigenous (Kwakiutl)", desc: "Controlled inequality by destroying excess wealth in Potlatch ceremonies." },
-                    mesopotamia: { name: "Early Mesopotamian City-States", desc: "Rapid resource accumulation led to wealth inequality and internal collapse." },
-                    roman: { name: "Late Roman Empire", desc: "Reached immense complexity, but unchecked inequality ruined social cohesion." },
-                    inca: { name: "Inca Empire (Tawantinsuyu)", desc: "Balanced high complexity through state-level redistribution and reciprocal gift systems." }
-                }
+                helpContent: "1. 4 Stages of Integration: Band ➔ Tribe ➔ Chiefdom ➔ State. Evolution requires both Complexity and Gift Count.\n2. Role of Gifts: Gift exchanges build social networks for evolution, but asymmetric gifts trigger instability.\n3. Pure Gift Trap: Consecutive free gifts destroy reciprocity, causing debt and severe cohesion drop.\n4. Potlatch: A drastic ceremonial gift destruction resetting extreme wealth inequality."
             },
             zh: {
                 title: "GIFT WAR: 馈赠动态与社会演化",
                 help: "说明",
+                socBtn: "参考社会",
                 turn: "生存年数",
                 score: "文明积分",
                 complexity: "社会复杂度",
@@ -522,7 +550,7 @@
                 aiText: "其他势力正在密切关注馈赠网络。",
                 reqPotlatch: "条件: 复杂度≥30 且 不平等≥40%",
                 reqFreeGift: "条件: 消耗凝聚力",
-                similarHeader: "【相似的历史社会/文明】",
+                similarHeader: "【对应的现实与历史社会模型】",
                 warnFreeGift: "连续无偿赠与导致严重依赖与债务感！凝聚力急剧下降。",
                 evolutionMsg: "【社会演化】通过馈赠网络的建立与发展，社会结构成功演化为「{0}」！",
                 stages: {
@@ -538,20 +566,12 @@
                     potlatch: { name: "夸富宴(毁财)", desc: "通过销毁与再分配财富极大地平抑贫富差距。" },
                     freeGift: { name: "无偿馈赠", desc: "无条件赠与。连续使用会产生严重依赖并破坏凝聚力。" }
                 },
-                helpContent: "1. 社会整合4阶段：游群 ➔ 部落 ➔ 酋邦 ➔ 王国。进化需要达到指定的【复杂度】与【馈赠次数】。\n2. 馈赠的作用：不断的互恵馈赠能拓展社会网络并促进进化，但失衡的馈赠会导致动荡。\n3. 无偿馈赠陷阱：连续无偿馈赠剥夺对方的回报能力，产生依赖与对抗，降低凝聚力。\n4. 夸富宴：高度不平等时发动的仪式性馈赠销毁，强制重置贫富差距。",
-                societies: {
-                    nauru: { name: "瑙鲁共和国 / 依赖型经济崩溃社会", desc: "过分依赖无偿援助与不劳而获的财富，导致自立能力与社会规范丧失。" },
-                    san: { name: "桑人（布什曼人）外援依赖期", desc: "原本高效的共享社会因长期接受单向无偿援助导致凝聚力瓦解。" },
-                    jomon: { name: "绳文社会 / 新几内亚高地部落", desc: "避免过度资源积累，依靠平等与互赠长久维持社会稳定。" },
-                    kwakiutl: { name: "西北海岸原住民（夸克特尔族）", desc: "通过夸富宴销毁和再分配财富，控制贫富差距并保持凝聚力。" },
-                    mesopotamia: { name: "早期美索不达米亚城邦", desc: "快速积累资源但财富过于集中，导致内乱并走向崩溃。" },
-                    roman: { name: "罗马帝国晚期", desc: "拥有高度复杂的社会结构，但忽视贫富差距导致社会凝聚力破裂。" },
-                    inca: { name: "印加帝国", desc: "依靠大规模再分配与互惠馈赠制度维持庞大文明的独特帝国。" }
-                }
+                helpContent: "1. 社会整合4阶段：游群 ➔ 部落 ➔ 酋邦 ➔ 王国。进化需要达到指定的【复杂度】与【馈赠次数】。\n2. 馈赠的作用：不断的互恵馈赠能拓展社会网络并促进进化，但失衡的馈赠会导致动荡。\n3. 无偿馈赠陷阱：连续无偿馈赠剥夺对方的回报能力，产生依赖与对抗，降低凝聚力。\n4. 夸富宴：高度不平等时发动的仪式性馈赠销毁，强制重置贫富差距。"
             },
             ko: {
                 title: "GIFT WAR: 증여 역학과 사회 진화",
                 help: "설명",
+                socBtn: "사회 참조",
                 turn: "생존 년수",
                 score: "문명 점수",
                 complexity: "사회적 복잡성",
@@ -566,16 +586,16 @@
                 close: "닫기",
                 gameOver: "사회가 붕괴했습니다!",
                 win: "문명 유지 성공",
-                aiText: "타 세力が 증여 네트워크의 동향を 주시하고 있습니다.",
+                aiText: "타 세力이 증여 네트워크의 동향을 주시하고 있습니다.",
                 reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
                 reqFreeGift: "조건: 결속도 소비",
-                similarHeader: "[유사한 역사적 사회]",
+                similarHeader: "[해당하는 역사적 사회 모델]",
                 warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성発生! 결속도가 급감합니다.",
                 evolutionMsg: "[사회 진화] 증여 네트워크 구축과 성장을 통해 사회 구조가 '{0}'(으)로 진화했습니다!",
                 stages: {
-                    band: "バンド (Band)",
+                    band: "밴드 (Band)",
                     tribe: "부족 (Tribe)",
-                    chiefdom: "군장국/추장제 (Chiefdom)",
+                    chiefdom: "군장국 (Chiefdom)",
                     state: "왕국/국가 (State)"
                 },
                 cards: {
@@ -585,20 +605,12 @@
                     potlatch: { name: "포트래치(파기)", desc: "재화를 파기/분배하여 불평등を 대폭 감소시키는 의식적 증여." },
                     freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존性を 유발하여 결속도 붕괴." }
                 },
-                helpContent: "1. 사회 통합 4단계: バンド ➔ 부족 ➔ 군장국 ➔ 왕국. 진화には 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여の 함정: 무상 증여 남용은 일방적 부채感を 주어 의존性と 결속도 붕괴를 초래합니다.\n4. 포트래치: 극단적 불평등を 강제로 리셋하는 의식적 재화 파기 행사입니다.",
-                societies: {
-                    nauru: { name: "나우루 공화국 / 의존 경제 붕괴 사회", desc: "과도한 무상 원조와 불로소득에 의존한 결과 자립 기반이 붕괴된 사회." },
-                    san: { name: "산족 (부시맨) 원조 의존기", desc: "고유の 공유 네트워크가 일방적 원조 지속으로 무너지고 자립性を 상실한 사례." },
-                    jomon: { name: "조몬 사회 / 뉴기니 고지대 부족", desc: "과도한 축적を 피하고 평등과 증여 관계を 유지하여 장기간 안정되었던 사회." },
-                    kwakiutl: { name: "북미 태평양 북서안 원주민 (콰키우틀족)", desc: "포트래치 의식을 통해 잉여 재화를 파기/분배하여 결속도를 유지한 사회." },
-                    mesopotamia: { name: "초기 메소포타미아 도시국가", desc: "급격한 축적과 불평등 심화로 내부 분열을 겪으며 붕괴한 문명." },
-                    roman: { name: "말기 로마 제국", desc: "높은 복잡性を 이루었으나 극단적 불평등 방치로 사회적 결속力이 붕괴한 사회." },
-                    inca: { name: "잉카 제국", desc: "대규모 재분배와 상호 증여 시스템으로 높은 복잡性を 유지했던 거대 제국." }
-                }
+                helpContent: "1. 사회 통합 4단계: 밴드 ➔ 부족 ➔ 군장국 ➔ 왕국. 진화には 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여の 함정: 무상 증여 남용은 일방적 부채感を 주어 의존性と 결속도 붕괴를 초래합니다.\n4. 포트래치: 극단적 불평등を 강제로 리셋하는 의식적 재화 파기 행사입니다."
             },
             fr: {
                 title: "GIFT WAR: Dynamique du Don & Évolution",
                 help: "Aide",
+                socBtn: "Sociétés",
                 turn: "Années Survécues",
                 score: "Score Civ",
                 complexity: "Complexité Sociale",
@@ -616,7 +628,7 @@
                 aiText: "D'autres factions surveillent les réseaux de dons.",
                 reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40%",
                 reqFreeGift: "Req: Consomme de la cohésion",
-                similarHeader: "[Société Historique Similaire]",
+                similarHeader: "[Modèle de société historique correspondant]",
                 warnFreeGift: "Les dons gratuits répétés ont créé de la dépendance ! La cohésion chute.",
                 evolutionMsg: "[ÉVOLUTION] Grâce au réseau de dons et à la croissance, la société évolue vers '{0}' !",
                 stages: {
@@ -632,20 +644,12 @@
                     potlatch: { name: "Potlatch", desc: "Détruit la richesse pour couper l'inégalité. Un rituel de don massif." },
                     freeGift: { name: "Don Pur et Gratuit", desc: "Inconditionnel. Une utilisation répétée crée de la dépendance." }
                 },
-                helpContent: "1. 4 Stades d'Intégration: Bande ➔ Tribu ➔ Chefferie ➔ Royaume. L'évolution nécessite Complexité + Nombre de dons.\n2. Rôle du Don: Le don structure les réseaux nécessaires à l'intégration sociale.\n3. Piège du Don Pur: Les dons purs consécutifs détruisent la réciprocité et provoquent l'effondrement de la cohésion.\n4. Potlatch: Destruction rituelle pour réinitialiser les inégalités extrêmes.",
-                societies: {
-                    nauru: { name: "République de Nauru / Effondrement par Dépendance", desc: "Société dépendant excessivement de l'aide extérieure, perdant toute autosuffisance." },
-                    san: { name: "Peuple San / Ère de Dépendance aux Aides", desc: "Le réseau traditionnel de partage s'est effondré suite à une aide unilatérale continue." },
-                    jomon: { name: "Société Jomon / Nouvelle-Guinée", desc: "Évitait l'accumulation excessive, conservant l'égalité et les dons sur plusieurs siècles." },
-                    kwakiutl: { name: "Autochtones Kwakiutl", desc: "Contrôlaient l'inégalité par la destruction/distribution de richesses lors du Potlatch." },
-                    mesopotamia: { name: "Cités-États de Mésopotamie", desc: "Accumulation rapide menant à une forte inégalité et un effondrement précoce." },
-                    roman: { name: "Empire Romain Tardif", desc: "Complexité immense, mais l'inégalité incontrôlée a brisé la cohésion sociale." },
-                    inca: { name: "Empire Inca", desc: "Maintint une haute complexité grâce à la redistribution massive et au don." }
-                }
+                helpContent: "1. 4 Stades d'Intégration: Bande ➔ Tribu ➔ Chefferie ➔ Royaume. L'évolution nécessite Complexité + Nombre de dons.\n2. Rôle du Don: Le don structure les réseaux nécessaires à l'intégration sociale.\n3. Piège du Don Pur: Les dons purs consécutifs détruisent la réciprocité et provoquent l'effondrement de la cohésion.\n4. Potlatch: Destruction rituelle pour réinitialiser les inégalités extrêmes."
             },
             es: {
                 title: "GIFT WAR: Dinámica del Don y Evolución",
                 help: "Ayuda",
+                socBtn: "Sociedades",
                 turn: "Años Sobrevividos",
                 score: "Puntaje Civ",
                 complexity: "Complejidad Social",
@@ -663,13 +667,13 @@
                 aiText: "Otras facciones observan las redes de intercambio.",
                 reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40%",
                 reqFreeGift: "Req: Consume cohesión",
-                similarHeader: "[Sociedad Histórica Similar]",
+                similarHeader: "[Modelo de sociedad histórica correspondiente]",
                 warnFreeGift: "¡Los dones puros repetidos crearon dependencia! La cohesión se derrumba.",
                 evolutionMsg: "¡[EVOLUCIÓN] Mediante la red de dones y el crecimiento, la sociedad evolucionó a '{0}'!",
                 stages: {
                     band: "Banda",
                     tribe: "Tribu",
-                    chiefdom: "Jefatura / Cacicazgo",
+                    chiefdom: "Jefatura",
                     state: "Reino / Estado"
                 },
                 cards: {
@@ -679,16 +683,7 @@
                     potlatch: { name: "Potlatch", desc: "Destruye riqueza para reducir desigualdad en una gran ceremonia." },
                     freeGift: { name: "Don Puro y Gratuito", desc: "Incondicional. Su uso repetido genera dependencia y rompe la cohesión." }
                 },
-                helpContent: "1. 4 Etapas: Banda ➔ Tribu ➔ Jefatura ➔ Reino. Evolucionar requiere Complejidad y Conteo de Dones.\n2. Función del Don: Intercambiar dones establece la red social para permitir mayor integración.\n3. Trampa del Don Puro: Regalar sin condición destruye la reciprocidad y causa colapso de cohesión.\n4. Potlatch: Un ritual para destruir excedentes y nivelar la desigualdad.",
-                societies: {
-                    nauru: { name: "República de Nauru / Colapso por Dependencia", desc: "Sociedad que dependió excesivamente de ayuda externa, perdiendo autosufficiencia." },
-                    san: { name: "Pueblo San / Era de Dependencia de Ayuda", desc: "El sistema tradicional de reciprocidad colapsó debido a la ayuda unilateral continua." },
-                    jomon: { name: "Sociedad Jomon / Nueva Guinea", desc: "Evitó la acumulación excesiva de recursos, manteniendo la cohesión por siglos." },
-                    kwakiutl: { name: "Comunidad Indígena Kwakiutl", desc: "Controlaron la desigualdad destruyendo excesos de riqueza mediante el Potlatch." },
-                    mesopotamia: { name: "Primeras Ciudades-Estado de Mesopotamia", desc: "Acumulación rápida que generó desigualdad y colapso interno." },
-                    roman: { name: "Imperio Romano Tardío", desc: "Alcanzó gran complejidad pero la desigualdad destruyó la cohesión social." },
-                    inca: { name: "Imperio Inca", desc: "Mantuvo una alta complejidad mediante sistemas masivos de redistribución y dones." }
-                }
+                helpContent: "1. 4 Etapas: Banda ➔ Tribu ➔ Jefatura ➔ Reino. Evolucionar requiere Complejidad y Conteo de Dones.\n2. Función del Don: Intercambiar dones establece la red social para permitir mayor integración.\n3. Trampa del Don Puro: Regalar sin condición destruye la reciprocidad y causa colapso de cohesión.\n4. Potlatch: Un ritual para destruir excedentes y nivelar la desigualdad."
             }
         };
 
@@ -711,6 +706,7 @@
             modeSelect: document.getElementById('mode-select'),
             appTitle: document.getElementById('app-title'),
             btnHelp: document.getElementById('btn-help'),
+            btnSoc: document.getElementById('btn-soc'),
             lblStage: document.getElementById('lbl-stage'),
             valStage: document.getElementById('val-stage'),
             barStage: document.getElementById('bar-stage'),
@@ -751,6 +747,7 @@
                 resetGame();
             });
             DOM.btnHelp.addEventListener('click', showHelp);
+            DOM.btnSoc.addEventListener('click', showCurrentSocietyInfo);
             DOM.modalClose.addEventListener('click', hideModal);
             DOM.btnNext.addEventListener('click', () => processTurn(null));
 
@@ -778,6 +775,7 @@
             const t = I18N[state.lang];
             DOM.appTitle.textContent = t.title;
             DOM.btnHelp.textContent = t.help;
+            DOM.btnSoc.textContent = t.socBtn;
             DOM.lblStage.textContent = t.stage;
             DOM.lblTurn.textContent = t.turn;
             DOM.lblGiftCount.textContent = t.giftCount;
@@ -864,15 +862,12 @@
                 addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
             }
 
-            // チェック：社会形態の進化（複雑度＋贈与累積回数が条件）
             checkEvolution();
 
-            // 文明スコア計算（社会形態に応じたボーナス）
             const stageMultiplier = state.stage === 'state' ? 3 : (state.stage === 'chiefdom' ? 2 : (state.stage === 'tribe' ? 1.5 : 1));
             const turnScore = Math.floor(state.complexity * stageMultiplier * (1 + state.complexity / 50));
             state.score += turnScore;
 
-            // 社会形態に伴う自然な格差の上昇ペナルティ
             const ineqCoeff = state.mode === 'agrarian' ? 0.3 : 0.15;
             state.inequality += Math.floor(state.complexity * ineqCoeff);
             
@@ -905,7 +900,6 @@
                 state.freeGiftStreak = 0;
             }
 
-            // 贈与カードを使った場合は累積贈与回数を加算
             if (key === 'directGift' || key === 'obligatory' || key === 'potlatch' || key === 'freeGift') {
                 state.giftCount++;
             }
@@ -955,15 +949,12 @@
             const t = I18N[state.lang];
             let nextStage = state.stage;
 
-            // バンド -> 部族 (複雑度25以上, 贈与3回以上)
             if (state.stage === 'band' && state.complexity >= 25 && state.giftCount >= 3) {
                 nextStage = 'tribe';
             } 
-            // 部族 -> 首長制 (複雑度50以上, 贈与8回以上)
             else if (state.stage === 'tribe' && state.complexity >= 50 && state.giftCount >= 8) {
                 nextStage = 'chiefdom';
             } 
-            // 首長制 -> 王国/国家 (複雑度80以上, 贈与15回以上)
             else if (state.stage === 'chiefdom' && state.complexity >= 80 && state.giftCount >= 15) {
                 nextStage = 'state';
             }
@@ -976,35 +967,57 @@
             }
         }
 
-        function getSimilarSocietyKey() {
-            if (state.freeGiftStreak >= 3) {
-                return state.mode === 'agrarian' ? 'nauru' : 'san';
-            }
-            if (state.stage === 'state' || (state.turn >= 20 && state.score >= 3000)) {
-                return 'inca';
-            } else if (state.stage === 'band' && state.turn >= 15) {
-                return 'jomon';
-            } else if (state.stage === 'chiefdom' || state.giftCount >= 10) {
-                return 'kwakiutl';
-            } else if (state.turn < 10 && state.complexity >= 50) {
-                return 'mesopotamia';
-            } else {
-                return 'roman';
-            }
+        // 5刻みで対応するデータベース情報を取得
+        function getSocietyDetails(mode, complexity) {
+            const roundedComp = Math.max(10, Math.min(mode === 'forager' ? 45 : 100, Math.round(complexity / 5) * 5));
+            const data = SOC_DATABASE[mode] && SOC_DATABASE[mode][roundedComp];
+            return {
+                compKey: roundedComp,
+                data: data || { system: "不明な社会形態", diff: "データが存在しません。", ex: "該当なし" }
+            };
+        }
+
+        function showCurrentSocietyInfo() {
+            const t = I18N[state.lang];
+            const modeText = state.mode === 'forager' ? '狩猟採集社会' : '農耕社会';
+            const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
+
+            const title = `現在の該当社会モデル (${modeText})`;
+            const body = `【現在の社会ステータス】
+・形態: ${t.stages[state.stage]}
+・社会的複雑度: ${state.complexity} (対応インデックス: ${compKey})
+・格差インデックス: ${state.inequality}%
+・社会的結束度: ${state.cohesion}
+
+----------------------------------------
+【社会制度】
+${data.system}
+
+【社会構造と特徴（現実世界での変化）】
+${data.diff}
+
+【具体的歴史・人類学の例】
+■ ${data.ex}`;
+
+            showModal(title, body);
         }
 
         function showGameOverResult() {
             const t = I18N[state.lang];
-            const socKey = getSimilarSocietyKey();
-            const soc = t.societies[socKey];
+            const modeText = state.mode === 'forager' ? '狩猟採集社会' : '農耕社会';
+            const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
 
             const resultText = `${t.gameOver}\n\n` +
-                `${t.stage}: ${t.stages[state.stage]}\n` +
-                `${t.turn}: ${state.turn}\n` +
-                `${t.giftCount}: ${state.giftCount}\n` +
-                `${t.score}: ${state.score}\n\n` +
+                `・生産形態: ${modeText}\n` +
+                `・最終到達段階: ${t.stages[state.stage]}\n` +
+                `・生存年数: ${state.turn}\n` +
+                `・贈与累積回数: ${state.giftCount}\n` +
+                `・文明スコア: ${state.score}\n` +
+                `・最終社会的複雑度: ${state.complexity} (インデックス: ${compKey})\n\n` +
                 `${t.similarHeader}\n` +
-                `■ ${soc.name}\n${soc.desc}`;
+                `■ 制度形態: ${data.system}\n` +
+                `■ 社会構造の特質:\n${data.diff}\n` +
+                `■ 該当する歴史的社会・文明例:\n${data.ex}`;
 
             showModal(t.gameOver, resultText);
         }
