@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>悪を刺せ - アドバンスド版 / Stab the Evil Advanced</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0d11;
+            font-family: "MS Mincho", "MS PMincho", "ＭＳ 明朝", serif;
+            color: #fff;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #ui-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+        .ui-element {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        select {
+            font-family: "MS Mincho", "MS PMincho", "ＭＳ 明朝", serif;
+            padding: 4px 8px;
+            font-size: 14px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #666;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        canvas {
+            background-color: #141419;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
+            touch-action: none;
+            cursor: crosshair;
+        }
+        #skill-banner {
+            position: absolute;
+            top: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            text-shadow: 0 0 10px #f39c12, 2px 2px 4px #000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 15;
+            white-space: nowrap;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+        #overlay-title {
+            font-size: 38px;
+            margin-bottom: 10px;
+            color: #e74c3c;
+            text-shadow: 0 0 10px #e74c3c;
+        }
+        #overlay-desc {
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: left;
+            max-width: 85%;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        #start-btn {
+            font-family: "MS Mincho", "MS PMincho", "ＭＳ 明朝", serif;
+            font-size: 20px;
+            padding: 12px 36px;
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #start-btn:hover {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-bar">
+        <div id="score-label" class="ui-element"></div>
+        <select id="lang-select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+
+    <div id="skill-banner"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="overlay">
+        <div id="overlay-title"></div>
+        <div id="overlay-desc"></div>
+        <button id="start-btn"></button>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // 多言語辞書
+    const I18N = {
+        ja: {
+            title: "悪を刺せ - 技奥義版",
+            score: "討伐数: ",
+            desc: "【操作・奥義コマンド】\n・移動: スワイプ\n・連続突き: 画面高速連打\n・突進突き: 後ろに溜めて前へスワイプ\n・燕返し: 左右に往復スワイプ\n・唐竹割り: 1回転してから上から下へスワイプ\n・八刀一閃: 八方向に素早く切り込む",
+            start: "ゲーム開始",
+            gameover: "ゲームオーバー",
+            restart: "再挑戦",
+            skills: {
+                rapid: "奥義：連続突き！",
+                charge: "奥義：突進突き！",
+                swallow: "奥義：燕返し！",
+                bamboo: "奥義：唐竹割り！",
+                eight: "秘伝：八刀一閃！"
+            }
+        },
+        en: {
+            title: "Stab the Evil - Advanced",
+            score: "Defeated: ",
+            desc: "[Controls & Skills]\n- Move: Swipe\n- Rapid Thrust: Fast repeated Taps\n- Charge Thrust: Pull back then Swipe forward\n- Swallow Return: Swipe Left-Right back\n- Bamboo Splitter: Full Circle then Swipe Down\n- 8-Blade Flash: Rapid 8-Direction Slashing",
+            start: "Start Game",
+            gameover: "Game Over",
+            restart: "Try Again",
+            skills: {
+                rapid: "Skill: Rapid Thrust!",
+                charge: "Skill: Charge Thrust!",
+                swallow: "Skill: Swallow Return!",
+                bamboo: "Skill: Bamboo Splitter!",
+                eight: "Ultimate: 8-Blade Flash!"
+            }
+        },
+        zh: {
+            title: "刺向邪恶 - 奥义版",
+            score: "击杀数: ",
+            desc: "【操作与必杀技】\n・移动：滑动\n・连续刺撃：快速连点屏幕\n・突进刺撃：向后蓄力后向前滑动\n・燕返：左右往复滑动\n・唐竹割：画圈后由上至下滑动\n・八刀一闪：快速向八个方向切削",
+            start: "开始游戏",
+            gameover: "游戏结束",
+            restart: "重新开始",
+            skills: {
+                rapid: "奥义：连续刺撃！",
+                charge: "奥义：突进刺撃！",
+                swallow: "奥义：燕返！",
+                bamboo: "奥义：唐竹割！",
+                eight: "秘传：八刀一闪！"
+            }
+        },
+        ko: {
+            title: "악을 찌르라 - 비기",
+            score: "처치 수: ",
+            desc: "【조작 및 비기】\n・이동: 스와이프\n・연속 찌르기: 화면 광속 연타\n・돌진 찌르기: 뒤로 모았다가 앞으로 스와이프\n・제비반환: 좌우 왕복 스와이프\n・대나무 쪼개기: 한 바퀴 돌고 위에서 아래로\n・팔도일섬: 8방향으로 빠르게 베기",
+            start: "게임 시작",
+            gameover: "게임 오버",
+            restart: "다시 도전",
+            skills: {
+                rapid: "비기: 연속 찌르기!",
+                charge: "비기: 돌진 찌르기!",
+                swallow: "비기: 제비반환!",
+                bamboo: "비기: 대나무 쪼개기!",
+                eight: "궁극: 팔도일섬!"
+            }
+        },
+        fr: {
+            title: "Poignarder le Mal - Ultime",
+            score: "Vaincus: ",
+            desc: "[Commandes & Techniques]\n- Déplacer: Glisser\n- Estocades rapides: Tapotements rapides\n- Charge: Reculer puis Glisser vers l'avant\n- Retour de l'hirondelle: Aller-retour Gauche-Droite\n- Fendeur de Bambou: Cercle puis Glisser vers le bas\n- Flash 8-Lames: Entailles rapides dans 8 directions",
+            start: "Démarrer",
+            gameover: "Partie Terminée",
+            restart: "Recommencer",
+            skills: {
+                rapid: "Technique: Estocades Rapides!",
+                charge: "Technique: Estocade Chargée!",
+                swallow: "Technique: Retour de l'hirondelle!",
+                bamboo: "Technique: Fendeur de Bambou!",
+                eight: "Ultime: Flash 8-Lames!"
+            }
+        },
+        es: {
+            title: "Apuñala al Mal - Avanzado",
+            score: "Derrotados: ",
+            desc: "[Controles y Técnicas]\n- Mover: Deslizar\n- Estocadas Rápidas: Toques rápidos repetidos\n- Estocada Carga: Retraer y deslizar adelante\n- Retorno de Golondrina: Deslizar Izq-Der ida y vuelta\n- Corte de Bambú: Círculo y deslizar abajo\n- Destello 8-Hojas: Tajos rápidos en 8 direcciones",
+            start: "Iniciar Juego",
+            gameover: "Juego Terminado",
+            restart: "Reintentar",
+            skills: {
+                rapid: "¡Técnica: Estocadas Rápidas!",
+                charge: "¡Técnica: Estocada Carga!",
+                swallow: "¡Técnica: Retorno de Golondrina!",
+                bamboo: "¡Técnica: Corte de Bambú!",
+                eight: "¡Definitivo: Destello 8-Hojas!"
+            }
+        }
+    };
+
+    // UI Elements
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const scoreLabel = document.getElementById('score-label');
+    const langSelect = document.getElementById('lang-select');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayDesc = document.getElementById('overlay-desc');
+    const startBtn = document.getElementById('start-btn');
+    const skillBanner = document.getElementById('skill-banner');
+
+    // State
+    let currentLang = 'ja';
+    let gameState = 'START';
+    let score = 0;
+    let animationFrameId = null;
+
+    // Gesture tracking memory
+    let isDrawing = false;
+    const pathPoints = []; // Gesture path history
+    const tapHistory = []; // Tap timestamps for rapid tap skill
+    const tempPos = { x: 0, y: 0 };
+    let bannerTimeout = null;
+
+    // Player Object
+    const player = {
+        x: 0, y: 0, vx: 0, vy: 0, radius: 15, isDashing: false, invulnerable: 0
+    };
+
+    // Slash Effect Objects (Pool)
+    const MAX_EFFECTS = 20;
+    const effects = [];
+    for (let i = 0; i < MAX_EFFECTS; i++) {
+        effects.push({ active: false, x1: 0, y1: 0, x2: 0, y2: 0, life: 0, color: '#fff', width: 2 });
+    }
+
+    // Enemy Pool
+    const MAX_ENEMIES = 15;
+    const enemies = [];
+    for (let i = 0; i < MAX_ENEMIES; i++) {
+        enemies.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, radius: 15, changeDirTimer: 0 });
+    }
+
+    function resizeCanvas() {
+        try {
+            const cssWidth = Math.min(window.innerWidth - 20, 800);
+            const cssHeight = Math.min(window.innerHeight - 80, 600);
+            canvas.style.width = cssWidth + 'px';
+            canvas.style.height = cssHeight + 'px';
+            canvas.width = cssWidth;
+            canvas.height = cssHeight;
+        } catch (e) {
+            console.error("Resize Error:", e);
+        }
+    }
+
+    function updateLanguage() {
+        try {
+            const lang = I18N[currentLang] ? currentLang : 'en';
+            scoreLabel.textContent = I18N[lang].score + score;
+
+            if (gameState === 'START') {
+                overlayTitle.textContent = I18N[lang].title;
+                overlayDesc.textContent = I18N[lang].desc;
+                startBtn.textContent = I18N[lang].start;
+            } else if (gameState === 'GAMEOVER') {
+                overlayTitle.textContent = I18N[lang].gameover;
+                overlayDesc.textContent = I18N[lang].score + score;
+                startBtn.textContent = I18N[lang].restart;
+            }
+        } catch (e) {
+            console.error("Language Update Error:", e);
+        }
+    }
+
+    function showSkillBanner(skillKey) {
+        const lang = I18N[currentLang] ? currentLang : 'en';
+        skillBanner.textContent = I18N[lang].skills[skillKey] || '';
+        skillBanner.style.opacity = '1';
+        if (bannerTimeout) clearTimeout(bannerTimeout);
+        bannerTimeout = setTimeout(() => { skillBanner.style.opacity = '0'; }, 1000);
+    }
+
+    function addSlashEffect(x1, y1, x2, y2, color = '#f1c40f', width = 4, life = 15) {
+        for (let i = 0; i < MAX_EFFECTS; i++) {
+            if (!effects[i].active) {
+                const ef = effects[i];
+                ef.active = true;
+                ef.x1 = x1; ef.y1 = y1;
+                ef.x2 = x2; ef.y2 = y2;
+                ef.color = color;
+                ef.width = width;
+                ef.life = life;
+                break;
+            }
+        }
+    }
+
+    function triggerAreaDamage(cx, cy, radius) {
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            const e = enemies[i];
+            if (e.active && Math.hypot(e.x - cx, e.y - cy) < radius) {
+                e.active = false;
+                score++;
+                spawnEnemy();
+            }
+        }
+        updateLanguage();
+    }
+
+    // Initialize Game
+    function initGame() {
+        score = 0;
+        player.x = canvas.width / 2;
+        player.y = canvas.height / 2;
+        player.vx = 0;
+        player.vy = 0;
+        player.isDashing = false;
+        player.invulnerable = 0;
+        isDrawing = false;
+        pathPoints.length = 0;
+        tapHistory.length = 0;
+
+        for (let i = 0; i < MAX_ENEMIES; i++) enemies[i].active = false;
+        for (let i = 0; i < MAX_EFFECTS; i++) effects[i].active = false;
+
+        spawnEnemy();
+        spawnEnemy();
+        spawnEnemy();
+        updateLanguage();
+    }
+
+    function spawnEnemy() {
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            if (!enemies[i].active) {
+                const e = enemies[i];
+                e.active = true;
+                let ex, ey, attempts = 0;
+                do {
+                    ex = Math.random() * (canvas.width - 60) + 30;
+                    ey = Math.random() * (canvas.height - 60) + 30;
+                    attempts++;
+                } while (Math.hypot(ex - player.x, ey - player.y) < 150 && attempts < 50);
+
+                e.x = ex; e.y = ey;
+                e.vx = (Math.random() - 0.5) * 2;
+                e.vy = (Math.random() - 0.5) * 2;
+                e.changeDirTimer = 0;
+                break;
+            }
+        }
+    }
+
+    // Advanced Gesture Recognition Engine
+    function analyzeGesture() {
+        if (pathPoints.length < 2) return;
+
+        const first = pathPoints[0];
+        const last = pathPoints[pathPoints.length - 1];
+        const totalDist = Math.hypot(last.x - first.x, last.y - first.y);
+
+        // Calculate Angle Accumulation (for Circle Detection)
+        let angleSum = 0;
+        for (let i = 1; i < pathPoints.length - 1; i++) {
+            const a = Math.atan2(pathPoints[i].y - pathPoints[i-1].y, pathPoints[i].x - pathPoints[i-1].x);
+            const b = Math.atan2(pathPoints[i+1].y - pathPoints[i].y, pathPoints[i+1].x - pathPoints[i].x);
+            let diff = b - a;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            angleSum += diff;
+        }
+
+        // 1. 唐竹割り (Karatake Waru: Full Circle + Downward Swipe)
+        if (Math.abs(angleSum) > Math.PI * 1.5 && (last.y - first.y) > 50) {
+            showSkillBanner('bamboo');
+            player.vx = 0; player.vy = 22;
+            player.isDashing = true;
+            player.invulnerable = 30;
+            addSlashEffect(player.x, 0, player.x, canvas.height, '#e74c3c', 8, 25);
+            triggerAreaDamage(player.x, canvas.height / 2, canvas.height);
+            return;
+        }
+
+        // 2. 八刀一閃 (Eight-Blade Flash: Complex Multi-directional Motion or Long Drag)
+        let directionChanges = 0;
+        for (let i = 2; i < pathPoints.length; i++) {
+            const dx1 = pathPoints[i-1].x - pathPoints[i-2].x;
+            const dy1 = pathPoints[i-1].y - pathPoints[i-2].y;
+            const dx2 = pathPoints[i].x - pathPoints[i-1].x;
+            const dy2 = pathPoints[i].y - pathPoints[i-1].y;
+            if (dx1 * dx2 + dy1 * dy2 < 0) directionChanges++;
+        }
+
+        if (directionChanges >= 4 && pathPoints.length > 12) {
+            showSkillBanner('eight');
+            player.invulnerable = 40;
+            const angles = [0, Math.PI/4, Math.PI/2, Math.PI*3/4, Math.PI, -Math.PI*3/4, -Math.PI/2, -Math.PI/4];
+            angles.forEach(ang => {
+                const tx = player.x + Math.cos(ang) * 250;
+                const ty = player.y + Math.sin(ang) * 250;
+                addSlashEffect(player.x, player.y, tx, ty, '#9b59b6', 5, 30);
+            });
+            triggerAreaDamage(player.x, player.y, 200);
+            return;
+        }
+
+        // 3. 燕返し (Tsubame Gaeshi: Quick Left-Right Back & Forth)
+        if (directionChanges >= 2 && totalDist < 80) {
+            showSkillBanner('swallow');
+            player.vx = -player.vx * 1.5;
+            player.vy = -player.vy * 1.5;
+            player.isDashing = true;
+            player.invulnerable = 25;
+            addSlashEffect(player.x - 80, player.y - 40, player.x + 80, player.y + 40, '#3498db', 6, 20);
+            addSlashEffect(player.x + 80, player.y - 40, player.x - 80, player.y + 40, '#3498db', 6, 20);
+            triggerAreaDamage(player.x, player.y, 110);
+            return;
+        }
+
+        // 4. 突進突き (Charge Thrust: Pull Back then Dash Forward)
+        const midPoint = pathPoints[Math.floor(pathPoints.length / 2)];
+        const backDist = Math.hypot(midPoint.x - first.x, midPoint.y - first.y);
+        if (backDist > 30 && totalDist > 100) {
+            showSkillBanner('charge');
+            const dx = last.x - first.x;
+            const dy = last.y - first.y;
+            const len = Math.hypot(dx, dy);
+            player.vx = (dx / len) * 24;
+            player.vy = (dy / len) * 24;
+            player.isDashing = true;
+            player.invulnerable = 20;
+            addSlashEffect(player.x, player.y, player.x + player.vx * 10, player.y + player.vy * 10, '#f1c40f', 6, 20);
+            return;
+        }
+
+        // Standard Dash Move
+        if (totalDist > 10) {
+            const dx = last.x - first.x;
+            const dy = last.y - first.y;
+            const len = Math.hypot(dx, dy);
+            const power = Math.min(len * 0.12, 18);
+            player.vx = (dx / len) * power;
+            player.vy = (dy / len) * power;
+            player.isDashing = true;
+        }
+    }
+
+    // Game Loop
+    function loop() {
+        if (gameState !== 'PLAYING') return;
+
+        try {
+            update();
+            render();
+            animationFrameId = requestAnimationFrame(loop);
+        } catch (e) {
+            console.error("Loop Error:", e);
+            endGame();
+        }
+    }
+
+    function update() {
+        if (player.invulnerable > 0) player.invulnerable--;
+
+        // Player Motion
+        player.x += player.vx;
+        player.y += player.vy;
+        player.vx *= 0.94;
+        player.vy *= 0.94;
+
+        if (Math.hypot(player.vx, player.vy) < 0.8) player.isDashing = false;
+
+        // Boundaries
+        if (player.x < player.radius) { player.x = player.radius; player.vx = 0; }
+        if (player.x > canvas.width - player.radius) { player.x = canvas.width - player.radius; player.vx = 0; }
+        if (player.y < player.radius) { player.y = player.radius; player.vy = 0; }
+        if (player.y > canvas.height - player.radius) { player.y = canvas.height - player.radius; player.vy = 0; }
+
+        // Update Effects
+        for (let i = 0; i < MAX_EFFECTS; i++) {
+            if (effects[i].active) {
+                effects[i].life--;
+                if (effects[i].life <= 0) effects[i].active = false;
+            }
+        }
+
+        // Enemies
+        let activeCount = 0;
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            const e = enemies[i];
+            if (!e.active) continue;
+            activeCount++;
+
+            e.changeDirTimer--;
+            if (e.changeDirTimer <= 0) {
+                e.changeDirTimer = Math.floor(Math.random() * 40) + 20;
+                const angle = Math.atan2(player.y - e.y, player.x - e.x) + (Math.random() - 0.5);
+                const speed = 1.6 + Math.min(score * 0.08, 2.8);
+                e.vx = Math.cos(angle) * speed;
+                e.vy = Math.sin(angle) * speed;
+            }
+
+            e.x += e.vx;
+            e.y += e.vy;
+
+            if (e.x < e.radius || e.x > canvas.width - e.radius) e.vx *= -1;
+            if (e.y < e.radius || e.y > canvas.height - e.radius) e.vy *= -1;
+
+            // Hit Check
+            const dist = Math.hypot(player.x - e.x, player.y - e.y);
+            if (dist < player.radius + e.radius) {
+                if (player.isDashing || player.invulnerable > 0) {
+                    e.active = false;
+                    score++;
+                    updateLanguage();
+                    spawnEnemy();
+                    if (score % 3 === 0) spawnEnemy();
+                } else {
+                    endGame();
+                    return;
+                }
+            }
+        }
+
+        if (activeCount === 0) spawnEnemy();
+    }
+
+    function render() {
+        ctx.fillStyle = '#141419';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Border Wall
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+        // Draw Slash Effects
+        for (let i = 0; i < MAX_EFFECTS; i++) {
+            const ef = effects[i];
+            if (ef.active) {
+                ctx.strokeStyle = ef.color;
+                ctx.lineWidth = ef.width;
+                ctx.beginPath();
+                ctx.moveTo(ef.x1, ef.y1);
+                ctx.lineTo(ef.x2, ef.y2);
+                ctx.stroke();
+            }
+        }
+
+        // Draw Gesture Trail
+        if (isDrawing && pathPoints.length > 1) {
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+            for (let i = 1; i < pathPoints.length; i++) {
+                ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+            }
+            ctx.stroke();
+        }
+
+        // Draw Stickmen
+        drawStickman(player.x, player.y, player.invulnerable > 0 ? '#f39c12' : '#3498db', player.vx, player.vy);
+
+        for (let i = 0; i < MAX_ENEMIES; i++) {
+            if (enemies[i].active) {
+                drawStickman(enemies[i].x, enemies[i].y, '#e74c3c', enemies[i].vx, enemies[i].vy);
+            }
+        }
+    }
+
+    function drawStickman(x, y, color, vx, vy) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.arc(x, y - 10, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(x, y - 3);
+        ctx.lineTo(x, y + 10);
+
+        const moving = Math.hypot(vx, vy) > 0.5;
+        const angle = Math.atan2(vy, vx);
+        const legOffset = moving ? Math.sin(Date.now() * 0.015) * 8 : 5;
+
+        ctx.lineTo(x - legOffset, y + 23);
+        ctx.moveTo(x, y + 10);
+        ctx.lineTo(x + legOffset, y + 23);
+
+        if (moving) {
+            ctx.moveTo(x, y + 2);
+            ctx.lineTo(x + Math.cos(angle) * 14, y + Math.sin(angle) * 14);
+        } else {
+            ctx.moveTo(x - 8, y + 5);
+            ctx.lineTo(x + 8, y + 5);
+        }
+
+        ctx.stroke();
+    }
+
+    function updateCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        let clientX = 0, clientY = 0;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
+        } else {
+            clientX = e.clientX; clientY = e.clientY;
+        }
+
+        tempPos.x = Math.max(0, Math.min(canvas.width, clientX - rect.left));
+        tempPos.y = Math.max(0, Math.min(canvas.height, clientY - rect.top));
+    }
+
+    function handleStart(e) {
+        if (gameState !== 'PLAYING') return;
+        isDrawing = true;
+        updateCoords(e);
+
+        pathPoints.length = 0;
+        pathPoints.push({ x: tempPos.x, y: tempPos.y });
+
+        // 5. 連続突き (Rapid Thrust: Fast Repeated Taps Detection)
+        const now = Date.now();
+        tapHistory.push(now);
+        while (tapHistory.length > 0 && now - tapHistory[0] > 600) tapHistory.shift();
+
+        if (tapHistory.length >= 4) {
+            showSkillBanner('rapid');
+            tapHistory.length = 0;
+            player.invulnerable = 20;
+            for (let i = 0; i < 5; i++) {
+                const rx = (Math.random() - 0.5) * 120;
+                const ry = (Math.random() - 0.5) * 120;
+                addSlashEffect(player.x, player.y, player.x + rx, player.y + ry, '#16a085', 3, 15);
+            }
+            triggerAreaDamage(player.x, player.y, 90);
+        }
+    }
+
+    function handleMove(e) {
+        if (!isDrawing || gameState !== 'PLAYING') return;
+        updateCoords(e);
+        pathPoints.push({ x: tempPos.x, y: tempPos.y });
+        if (pathPoints.length > 30) pathPoints.shift(); // Limit path size
+    }
+
+    function handleEnd() {
+        if (!isDrawing || gameState !== 'PLAYING') return;
+        isDrawing = false;
+        analyzeGesture();
+    }
+
+    // Event Registration
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    canvas.addEventListener('touchstart', (e) => { handleStart(e); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    langSelect.addEventListener('change', (e) => {
+        currentLang = e.target.value;
+        updateLanguage();
+    });
+
+    startBtn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        gameState = 'PLAYING';
+        initGame();
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        loop();
+    });
+
+    function endGame() {
+        gameState = 'GAMEOVER';
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        updateLanguage();
+        overlay.style.display = 'flex';
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    resizeCanvas();
+    updateLanguage();
+
+})();
+</script>
+</body>
+</html>
