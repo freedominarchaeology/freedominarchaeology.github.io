@@ -213,9 +213,10 @@
     <div class="main-container">
         <!-- Status & Equipment -->
         <div class="panel">
-            <div class="panel-title">ステータス・階級</div>
+            <div class="panel-title">ステータス・階級・領地</div>
             <div class="stat-row"><span>階級:</span> <span id="valClass" class="stat-value">長</span></div>
             <div class="stat-row"><span>称号:</span> <span id="valHero" class="stat-value">なし</span></div>
+            <div class="stat-row"><span>領域内人口:</span> <span id="valPopulation" class="stat-value">10 人</span></div>
             <div class="stat-row"><span>威信:</span> <span id="valPrestige" class="stat-value">50</span></div>
             <div class="stat-row"><span>名声:</span> <span id="valFame" class="stat-value">0</span></div>
             <div class="stat-row"><span>武勇:</span> <span id="valValour" class="stat-value">0</span></div>
@@ -233,7 +234,11 @@
                 </select>
             </div>
             <div class="stat-row">
-                <span>贈与品:</span>
+                <span>贈与品所持:</span>
+                <span id="valGiftsList" class="stat-value" style="font-size:0.75rem;">初:0 中:0 高:0 特:0</span>
+            </div>
+            <div class="stat-row">
+                <span>送る品:</span>
                 <select id="giftRankSelect">
                     <option value="0">初級品</option>
                     <option value="1">中級品</option>
@@ -280,19 +285,31 @@
             </div>
         </div>
 
-        <!-- Strategy & Class Up -->
+        <!-- Strategy & Crafting & Class Up -->
         <div class="panel full-width">
-            <div class="panel-title">素材・統治・昇格</div>
+            <div class="panel-title">素材・領域開発・クラフト・昇格</div>
             <div class="stat-row">
                 <span id="valMaterials">素材: 皮革[0] 鉱石[0] 霊木[0] | 宝珠[0]</span>
             </div>
+            <div class="stat-row" style="margin-top: 2px;">
+                <span>開発:</span>
+                <button id="btnDevAgri" class="btn" style="padding:2px 6px;">農業開墾(霊木3)</button>
+                <button id="btnDevEcon" class="btn" style="padding:2px 6px;">経済開発(鉱石3)</button>
+            </div>
+            <div class="stat-row" style="margin-top: 2px;">
+                <span>クラフト:</span>
+                <select id="craftRankSelect">
+                    <option value="0">初級品 (皮革2)</option>
+                    <option value="1">中級品 (皮革3/鉱石2)</option>
+                    <option value="2">高級品 (鉱石4/霊木3)</option>
+                    <option value="3">特級品 (霊木5/宝珠1)</option>
+                </select>
+                <button id="btnCraftGift" class="btn" style="padding:2px 8px;">作成</button>
+            </div>
             <div class="stat-row" style="margin-top: 3px;">
-                <span id="valReqs">昇格要件: ---</span>
+                <span id="valReqs" style="font-size:0.75rem; color:#f39c12;">昇格要件: ---</span>
             </div>
-            <div style="display: flex; gap: 6px; margin-top: 4px;">
-                <button id="btnCraftGift" class="btn" style="flex: 1;">贈与品クラフト</button>
-                <button id="btnClassUp" class="btn" style="flex: 1;">階級昇格申請</button>
-            </div>
+            <button id="btnClassUp" class="btn" style="margin-top: 2px;">階級昇格申請</button>
         </div>
 
         <!-- Log Panel -->
@@ -307,21 +324,20 @@
             'use strict';
 
             const MAX_LOGS = 10;
-            // 階級システムの復元：長 -> 公 -> 王 -> 大公 -> 皇帝
             const CLASSES = ["長", "公", "王", "大公", "皇帝"];
 
             const WEAPONS = [
                 { name: "木刀", atk: 15, color: "#2ecc71" },
-                { name: "鋼鉄の剛剣", atk: 35, color: "#f1c40f" },
+                { name: "鉄製の剛剣", atk: 35, color: "#f1c40f" },
                 { name: "魔剣グラム", atk: 75, color: "#e74c3c" },
                 { name: "聖剣エクスカリバー", atk: 180, color: "#9b59b6" }
             ];
 
             const state = {
                 prestige: 50, fame: 0, valour: 0, giftCount: 0, classLevel: 0,
-                weaponIdx: 0, isHero: false, decayTimer: 10,
-                leather: 0, ore: 0, wood: 0, gems: 0, gifts: [2, 0, 0, 0],
-                killCount: 0, // 雑魚撃破カウンター（ボス出現用）
+                population: 10, weaponIdx: 0, isHero: false, decayTimer: 10,
+                leather: 0, ore: 0, wood: 0, gems: 0, gifts: [0, 0, 0, 0],
+                killCount: 0,
                 rivals: {
                     rivalA: { name: "部族長A", prestige: 30 },
                     rivalB: { name: "部族長B", prestige: 45 }
@@ -331,19 +347,19 @@
 
             const player = {
                 x: 60, y: 0, vx: 0, vy: 0,
-                hp: 100, maxHp: 100,
+                hp: 120, maxHp: 120,
                 isGrounded: false, facing: 1, invulnerable: 0,
                 dashTimer: 0
             };
 
             const monster = {
                 x: 300, y: 0, vx: 0, vy: 0,
-                hp: 80, maxHp: 80,
+                hp: 150, maxHp: 150,
                 name: "赤鬼怪異",
                 type: "ground",
                 hitTimer: 0,
                 flyAngle: 0,
-                stepTimer: 0 // ランダムステップ用
+                stepTimer: 0
             };
 
             const slashes = [];
@@ -380,23 +396,22 @@
 
             function generateOpeningStory() {
                 const stories = [
-                    "【開幕】魔王の軍勢により世界は暗黒に包まれた。貴殿は「長」として立ち上がり、過酷な贈与外交と武勇で「皇帝」を目指す！",
-                    "【開幕】邪竜の咆哮が天を裂き、街は荒廃した。生き残った人々を率いて階級を上げ、世界を救う覇道が今始まる。",
-                    "【開幕】堕天使の降臨により王国の秩序は崩壊。復興の使命を帯び、過酷な怪異を討ち払い勢力の頂点へ昇り詰めよ！"
+                    "【開幕】魔王の軍勢により世界は暗黒に包まれた。貴殿は「長」として立ち上がり、内政・外交・武勇で領域内人口を増やし「皇帝」を目指す！",
+                    "【開幕】邪竜の咆哮が天を裂いた。開墾と開拓で民を呼び寄せ、階級を上げて世界を統率せよ。",
+                    "【開幕】過酷な怪異が蔓延る時代。強力なポトラッチ外交と武勇で領土を発展させ、覇道を進め！"
                 ];
-                const selected = stories[Math.floor(Math.random() * stories.length)];
-                addLog(selected);
+                addLog(stories[Math.floor(Math.random() * stories.length)]);
             }
 
-            // 威信減衰タイマーの修復
+            // 威信減衰タイマー
             setInterval(() => {
                 if (state.decayTimer > 0) {
                     state.decayTimer--;
                 } else {
                     state.decayTimer = 10;
                     if (state.prestige > 0) {
-                        state.prestige = Math.max(0, state.prestige - 3);
-                        addLog("【威信減衰】時間が経過し、社会的な威信が少し減少した。");
+                        state.prestige = Math.max(0, state.prestige - 4);
+                        addLog("【威信減衰】時間が経過し、威信が少し減少した。");
                     }
                 }
                 updateUI();
@@ -410,10 +425,17 @@
             }
 
             function updateUI() {
-                if (state.classLevel >= 4) state.isHero = true;
+                // 皇帝(classLevel 4)かつ人口300以上・武勇400以上で英雄化
+                if (state.classLevel >= 4 && state.population >= 300 && state.valour >= 400) {
+                    if (!state.isHero) {
+                        state.isHero = true;
+                        addLog("【伝説誕生】圧倒的繁栄と武勇により★伝説の英雄★として覚醒した！");
+                    }
+                }
 
                 document.getElementById('valClass').textContent = CLASSES[state.classLevel];
                 document.getElementById('valHero').textContent = state.isHero ? "★伝説の英雄★" : "なし";
+                document.getElementById('valPopulation').textContent = `${state.population} 人`;
                 document.getElementById('valPrestige').textContent = state.prestige;
                 document.getElementById('valFame').textContent = state.fame;
                 document.getElementById('valValour').textContent = state.valour;
@@ -423,12 +445,20 @@
                 wEl.textContent = `${w.name} (ATK:${w.atk})`;
                 wEl.style.color = w.color;
 
+                document.getElementById('valGiftsList').textContent = `初:${state.gifts[0]} 中:${state.gifts[1]} 高:${state.gifts[2]} 特:${state.gifts[3]}`;
                 document.getElementById('valTimer').textContent = `${state.decayTimer}s`;
                 document.getElementById('valMaterials').textContent = `皮革[${state.leather}] 鉱石[${state.ore}] 霊木[${state.wood}] | 宝珠[${state.gems}]`;
 
-                const reqGifts = (state.classLevel + 1) * 3;
-                const reqValour = (state.classLevel + 1) * 50;
-                document.getElementById('valReqs').textContent = `要:贈与数${reqGifts} (現在:${state.giftCount}) / 武勇${reqValour} (現在:${state.valour})`;
+                // 昇格要件の算出（難易度再調整）
+                const reqGifts = [5, 12, 22, 35][state.classLevel] || 50;
+                const reqValour = [60, 150, 280, 450][state.classLevel] || 600;
+                const reqPop = [10, 50, 150, 300][state.classLevel] || 500;
+
+                if (state.classLevel < 4) {
+                    document.getElementById('valReqs').textContent = `次階級要件: 贈与${reqGifts}回 / 武勇${reqValour} / 人口${reqPop}人`;
+                } else {
+                    document.getElementById('valReqs').textContent = `英雄覚醒条件: 人口300人 / 武勇400`;
+                }
 
                 document.getElementById('valPlayerHpText').textContent = `自HP: ${Math.max(0, player.hp)}/${player.maxHp}`;
                 document.getElementById('valMonsterHpText').textContent = state.inBattle ? `${monster.name} HP: ${Math.max(0, monster.hp)}/${monster.maxHp}` : `敵HP: ---`;
@@ -496,11 +526,25 @@
             function onMonsterDefeated() {
                 addLog(`討伐完了！ [${monster.name}] を撃破した。`);
                 
-                const isBoss = monster.type === "midboss" || monster.type === "maou" || monster.type === "dragon" || monster.type === "angel";
-                state.valour += isBoss ? 80 : 20;
-                state.fame += isBoss ? 30 : 10;
+                const isMidBoss = monster.type === "midboss";
+                const isBoss = isMidBoss || monster.type === "maou" || monster.type === "dragon" || monster.type === "angel";
+                
+                state.valour += isBoss ? 100 : 25;
+                state.fame += isBoss ? 40 : 12;
+
+                // 素材ドロップ
                 state.leather += Math.floor(Math.random() * 2) + 1;
-                state.ore += Math.floor(Math.random() * 2) + 1;
+                if (Math.random() < 0.7) state.ore += 1;
+                if (Math.random() < 0.6) state.wood += 1;
+                if (isBoss && Math.random() < 0.5) state.gems += 1;
+
+                // 中ボス撃破時の鉄製武器獲得
+                if (isMidBoss) {
+                    if (state.weaponIdx < 1) {
+                        state.weaponIdx = 1;
+                        addLog("【戦利品】中ボスを討伐し『鉄製の剛剣』を獲得・装備した！");
+                    }
+                }
 
                 if (!isBoss) {
                     state.killCount++;
@@ -514,34 +558,32 @@
                 spawnMonster();
             }
 
-            // モンスター出現システムの復元＆英雄ラスボス対応
             function spawnMonster() {
                 if (state.isHero) {
                     const bosses = [
-                        { name: "【ラスボス】魔王ルシファー", hp: 450, type: "maou" },
-                        { name: "【ラスボス】破滅の邪竜バハムート", hp: 600, type: "dragon" },
-                        { name: "【ラスボス】堕天使サマエル", hp: 500, type: "angel" }
+                        { name: "【ラスボス】魔王ルシファー", hp: 850, type: "maou" },
+                        { name: "【ラスボス】破滅の邪竜バハムート", hp: 1100, type: "dragon" },
+                        { name: "【ラスボス】堕天使サマエル", hp: 950, type: "angel" }
                     ];
                     const b = bosses[Math.floor(Math.random() * bosses.length)];
                     monster.name = b.name;
                     monster.maxHp = b.hp;
                     monster.type = b.type;
-                } else if (state.killCount >= 3) {
-                    // 雑魚を3体倒すと中ボス出現
+                } else if (state.killCount >= 5) { // 5体撃破で中ボス
                     state.killCount = 0;
                     monster.name = "【強敵】獄炎将軍";
-                    monster.maxHp = 220;
+                    monster.maxHp = 450;
                     monster.type = "midboss";
                     addLog("【警告】圧倒的妖気を放つ強敵が姿を現した！");
                 } else {
                     const r = Math.random();
                     if (r < 0.5) {
                         monster.name = "赤鬼怪異";
-                        monster.maxHp = 90;
+                        monster.maxHp = 180;
                         monster.type = "ground";
                     } else {
                         monster.name = "鴉天狗";
-                        monster.maxHp = 70;
+                        monster.maxHp = 140;
                         monster.type = "fly";
                     }
                 }
@@ -609,17 +651,15 @@
                 player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
                 if (player.invulnerable > 0) player.invulnerable--;
 
-                // モンスター移動AIの強化
+                // モンスターAI＆画面内留まり制限
                 monster.x += monster.vx;
                 monster.vx *= 0.8;
 
                 if (monster.type === "fly" || monster.type === "angel") {
-                    // 鴉天狗：より低空を飛行し攻撃的フライト
                     monster.flyAngle += 0.06;
-                    monster.y = groundY - 35 + Math.sin(monster.flyAngle) * 35; // 地面近くまで降りてくる
+                    monster.y = groundY - 35 + Math.sin(monster.flyAngle) * 35;
                     monster.x += (player.x < monster.x ? -1 : 1) * 1.5;
                 } else if (monster.type === "ground") {
-                    // 赤鬼怪異：左右ランダムステップで間合いを狂わせる
                     monster.y = groundY;
                     monster.stepTimer--;
                     if (monster.stepTimer <= 0) {
@@ -632,12 +672,15 @@
                     monster.x += (player.x < monster.x ? -1 : 1) * 0.8;
                 }
 
+                // モンスターの画面外脱出防止フィルター
+                monster.x = Math.max(25, Math.min(canvas.width - 25, monster.x));
+
                 if (monster.hitTimer > 0) monster.hitTimer--;
 
-                // 衝突・被弾判定
+                // 衝突判定
                 const hitDist = Math.hypot(player.x - monster.x, (player.y - 20) - (monster.y - 20));
                 if (hitDist < 35 && player.invulnerable <= 0) {
-                    const dmg = monster.type === "maou" || monster.type === "dragon" || monster.type === "angel" ? 30 : 12;
+                    const dmg = monster.type === "maou" || monster.type === "dragon" || monster.type === "angel" ? 35 : (monster.type === "midboss" ? 22 : 14);
                     player.hp -= dmg;
                     player.invulnerable = 25;
                     player.vx = player.x < monster.x ? -7 : 7;
@@ -701,7 +744,6 @@
                 }
 
                 if (type === "fly") {
-                    // 1. 鴉天狗
                     const mY = y - 15;
                     if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
                     ctx.beginPath(); ctx.ellipse(x, mY, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
@@ -720,7 +762,6 @@
                     ctx.beginPath(); ctx.moveTo(x - 4, mY + 2); ctx.lineTo(x + 4, mY + 2); ctx.lineTo(x, mY + 10); ctx.fill();
 
                 } else if (type === "ground") {
-                    // 2. 赤鬼怪異
                     const mY = y - 22;
                     if (monster.hitTimer <= 0) ctx.fillStyle = '#c0392b';
                     ctx.beginPath(); ctx.arc(x, mY, 22, 0, Math.PI * 2); ctx.fill();
@@ -740,7 +781,6 @@
                     ctx.fill();
 
                 } else if (type === "midboss") {
-                    // 雑魚連勝で現れる中ボス：獄炎将軍
                     const mY = y - 30;
                     if (monster.hitTimer <= 0) ctx.fillStyle = '#d35400';
                     ctx.beginPath(); ctx.arc(x, mY, 28, 0, Math.PI * 2); ctx.fill();
@@ -751,7 +791,6 @@
                     ctx.fill();
 
                 } else if (type === "maou") {
-                    // 3. 【ラスボス】魔王ルシファー
                     const mY = y - 30;
                     if (monster.hitTimer <= 0) ctx.fillStyle = '#2c3e50';
                     ctx.beginPath(); ctx.arc(x, mY, 30, 0, Math.PI * 2); ctx.fill();
@@ -773,7 +812,6 @@
                     ctx.beginPath(); ctx.arc(x - 10, mY - 4, 5, 0, Math.PI * 2); ctx.arc(x + 10, mY - 4, 5, 0, Math.PI * 2); ctx.fill();
 
                 } else if (type === "dragon") {
-                    // 4. 【ラスボス】破滅の邪竜バハムート
                     const mY = y - 25;
                     if (monster.hitTimer <= 0) ctx.fillStyle = '#7f8c8d';
                     
@@ -795,7 +833,6 @@
                     ctx.moveTo(x + 15, mY + 5); ctx.lineTo(x + 22, mY + 18); ctx.lineTo(x + 28, mY + 5); ctx.fill();
 
                 } else if (type === "angel") {
-                    // 5. 【ラスボス】堕天使サマエル
                     const mY = y - 28;
                     
                     ctx.strokeStyle = '#f1c40f';
@@ -877,57 +914,96 @@
                 });
             }
 
-            // ポトラッチ（贈与）ダイナミクスの処理
             function giveGift() {
                 const rank = parseInt(document.getElementById('giftRankSelect').value, 10);
                 const targetKey = document.getElementById('targetSelect').value;
                 const target = state.rivals[targetKey];
 
                 if (state.gifts[rank] <= 0) {
-                    addLog("贈与品が足りません。クラフトしてください。");
+                    addLog("選択した等級の贈与品がありません。クラフトしてください。");
                     return;
                 }
 
                 state.gifts[rank]--;
                 state.giftCount++;
-                const gainPrestige = (rank + 1) * 35;
+                const gainPrestige = (rank + 1) * 20;
                 state.prestige += gainPrestige;
-                state.fame += (rank + 1) * 20;
+                state.fame += (rank + 1) * 15;
 
-                // 相手への圧倒的贈与による負債化・相手の威信抑制効果
-                target.prestige = Math.max(0, target.prestige - (rank + 1) * 10);
+                target.prestige = Math.max(0, target.prestige - (rank + 1) * 8);
 
-                addLog(`【贈与外交】${target.name} へ豪華な品を贈与！ (威信+${gainPrestige} / 相手の威信圧迫)`);
+                addLog(`【贈与外交】${target.name} へ贈与！ (威信+${gainPrestige} / 相手威信抑制)`);
                 updateUI();
             }
 
+            // 全等級クラフト対応
             function craftGift() {
-                if (state.leather >= 2) {
-                    state.leather -= 2;
-                    state.gifts[0]++;
-                    addLog("素材を調達し、贈与品をクラフトしました。");
+                const rank = parseInt(document.getElementById('craftRankSelect').value, 10);
+                let success = false;
+
+                if (rank === 0) {
+                    if (state.leather >= 2) { state.leather -= 2; success = true; }
+                } else if (rank === 1) {
+                    if (state.leather >= 3 && state.ore >= 2) { state.leather -= 3; state.ore -= 2; success = true; }
+                } else if (rank === 2) {
+                    if (state.ore >= 4 && state.wood >= 3) { state.ore -= 4; state.wood -= 3; success = true; }
+                } else if (rank === 3) {
+                    if (state.wood >= 5 && state.gems >= 1) { state.wood -= 5; state.gems -= 1; success = true; }
+                }
+
+                if (success) {
+                    state.gifts[rank]++;
+                    addLog(`【生産】ランク ${rank + 1} の贈与品をクラフトしました！`);
                 } else {
-                    addLog("クラフト素材(皮革)が足ります。モンスターを討伐してください。");
+                    addLog("クラフトに必要な素材が不足しています。");
                 }
                 updateUI();
             }
 
+            // 領域内人口開発
+            function devAgriculture() {
+                if (state.wood >= 3) {
+                    state.wood -= 3;
+                    const popGain = Math.floor(Math.random() * 8) + 12;
+                    state.population += popGain;
+                    addLog(`【内政】農地を開墾。領域内人口が ${popGain} 人増加した！`);
+                } else {
+                    addLog("開墾には霊木が3つ必要です。");
+                }
+                updateUI();
+            }
+
+            function devEconomy() {
+                if (state.ore >= 3) {
+                    state.ore -= 3;
+                    const popGain = Math.floor(Math.random() * 10) + 18;
+                    state.population += popGain;
+                    addLog(`【内政】市場・街道を整備。領域内人口が ${popGain} 人増加した！`);
+                } else {
+                    addLog("経済開発には鉱石が3つ必要です。");
+                }
+                updateUI();
+            }
+
+            // 階級昇格申請（人口制限付き）
             function applyClassUp() {
                 if (state.classLevel >= 4) {
-                    addLog("既に最高の階級に達しています。");
+                    addLog("既に最高の階級（皇帝）に達しています。");
                     return;
                 }
-                const reqGifts = (state.classLevel + 1) * 3;
-                const reqValour = (state.classLevel + 1) * 50;
 
-                if (state.giftCount >= reqGifts && state.valour >= reqValour) {
+                const reqGifts = [5, 12, 22, 35][state.classLevel];
+                const reqValour = [60, 150, 280, 450][state.classLevel];
+                const reqPop = [10, 50, 150, 300][state.classLevel];
+
+                if (state.giftCount >= reqGifts && state.valour >= reqValour && state.population >= reqPop) {
                     state.classLevel++;
-                    addLog(`【階級昇格】階級が 「${CLASSES[state.classLevel]}」 へ上昇しました！`);
+                    addLog(`【階級昇格】「${CLASSES[state.classLevel]}」 の位に即位しました！`);
                     if (state.classLevel === 4) {
-                        addLog("【英雄解放】「皇帝」の威信に到達！ ラスボス（魔王・邪竜・堕天使）が解禁されました！");
+                        addLog("【皇帝即位】皇帝に即位！ 英雄条件（人口300/武勇400）を満たしてラスボスを解放せよ！");
                     }
                 } else {
-                    addLog(`昇格条件を満たしていません (要: 贈与${reqGifts}回 / 武勇${reqValour})`);
+                    addLog(`昇格条件不完全 (要: 贈与${reqGifts}回 / 武勇${reqValour} / 人口${reqPop}人)`);
                 }
                 updateUI();
             }
@@ -980,6 +1056,8 @@
                 document.getElementById('btnRetreat').addEventListener('click', retreatBattle);
                 document.getElementById('btnGiveGift').addEventListener('click', giveGift);
                 document.getElementById('btnCraftGift').addEventListener('click', craftGift);
+                document.getElementById('btnDevAgri').addEventListener('click', devAgriculture);
+                document.getElementById('btnDevEcon').addEventListener('click', devEconomy);
                 document.getElementById('btnClassUp').addEventListener('click', applyClassUp);
 
                 generateOpeningStory();
