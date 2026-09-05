@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gift War - The Social Dynamics of Giving</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            background-color: #1f1f1f;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+        }
+        h1 {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: #d4af37;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        select, button {
+            font-family: inherit;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        select:hover, button:hover {
+            background: #3a3a3a;
+            border-color: #d4af37;
+        }
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 10px;
+            padding: 10px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            height: calc(100vh - 55px);
+        }
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .stat-box {
+            background: #121212;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            border-left: 3px solid #d4af37;
+        }
+        .stat-title {
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        .stat-bar {
+            height: 4px;
+            background: #333;
+            margin-top: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .stat-fill {
+            height: 100%;
+            background: #d4af37;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .game-field {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            min-height: 0;
+        }
+        .log-panel {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-title {
+            font-size: 0.85rem;
+            color: #d4af37;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #ccc;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .log-entry {
+            padding: 4px 8px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.03);
+        }
+        .log-entry.event { border-left: 2px solid #e74c3c; }
+        .log-entry.action { border-left: 2px solid #2ecc71; }
+        .ai-panel {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .hand-area {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cards-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            overflow-x: auto;
+            padding: 5px 0;
+        }
+        .card {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            width: 140px;
+            height: 180px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            flex-shrink: 0;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #d4af37;
+            background: #333;
+        }
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #d4af37;
+            text-align: center;
+        }
+        .card-desc {
+            font-size: 0.7rem;
+            color: #bbb;
+            line-height: 1.2;
+            text-align: center;
+        }
+        .card-cost {
+            font-size: 0.7rem;
+            color: #888;
+            text-align: right;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: #1e1e1e;
+            border: 1px solid #d4af37;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.2rem;
+            color: #d4af37;
+            margin-bottom: 12px;
+        }
+        .modal-body {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        .close-btn {
+            background: #d4af37;
+            color: #000;
+            border: none;
+            font-weight: bold;
+            width: 100%;
+            padding: 8px;
+        }
+        @media (max-width: 768px) {
+            .status-panel { grid-template-columns: repeat(2, 1fr); }
+            .game-field { grid-template-columns: 1fr; }
+            .ai-panel { display: none; }
+            .card { width: 110px; height: 150px; padding: 6px; }
+            .card-title { font-size: 0.75rem; }
+            .card-desc { font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="app-title">GIFT WAR</h1>
+        <div class="controls">
+            <button id="btn-help">HELP</button>
+            <select id="lang-select">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국語</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <section class="status-panel">
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-turn">経過年数 (Turn)</div>
+                <div class="stat-value" id="val-turn">1</div>
+                <div class="stat-bar"><div class="stat-fill" style="width: 100%;"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-complexity">社会的複雑度</div>
+                <div class="stat-value" id="val-complexity">10</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-complexity"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-inequality">格差インデックス</div>
+                <div class="stat-value" id="val-inequality">10%</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-inequality"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-cohesion">社会的結束度</div>
+                <div class="stat-value" id="val-cohesion">100</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-cohesion"></div></div>
+            </div>
+        </section>
+
+        <section class="game-field">
+            <div class="log-panel">
+                <div class="panel-title" id="lbl-log">社会履歴ログ</div>
+                <div class="log-content" id="log-box"></div>
+            </div>
+            <div class="ai-panel">
+                <div class="panel-title" id="lbl-ai">対話社会 (AI)</div>
+                <div id="ai-status" style="font-size:0.85rem; color:#aaa; line-height:1.4;">
+                    AI行動分析中...
+                </div>
+                <button id="btn-next" style="width: 100%; margin-top: 10px;">次へ経過</button>
+            </div>
+        </section>
+
+        <section class="hand-area">
+            <div class="panel-title" id="lbl-hand">実行可能な戦略カード</div>
+            <div class="cards-container" id="cards-box"></div>
+        </section>
+    </main>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">理論解説</div>
+            <div class="modal-body" id="modal-body"></div>
+            <button class="close-btn" id="modal-close">閉じる</button>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        const I18N = {
+            ja: {
+                title: "GIFT WAR: 贈与の社会的機能",
+                help: "解説",
+                turn: "生存年数",
+                complexity: "社会的複雑度",
+                inequality: "格差インデックス",
+                cohesion: "社会的結束度",
+                log: "社会履歴ログ",
+                ai: "外部・他者勢力",
+                hand: "実行可能な戦略カード",
+                next: "何もせず年数経過",
+                close: "閉じる",
+                gameOver: "社会が崩壊しました！",
+                win: "文明の維持に成功しています",
+                aiText: "他勢力は資源蓄積を進めています。",
+                cards: {
+                    accumulate: { name: "資源蓄積", desc: "自身の資源を貯め、複雑度を上げるが格差も拡大する。" },
+                    directGift: { name: "直接贈与", desc: "資源を他者に与え、格差を抑え結束度を上げる。" },
+                    obligatory: { name: "義務的返礼", desc: "相互に返礼義務を生み、中間的な結束度を維持する。" },
+                    potlatch: { name: "ポトラッチ(破棄)", desc: "過剰な財を破棄し威信を得る。格差を大幅低減。" },
+                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。崩壊を防ぎ複雑度を最大維持。" }
+                },
+                helpContent: "このゲームはPLOS Complex Systemsに掲載された論文に基づくシミュレーションです。社会的複雑度が高まるにつれて資源格差が拡大し、放置すると社会的結束度が低下して崩壊を迎えます。「無償の贈与」や「ポトラッチ」を適切に組み込むことで格差を解消し、社会の崩壊を防ぐことが目標です。"
+            },
+            en: {
+                title: "GIFT WAR: Social Dynamics of Giving",
+                help: "Help",
+                turn: "Years Survived",
+                complexity: "Social Complexity",
+                inequality: "Inequality Index",
+                cohesion: "Social Cohesion",
+                log: "History Log",
+                ai: "External Faction",
+                hand: "Available Strategy Cards",
+                next: "Pass Turn",
+                close: "Close",
+                gameOver: "Society Collapsed!",
+                win: "Civilization Maintained",
+                aiText: "Other factions are accumulating resources.",
+                cards: {
+                    accumulate: { name: "Accumulate", desc: "Increases complexity but widens inequality." },
+                    directGift: { name: "Direct Gift", desc: "Gives resources, reducing inequality and boosting cohesion." },
+                    obligatory: { name: "Obligatory Reciprocity", desc: "Creates mutual obligation, maintaining moderate cohesion." },
+                    potlatch: { name: "Potlatch", desc: "Destroys excess wealth to gain prestige. Drastically cuts inequality." },
+                    freeGift: { name: "Pure Free Gift", desc: "Unconditional giving. Prevents collapse and sustains high complexity." }
+                },
+                helpContent: "Based on PLOS Complex Systems research. As social complexity grows, inequality naturally increases. Unchecked inequality lowers social cohesion, leading to societal collapse. Strategically use 'Pure Free Gift' and 'Potlatch' to reduce inequality and preserve society."
+            },
+            zh: {
+                title: "GIFT WAR: 馈赠的社会功能",
+                help: "说明",
+                turn: "生存年数",
+                complexity: "社会复杂度",
+                inequality: "不平等指数",
+                cohesion: "社会凝聚力",
+                log: "历史日志",
+                ai: "外部势力",
+                hand: "可选策略卡牌",
+                next: "跳过回合",
+                close: "关闭",
+                gameOver: "社会已崩溃！",
+                win: "文明成功延续",
+                aiText: "其他势力正在积累资源。",
+                cards: {
+                    accumulate: { name: "资源积累", desc: "增加复杂度，但会扩大贫富差距。" },
+                    directGift: { name: "直接馈赠", desc: "赠予资源，减少差距并提高凝聚力。" },
+                    obligatory: { name: "义务互惠", desc: "产生互惠义务，维持中等凝聚力。" },
+                    potlatch: { name: "夸富宴(毁财)", desc: "销毁过剩财富以获得声望，大幅降低差距。" },
+                    freeGift: { name: "无偿馈赠", desc: "不求回报的赠与，防止社会崩溃并维持极高复杂度。" }
+                },
+                helpContent: "基于PLOS Complex Systems发表的研究。随着社会复杂度提高，不平等自然加剧。通过策略性地使用“无偿馈赠”和“夸富宴”，可以有效消除差距，防止社会崩溃。"
+            },
+            ko: {
+                title: "GIFT WAR: 증여의 사회적 기능",
+                help: "설명",
+                turn: "생존 년수",
+                complexity: "사회적 복잡성",
+                inequality: "불평등 지수",
+                cohesion: "사회적 결속도",
+                log: "사회 이력 로그",
+                ai: "외부 세력",
+                hand: "실행 가능한 전략 카드",
+                next: "턴 넘기기",
+                close: "닫기",
+                gameOver: "사회가 붕괴했습니다!",
+                win: "문명 유지 성공",
+                aiText: "타 세력이 자원을 축적하고 있습니다.",
+                cards: {
+                    accumulate: { name: "자원 축적", desc: "복잡성을 올리지만 불평등도 확대됨." },
+                    directGift: { name: "직접 증여", desc: "자원을 주어 불평등을 줄이고 결속도를 올림." },
+                    obligatory: { name: "의무적 답례", desc: "상호 답례 의무를 생성, 결속도 유지." },
+                    potlatch: { name: "포트래치(파기)", desc: "과잉 재화를 파기하여 위신 획득. 불평등 대폭 감소." },
+                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 붕괴를 막고 복잡성 최대 유지." }
+                },
+                helpContent: "PLOS Complex Systems 논문에 기반한 시뮬레이션입니다. 무상 증여와 포트래치를 적절히 활용하여 불평등을 해소하고 사회 붕괴를 막으세요."
+            },
+            fr: {
+                title: "GIFT WAR: Fonction Sociale du Don",
+                help: "Aide",
+                turn: "Années Survécues",
+                complexity: "Complexité Sociale",
+                inequality: "Indice d'Inégalité",
+                cohesion: "Cohésion Sociale",
+                log: "Journal Historique",
+                ai: "Faction Extérieure",
+                hand: "Cartes de Stratégie",
+                next: "Passer le Tour",
+                close: "Fermer",
+                gameOver: "La société s'est effondrée !",
+                win: "Civilisation Maintenue",
+                aiText: "D'autres factions accumulent des ressources.",
+                cards: {
+                    accumulate: { name: "Accumulation", desc: "Augmente la complexité mais creuse l'inégalité." },
+                    directGift: { name: "Don Direct", desc: "Offre des ressources, réduisant l'inégalité et renforçant la cohésion." },
+                    obligatory: { name: "Réciprocité Obligatoire", desc: "Crée des obligations mutuelles, maintenant une cohésion modérée." },
+                    potlatch: { name: "Potlatch", desc: "Détruit les richesses excessives pour gagner du prestige. Réduit fortement l'inégalité." },
+                    freeGift: { name: "Don Pur et Gratuit", desc: "Don inconditionnel. Empêche effondrement et maintient une complexité élevée." }
+                },
+                helpContent: "Basé sur les recherches de PLOS Complex Systems. Utilisez le 'Don Pur' et le 'Potlatch' pour éviter l'effondrement social."
+            },
+            es: {
+                title: "GIFT WAR: Función Social del Don",
+                help: "Ayuda",
+                turn: "Años Sobrevividos",
+                complexity: "Complejidad Social",
+                inequality: "Índice de Desigualdad",
+                cohesion: "Cohesión Social",
+                log: "Registro Histórico",
+                ai: "Facción Externa",
+                hand: "Cartas de Estrategia",
+                next: "Pasar Turno",
+                close: "Cerrar",
+                gameOver: "¡La sociedad ha colapsado!",
+                win: "Civilización Mantenida",
+                aiText: "Otras facciones están acumulando recursos.",
+                cards: {
+                    accumulate: { name: "Acumulación", desc: "Aumenta la complejidad pero amplía la desigualdad." },
+                    directGift: { name: "Don Directo", desc: "Entrega recursos, reduciendo la desigualdad y aumentando la cohesión." },
+                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Crea obligaciones mutuas, manteniendo una cohesión moderada." },
+                    potlatch: { name: "Potlatch", desc: "Destruye el exceso de riqueza para ganar prestigio. Reduce drásticamente la desigualdad." },
+                    freeGift: { name: "Don Puro y Gratuito", desc: "Don incondicional. Evita el colapso y mantiene una alta complejidad." }
+                },
+                helpContent: "Basado en la investigación de PLOS Complex Systems. Utilice el 'Don Puro' y el 'Potlatch' para evitar el colapso social."
+            }
+        };
+
+        let state = {
+            lang: 'ja',
+            turn: 1,
+            complexity: 10,
+            inequality: 10,
+            cohesion: 100,
+            isGameOver: false
+        };
+
+        const DOM = {
+            langSelect: document.getElementById('lang-select'),
+            appTitle: document.getElementById('app-title'),
+            btnHelp: document.getElementById('btn-help'),
+            lblTurn: document.getElementById('lbl-turn'),
+            valTurn: document.getElementById('val-turn'),
+            lblComplexity: document.getElementById('lbl-complexity'),
+            valComplexity: document.getElementById('val-complexity'),
+            barComplexity: document.getElementById('bar-complexity'),
+            lblInequality: document.getElementById('lbl-inequality'),
+            valInequality: document.getElementById('val-inequality'),
+            barInequality: document.getElementById('bar-inequality'),
+            lblCohesion: document.getElementById('lbl-cohesion'),
+            valCohesion: document.getElementById('val-cohesion'),
+            barCohesion: document.getElementById('bar-cohesion'),
+            lblLog: document.getElementById('lbl-log'),
+            logBox: document.getElementById('log-box'),
+            lblAi: document.getElementById('lbl-ai'),
+            aiStatus: document.getElementById('ai-status'),
+            btnNext: document.getElementById('btn-next'),
+            lblHand: document.getElementById('lbl-hand'),
+            cardsBox: document.getElementById('cards-box'),
+            modal: document.getElementById('modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalBody: document.getElementById('modal-body'),
+            modalClose: document.getElementById('modal-close')
+        };
+
+        function init() {
+            DOM.langSelect.addEventListener('change', (e) => {
+                state.lang = e.target.value;
+                updateI18N();
+            });
+            DOM.btnHelp.addEventListener('click', showHelp);
+            DOM.modalClose.addEventListener('click', hideModal);
+            DOM.btnNext.addEventListener('click', () => processTurn(null));
+
+            updateI18N();
+            renderHand();
+            updateUI();
+        }
+
+        function updateI18N() {
+            const t = I18N[state.lang];
+            DOM.appTitle.textContent = t.title;
+            DOM.btnHelp.textContent = t.help;
+            DOM.lblTurn.textContent = t.turn;
+            DOM.lblComplexity.textContent = t.complexity;
+            DOM.lblInequality.textContent = t.inequality;
+            DOM.lblCohesion.textContent = t.cohesion;
+            DOM.lblLog.textContent = t.log;
+            DOM.lblAi.textContent = t.ai;
+            DOM.aiStatus.textContent = t.aiText;
+            DOM.btnNext.textContent = t.next;
+            DOM.lblHand.textContent = t.hand;
+            DOM.modalClose.textContent = t.close;
+            renderHand();
+        }
+
+        function renderHand() {
+            while (DOM.cardsBox.firstChild) {
+                DOM.cardsBox.removeChild(DOM.cardsBox.firstChild);
+            }
+
+            if (state.isGameOver) return;
+
+            const t = I18N[state.lang].cards;
+            const cardKeys = ['accumulate', 'directGift', 'obligatory', 'potlatch', 'freeGift'];
+
+            cardKeys.forEach(key => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                
+                const title = document.createElement('div');
+                title.className = 'card-title';
+                title.textContent = t[key].name;
+
+                const desc = document.createElement('div');
+                desc.className = 'card-desc';
+                desc.textContent = t[key].desc;
+
+                cardEl.appendChild(title);
+                cardEl.appendChild(desc);
+
+                cardEl.addEventListener('click', () => processTurn(key));
+                DOM.cardsBox.appendChild(cardEl);
+            });
+        }
+
+        function processTurn(actionKey) {
+            if (state.isGameOver) return;
+
+            const t = I18N[state.lang];
+            
+            if (actionKey) {
+                applyCardEffect(actionKey);
+                addLog(`[Turn ${state.turn}] ${t.cards[actionKey].name}`, 'action');
+            } else {
+                state.complexity += 2;
+                state.inequality += 5;
+                addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
+            }
+
+            state.inequality += Math.floor(state.complexity * 0.3);
+            if (state.inequality > 50) {
+                state.cohesion -= Math.floor((state.inequality - 50) * 0.5);
+            }
+
+            state.complexity = Math.max(10, Math.min(100, state.complexity));
+            state.inequality = Math.max(0, Math.min(100, state.inequality));
+            state.cohesion = Math.max(0, Math.min(100, state.cohesion));
+
+            if (state.cohesion <= 0) {
+                state.isGameOver = true;
+                addLog(`[CRASH] ${t.gameOver}`, 'event');
+                showModal(t.gameOver, `${t.gameOver} (Turn: ${state.turn})`);
+            } else {
+                state.turn++;
+            }
+
+            updateUI();
+        }
+
+        function applyCardEffect(key) {
+            switch(key) {
+                case 'accumulate':
+                    state.complexity += 8;
+                    state.inequality += 12;
+                    break;
+                case 'directGift':
+                    state.inequality = Math.max(0, state.inequality - 10);
+                    state.cohesion += 5;
+                    break;
+                case 'obligatory':
+                    state.cohesion += 8;
+                    state.inequality += 2;
+                    break;
+                case 'potlatch':
+                    state.inequality = Math.max(0, state.inequality - 25);
+                    state.complexity = Math.max(10, state.complexity - 5);
+                    state.cohesion += 10;
+                    break;
+                case 'freeGift':
+                    state.inequality = Math.max(0, state.inequality - 18);
+                    state.cohesion += 15;
+                    state.complexity += 3;
+                    break;
+            }
+        }
+
+        function updateUI() {
+            DOM.valTurn.textContent = state.turn;
+            DOM.valComplexity.textContent = state.complexity;
+            DOM.barComplexity.style.width = `${state.complexity}%`;
+            
+            DOM.valInequality.textContent = `${state.inequality}%`;
+            DOM.barInequality.style.width = `${state.inequality}%`;
+
+            DOM.valCohesion.textContent = state.cohesion;
+            DOM.barCohesion.style.width = `${state.cohesion}%`;
+        }
+
+        function addLog(msg, type) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = msg;
+            DOM.logBox.appendChild(entry);
+            DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
+        }
+
+        function showHelp() {
+            const t = I18N[state.lang];
+            showModal(t.help, t.helpContent);
+        }
+
+        function showModal(title, text) {
+            DOM.modalTitle.textContent = title;
+            DOM.modalBody.textContent = text;
+            DOM.modal.style.display = 'flex';
+        }
+
+        function hideModal() {
+            DOM.modal.style.display = 'none';
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    })();
+    </script>
+</body>
+</html>
