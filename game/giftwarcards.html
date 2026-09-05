@@ -265,6 +265,7 @@
             line-height: 1.6;
             color: #ddd;
             margin-bottom: 20px;
+            white-space: pre-line;
         }
         .close-btn {
             background: #d4af37;
@@ -380,6 +381,7 @@
                 aiText: "他勢力は資源蓄積を進めています。",
                 reqPotlatch: "条件: 複雑度30以上 & 格差40%以上",
                 reqFreeGift: "条件: 結束度20以上消費",
+                similarHeader: "【類似する歴史的社会・文明】",
                 cards: {
                     accumulate: { name: "資源蓄積", desc: "複雑度+12、格差+15。高得点を目指す基本成長。" },
                     directGift: { name: "直接贈与", desc: "格差-10、結束度+5、複雑度-2。" },
@@ -387,7 +389,14 @@
                     potlatch: { name: "ポトラッチ(破棄)", desc: "財を破壊し格差-30、結束度+15。代償: 複雑度-15。" },
                     freeGift: { name: "無償の贈与", desc: "見返りなし。格差-15、結束度+10。代償: 複雑度+0(成長停滞)。" }
                 },
-                helpContent: "【ゲームシステム要件】\n1. 社会的複雑度が高まるほど、毎ターン得られる文明スコア（複雑度×ボーナス）が増加します。\n2. ポトラッチは「複雑度30以上かつ格差40%以上」の危機状態でのみ発動可能で、格差を激減させる代わりに積み上げた複雑度を大きく損ないます。\n3. 無償の贈与は安全に格差を下げられますが、複雑度の成長がストップするためスコアが伸び悩みます。"
+                helpContent: "【ゲームシステム要件】\n1. 社会的複雑度が高まるほど、毎ターン得られる文明スコアが増加します。\n2. ポトラッチは危機状態でのみ発動可能で、格差を激減させる代わりに複雑度を損ないます。\n3. 無償の贈与は格差を下げられますが、複雑度の成長が停滞します。",
+                societies: {
+                    jomon: { name: "縄文社会 / パプアニューギニア高地部族", desc: "技術や資源の過度な蓄積を避け、平等と贈与関係を維持することで長期間にわたり安定した社会。巨大家族や国家は形成されませんでした。" },
+                    kwakiutl: { name: "北米太平洋北西海岸先住民（クワキウトル族など）", desc: "蓄積された過剰な財をポトラッチ儀礼によって盛大に破壊・分配し、極度な格差拡大を抑えつつ高い威信と結束力を維持した社会。" },
+                    mesopotamia: { name: "初期メソポタミア都市国家（ウル・ウルク等）", desc: "急速な資源蓄積と都市化を進めるも、富の集中と激しい格差拡大により内紛や資源枯渇を招き、比較的短期間で崩壊した急進的文明。" },
+                    roman: { name: "後代ローマ帝国 / 王朝末期文明", desc: "高い複雑性と莫大な富を獲得したものの、富裕層への偏重と不平等の放置により社会的結束度が破綻し、外圧と内部崩壊を起こした社会。" },
+                    inca: { name: "インカ帝国（タワティンスウユ）", desc: "市場通貨を持たず、高度な社会的複雑度と大規模な再分配（互恵・贈与システム）を強固に融合させて栄えた巨大帝国。" }
+                }
             },
             en: {
                 title: "GIFT WAR: Social Dynamics of Giving",
@@ -407,6 +416,7 @@
                 aiText: "Other factions are accumulating resources.",
                 reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40%",
                 reqFreeGift: "Req: Consumes Cohesion",
+                similarHeader: "[Similar Historical Society]",
                 cards: {
                     accumulate: { name: "Accumulate", desc: "Complexity +12, Inequality +15. High score driver." },
                     directGift: { name: "Direct Gift", desc: "Inequality -10, Cohesion +5, Complexity -2." },
@@ -414,7 +424,14 @@
                     potlatch: { name: "Potlatch", desc: "Destroys wealth: Inequality -30, Cohesion +15. Cost: Complexity -15." },
                     freeGift: { name: "Pure Free Gift", desc: "Unconditional: Inequality -15, Cohesion +10. Cost: Zero complexity growth." }
                 },
-                helpContent: "1. Higher Social Complexity increases the Civilization Score multiplier per turn.\n2. Potlatch requires Complexity ≥ 30 and Inequality ≥ 40%. It drastically cuts inequality but sacrifices complexity.\n3. Pure Free Gift lowers inequality safely, but freezes complexity growth, limiting score expansion."
+                helpContent: "1. Higher Complexity increases Score gained per turn.\n2. Potlatch drastically cuts inequality but sacrifices complexity.\n3. Pure Free Gift lowers inequality safely, but freezes complexity growth.",
+                societies: {
+                    jomon: { name: "Jomon Society / New Guinea Highlands", desc: "Avoided excessive resource accumulation, maintaining equality and giving relations for centuries without developing rigid state hierarchies." },
+                    kwakiutl: { name: "Northwest Coast Indigenous (Kwakiutl)", desc: "Controlled massive inequality by destruction/distribution of excess wealth in Potlatch ceremonies, sustaining social cohesion." },
+                    mesopotamia: { name: "Early Mesopotamian City-States", desc: "Rapid resource accumulation and urbanization led to wealth inequality and internal collapse within a relatively short era." },
+                    roman: { name: "Late Roman Empire", desc: "Reached immense complexity and wealth, but unchecked inequality ruined social cohesion, driving societal collapse." },
+                    inca: { name: "Inca Empire (Tawantinsuyu)", desc: "Balanced high complexity and empire-scale organization through redistribution and reciprocal gift systems rather than money." }
+                }
             },
             zh: {
                 title: "GIFT WAR: 馈赠的社会功能",
@@ -434,6 +451,7 @@
                 aiText: "其他势力正在积累资源。",
                 reqPotlatch: "条件: 复杂度≥30 且 不平等≥40%",
                 reqFreeGift: "条件: 消耗凝聚力",
+                similarHeader: "【相似的历史社会/文明】",
                 cards: {
                     accumulate: { name: "资源积累", desc: "复杂度+12，不平等+15。高分主驱动力。" },
                     directGift: { name: "直接馈赠", desc: "不平等-10，凝聚力+5，复杂度-2。" },
@@ -441,7 +459,14 @@
                     potlatch: { name: "夸富宴(毁财)", desc: "毁财: 不平等-30，凝聚力+15。代价: 复杂度-15。" },
                     freeGift: { name: "无偿馈赠", desc: "无条件: 不平等-15，凝聚力+10。代价: 复杂度停滞。" }
                 },
-                helpContent: "1. 社会复杂度越高，每回合获得的文明积分越多。\n2. 夸富宴仅在复杂度≥30且不平等≥40%时可用，可大幅降低不平等但会牺牲复杂度。\n3. 无偿馈赠可安全降低不平等，但会使复杂度停止增长。"
+                helpContent: "1. 社会复杂度越高，每回合获得的文明积分越多。\n2. 夸富宴可大幅降低不平等但会牺牲复杂度。\n3. 无偿馈赠可安全降低不平等，但会使复杂度停止增长。",
+                societies: {
+                    jomon: { name: "绳文社会 / 新几内亚高地部落", desc: "避免过度资源积累，依靠平等与互赠长久维持社会稳定。" },
+                    kwakiutl: { name: "西北海岸原住民（夸克特尔族）", desc: "通过夸富宴销毁和再分配积累的财富，控制贫富差距并保持凝聚力。" },
+                    mesopotamia: { name: "早期美索不达米亚城邦", desc: "快速积累资源但财富过于集中，导致内乱并迅速走向崩溃。" },
+                    roman: { name: "罗马帝国晚期", desc: "拥有高度复杂的社会结构，但忽视贫富差距导致社会凝聚力彻底破裂。" },
+                    inca: { name: "印加帝国", desc: "依靠大规模再分配与互惠馈赠制度维持庞大文明的独特帝国。" }
+                }
             },
             ko: {
                 title: "GIFT WAR: 증여의 사회적 기능",
@@ -461,6 +486,7 @@
                 aiText: "타 세력이 자원을 축적하고 있습니다.",
                 reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
                 reqFreeGift: "조건: 결속도 소비",
+                similarHeader: "[유사한 역사적 사회]",
                 cards: {
                     accumulate: { name: "자원 축적", desc: "복잡성 +12, 불평등 +15. 고득점 필수." },
                     directGift: { name: "직접 증여", desc: "불평등 -10, 결속도 +5, 복잡성 -2." },
@@ -468,7 +494,14 @@
                     potlatch: { name: "포트래치(파기)", desc: "재화 파기: 불평등 -30, 결속도 +15. 대가: 복잡성 -15." },
                     freeGift: { name: "무상 증여", desc: "대가 없음: 불평등 -15, 결속도 +10. 대가: 복잡성 성장 정지." }
                 },
-                helpContent: "1. 복잡성이 높을수록 턴당 문명 점수 획득량이 증가합니다.\n2. 포트래치는 복잡성 30 이상, 불평등 40% 이상일 때만 발동 가능하며 복잡성을 크게 깎습니다.\n3. 무상 증여는 안전하지만 복잡성 성장이 정지됩니다."
+                helpContent: "1. 복잡성이 높을수록 턴당 문명 점수가 증가합니다.\n2. 포트래치는 복잡성을 크게 깎는 대신 불평등을 감소시킵니다.\n3. 무상 증여는 안전하지만 복잡성 성장이 정지됩니다.",
+                societies: {
+                    jomon: { name: "조몬 사회 / 뉴기니 고지대 부족", desc: "과도한 자원 축적을 피하고 평등과 증여 관계를 유지하여 장기간 안정되었던 사회." },
+                    kwakiutl: { name: "북미 태평양 북서안 원주민 (콰키우틀족)", desc: "포트래치 의식을 통해 잉여 재화를 의도적으로 파기 및 분배하여 결속도를 유지한 사회." },
+                    mesopotamia: { name: "초기 메소포타미아 도시국가", desc: "급격한 축적과 불평등 심화로 내부 분열을 겪으며 비교적 단기간에 붕괴한 문명." },
+                    roman: { name: "말기 로마 제국", desc: "높은 복잡성과 부를 이루었으나 극단적 불평등 방치로 사회적 결속력이 붕괴한 사회." },
+                    inca: { name: "잉카 제국", desc: "화폐 없이 대규모 재분배와 상호 증여 시스템으로 높은 복잡성을 유지했던 거대 제국." }
+                }
             },
             fr: {
                 title: "GIFT WAR: Fonction Sociale du Don",
@@ -488,6 +521,7 @@
                 aiText: "D'autres factions accumulent des ressources.",
                 reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40%",
                 reqFreeGift: "Req: Consomme de la cohésion",
+                similarHeader: "[Société Historique Similaire]",
                 cards: {
                     accumulate: { name: "Accumulation", desc: "Complexité +12, Inégalité +15. Moteur de score." },
                     directGift: { name: "Don Direct", desc: "Inégalité -10, Cohésion +5, Complexité -2." },
@@ -495,7 +529,14 @@
                     potlatch: { name: "Potlatch", desc: "Détruit la richesse: Inégalité -30, Cohésion +15. Coût: Complexité -15." },
                     freeGift: { name: "Don Pur et Gratuit", desc: "Inconditionnel: Inégalité -15, Cohésion +10. Coût: Croissance stoppée." }
                 },
-                helpContent: "1. Une complexité sociale plus élevée augmente le score de civilisation.\n2. Le Potlatch nécessite Complexité ≥ 30 et Inégalité ≥ 40%.\n3. Le Don Pur stoppe la croissance de la complexité."
+                helpContent: "1. Une complexité plus élevée augmente le score.\n2. Le Potlatch réduit l'inégalité en sacrifiant la complexité.\n3. Le Don Pur stoppe la croissance de la complexité.",
+                societies: {
+                    jomon: { name: "Société Jomon / Hauts Plateaux de Nouvelle-Guinée", desc: "Évitait l'accumulation excessive, conservant l'égalité et les relations de don sur plusieurs siècles." },
+                    kwakiutl: { name: "Autochtones de la Côte Nord-Ouest (Kwakiutl)", desc: "Contrôlaient l'inégalité par la destruction/distribution de richesses lors du Potlatch." },
+                    mesopotamia: { name: "Cités-États de Mésopotamie", desc: "Accumulation rapide menant à une forte inégalité et un effondrement précoce." },
+                    roman: { name: "Empire Romain Tardif", desc: "Complexité immense, mais l'inégalité incontrôlée a brisé la cohésion sociale." },
+                    inca: { name: "Empire Inca", desc: "Maintint une haute complexité grâce à la redistribution massive et au don sans monnaie." }
+                }
             },
             es: {
                 title: "GIFT WAR: Función Social del Don",
@@ -515,6 +556,7 @@
                 aiText: "Otras facciones están acumulando recursos.",
                 reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40%",
                 reqFreeGift: "Req: Consume cohesión",
+                similarHeader: "[Sociedad Histórica Similar]",
                 cards: {
                     accumulate: { name: "Acumulación", desc: "Complejidad +12, Desigualdad +15. Clave de puntaje." },
                     directGift: { name: "Don Directo", desc: "Desigualdad -10, Cohesión +5, Complejidad -2." },
@@ -522,7 +564,14 @@
                     potlatch: { name: "Potlatch", desc: "Destruye riqueza: Desigualdad -30, Cohesión +15. Costo: Complejidad -15." },
                     freeGift: { name: "Don Puro y Gratuito", desc: "Incondicional: Desigualdad -15, Cohesión +10. Costo: Crecimiento cero." }
                 },
-                helpContent: "1. Mayor complejidad social aumenta los puntos por turno.\n2. Potlatch requiere Complejidad ≥ 30 y Desigualdad ≥ 40%.\n3. El Don Puro congela el crecimiento de la complejidad."
+                helpContent: "1. Mayor complejidad aumenta los puntos por turno.\n2. Potlatch reduce desigualdad sacrificando complejidad.\n3. El Don Puro congela el crecimiento de la complejidad.",
+                societies: {
+                    jomon: { name: "Sociedad Jomon / Tribus de Nueva Guinea", desc: "Evitó la acumulación excesiva de recursos, manteniendo la igualdad y la cohesión durante siglos." },
+                    kwakiutl: { name: "Indígenas de la Costa Noroeste (Kwakiutl)", desc: "Controlaron la desigualdad destruyendo/distribuyendo excesos de riqueza mediante el Potlatch." },
+                    mesopotamia: { name: "Primeras Ciudades-Estado de Mesopotamia", desc: "Acumulación rápida que generó desigualdad y colapso interno en un período relativamente corto." },
+                    roman: { name: "Imperio Romano Tardío", desc: "Alcanzó gran complejidad pero la desigualdad descontrolada destruyó la cohesión social." },
+                    inca: { name: "Imperio Inca", desc: "Mantuvo una alta complejidad mediante sistemas masivos de redistribución y dones recíprocos." }
+                }
             }
         };
 
@@ -666,19 +715,16 @@
                 addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
             }
 
-            // 複雑度に基づくスコア算定（複雑度が高いほど文明獲得ポイントが跳ね上がる）
             const turnScore = Math.floor(state.complexity * (1 + state.complexity / 50));
             state.score += turnScore;
             addLog(`+${turnScore} ${t.score}`, 'info');
 
-            // 格差の自動増加と結束度へのダメージ計算
             state.inequality += Math.floor(state.complexity * 0.25);
             if (state.inequality > 50) {
                 const penalty = Math.floor((state.inequality - 50) * 0.6);
                 state.cohesion -= penalty;
             }
 
-            // ステータス範囲制限
             state.complexity = Math.max(10, Math.min(100, state.complexity));
             state.inequality = Math.max(0, Math.min(100, state.inequality));
             state.cohesion = Math.max(0, Math.min(100, state.cohesion));
@@ -686,7 +732,7 @@
             if (state.cohesion <= 0) {
                 state.isGameOver = true;
                 addLog(`[CRASH] ${t.gameOver}`, 'event');
-                showModal(t.gameOver, `${t.gameOver}\n${t.turn}: ${state.turn}\n${t.score}: ${state.score}`);
+                showGameOverResult();
             } else {
                 state.turn++;
             }
@@ -713,14 +759,41 @@
                 case 'potlatch':
                     state.inequality = Math.max(0, state.inequality - 30);
                     state.cohesion += 15;
-                    state.complexity = Math.max(10, state.complexity - 15); // デメリット：破壊により高度な社会的複雑度を喪失
+                    state.complexity = Math.max(10, state.complexity - 15);
                     break;
                 case 'freeGift':
                     state.inequality = Math.max(0, state.inequality - 15);
                     state.cohesion += 10;
-                    // デメリット：純粋贈与のみでは技術・複雑度の進化が停止する
                     break;
             }
+        }
+
+        function getSimilarSocietyKey() {
+            if (state.turn >= 20 && state.score >= 3000) {
+                return 'inca';
+            } else if (state.turn >= 20 && state.score < 1200) {
+                return 'jomon';
+            } else if (state.turn >= 12 && state.score >= 1500) {
+                return 'kwakiutl';
+            } else if (state.turn < 10 && state.score >= 800) {
+                return 'mesopotamia';
+            } else {
+                return 'roman';
+            }
+        }
+
+        function showGameOverResult() {
+            const t = I18N[state.lang];
+            const socKey = getSimilarSocietyKey();
+            const soc = t.societies[socKey];
+
+            const resultText = `${t.gameOver}\n\n` +
+                `${t.turn}: ${state.turn}\n` +
+                `${t.score}: ${state.score}\n\n` +
+                `${t.similarHeader}\n` +
+                `■ ${soc.name}\n${soc.desc}`;
+
+            showModal(t.gameOver, resultText);
         }
 
         function updateUI() {
@@ -743,8 +816,6 @@
             entry.className = `log-entry ${type}`;
             entry.textContent = msg;
             DOM.logBox.appendChild(entry);
-            
-            // ログの自動スクロール調整（最新行へスクロール）
             DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
         }
 
