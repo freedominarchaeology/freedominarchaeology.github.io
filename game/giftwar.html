@@ -223,7 +223,7 @@
             <div class="stat-row"><span>装備:</span> <span id="valWeapon" class="stat-value">木刀</span></div>
         </div>
 
-        <!-- Potlatch System -->
+        <!-- Potlatch & Power-Up System -->
         <div class="panel">
             <div class="panel-title">贈与と外交対戦 (ポトラッチ)</div>
             <div class="stat-row">
@@ -247,6 +247,7 @@
                 </select>
             </div>
             <button id="btnGiveGift" class="btn">選択相手に贈与を行う</button>
+            <button id="btnReceiveGift" class="btn" style="background-color:#8e44ad; margin-top:2px;">贈与を受け入れ魔力・武具強化(威信・名声低下)</button>
             <div class="stat-row"><span>威信減衰まで:</span> <span id="valTimer" class="stat-value">10s</span></div>
         </div>
 
@@ -337,7 +338,7 @@
                 prestige: 50, fame: 0, valour: 0, giftCount: 0, classLevel: 0,
                 population: 10, weaponIdx: 0, isHero: false, decayTimer: 10,
                 leather: 0, ore: 0, wood: 0, gems: 0, gifts: [0, 0, 0, 0],
-                killCount: 0,
+                killCount: 0, extraAtk: 0,
                 rivals: {
                     rivalA: { name: "部族長A", prestige: 30 },
                     rivalB: { name: "部族長B", prestige: 45 }
@@ -359,7 +360,11 @@
                 type: "ground",
                 hitTimer: 0,
                 flyAngle: 0,
-                stepTimer: 0
+                stepTimer: 0,
+                teleportTimer: 0,
+                chargeTimer: 0,
+                isCharging: false,
+                trail: []
             };
 
             const slashes = [];
@@ -403,7 +408,6 @@
                 addLog(stories[Math.floor(Math.random() * stories.length)]);
             }
 
-            // 威信減衰タイマー
             setInterval(() => {
                 if (state.decayTimer > 0) {
                     state.decayTimer--;
@@ -425,7 +429,6 @@
             }
 
             function updateUI() {
-                // 皇帝(classLevel 4)かつ人口300以上・武勇400以上で英雄化
                 if (state.classLevel >= 4 && state.population >= 300 && state.valour >= 400) {
                     if (!state.isHero) {
                         state.isHero = true;
@@ -441,15 +444,15 @@
                 document.getElementById('valValour').textContent = state.valour;
 
                 const w = WEAPONS[state.weaponIdx];
+                const totalAtk = w.atk + state.extraAtk;
                 const wEl = document.getElementById('valWeapon');
-                wEl.textContent = `${w.name} (ATK:${w.atk})`;
+                wEl.textContent = `${w.name} (ATK:${totalAtk})`;
                 wEl.style.color = w.color;
 
                 document.getElementById('valGiftsList').textContent = `初:${state.gifts[0]} 中:${state.gifts[1]} 高:${state.gifts[2]} 特:${state.gifts[3]}`;
                 document.getElementById('valTimer').textContent = `${state.decayTimer}s`;
                 document.getElementById('valMaterials').textContent = `皮革[${state.leather}] 鉱石[${state.ore}] 霊木[${state.wood}] | 宝珠[${state.gems}]`;
 
-                // 昇格要件の算出（難易度再調整）
                 const reqGifts = [5, 12, 22, 35][state.classLevel] || 50;
                 const reqValour = [60, 150, 280, 450][state.classLevel] || 600;
                 const reqPop = [10, 50, 150, 300][state.classLevel] || 500;
@@ -467,7 +470,7 @@
             function processGesture(dirHistory) {
                 if (!state.inBattle) return;
 
-                const baseAtk = WEAPONS[state.weaponIdx].atk;
+                const baseAtk = WEAPONS[state.weaponIdx].atk + state.extraAtk;
                 const strDirs = dirHistory.join('');
 
                 if (dirHistory.length >= 6) {
@@ -532,13 +535,11 @@
                 state.valour += isBoss ? 100 : 25;
                 state.fame += isBoss ? 40 : 12;
 
-                // 素材ドロップ
                 state.leather += Math.floor(Math.random() * 2) + 1;
                 if (Math.random() < 0.7) state.ore += 1;
                 if (Math.random() < 0.6) state.wood += 1;
                 if (isBoss && Math.random() < 0.5) state.gems += 1;
 
-                // 中ボス撃破時の鉄製武器獲得
                 if (isMidBoss) {
                     if (state.weaponIdx < 1) {
                         state.weaponIdx = 1;
@@ -559,6 +560,11 @@
             }
 
             function spawnMonster() {
+                monster.teleportTimer = 0;
+                monster.chargeTimer = 0;
+                monster.isCharging = false;
+                monster.trail = [];
+
                 if (state.isHero) {
                     const bosses = [
                         { name: "【ラスボス】魔王ルシファー", hp: 850, type: "maou" },
@@ -569,12 +575,12 @@
                     monster.name = b.name;
                     monster.maxHp = b.hp;
                     monster.type = b.type;
-                } else if (state.killCount >= 5) { // 5体撃破で中ボス
+                } else if (state.killCount >= 5) {
                     state.killCount = 0;
                     monster.name = "【強敵】獄炎将軍";
                     monster.maxHp = 450;
                     monster.type = "midboss";
-                    addLog("【警告】圧倒的妖気を放つ強敵が姿を現した！");
+                    addLog("【警告】圧倒的妖気を放つ強敵が瞬身の構えで現れた！");
                 } else {
                     const r = Math.random();
                     if (r < 0.5) {
@@ -651,11 +657,48 @@
                 player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
                 if (player.invulnerable > 0) player.invulnerable--;
 
-                // モンスターAI＆画面内留まり制限
+                // モンスターAI
                 monster.x += monster.vx;
                 monster.vx *= 0.8;
 
-                if (monster.type === "fly" || monster.type === "angel") {
+                if (monster.type === "midboss") {
+                    monster.y = groundY;
+
+                    // 1. トリッキーなワープ移動
+                    monster.teleportTimer++;
+                    if (monster.teleportTimer > 100) {
+                        monster.teleportTimer = 0;
+                        // プレイヤーの背面または前方の画面内にワープ
+                        const targetX = player.x + (Math.random() < 0.5 ? 120 : -120);
+                        monster.x = Math.max(40, Math.min(canvas.width - 40, targetX));
+                        monster.trail.push({ x: monster.x, y: monster.y, life: 10 });
+                    }
+
+                    // 2. 頻度の低い強力な突進攻撃（予備動作後に急速突進）
+                    if (!monster.isCharging) {
+                        monster.chargeTimer++;
+                        if (monster.chargeTimer > 150) {
+                            monster.isCharging = true;
+                            monster.chargeTimer = 0;
+                        } else {
+                            monster.x += (player.x < monster.x ? -1 : 1) * 0.5;
+                        }
+                    } else {
+                        monster.chargeTimer++;
+                        if (monster.chargeTimer < 25) {
+                            // 溜め動作（赤く光る予備動作）
+                            monster.vx = (player.x < monster.x ? 1 : -1) * 0.5;
+                        } else if (monster.chargeTimer < 40) {
+                            // 一気に高速突進！
+                            monster.vx = (player.x < monster.x ? -1 : 1) * 14;
+                            monster.trail.push({ x: monster.x, y: monster.y, life: 8 });
+                        } else {
+                            monster.isCharging = false;
+                            monster.chargeTimer = 0;
+                        }
+                    }
+
+                } else if (monster.type === "fly" || monster.type === "angel") {
                     monster.flyAngle += 0.06;
                     monster.y = groundY - 35 + Math.sin(monster.flyAngle) * 35;
                     monster.x += (player.x < monster.x ? -1 : 1) * 1.5;
@@ -672,15 +715,21 @@
                     monster.x += (player.x < monster.x ? -1 : 1) * 0.8;
                 }
 
-                // モンスターの画面外脱出防止フィルター
+                // 画面外逃走防止
                 monster.x = Math.max(25, Math.min(canvas.width - 25, monster.x));
 
                 if (monster.hitTimer > 0) monster.hitTimer--;
 
-                // 衝突判定
+                // 衝突ダメージ計算
                 const hitDist = Math.hypot(player.x - monster.x, (player.y - 20) - (monster.y - 20));
                 if (hitDist < 35 && player.invulnerable <= 0) {
-                    const dmg = monster.type === "maou" || monster.type === "dragon" || monster.type === "angel" ? 35 : (monster.type === "midboss" ? 22 : 14);
+                    let dmg = 14;
+                    if (monster.type === "midboss") {
+                        dmg = monster.isCharging ? 38 : 22; // 突進攻撃時は大ダメージ
+                    } else if (monster.type === "maou" || monster.type === "dragon" || monster.type === "angel") {
+                        dmg = 35;
+                    }
+                    
                     player.hp -= dmg;
                     player.invulnerable = 25;
                     player.vx = player.x < monster.x ? -7 : 7;
@@ -706,6 +755,17 @@
                     if (player.invulnerable % 4 < 2) {
                         drawStickman(player.x, player.y, WEAPONS[state.weaponIdx].color, player.facing);
                     }
+
+                    // 中ボスの残像を描画
+                    for (let i = monster.trail.length - 1; i >= 0; i--) {
+                        const tr = monster.trail[i];
+                        ctx.globalAlpha = tr.life / 10;
+                        drawMonster(tr.x, tr.y, monster.type);
+                        ctx.globalAlpha = 1.0;
+                        tr.life--;
+                        if (tr.life <= 0) monster.trail.splice(i, 1);
+                    }
+
                     drawMonster(monster.x, monster.y, monster.type);
                 }
 
@@ -782,7 +842,9 @@
 
                 } else if (type === "midboss") {
                     const mY = y - 30;
-                    if (monster.hitTimer <= 0) ctx.fillStyle = '#d35400';
+                    if (monster.hitTimer <= 0) {
+                        ctx.fillStyle = monster.isCharging ? '#ff0000' : '#d35400';
+                    }
                     ctx.beginPath(); ctx.arc(x, mY, 28, 0, Math.PI * 2); ctx.fill();
                     ctx.fillStyle = '#f39c12';
                     ctx.beginPath();
@@ -904,9 +966,9 @@
                         clearTimeout(tapTimer);
                         tapTimer = setTimeout(() => {
                             if (tapCount >= 2) {
-                                executeSkill("連続突き！", WEAPONS[state.weaponIdx].atk * 1.8, "#2ecc71", 3);
+                                executeSkill("連続突き！", (WEAPONS[state.weaponIdx].atk + state.extraAtk) * 1.8, "#2ecc71", 3);
                             } else {
-                                executeSkill("通常斬り", WEAPONS[state.weaponIdx].atk, "#ffffff", 1);
+                                executeSkill("通常斬り", WEAPONS[state.weaponIdx].atk + state.extraAtk, "#ffffff", 1);
                             }
                             tapCount = 0;
                         }, 200);
@@ -936,7 +998,15 @@
                 updateUI();
             }
 
-            // 全等級クラフト対応
+            // 贈与受け入れシステム（パワーアップ＆外交的負債）
+            function receiveGift() {
+                state.extraAtk += 15;
+                state.prestige = Math.max(0, state.prestige - 30);
+                state.fame = Math.max(0, state.fame - 25);
+                addLog("【負債の契約】他国から強力な魔具の贈与を受け入れATK+15！ 代償として威信-30・名声-25を被った。");
+                updateUI();
+            }
+
             function craftGift() {
                 const rank = parseInt(document.getElementById('craftRankSelect').value, 10);
                 let success = false;
@@ -960,7 +1030,6 @@
                 updateUI();
             }
 
-            // 領域内人口開発
             function devAgriculture() {
                 if (state.wood >= 3) {
                     state.wood -= 3;
@@ -985,7 +1054,6 @@
                 updateUI();
             }
 
-            // 階級昇格申請（人口制限付き）
             function applyClassUp() {
                 if (state.classLevel >= 4) {
                     addLog("既に最高の階級（皇帝）に達しています。");
@@ -1055,6 +1123,7 @@
                 document.getElementById('btnStartBattle').addEventListener('click', startBattle);
                 document.getElementById('btnRetreat').addEventListener('click', retreatBattle);
                 document.getElementById('btnGiveGift').addEventListener('click', giveGift);
+                document.getElementById('btnReceiveGift').addEventListener('click', receiveGift);
                 document.getElementById('btnCraftGift').addEventListener('click', craftGift);
                 document.getElementById('btnDevAgri').addEventListener('click', devAgriculture);
                 document.getElementById('btnDevEcon').addEventListener('click', devEconomy);
