@@ -2,25 +2,27 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIFT WAR - Action & Economy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>GIFT WAR - Stickman Action & Strategy</title>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
-            background-color: #1a1a24;
+            background-color: #0d0d11;
             color: #e0e0e0;
             font-family: 'MS Mincho', 'ＭＳ 明朝', 'Sawarabi Mincho', serif;
-            image-rendering: pixelated;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 10px;
+            padding: 8px;
+            overflow-x: hidden;
         }
 
         header {
@@ -29,25 +31,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 4px double #8a785d;
-            background-color: #2a2a38;
-            padding: 10px 15px;
-            margin-bottom: 10px;
+            border: 3px double #8a785d;
+            background-color: #1f1f28;
+            padding: 8px 12px;
+            margin-bottom: 8px;
         }
 
         h1 {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             color: #f0c040;
             text-shadow: 2px 2px #000;
         }
 
-        .lang-select, select, button {
-            background: #1a1a24;
+        select, button {
+            background: #141419;
             color: #f0c040;
             border: 2px solid #8a785d;
             padding: 4px 8px;
             font-family: inherit;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             cursor: pointer;
         }
 
@@ -56,7 +58,7 @@
             max-width: 900px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
         }
 
         @media (max-width: 768px) {
@@ -66,25 +68,25 @@
         }
 
         .panel {
-            background-color: #2a2a38;
-            border: 4px ridge #8a785d;
-            padding: 10px;
+            background-color: #1f1f28;
+            border: 3px ridge #8a785d;
+            padding: 8px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
         }
 
         .panel-title {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #f0c040;
             border-bottom: 2px dashed #8a785d;
-            padding-bottom: 4px;
+            padding-bottom: 3px;
         }
 
         .stat-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
         .stat-value {
@@ -93,27 +95,26 @@
         }
 
         .btn {
-            background-color: #4a3b5c;
+            background-color: #3b2d4a;
             color: #f0c040;
             border: 2px outset #8a785d;
-            padding: 6px 10px;
-            font-size: 0.85rem;
+            padding: 5px 8px;
+            font-size: 0.8rem;
             text-align: center;
-            user-select: none;
         }
 
         .btn:hover:not(:disabled) {
-            background-color: #5c4a73;
+            background-color: #4c3a5e;
         }
 
         .btn:active:not(:disabled) {
             border-style: inset;
-            background-color: #382c47;
+            background-color: #281e33;
         }
 
         .btn:disabled {
-            background-color: #2a2a30;
-            color: #666666;
+            background-color: #22222a;
+            color: #555555;
             border-color: #444444;
             cursor: not-allowed;
         }
@@ -123,68 +124,62 @@
         }
 
         .log-box {
-            height: 100px;
-            background-color: #101018;
+            height: 90px;
+            background-color: #08080c;
             border: 2px solid #5a4b3d;
-            padding: 6px;
+            padding: 4px;
             overflow-y: auto;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             line-height: 1.3;
         }
 
         .log-entry {
             margin-bottom: 2px;
-            border-bottom: 1px dotted #333;
+            border-bottom: 1px dotted #222;
             min-height: 1.1em;
             word-break: break-all;
         }
 
-        /* Action Combat Panel */
-        #combatCanvas {
+        /* Stickman Action Combat Canvas */
+        #canvasContainer {
+            position: relative;
             width: 100%;
-            height: 140px;
-            background-color: #050508;
+            height: 220px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            background-color: #141419;
             border: 2px solid #8a785d;
             touch-action: none;
             cursor: crosshair;
         }
 
-        .hp-bar-container {
-            width: 100%;
-            background-color: #333;
-            height: 12px;
-            border: 1px solid #666;
-            margin-bottom: 4px;
-        }
-
-        .hp-bar {
-            height: 100%;
-            background-color: #a83232;
-            width: 100%;
-            transition: width 0.1s linear;
-        }
-
-        .hero-badge {
-            color: #55ffff;
+        #skillBanner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1rem;
             font-weight: bold;
-        }
-
-        .status-boost {
-            color: #55ff55;
+            color: #f39c12;
+            text-shadow: 0 0 8px #f39c12, 1px 1px 2px #000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 5;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>GIFT WAR</h1>
-        <select id="langSelect" class="lang-select">
+        <h1>GIFT WAR - Stickman Action</h1>
+        <select id="langSelect">
             <option value="ja">日本語</option>
             <option value="en">English</option>
-            <option value="zh">中文</option>
-            <option value="ko">한국어</option>
-            <option value="fr">Français</option>
-            <option value="es">Español</option>
         </select>
     </header>
 
@@ -197,64 +192,72 @@
             <div class="stat-row"><span id="t-prestige">威信:</span> <span id="valPrestige" class="stat-value">0</span></div>
             <div class="stat-row"><span id="t-fame">名声:</span> <span id="valFame" class="stat-value">0</span></div>
             <div class="stat-row"><span id="t-valour">武勇:</span> <span id="valValour" class="stat-value">0</span></div>
-            <div class="stat-row"><span id="t-gift-count">贈与実績:</span> <span id="valGiftCount" class="stat-value">0</span></div>
-            <div class="stat-row"><span id="t-weapon">装備武具:</span> <span id="valWeapon" class="stat-value">素手 (ATK: 5)</span></div>
+            <div class="stat-row"><span id="t-gift-count">累計贈与回数:</span> <span id="valGiftCount" class="stat-value">0</span></div>
+            <div class="stat-row"><span id="t-weapon">装備:</span> <span id="valWeapon" class="stat-value">木刀 (ATK:5)</span></div>
         </div>
 
         <!-- Potlatch & Strategy -->
         <div class="panel">
             <div class="panel-title" id="t-potlatch">贈与と対戦相手</div>
             <div class="stat-row">
-                <span id="t-target">贈与対象:</span>
+                <span id="t-target">贈与相手:</span>
                 <select id="targetSelect">
-                    <option value="rivalA">ライバルA (威信:0)</option>
-                    <option value="rivalB">ライバルB (威信:0)</option>
+                    <option value="rivalA">ライバルA</option>
+                    <option value="rivalB">ライバルB</option>
                 </select>
             </div>
             <div class="stat-row">
-                <span id="t-gift-type">贈与品ランク:</span>
+                <span id="t-gift-type">贈与品:</span>
                 <select id="giftRankSelect">
-                    <option value="0">初級品 (所有:0)</option>
-                    <option value="1">中級品 (所有:0)</option>
-                    <option value="2">高級品 (所有:0)</option>
-                    <option value="3">特級品 (所有:0)</option>
+                    <option value="0">初級品</option>
+                    <option value="1">中級品</option>
+                    <option value="2">高級品</option>
+                    <option value="3">特級品</option>
                 </select>
             </div>
             <button id="btnGiveGift" class="btn">選択相手に贈与を行う</button>
-            <button id="btnReceiveGift" class="btn">返礼を受け取る (+バフ)</button>
-            <div class="stat-row"><span id="t-decay">減少まで:</span> <span id="valTimer" class="stat-value">10s</span></div>
+            <div class="stat-row"><span id="t-decay">威信減衰まで:</span> <span id="valTimer" class="stat-value">10s</span></div>
         </div>
 
         <!-- Action Combat Panel -->
         <div class="panel full-width">
-            <div class="panel-title" id="t-combat">討伐 (タップ/スワイプで攻撃)</div>
+            <div class="panel-title" id="t-combat">棒人間アクションバトル (タップ連打:連続突き / スワイプ:突進/切断)</div>
             <div class="stat-row">
-                <span id="valMonsterName" class="stat-value">道祖神の穢れモンスター</span>
+                <span id="valMonsterName" class="stat-value">モンスター</span>
                 <span id="valMonsterHpText" class="stat-value">HP: 100/100</span>
             </div>
-            <div class="hp-bar-container"><div id="valMonsterHpBar" class="hp-bar"></div></div>
-            <canvas id="combatCanvas" width="800" height="200"></canvas>
+            <div id="canvasContainer">
+                <div id="skillBanner"></div>
+                <canvas id="gameCanvas"></canvas>
+            </div>
         </div>
 
-        <!-- Crafting & Taxes -->
+        <!-- Tasks, Crafting & Taxes -->
         <div class="panel full-width">
-            <div class="panel-title" id="t-craft">生産と税収</div>
+            <div class="panel-title" id="t-craft">タスク・素材・クラフト</div>
             <div class="stat-row">
                 <span id="valMaterials">素材: 皮革[0] 鉱石[0] 霊木[0] | 税収: 宝珠[0]</span>
             </div>
+            <div class="stat-row" style="margin-top: 3px;">
+                <span id="valTaskStatus">外交タスク: 各都市からの依頼未達成</span>
+            </div>
             <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-                <button id="btnCollectTax" class="btn" style="flex: 1;">拠点から税を徴収</button>
+                <button id="btnCompleteTask" class="btn" style="flex: 1;">外交タスクを達成する</button>
                 <button id="btnCraftGift" class="btn" style="flex: 1;">贈与品をクラフト</button>
+                <button id="btnCollectTax" class="btn" style="flex: 1;">拠点から税を徴収</button>
             </div>
         </div>
 
         <!-- Class & Domain Expansion -->
         <div class="panel full-width">
-            <div class="panel-title" id="t-governance">統治と階級</div>
+            <div class="panel-title" id="t-governance">統治と階級昇格試験</div>
             <div class="stat-row">
-                <span id="t-domain">支配拠点:</span> <span id="valDomain" class="stat-value">なし</span>
+                <span id="t-domain">支配領域:</span> <span id="valDomain" class="stat-value">なし</span>
             </div>
-            <button id="btnClassUp" class="btn" style="margin-top: 4px;">階級昇格申請 (要:贈与数&威信)</button>
+            <div class="stat-row">
+                <span id="valReqs">昇格条件: ---</span>
+            </div>
+            <button id="btnClassUp" class="btn" style="margin-top: 4px;">階級昇格申請を行う</button>
         </div>
 
         <!-- Log Panel -->
@@ -268,52 +271,56 @@
         (function() {
             'use strict';
 
-            const MAX_LOGS = 12;
+            const MAX_LOGS = 10;
 
             const I18N = {
                 ja: {
-                    status: "ステータス・装備", class: "階級:", hero: "称号:", prestige: "威信:", fame: "名声:",
-                    valour: "武勇:", giftCount: "贈与実績:", weapon: "装備武具:", potlatch: "贈与と対戦相手",
-                    target: "贈与対象:", giftType: "贈与品ランク:", btnGive: "選択相手に贈与を行う",
-                    btnReceive: "返礼を受け取る (+バフ)", decay: "減少まで:", combat: "討伐 (タップ/スワイプで攻撃)",
-                    craft: "生産と税収", governance: "統治と階級", domain: "支配拠点:", btnClassUp: "階級昇格申請",
-                    btnCollectTax: "拠点から税を徴収", btnCraftGift: "贈与品をクラフト", logTitle: "記録", none: "なし",
-                    heroTitle: "伝説の英雄", classes: ["平民", "長", "公", "王", "大君", "皇帝"],
+                    classes: ["平民", "長", "公", "王", "大君", "皇帝"],
                     domains: ["なし", "村", "町", "国", "大国", "帝国"],
+                    heroTitle: "伝説の英雄", none: "なし",
                     giftRanks: ["初級品", "中級品", "高級品", "特級品"],
+                    skills: {
+                        rapid: "奥義：連続突き！",
+                        charge: "奥義：突進突き！",
+                        screen: "全画面奥義：神威一閃！"
+                    },
                     msgHit: "攻撃ヒット! ダメージ: ",
-                    msgKill: "モンスターを撃破! 素材を獲得。",
-                    msgBossKill: "ボス撃破! 伝説の武具を獲得した！",
-                    msgGiftSuccess: "へ贈与を行った。威信・名声が上昇！",
-                    msgNoGift: "指定したランクの贈与品を持っていません。",
-                    msgTaxCollected: "拠点から税（宝珠）を徴収しました。",
-                    msgNoTaxDomain: "税を徴収するには「長」以上の階級と拠点が必要です。",
+                    msgKill: "モンスターを撃破! 素材を入手。",
+                    msgBossKill: "BOSS撃破! 伝説の神槍「神殺しの槍」を獲得！",
+                    msgGiftSuccess: "へ贈与を完了。威信と名声が上昇！",
+                    msgNoGift: "贈与品が不足しています。クラフトしてください。",
+                    msgNoTask: "贈与を行うには先に「外交タスク」を達成する必要があります。",
+                    msgTaskComplete: "外交タスクを完了。贈与の権利を得た！",
                     msgCraftSuccess: "素材を組み合わせて贈与品を作成しました。",
-                    msgCraftFail: "クラフトに必要な素材が不足しています。",
-                    msgDecay: "贈与を怠ったため、威信と名声が衰退した...",
+                    msgCraftFail: "クラフト素材が不足しています。",
+                    msgTaxCollected: "拠点から税（宝珠）を徴収しました。",
+                    msgNoTaxDomain: "税収には「長」以上の階級と拠点が必要です。",
+                    msgDecay: "贈与を怠ったため、威信と名声が大きく減衰...",
                     msgClassUp: "階級が昇格しました: ",
-                    msgClassFail: "昇格要件（威信・名声・贈与実績）を満たしていません。"
+                    msgClassFail: "昇格要件（威信・贈与回数・タスク）を満たしていません。"
                 },
                 en: {
-                    status: "Status & Equipment", class: "Class:", hero: "Title:", prestige: "Prestige:", fame: "Fame:",
-                    valour: "Valour:", giftCount: "Gifts Sent:", weapon: "Weapon:", potlatch: "Gifting & Rivals",
-                    target: "Target:", giftType: "Gift Rank:", btnGive: "Send Gift to Target",
-                    btnReceive: "Receive Return Gift", decay: "Decay In:", combat: "Combat (Tap/Swipe to Attack)",
-                    craft: "Crafting & Taxes", governance: "Governance", domain: "Territory:", btnClassUp: "Apply for Promotion",
-                    btnCollectTax: "Collect Taxes", btnCraftGift: "Craft Gift Goods", logTitle: "Log", none: "None",
-                    heroTitle: "Legendary Hero", classes: ["Commoner", "Chief", "Duke", "King", "Overlord", "Emperor"],
-                    domains: ["None", "Village", "Town", "Kingdom", "Great Nation", "Empire"],
+                    classes: ["Commoner", "Chief", "Duke", "King", "Overlord", "Emperor"],
+                    domains: ["None", "Village", "Town", "Kingdom", "Great Empire", "Holy Empire"],
+                    heroTitle: "Legendary Hero", none: "None",
                     giftRanks: ["Basic", "Medium", "High", "Special"],
+                    skills: {
+                        rapid: "Skill: Rapid Thrust!",
+                        charge: "Skill: Charge Thrust!",
+                        screen: "Ultimate: Screen-Clearing Flash!"
+                    },
                     msgHit: "Hit! Damage: ",
-                    msgKill: "Monster defeated! Materials dropped.",
-                    msgBossKill: "BOSS Defeated! Legendary weapon acquired!",
+                    msgKill: "Monster defeated! Materials acquired.",
+                    msgBossKill: "BOSS defeated! Acquired Legendary Spear!",
                     msgGiftSuccess: "Sent gift. Prestige & Fame increased!",
-                    msgNoGift: "You do not have a gift of the selected rank.",
-                    msgTaxCollected: "Collected tax gems from your domain.",
-                    msgNoTaxDomain: "Requires 'Chief' rank or higher to collect taxes.",
-                    msgCraftSuccess: "Crafted a new gift from materials.",
+                    msgNoGift: "Gift item required. Please craft first.",
+                    msgNoTask: "Diplomatic task must be completed before gifting.",
+                    msgTaskComplete: "Diplomatic task complete. Gifting authorized!",
+                    msgCraftSuccess: "Crafted gift items from materials.",
                     msgCraftFail: "Insufficient materials for crafting.",
-                    msgDecay: "Failure to give gifts caused prestige to decay...",
+                    msgTaxCollected: "Collected tax gems from domain.",
+                    msgNoTaxDomain: "Requires Chief rank or higher to collect taxes.",
+                    msgDecay: "Delay in gifting caused prestige decay...",
                     msgClassUp: "Class Promoted: ",
                     msgClassFail: "Promotion requirements not met."
                 }
@@ -322,15 +329,15 @@
             let currentLang = 'ja';
             let timerId = null;
 
-            // Weapons Definition
+            // Weapons
             const WEAPONS = [
-                { name: "素手", atk: 5 },
-                { name: "鉄の剣", atk: 15 },
-                { name: "名工の刀", atk: 35 },
-                { name: "神殺しの槍 (伝説)", atk: 80 }
+                { name: "木刀", atk: 8, color: "#2ecc71" },
+                { name: "鉄の剣", atk: 18, color: "#f1c40f" },
+                { name: "名工の刀", atk: 38, color: "#3498db" },
+                { name: "神殺しの槍 (全画面)", atk: 100, color: "#9b59b6" }
             ];
 
-            // Game State
+            // State
             const state = {
                 prestige: 0,
                 fame: 0,
@@ -339,40 +346,52 @@
                 classLevel: 0,
                 weaponIdx: 0,
                 isHero: false,
-                boostTimer: 0,
                 decayTimer: 10,
-                // Materials
+                taskCompleted: false,
+                // Resources
                 leather: 0,
                 ore: 0,
                 wood: 0,
                 gems: 0,
-                // Inventory of gifts [Basic, Medium, High, Special]
-                gifts: [2, 0, 0, 0],
+                gifts: [1, 0, 0, 0],
                 // Rivals
                 rivals: {
-                    rivalA: { name: "ライバルA", prestige: 5 },
-                    rivalB: { name: "ライバルB", prestige: 10 }
+                    rivalA: { name: "ライバルA", prestige: 10 },
+                    rivalB: { name: "ライバルB", prestige: 25 }
                 },
-                // Current Monster
+                // Monster
                 monster: {
                     name: "穢れ鬼",
-                    hp: 50,
-                    maxHp: 50,
+                    hp: 60,
+                    maxHp: 60,
                     isBoss: false
                 }
             };
 
-            // Memory-Optimized Log Buffer
+            // Canvas & Effects State
+            let canvas, ctx;
+            const pathPoints = [];
+            const tapHistory = [];
+            let isDrawing = false;
+            let bannerTimeout = null;
+
+            const player = { x: 80, y: 110, vx: 0, vy: 0, isDashing: false, invulnerable: 0 };
+            const monsterPos = { x: 680, y: 110, vx: 0, vy: 0 };
+
+            const effects = [];
+            for (let i = 0; i < 25; i++) {
+                effects.push({ active: false, x1: 0, y1: 0, x2: 0, y2: 0, life: 0, color: '#fff', width: 2 });
+            }
+
+            // Memory-Optimized Log System
             const logBuffer = new Array(MAX_LOGS).fill("");
             const logNodes = [];
 
-            // DOM Cache
             const el = {
                 langSelect: document.getElementById('langSelect'),
                 targetSelect: document.getElementById('targetSelect'),
                 giftRankSelect: document.getElementById('giftRankSelect'),
                 logBox: document.getElementById('logBox'),
-                canvas: document.getElementById('combatCanvas'),
                 valClass: document.getElementById('valClass'),
                 valHero: document.getElementById('valHero'),
                 valPrestige: document.getElementById('valPrestige'),
@@ -383,17 +402,17 @@
                 valTimer: document.getElementById('valTimer'),
                 valMonsterName: document.getElementById('valMonsterName'),
                 valMonsterHpText: document.getElementById('valMonsterHpText'),
-                valMonsterHpBar: document.getElementById('valMonsterHpBar'),
                 valMaterials: document.getElementById('valMaterials'),
+                valTaskStatus: document.getElementById('valTaskStatus'),
                 valDomain: document.getElementById('valDomain'),
+                valReqs: document.getElementById('valReqs'),
                 btnGiveGift: document.getElementById('btnGiveGift'),
-                btnReceiveGift: document.getElementById('btnReceiveGift'),
+                btnCompleteTask: document.getElementById('btnCompleteTask'),
                 btnCollectTax: document.getElementById('btnCollectTax'),
                 btnCraftGift: document.getElementById('btnCraftGift'),
-                btnClassUp: document.getElementById('btnClassUp')
+                btnClassUp: document.getElementById('btnClassUp'),
+                skillBanner: document.getElementById('skillBanner')
             };
-
-            const ctx = el.canvas.getContext('2d');
 
             function setupLogDOM() {
                 el.logBox.textContent = '';
@@ -415,8 +434,34 @@
                 }
             }
 
+            function showSkillBanner(skillKey) {
+                const dict = I18N[currentLang] || I18N.ja;
+                el.skillBanner.textContent = dict.skills[skillKey] || '';
+                el.skillBanner.style.opacity = '1';
+                if (bannerTimeout) clearTimeout(bannerTimeout);
+                bannerTimeout = setTimeout(() => { el.skillBanner.style.opacity = '0'; }, 900);
+            }
+
+            function addSlashEffect(x1, y1, x2, y2, color = '#f1c40f', width = 4, life = 15) {
+                for (let i = 0; i < effects.length; i++) {
+                    if (!effects[i].active) {
+                        const ef = effects[i];
+                        ef.active = true;
+                        ef.x1 = x1; ef.y1 = y1;
+                        ef.x2 = x2; ef.y2 = y2;
+                        ef.color = color;
+                        ef.width = width;
+                        ef.life = life;
+                        break;
+                    }
+                }
+            }
+
             function updateUI() {
                 const dict = I18N[currentLang] || I18N.ja;
+
+                // Hero Check: Higher class or valour unlocks Hero Title
+                if (state.classLevel >= 3 || state.valour >= 200) state.isHero = true;
 
                 el.valClass.textContent = dict.classes[state.classLevel];
                 el.valHero.textContent = state.isHero ? dict.heroTitle : dict.none;
@@ -424,117 +469,260 @@
                 el.valFame.textContent = state.fame;
                 el.valValour.textContent = state.valour;
                 el.valGiftCount.textContent = state.giftCount;
-                
+
                 const w = WEAPONS[state.weaponIdx];
                 el.valWeapon.textContent = `${w.name} (ATK:${w.atk})`;
-                
+                el.valWeapon.style.color = w.color;
+
                 el.valTimer.textContent = `${state.decayTimer}s`;
                 el.valDomain.textContent = dict.domains[state.classLevel];
 
-                // Materials
                 el.valMaterials.textContent = `皮革[${state.leather}] 鉱石[${state.ore}] 霊木[${state.wood}] | 税収: 宝珠[${state.gems}]`;
+                el.valTaskStatus.textContent = state.taskCompleted ? "外交タスク: 依頼達成済 (贈与可能)" : "外交タスク: 各都市の依頼未達成 (要:素材供給)";
 
-                // Select options
+                // Reqs calculation (Tighter scaling to prevent quick Emperor status)
+                const reqGifts = Math.pow(state.classLevel + 1, 2) * 5; 
+                const reqPrestige = Math.pow(state.classLevel + 1, 3) * 30;
+                el.valReqs.textContent = `必要贈与数:${reqGifts} (現在:${state.giftCount}) / 必要威信:${reqPrestige} (現在:${state.prestige})`;
+
+                // Rivals
                 el.targetSelect.options[0].text = `${state.rivals.rivalA.name} (威信:${state.rivals.rivalA.prestige})`;
                 el.targetSelect.options[1].text = `${state.rivals.rivalB.name} (威信:${state.rivals.rivalB.prestige})`;
 
                 for (let i = 0; i < 4; i++) {
-                    el.giftRankSelect.options[i].text = `${dict.giftRanks[i]} (所有:${state.gifts[i]})`;
+                    el.giftRankSelect.options[i].text = `${dict.giftRanks[i]} (所持:${state.gifts[i]})`;
                 }
 
                 // Monster HP
                 el.valMonsterName.textContent = state.monster.isBoss ? `【BOSS】${state.monster.name}` : state.monster.name;
-                el.valMonsterHpText.textContent = `HP: ${state.monster.hp}/${state.monster.maxHp}`;
-                const pct = Math.max(0, (state.monster.hp / state.monster.maxHp) * 100);
-                el.valMonsterHpBar.style.width = `${pct}%`;
-
-                renderCanvas();
+                el.valMonsterHpText.textContent = `HP: ${Math.max(0, state.monster.hp)}/${state.monster.maxHp}`;
             }
 
-            // Canvas Render for Action Combat
-            function renderCanvas() {
-                ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
-                
-                // Background Grid
-                ctx.strokeStyle = "#2a2a38";
-                ctx.lineWidth = 2;
-                for (let x = 0; x < el.canvas.width; x += 40) {
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, el.canvas.height); ctx.stroke();
-                }
-
-                // Draw Monster (Retro Pixel Square)
-                const cx = el.canvas.width / 2;
-                const cy = el.canvas.height / 2;
-                const size = state.monster.isBoss ? 70 : 40;
-
-                ctx.fillStyle = state.monster.isBoss ? "#ff3333" : "#44bb55";
-                ctx.fillRect(cx - size/2, cy - size/2, size, size);
-                ctx.strokeStyle = "#ffffff";
-                ctx.strokeRect(cx - size/2, cy - size/2, size, size);
-
-                // Monster Eyes
-                ctx.fillStyle = "#000000";
-                ctx.fillRect(cx - size/4, cy - size/4, size/5, size/5);
-                ctx.fillRect(cx + size/8, cy - size/4, size/5, size/5);
-            }
-
-            // Action Input (Tap / Swipe Detection)
-            let touchStartX = 0, touchStartY = 0;
-
-            function handleAttack(isSwipe = false) {
+            // Damage logic & Action combat
+            function applyCombatDamage(multiplier = 1, isScreenWide = false) {
                 const w = WEAPONS[state.weaponIdx];
-                let dmg = w.atk * (state.boostTimer > 0 ? 2 : 1);
-                if (isSwipe) dmg = Math.floor(dmg * 1.5); // Swipe Bonus
-
+                let dmg = Math.floor(w.atk * multiplier);
+                
                 state.monster.hp -= dmg;
-                addLog('msgHit', `${dmg} ${isSwipe ? '(スワイプ波及!)' : ''}`);
+                addLog('msgHit', `${dmg}`);
 
                 if (state.monster.hp <= 0) {
-                    // Defeated
-                    state.valour += state.monster.isBoss ? 50 : 10;
-                    state.fame += state.monster.isBoss ? 30 : 5;
+                    state.valour += state.monster.isBoss ? 80 : 12;
+                    state.fame += state.monster.isBoss ? 50 : 6;
 
                     if (state.monster.isBoss) {
                         if (state.weaponIdx < WEAPONS.length - 1) {
-                            state.weaponIdx = WEAPONS.length - 1; // Drop Legendary Weapon
+                            state.weaponIdx = WEAPONS.length - 1; // Unlock Legendary Weapon
                             addLog('msgBossKill');
                         }
                     } else {
-                        // Drop Materials
                         state.leather += Math.floor(Math.random() * 2) + 1;
-                        state.ore += Math.floor(Math.random() * 2);
+                        state.ore += Math.floor(Math.random() * 2) + 1;
                         state.wood += Math.floor(Math.random() * 2);
                         addLog('msgKill');
                     }
 
                     // Respawn Monster
-                    const spawnBoss = Math.random() < 0.2 || state.valour > 80 && state.weaponIdx < 3;
+                    const spawnBoss = Math.random() < 0.25 || (state.valour > 120 && state.weaponIdx < 3);
                     state.monster.isBoss = spawnBoss;
                     state.monster.name = spawnBoss ? "大陰摩羅鬼 (BOSS)" : "穢れ妖怪";
-                    state.monster.maxHp = spawnBoss ? 250 : 60;
+                    state.monster.maxHp = spawnBoss ? 300 : 80;
                     state.monster.hp = state.monster.maxHp;
                 }
                 updateUI();
             }
 
-            el.canvas.addEventListener('pointerdown', (e) => {
-                touchStartX = e.clientX;
-                touchStartY = e.clientY;
-            });
+            // Gesture Analysis for Stickman Combat
+            function analyzeGesture() {
+                const w = WEAPONS[state.weaponIdx];
 
-            el.canvas.addEventListener('pointerup', (e) => {
-                const dx = e.clientX - touchStartX;
-                const dy = e.clientY - touchStartY;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 30) {
-                    handleAttack(true); // Swipe
-                } else {
-                    handleAttack(false); // Tap
+                // Screen Wide Ultimate (When Spear equipped)
+                if (state.weaponIdx === 3) {
+                    showSkillBanner('screen');
+                    for (let i = 0; i < 8; i++) {
+                        addSlashEffect(
+                            Math.random() * canvas.width, 0,
+                            Math.random() * canvas.width, canvas.height,
+                            w.color, 6, 20
+                        );
+                    }
+                    applyCombatDamage(3.0, true);
+                    return;
                 }
-            });
 
-            // Gifting System (PLOS Complex Systems Paper Reference)
+                if (pathPoints.length < 2) return;
+                const first = pathPoints[0];
+                const last = pathPoints[pathPoints.length - 1];
+                const totalDist = Math.hypot(last.x - first.x, last.y - first.y);
+
+                if (totalDist > 80) {
+                    showSkillBanner('charge');
+                    player.vx = 15;
+                    addSlashEffect(player.x, player.y, monsterPos.x, monsterPos.y, w.color, 5, 18);
+                    applyCombatDamage(1.8);
+                } else {
+                    player.vx = 5;
+                    addSlashEffect(player.x, player.y, player.x + 60, player.y, w.color, 3, 12);
+                    applyCombatDamage(1.0);
+                }
+            }
+
+            // Draw Canvas Functions
+            function renderCanvas() {
+                ctx.fillStyle = '#141419';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Grid lines
+                ctx.strokeStyle = '#22222e';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, 160); ctx.lineTo(canvas.width, 160);
+                ctx.stroke();
+
+                // Draw Slash Effects
+                for (let i = 0; i < effects.length; i++) {
+                    const ef = effects[i];
+                    if (ef.active) {
+                        ctx.strokeStyle = ef.color;
+                        ctx.lineWidth = ef.width;
+                        ctx.beginPath();
+                        ctx.moveTo(ef.x1, ef.y1);
+                        ctx.lineTo(ef.x2, ef.y2);
+                        ctx.stroke();
+                        ef.life--;
+                        if (ef.life <= 0) ef.active = false;
+                    }
+                }
+
+                // Draw Gesture Path
+                if (isDrawing && pathPoints.length > 1) {
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+                    for (let i = 1; i < pathPoints.length; i++) {
+                        ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+                    }
+                    ctx.stroke();
+                }
+
+                // Update Player position animation
+                player.x += player.vx;
+                player.vx *= 0.85;
+                if (player.x < 80) player.x = 80;
+                if (player.x > 500) player.x = 500;
+
+                // Draw Stickman Player
+                const wColor = WEAPONS[state.weaponIdx].color;
+                drawStickman(player.x, player.y, wColor, true);
+
+                // Draw Monster
+                drawStickman(monsterPos.x, monsterPos.y, state.monster.isBoss ? "#e74c3c" : "#2ecc71", false);
+            }
+
+            function drawStickman(x, y, color, isPlayer) {
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 3;
+
+                // Head
+                ctx.beginPath();
+                ctx.arc(x, y - 25, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body
+                ctx.beginPath();
+                ctx.moveTo(x, y - 15);
+                ctx.lineTo(x, y + 15);
+
+                // Legs
+                ctx.lineTo(x - 12, y + 40);
+                ctx.moveTo(x, y + 15);
+                ctx.lineTo(x + 12, y + 40);
+
+                // Arms & Weapon
+                ctx.moveTo(x, y - 5);
+                const armDir = isPlayer ? 1 : -1;
+                ctx.lineTo(x + armDir * 20, y - 5);
+
+                // Draw Weapon
+                if (isPlayer) {
+                    ctx.lineWidth = 4;
+                    ctx.lineTo(x + armDir * 40, y - 25);
+                }
+
+                ctx.stroke();
+            }
+
+            // Input Listeners for Combat
+            function updateCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (clientX - rect.left) * (canvas.width / rect.width),
+                    y: (clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+
+            function handleStart(e) {
+                isDrawing = true;
+                pathPoints.length = 0;
+                const pos = updateCoords(e);
+                pathPoints.push(pos);
+
+                // Rapid Tap Detection
+                const now = Date.now();
+                tapHistory.push(now);
+                while (tapHistory.length > 0 && now - tapHistory[0] > 500) tapHistory.shift();
+
+                if (tapHistory.length >= 4) {
+                    showSkillBanner('rapid');
+                    tapHistory.length = 0;
+                    const w = WEAPONS[state.weaponIdx];
+                    for (let i = 0; i < 4; i++) {
+                        addSlashEffect(
+                            player.x, player.y,
+                            player.x + 100 + Math.random() * 80, player.y + (Math.random() - 0.5) * 60,
+                            w.color, 3, 12
+                        );
+                    }
+                    applyCombatDamage(1.5);
+                }
+            }
+
+            function handleMove(e) {
+                if (!isDrawing) return;
+                const pos = updateCoords(e);
+                pathPoints.push(pos);
+                if (pathPoints.length > 20) pathPoints.shift();
+            }
+
+            function handleEnd() {
+                if (!isDrawing) return;
+                isDrawing = false;
+                analyzeGesture();
+            }
+
+            // Tasks, Crafting & Strategic Gifting
+            function completeTask() {
+                if (state.leather >= 2 && state.ore >= 2) {
+                    state.leather -= 2;
+                    state.ore -= 2;
+                    state.taskCompleted = true;
+                    addLog('msgTaskComplete');
+                } else {
+                    addLog('msgCraftFail');
+                }
+                updateUI();
+            }
+
             function giveGift() {
+                if (!state.taskCompleted) {
+                    addLog('msgNoTask');
+                    return;
+                }
+
                 const rank = parseInt(el.giftRankSelect.value, 10);
                 if (state.gifts[rank] <= 0) {
                     addLog('msgNoGift');
@@ -544,35 +732,32 @@
                 state.gifts[rank]--;
                 state.giftCount++;
                 state.decayTimer = 10;
+                state.taskCompleted = false; // Task consumes upon gift
 
                 const targetKey = el.targetSelect.value;
                 const target = state.rivals[targetKey];
 
-                // Rank Multipliers for Prestige
-                const prestigeGain = (rank + 1) * 15;
-                const fameGain = (rank + 1) * 10;
+                const prestigeGain = (rank + 1) * 20;
+                const fameGain = (rank + 1) * 12;
 
                 state.prestige += prestigeGain;
                 state.fame += fameGain;
-
-                // Competitive dynamics: Target receives gift & gains slight prestige, but donor's relative gain is higher
-                target.prestige += Math.floor(prestigeGain * 0.3);
+                target.prestige += Math.floor(prestigeGain * 0.4);
 
                 addLog('msgGiftSuccess', ` [${target.name}]`);
                 updateUI();
             }
 
             function craftGift() {
-                // Costs based on Materials
-                if (state.leather >= 2 && state.wood >= 1) {
-                    state.leather -= 2;
-                    state.wood -= 1;
-                    state.gifts[0]++; // Basic
+                if (state.leather >= 3 && state.wood >= 2) {
+                    state.leather -= 3;
+                    state.wood -= 2;
+                    state.gifts[0]++;
                     addLog('msgCraftSuccess');
-                } else if (state.gems >= 1 && state.ore >= 2) {
-                    state.gems -= 1;
-                    state.ore -= 2;
-                    state.gifts[1]++; // Medium
+                } else if (state.gems >= 2 && state.ore >= 3) {
+                    state.gems -= 2;
+                    state.ore -= 3;
+                    state.gifts[1]++;
                     addLog('msgCraftSuccess');
                 } else {
                     addLog('msgCraftFail');
@@ -585,7 +770,7 @@
                     addLog('msgNoTaxDomain');
                     return;
                 }
-                const amount = state.classLevel * 2;
+                const amount = state.classLevel * 3;
                 state.gems += amount;
                 addLog('msgTaxCollected', ` (+${amount})`);
                 updateUI();
@@ -595,9 +780,8 @@
                 const dict = I18N[currentLang] || I18N.ja;
                 if (state.classLevel >= 5) return;
 
-                // Exponentially scaling requirements based on paper
-                const reqGifts = (state.classLevel + 1) * 5;
-                const reqPrestige = Math.pow(state.classLevel + 1, 2) * 25;
+                const reqGifts = Math.pow(state.classLevel + 1, 2) * 5;
+                const reqPrestige = Math.pow(state.classLevel + 1, 3) * 30;
 
                 if (state.giftCount >= reqGifts && state.prestige >= reqPrestige) {
                     state.classLevel++;
@@ -608,23 +792,44 @@
                 updateUI();
             }
 
-            // Timer Loop
             function tick() {
-                if (state.boostTimer > 0) state.boostTimer--;
-
                 state.decayTimer--;
                 if (state.decayTimer <= 0) {
-                    state.prestige = Math.max(0, state.prestige - 8);
-                    state.fame = Math.max(0, state.fame - 4);
+                    // Decay prestige over time (Competitive potlatch model)
+                    state.prestige = Math.max(0, state.prestige - 10);
+                    state.fame = Math.max(0, state.fame - 5);
                     state.decayTimer = 10;
                     addLog('msgDecay');
                 }
-
+                renderCanvas();
                 updateUI();
             }
 
+            function resizeCanvas() {
+                const container = document.getElementById('canvasContainer');
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                monsterPos.x = canvas.width - 100;
+                monsterPos.y = canvas.height - 60;
+                player.y = canvas.height - 60;
+            }
+
             function init() {
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+
                 setupLogDOM();
+                resizeCanvas();
+
+                window.addEventListener('resize', resizeCanvas);
+
+                canvas.addEventListener('mousedown', handleStart);
+                canvas.addEventListener('mousemove', handleMove);
+                window.addEventListener('mouseup', handleEnd);
+
+                canvas.addEventListener('touchstart', (e) => { handleStart(e); e.preventDefault(); }, { passive: false });
+                canvas.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, { passive: false });
+                window.addEventListener('touchend', handleEnd);
 
                 el.langSelect.addEventListener('change', (e) => {
                     currentLang = e.target.value;
@@ -632,20 +837,13 @@
                 });
 
                 el.btnGiveGift.addEventListener('click', giveGift);
-                el.btnReceiveGift.addEventListener('click', () => {
-                    state.boostTimer = 15;
-                    updateUI();
-                });
-                el.btnCollectTax.addEventListener('click', collectTax);
+                el.btnCompleteTask.addEventListener('click', completeTask);
                 el.btnCraftGift.addEventListener('click', craftGift);
+                el.btnCollectTax.addEventListener('click', collectTax);
                 el.btnClassUp.addEventListener('click', applyClassUp);
 
                 if (timerId) clearInterval(timerId);
                 timerId = setInterval(tick, 1000);
-
-                window.addEventListener('beforeunload', () => {
-                    if (timerId) clearInterval(timerId);
-                });
 
                 updateUI();
             }
