@@ -140,11 +140,10 @@
             word-break: break-all;
         }
 
-        /* Action Combat Canvas Area */
         #canvasContainer {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 220px;
         }
 
         canvas {
@@ -155,7 +154,6 @@
             touch-action: none;
         }
 
-        /* Virtual Controller Overlay */
         .controls-overlay {
             display: flex;
             justify-content: space-between;
@@ -183,14 +181,37 @@
             background: #4a4a5e;
         }
 
-        .attack-btn {
-            background: #8b0000;
-            border-color: #e74c3c;
-            color: #ffcccc;
+        .battle-btn-start {
+            background: #1e824c;
+            border-color: #2ecc71;
+            color: #fff;
+            font-weight: bold;
         }
 
-        .attack-btn:active {
-            background: #c0392b;
+        .battle-btn-retreat {
+            background: #96281b;
+            border-color: #e74c3c;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        #battleOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        #battleMsg {
+            font-size: 1.2rem;
+            color: #e74c3c;
+            font-weight: bold;
+            text-shadow: 0 0 6px #000;
         }
     </style>
 </head>
@@ -214,7 +235,7 @@
             <div class="stat-row"><span>名声:</span> <span id="valFame" class="stat-value">0</span></div>
             <div class="stat-row"><span>武勇:</span> <span id="valValour" class="stat-value">0</span></div>
             <div class="stat-row"><span>累計贈与数:</span> <span id="valGiftCount" class="stat-value">0</span></div>
-            <div class="stat-row"><span>装備:</span> <span id="valWeapon" class="stat-value">木刀 (ATK:8)</span></div>
+            <div class="stat-row"><span>装備:</span> <span id="valWeapon" class="stat-value">木刀 (ATK:12)</span></div>
         </div>
 
         <!-- Strategy & Potlatch -->
@@ -242,15 +263,18 @@
 
         <!-- Action Combat Panel -->
         <div class="panel full-width">
-            <div class="panel-title">棒人間アクション（間合いを詰めて斬撃）</div>
+            <div class="panel-title">棒人間アクション（移動:ボタン/斬撃:画面スワイプ・タップ連打）</div>
             <div class="stat-row">
-                <span id="valMonsterName" class="stat-value">モンスター</span>
-                <span id="valMonsterHpText" class="stat-value">HP: 100/100</span>
+                <span id="valPlayerHpText" class="stat-value" style="color:#2ecc71;">自HP: 100/100</span>
+                <span id="valMonsterHpText" class="stat-value" style="color:#e74c3c;">敵HP: ---</span>
             </div>
             <div id="canvasContainer">
                 <canvas id="gameCanvas"></canvas>
+                <div id="battleOverlay">
+                    <div id="battleMsg">戦闘準備</div>
+                    <button id="btnStartBattle" class="btn battle-btn-start" style="padding: 10px 24px; font-size: 1rem;">戦闘開始</button>
+                </div>
             </div>
-            <!-- Controller for Mobile & Quick Access -->
             <div class="controls-overlay">
                 <div class="control-group">
                     <button class="ctrl-btn" id="btnLeft">◀ 左</button>
@@ -258,7 +282,7 @@
                     <button class="ctrl-btn" id="btnJump">▲ 飛</button>
                 </div>
                 <div class="control-group">
-                    <button class="ctrl-btn attack-btn" id="btnAttack">⚔️ 斬撃</button>
+                    <button class="ctrl-btn battle-btn-retreat" id="btnRetreat">退却</button>
                 </div>
             </div>
         </div>
@@ -310,17 +334,20 @@
                     heroTitle: "伝説の英雄", none: "なし",
                     giftRanks: ["初級品", "中級品", "高級品", "特級品"],
                     msgHit: "斬撃ヒット! ダメージ: ",
-                    msgKill: "モンスター討伐! 素材を入手。",
-                    msgBossKill: "BOSS撃伐! 伝説の神槍「神殺しの槍」を獲得！",
+                    msgDamaged: "痛恨の被弾! 被ダメージ: ",
+                    msgKill: "討伐完了! 素材を獲得。",
+                    msgBossKill: "大怪異討伐! 伝説の「神殺しの槍」を獲得！",
+                    msgDead: "敗北... 威信・名声・武勇が大幅低下しました。",
+                    msgRetreat: "戦闘から安全に退却しました。",
                     msgGiftSuccess: "へ贈与完了。威信と名声上昇！",
                     msgNoGift: "贈与品が不足しています。",
                     msgNoTask: "先に外交タスク（素材供給）を達成してください。",
-                    msgTaskComplete: "外交タスク完了。贈与が承認されました。",
-                    msgCraftSuccess: "素材を組み合わせて贈与品を作成しました。",
+                    msgTaskComplete: "外交タスク完了。贈与許可を獲得。",
+                    msgCraftSuccess: "素材を消費して贈与品を作成しました。",
                     msgCraftFail: "クラフト素材が足されません。",
                     msgTaxCollected: "拠点から税（宝珠）を徴収しました。",
                     msgNoTaxDomain: "税収には「長」以上の階級が必要です。",
-                    msgDecay: "贈与猶予切れにより威信と名声が減衰...",
+                    msgDecay: "贈与を怠ったため威信と名声が減衰...",
                     msgClassUp: "階級昇格: ",
                     msgClassFail: "昇格要件を満たしていません。"
                 },
@@ -330,12 +357,15 @@
                     heroTitle: "Legendary Hero", none: "None",
                     giftRanks: ["Basic", "Medium", "High", "Special"],
                     msgHit: "Slash Hit! Damage: ",
-                    msgKill: "Monster defeated! Materials gained.",
+                    msgDamaged: "Took Damage! -",
+                    msgKill: "Monster slain! Materials gained.",
                     msgBossKill: "BOSS Defeated! Unlocked Legendary Spear!",
+                    msgDead: "Defeated... Lost Prestige, Fame, and Valour.",
+                    msgRetreat: "Retreated safely from battle.",
                     msgGiftSuccess: "Gift delivered. Prestige & Fame raised!",
                     msgNoGift: "Insufficient gifts.",
                     msgNoTask: "Diplomatic task required first.",
-                    msgTaskComplete: "Diplomatic task done. Gifting authorized.",
+                    msgTaskComplete: "Diplomatic task done.",
                     msgCraftSuccess: "Crafted gift items.",
                     msgCraftFail: "Missing craft materials.",
                     msgTaxCollected: "Collected tax gems.",
@@ -350,10 +380,10 @@
             let timerId = null;
 
             const WEAPONS = [
-                { name: "木刀", atk: 12, range: 45, color: "#2ecc71" },
-                { name: "鉄の剣", atk: 25, range: 55, color: "#f1c40f" },
-                { name: "名工の刀", atk: 50, range: 65, color: "#3498db" },
-                { name: "神殺しの槍", atk: 120, range: 120, color: "#9b59b6" }
+                { name: "木刀", atk: 15, range: 50, color: "#2ecc71" },
+                { name: "鉄の剣", atk: 30, range: 60, color: "#f1c40f" },
+                { name: "名工の刀", atk: 60, range: 75, color: "#3498db" },
+                { name: "神殺しの槍", atk: 140, range: 130, color: "#9b59b6" }
             ];
 
             const state = {
@@ -364,31 +394,34 @@
                     rivalA: { name: "ライバルA", prestige: 10 },
                     rivalB: { name: "ライバルB", prestige: 25 }
                 },
-                monster: { name: "穢れ鬼", hp: 80, maxHp: 80, isBoss: false }
+                inBattle: false
             };
 
-            // Player Physics State
+            // Player State
             const player = {
                 x: 60, y: 0, vx: 0, vy: 0,
+                hp: 100, maxHp: 100,
                 isGrounded: false, isAttacking: 0,
-                facing: 1
+                facing: 1, invulnerable: 0
             };
 
-            // Monster State
+            // Monster System (Ground & Flying)
             const monster = {
-                x: 240, y: 0, vx: 0,
-                dir: -1, hitTimer: 0
+                x: 300, y: 0, vx: 0, vy: 0,
+                hp: 80, maxHp: 80,
+                name: "赤鬼怪異",
+                type: "ground", // "ground", "fly", "boss"
+                hitTimer: 0,
+                flyAngle: 0
             };
 
-            // Slash Effects
             const slashes = [];
-
-            // Memory-Optimized Log System
             const logBuffer = new Array(MAX_LOGS).fill("");
             const logNodes = [];
 
             let canvas, ctx;
-            const keys = { left: false, right: false, jump: false, attack: false };
+            const keys = { left: false, right: false, jump: false };
+            let touchStartX = 0, touchStartY = 0;
 
             function setupLogDOM() {
                 const box = document.getElementById('logBox');
@@ -446,67 +479,112 @@
                     rankSel.options[i].text = `${dict.giftRanks[i]} (所持:${state.gifts[i]})`;
                 }
 
-                document.getElementById('valMonsterName').textContent = state.monster.isBoss ? `【BOSS】${state.monster.name}` : state.monster.name;
-                document.getElementById('valMonsterHpText').textContent = `HP: ${Math.max(0, state.monster.hp)}/${state.monster.maxHp}`;
+                document.getElementById('valPlayerHpText').textContent = `自HP: ${Math.max(0, player.hp)}/${player.maxHp}`;
+                document.getElementById('valMonsterHpText').textContent = state.inBattle ? `${monster.name} HP: ${Math.max(0, monster.hp)}/${monster.maxHp}` : `敵HP: ---`;
             }
 
-            function attack() {
-                if (player.isAttacking > 0) return;
-                player.isAttacking = 12; // Attack duration frames
+            function triggerSlashAttack(targetX, targetY) {
+                if (!state.inBattle || player.isAttacking > 0) return;
+                player.isAttacking = 10;
 
                 const w = WEAPONS[state.weaponIdx];
-                const attackX = player.x + player.facing * (w.range / 2);
-                
-                // Add Slash Graphic
+                const slashX = player.x + player.facing * (w.range * 0.6);
+                const slashY = player.y - 25;
+
                 slashes.push({
-                    x: attackX,
-                    y: player.y - 20,
-                    radius: w.range / 1.5,
+                    x: slashX,
+                    y: slashY,
+                    radius: w.range * 0.7,
                     color: w.color,
                     life: 8
                 });
 
-                // Check Hit Box
-                const dist = Math.abs((player.x + player.facing * 30) - monster.x);
-                if (dist < w.range && Math.abs(player.y - monster.y) < 40) {
-                    const dmg = w.atk + Math.floor(Math.random() * 5);
-                    state.monster.hp -= dmg;
+                // Hit Detection
+                const dist = Math.hypot(monster.x - slashX, (monster.y - 20) - slashY);
+                if (dist < w.range) {
+                    const dmg = w.atk + Math.floor(Math.random() * 6);
+                    monster.hp -= dmg;
                     monster.hitTimer = 6;
-                    monster.vx = player.facing * 6; // Knockback
+                    monster.vx = player.facing * 5;
                     addLog('msgHit', `${dmg}`);
 
-                    if (state.monster.hp <= 0) {
-                        state.valour += state.monster.isBoss ? 100 : 15;
-                        state.fame += state.monster.isBoss ? 60 : 8;
-
-                        if (state.monster.isBoss) {
+                    if (monster.hp <= 0) {
+                        if (monster.type === "boss") {
+                            state.valour += 120; state.fame += 80;
                             if (state.weaponIdx < WEAPONS.length - 1) {
                                 state.weaponIdx = WEAPONS.length - 1;
                                 addLog('msgBossKill');
                             }
                         } else {
+                            state.valour += 18; state.fame += 10;
                             state.leather += Math.floor(Math.random() * 2) + 1;
                             state.ore += Math.floor(Math.random() * 2) + 1;
                             state.wood += Math.floor(Math.random() * 2);
                             addLog('msgKill');
                         }
-
-                        // Respawn Monster
-                        const spawnBoss = Math.random() < 0.25 || (state.valour > 100 && state.weaponIdx < 3);
-                        state.monster.isBoss = spawnBoss;
-                        state.monster.name = spawnBoss ? "大陰摩羅鬼 (BOSS)" : "穢れ鬼";
-                        state.monster.maxHp = spawnBoss ? 250 : 80;
-                        state.monster.hp = state.monster.maxHp;
-                        monster.x = canvas.width - 60;
+                        spawnMonster();
                     }
                     updateUI();
                 }
             }
 
+            function spawnMonster() {
+                const rand = Math.random();
+                if (rand < 0.25 || (state.valour > 120 && state.weaponIdx < 3)) {
+                    monster.type = "boss";
+                    monster.name = "【BOSS】大陰摩羅鬼";
+                    monster.maxHp = 280;
+                } else if (rand < 0.6) {
+                    monster.type = "fly";
+                    monster.name = "鴉天狗 (飛翔怪異)";
+                    monster.maxHp = 60;
+                } else {
+                    monster.type = "ground";
+                    monster.name = "赤鬼怪異";
+                    monster.maxHp = 90;
+                }
+                monster.hp = monster.maxHp;
+                monster.x = canvas.width - 60;
+                monster.flyAngle = 0;
+            }
+
+            function startBattle() {
+                state.inBattle = true;
+                player.hp = player.maxHp;
+                player.x = 60;
+                spawnMonster();
+                document.getElementById('battleOverlay').style.display = 'none';
+                updateUI();
+            }
+
+            function retreatBattle() {
+                state.inBattle = false;
+                document.getElementById('battleOverlay').style.display = 'flex';
+                document.getElementById('battleMsg').textContent = "戦闘から離脱中";
+                document.getElementById('btnStartBattle').textContent = "戦闘開始";
+                addLog('msgRetreat');
+                updateUI();
+            }
+
+            function playerDeath() {
+                state.inBattle = false;
+                state.prestige = Math.floor(state.prestige * 0.5);
+                state.fame = Math.floor(state.fame * 0.5);
+                state.valour = Math.floor(state.valour * 0.5);
+
+                document.getElementById('battleOverlay').style.display = 'flex';
+                document.getElementById('battleMsg').textContent = "敗北... 威信・武勇低下";
+                document.getElementById('btnStartBattle').textContent = "リスタート";
+                addLog('msgDead');
+                updateUI();
+            }
+
             function updatePhysics() {
+                if (!state.inBattle) return;
+
                 const groundY = canvas.height - 25;
 
-                // Player Movement
+                // Player Move
                 if (keys.left) { player.vx = -4; player.facing = -1; }
                 else if (keys.right) { player.vx = 4; player.facing = 1; }
                 else { player.vx *= 0.7; }
@@ -516,12 +594,7 @@
                     player.isGrounded = false;
                 }
 
-                if (keys.attack) {
-                    attack();
-                    keys.attack = false;
-                }
-
-                player.vy += 0.5; // Gravity
+                player.vy += 0.5;
                 player.x += player.vx;
                 player.y += player.vy;
 
@@ -531,24 +604,45 @@
                     player.isGrounded = true;
                 }
 
-                // Screen Bounds
                 if (player.x < 20) player.x = 20;
                 if (player.x > canvas.width - 20) player.x = canvas.width - 20;
 
                 if (player.isAttacking > 0) player.isAttacking--;
+                if (player.invulnerable > 0) player.invulnerable--;
 
-                // Monster AI & Physics
+                // Monster Logic
                 monster.x += monster.vx;
                 monster.vx *= 0.8;
-                monster.y = groundY;
 
-                // Simple Patrol / Face player
-                if (Math.abs(monster.vx) < 0.5) {
-                    monster.dir = player.x < monster.x ? -1 : 1;
-                    monster.x += monster.dir * (state.monster.isBoss ? 0.8 : 0.5);
+                if (monster.type === "fly") {
+                    monster.flyAngle += 0.05;
+                    monster.y = groundY - 70 + Math.sin(monster.flyAngle) * 35;
+                    monster.x += (player.x < monster.x ? -1 : 1) * 1.2;
+                } else if (monster.type === "boss") {
+                    monster.y = groundY;
+                    monster.x += (player.x < monster.x ? -1 : 1) * 0.8;
+                } else {
+                    monster.y = groundY;
+                    monster.x += (player.x < monster.x ? -1 : 1) * 0.6;
                 }
 
                 if (monster.hitTimer > 0) monster.hitTimer--;
+
+                // Collision & Player Damage
+                const hitDist = Math.hypot(player.x - monster.x, (player.y - 20) - (monster.y - 20));
+                if (hitDist < 30 && player.invulnerable <= 0) {
+                    const dmg = monster.type === "boss" ? 25 : 12;
+                    player.hp -= dmg;
+                    player.invulnerable = 30; // Immunity frames
+                    player.vx = player.x < monster.x ? -8 : 8;
+                    player.vy = -4;
+                    addLog('msgDamaged', `${dmg}`);
+
+                    if (player.hp <= 0) {
+                        playerDeath();
+                    }
+                    updateUI();
+                }
             }
 
             function render() {
@@ -565,17 +659,20 @@
                 ctx.lineTo(canvas.width, groundY);
                 ctx.stroke();
 
-                // Draw Stickman Hero
-                drawStickman(player.x, player.y, WEAPONS[state.weaponIdx].color, player.facing, player.isAttacking > 0);
-
-                // Draw Original Monster (Round + Eyes/Mouth)
-                drawMonster(monster.x, monster.y, state.monster.isBoss);
+                if (state.inBattle) {
+                    // Player Stickman
+                    if (player.invulnerable % 4 < 2) {
+                        drawStickman(player.x, player.y, WEAPONS[state.weaponIdx].color, player.facing, player.isAttacking > 0);
+                    }
+                    // Monster Rendering
+                    drawMonster(monster.x, monster.y, monster.type);
+                }
 
                 // Draw Slashes
                 for (let i = slashes.length - 1; i >= 0; i--) {
                     const s = slashes[i];
                     ctx.strokeStyle = s.color;
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 4;
                     ctx.beginPath();
                     ctx.arc(s.x, s.y, s.radius, -Math.PI / 3, Math.PI / 3);
                     ctx.stroke();
@@ -589,27 +686,19 @@
                 ctx.fillStyle = color;
                 ctx.lineWidth = 2.5;
 
-                // Head
                 ctx.beginPath();
                 ctx.arc(x, y - 35, 7, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Body
                 ctx.beginPath();
-                ctx.moveTo(x, y - 28);
-                ctx.lineTo(x, y - 12);
-
-                // Legs
+                ctx.moveTo(x, y - 28); ctx.lineTo(x, y - 12);
                 ctx.lineTo(x - 8 * facing, y);
-                ctx.moveTo(x, y - 12);
-                ctx.lineTo(x + 8 * facing, y);
+                ctx.moveTo(x, y - 12); ctx.lineTo(x + 8 * facing, y);
 
-                // Arms & Weapon Attack Motion
                 ctx.moveTo(x, y - 22);
                 if (isAttacking) {
                     ctx.lineTo(x + 18 * facing, y - 25);
                     ctx.stroke();
-                    // Weapon Blade
                     ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
@@ -618,7 +707,6 @@
                 } else {
                     ctx.lineTo(x + 10 * facing, y - 15);
                     ctx.stroke();
-                    // Guard / Idle Weapon
                     ctx.strokeStyle = color;
                     ctx.beginPath();
                     ctx.moveTo(x + 8 * facing, y - 15);
@@ -627,44 +715,84 @@
                 ctx.stroke();
             }
 
-            // Restore Previous Monster Appearance (Classic Sphere/Face Design)
-            function drawMonster(x, y, isBoss) {
-                const radius = isBoss ? 26 : 18;
-                const mY = y - radius;
+            // High-Quality Monster Rendering (Ground Oni & Flying Bird Monster)
+            function drawMonster(x, y, type) {
+                ctx.save();
+                if (monster.hitTimer > 0) ctx.fillStyle = '#ffffff';
 
-                if (monster.hitTimer > 0) {
-                    ctx.fillStyle = '#ffffff';
+                if (type === "fly") {
+                    // Flying Bird Demon
+                    const mY = y - 15;
+                    ctx.fillStyle = monster.hitTimer > 0 ? '#fff' : '#8e44ad';
+                    ctx.beginPath();
+                    ctx.ellipse(x, mY, 18, 12, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Wings
+                    ctx.strokeStyle = '#be2edd';
+                    ctx.lineWidth = 3;
+                    const wingFlap = Math.sin(Date.now() * 0.01) * 12;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 5, mY); ctx.lineTo(x - 22, mY - 15 + wingFlap);
+                    ctx.moveTo(x + 5, mY); ctx.lineTo(x + 22, mY - 15 + wingFlap);
+                    ctx.stroke();
+
+                    // Eyes & Beak
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.arc(x - 6, mY - 3, 3, 0, Math.PI * 2); ctx.arc(x + 6, mY - 3, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#e67e22';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 4, mY + 2); ctx.lineTo(x + 4, mY + 2); ctx.lineTo(x, mY + 10);
+                    ctx.fill();
+
                 } else {
-                    ctx.fillStyle = isBoss ? '#c0392b' : '#27ae60';
+                    // Ground Oni / Boss Oni
+                    const isBoss = type === "boss";
+                    const radius = isBoss ? 28 : 20;
+                    const mY = y - radius;
+
+                    if (monster.hitTimer <= 0) {
+                        ctx.fillStyle = isBoss ? '#900c3f' : '#c0392b';
+                    }
+
+                    // Body
+                    ctx.beginPath();
+                    ctx.arc(x, mY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Horns
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.moveTo(x - radius * 0.5, mY - radius * 0.8);
+                    ctx.lineTo(x - radius * 0.8, mY - radius * 1.6);
+                    ctx.lineTo(x - radius * 0.2, mY - radius * 0.9);
+                    ctx.fill();
+
+                    if (isBoss) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + radius * 0.5, mY - radius * 0.8);
+                        ctx.lineTo(x + radius * 0.8, mY - radius * 1.6);
+                        ctx.lineTo(x + radius * 0.2, mY - radius * 0.9);
+                        ctx.fill();
+                    }
+
+                    // Glowing Red Eyes
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath();
+                    ctx.arc(x - radius * 0.35, mY - 3, isBoss ? 5 : 3.5, 0, Math.PI * 2);
+                    ctx.arc(x + radius * 0.35, mY - 3, isBoss ? 5 : 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Sharp Fangs & Mouth
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 8, mY + 8); ctx.lineTo(x - 5, mY + 16); ctx.lineTo(x - 2, mY + 8);
+                    ctx.moveTo(x + 2, mY + 8); ctx.lineTo(x + 5, mY + 16); ctx.lineTo(x + 8, mY + 8);
+                    ctx.fill();
                 }
-
-                // Body (Sphere)
-                ctx.beginPath();
-                ctx.arc(x, mY, radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Eyes
-                ctx.fillStyle = '#000';
-                ctx.beginPath();
-                ctx.arc(x - radius * 0.3, mY - 3, isBoss ? 4 : 2.5, 0, Math.PI * 2);
-                ctx.arc(x + radius * 0.3, mY - 3, isBoss ? 4 : 2.5, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Mouth / Fangs
-                ctx.strokeStyle = '#000';
-                ctx.beginPath();
-                if (isBoss) {
-                    ctx.moveTo(x - 10, mY + 10);
-                    ctx.lineTo(x, mY + 4);
-                    ctx.lineTo(x + 10, mY + 10);
-                } else {
-                    ctx.arc(x, mY + 5, 6, 0, Math.PI);
-                }
-                ctx.stroke();
+                ctx.restore();
             }
 
             function gameLoop() {
@@ -673,11 +801,10 @@
                 requestAnimationFrame(gameLoop);
             }
 
-            // Tasks & Potlatch Gifting Systems
+            // Tasks, Crafting & Strategic Gifting
             function completeTask() {
                 if (state.leather >= 2 && state.ore >= 2) {
-                    state.leather -= 2;
-                    state.ore -= 2;
+                    state.leather -= 2; state.ore -= 2;
                     state.taskCompleted = true;
                     addLog('msgTaskComplete');
                 } else {
@@ -718,13 +845,11 @@
 
             function craftGift() {
                 if (state.leather >= 3 && state.wood >= 2) {
-                    state.leather -= 3;
-                    state.wood -= 2;
+                    state.leather -= 3; state.wood -= 2;
                     state.gifts[0]++;
                     addLog('msgCraftSuccess');
                 } else if (state.gems >= 2 && state.ore >= 3) {
-                    state.gems -= 2;
-                    state.ore -= 3;
+                    state.gems -= 2; state.ore -= 3;
                     state.gifts[1]++;
                     addLog('msgCraftSuccess');
                 } else {
@@ -776,7 +901,6 @@
                 canvas.width = container.clientWidth;
                 canvas.height = container.clientHeight;
                 player.y = canvas.height - 25;
-                monster.x = canvas.width - 60;
             }
 
             function initController() {
@@ -791,19 +915,35 @@
                 bindBtn('btnLeft', 'left');
                 bindBtn('btnRight', 'right');
                 bindBtn('btnJump', 'jump');
-                bindBtn('btnAttack', 'attack');
 
                 window.addEventListener('keydown', (e) => {
                     if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
                     if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
                     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = true;
-                    if (e.key === 'z' || e.key === 'j') keys.attack = true;
+                    if (e.key === 'z' || e.key === 'j') triggerSlashAttack();
                 });
 
                 window.addEventListener('keyup', (e) => {
                     if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
                     if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
                     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
+                });
+
+                // Canvas Swipe & Tap Attacks
+                canvas.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                canvas.addEventListener('touchend', (e) => {
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    triggerSlashAttack(touchEndX, touchEndY);
+                }, { passive: true });
+
+                canvas.addEventListener('click', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    triggerSlashAttack(e.clientX - rect.left, e.clientY - rect.top);
                 });
             }
 
@@ -821,6 +961,9 @@
                     currentLang = e.target.value;
                     updateUI();
                 });
+
+                document.getElementById('btnStartBattle').addEventListener('click', startBattle);
+                document.getElementById('btnRetreat').addEventListener('click', retreatBattle);
 
                 document.getElementById('btnGiveGift').addEventListener('click', giveGift);
                 document.getElementById('btnCompleteTask').addEventListener('click', completeTask);
