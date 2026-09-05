@@ -2,14 +2,15 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gift War - The Social Dynamics of Giving</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gift War - The Social Dynamics of Giving & Evolution</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
+            touch-action: manipulation;
         }
         body {
             font-family: "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", serif;
@@ -27,6 +28,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #333;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         h1 {
             font-size: 1.2rem;
@@ -71,8 +74,8 @@
         }
         .status-panel {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
             background: #1e1e1e;
             padding: 12px;
             border-radius: 6px;
@@ -85,13 +88,16 @@
             text-align: center;
             border-left: 3px solid #d4af37;
         }
+        .stat-box.stage-box {
+            border-left-color: #9b59b6;
+        }
         .stat-title {
             font-size: 0.75rem;
             color: #aaa;
             margin-bottom: 4px;
         }
         .stat-value {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: bold;
             color: #fff;
         }
@@ -133,7 +139,7 @@
         }
         .log-content {
             flex: 1;
-            overflow-y: scroll;
+            overflow-y: auto;
             max-height: 100%;
             font-size: 0.85rem;
             line-height: 1.4;
@@ -142,6 +148,7 @@
             flex-direction: column;
             gap: 6px;
             padding-right: 5px;
+            touch-action: pan-y;
         }
         .log-content::-webkit-scrollbar {
             width: 6px;
@@ -164,8 +171,10 @@
             word-break: break-all;
         }
         .log-entry.event { border-left: 2px solid #e74c3c; }
+        .log-entry.evolution { border-left: 2px solid #9b59b6; }
         .log-entry.action { border-left: 2px solid #2ecc71; }
         .log-entry.info { border-left: 2px solid #3498db; }
+        .log-entry.warn { border-left: 2px solid #f39c12; }
         .ai-panel {
             background: #1e1e1e;
             border-radius: 6px;
@@ -190,6 +199,7 @@
             justify-content: center;
             overflow-x: auto;
             padding: 5px 0;
+            touch-action: pan-x;
         }
         .card {
             background: #2a2a2a;
@@ -254,6 +264,7 @@
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
+            touch-action: pan-y;
         }
         .modal-title {
             font-size: 1.2rem;
@@ -289,6 +300,10 @@
     <header>
         <h1 id="app-title">GIFT WAR</h1>
         <div class="controls">
+            <select id="mode-select">
+                <option value="forager">狩猟採集社会</option>
+                <option value="agrarian" selected>農耕社会</option>
+            </select>
             <button id="btn-help">HELP</button>
             <select id="lang-select">
                 <option value="ja">日本語</option>
@@ -303,15 +318,20 @@
 
     <main>
         <section class="status-panel">
+            <div class="stat-box stage-box">
+                <div class="stat-title" id="lbl-stage">社会形態</div>
+                <div class="stat-value" id="val-stage">バンド</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-stage" style="width: 25%; background:#9b59b6;"></div></div>
+            </div>
             <div class="stat-box">
-                <div class="stat-title" id="lbl-turn">経過年数 (Turn)</div>
+                <div class="stat-title" id="lbl-turn">生存年数 (Turn)</div>
                 <div class="stat-value" id="val-turn">1</div>
                 <div class="stat-bar"><div class="stat-fill" style="width: 100%;"></div></div>
             </div>
             <div class="stat-box">
-                <div class="stat-title" id="lbl-score">文明スコア</div>
-                <div class="stat-value" id="val-score">0</div>
-                <div class="stat-bar"><div class="stat-fill" id="bar-score" style="width: 0%;"></div></div>
+                <div class="stat-title" id="lbl-giftcount">贈与累積回数</div>
+                <div class="stat-value" id="val-giftcount">0</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-giftcount" style="width: 0%;"></div></div>
             </div>
             <div class="stat-box">
                 <div class="stat-title" id="lbl-complexity">社会的複雑度</div>
@@ -336,7 +356,7 @@
                 <div class="log-content" id="log-box"></div>
             </div>
             <div class="ai-panel">
-                <div class="panel-title" id="lbl-ai">対話社会 (AI)</div>
+                <div class="panel-title" id="lbl-ai">外部・他者勢力 (AI)</div>
                 <div id="ai-status" style="font-size:0.85rem; color:#aaa; line-height:1.4;">
                     AI行動分析中...
                 </div>
@@ -364,13 +384,15 @@
 
         const I18N = {
             ja: {
-                title: "GIFT WAR: 贈与の社会的機能",
+                title: "GIFT WAR: 贈与ダイナミクスと社会進化",
                 help: "解説",
                 turn: "生存年数",
                 score: "文明スコア",
                 complexity: "社会的複雑度",
                 inequality: "格差インデックス",
                 cohesion: "社会的結束度",
+                stage: "社会形態",
+                giftCount: "贈与累積回数",
                 log: "社会履歴ログ",
                 ai: "外部・他者勢力",
                 hand: "実行可能な戦略カード",
@@ -378,34 +400,46 @@
                 close: "閉じる",
                 gameOver: "社会が崩壊しました！",
                 win: "文明の維持に成功しています",
-                aiText: "他勢力は資源蓄積を進めています。",
+                aiText: "他勢力は贈与関係の動向を監視しています。",
                 reqPotlatch: "条件: 複雑度30以上 & 格差40%以上",
-                reqFreeGift: "条件: 結束度20以上消費",
+                reqFreeGift: "条件: 結束度消費",
                 similarHeader: "【類似する歴史的社会・文明】",
-                cards: {
-                    accumulate: { name: "資源蓄積", desc: "複雑度+12、格差+15。高得点を目指す基本成長。" },
-                    directGift: { name: "直接贈与", desc: "格差-10、結束度+5、複雑度-2。" },
-                    obligatory: { name: "義務的返礼", desc: "結束度+8、格差+3。安定した社会維持。" },
-                    potlatch: { name: "ポトラッチ(破棄)", desc: "財を破壊し格差-30、結束度+15。代償: 複雑度-15。" },
-                    freeGift: { name: "無償の贈与", desc: "見返りなし。格差-15、結束度+10。代償: 複雑度+0(成長停滞)。" }
+                warnFreeGift: "一方的な無償贈与の連投により依存と過度の負い目が発生！結束度が急激に低下しています。",
+                evolutionMsg: "【社会進化】贈与のネットワーク強化と成長により社会構造が「{0}」へと移行しました！",
+                stages: {
+                    band: "バンド",
+                    tribe: "部族",
+                    chiefdom: "首長制",
+                    state: "王国 (国家)"
                 },
-                helpContent: "【ゲームシステム要件】\n1. 社会的複雑度が高まるほど、毎ターン得られる文明スコアが増加します。\n2. ポトラッチは危機状態でのみ発動可能で、格差を激減させる代わりに複雑度を損ないます。\n3. 無償の贈与は格差を下げられますが、複雑度の成長が停滞します。",
+                cards: {
+                    accumulate: { name: "資源蓄積", desc: "複雑度と格差が上昇。蓄積を進めますが贈与回数は増えません。" },
+                    directGift: { name: "直接贈与", desc: "格差を下げ、結束度を向上。社会統合を進める贈与回数が増加。" },
+                    obligatory: { name: "義務的返礼", desc: "安定した相互関係を維持。義務的再分配により確実な統合を促す。" },
+                    potlatch: { name: "ポトラッチ(破棄)", desc: "財を誇示・破壊し格差を劇的に削減。高度な富の再分配贈与。" },
+                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。連投すると依存を生み結束が崩壊します。" }
+                },
+                helpContent: "【社会進化と贈与のメカニクス】\n1. 社会統合の4段階: バンド ➔ 部族 ➔ 首長制 ➔ 王国の順に社会が進化します。進化には【社会的複雑度】と【贈与累積回数】の双方が必要です。\n2. 贈与の影響: 贈与（返礼・ポトラッチ含む）を重ねることで社会相互作用が強まり社会進化を推進しますが、不平等な贈与は社会を揺るがします。\n3. 無償の贈与の罠: 連続で無償の贈与を行うと相手の返礼能力を奪い、「依存」と「負い目」を生み出して結束度が急減します。\n4. ポトラッチ: 莫大な富の集積でしか発動できませんが、過度な格差を一気にリセットする儀礼的贈与破壊です。",
                 societies: {
-                    jomon: { name: "縄文社会 / パプアニューギニア高地部族", desc: "技術や資源の過度な蓄積を避け、平等と贈与関係を維持することで長期間にわたり安定した社会。巨大家族や国家は形成されませんでした。" },
+                    nauru: { name: "ナウル共和国 / 依存経済崩壊社会", desc: "過度な一方的援助や不労所得に依存した結果、自立的生産基盤と社会的規範が失われ破綻した社会。" },
+                    san: { name: "サン（ブッシュマン）社会（外来援助依存期）", desc: "本来の高度な相互共有メカニズムが、外部からの継続的・無償の食料援助によって無効化され自立的結束力を喪失した例。" },
+                    jomon: { name: "縄文社会 / パプアニューギニア高地部族", desc: "技術や資源の過度な蓄積を避け、平等と贈与関係を維持することで長期間にわたり安定した社会。" },
                     kwakiutl: { name: "北米太平洋北西海岸先住民（クワキウトル族など）", desc: "蓄積された過剰な財をポトラッチ儀礼によって盛大に破壊・分配し、極度な格差拡大を抑えつつ高い威信と結束力を維持した社会。" },
-                    mesopotamia: { name: "初期メソポタミア都市国家（ウル・ウルク等）", desc: "急速な資源蓄積と都市化を進めるも、富の集中と激しい格差拡大により内紛や資源枯渇を招き、比較的短期間で崩壊した急進的文明。" },
-                    roman: { name: "後代ローマ帝国 / 王朝末期文明", desc: "高い複雑性と莫大な富を獲得したものの、富裕層への偏重と不平等の放置により社会的結束度が破綻し、外圧と内部崩壊を起こした社会。" },
+                    mesopotamia: { name: "初期メソポタミア都市国家（ウル・ウルク等）", desc: "急速な資源蓄積と都市化を進めるも、富の集中と激しい格差拡大により内紛を招き崩壊した急進的文明。" },
+                    roman: { name: "後代ローマ帝国 / 王朝末期文明", desc: "高い複雑性と莫大な富を獲得したものの、富裕層への偏重と不平等の放置により社会的結束度が破綻した社会。" },
                     inca: { name: "インカ帝国（タワティンスウユ）", desc: "市場通貨を持たず、高度な社会的複雑度と大規模な再分配（互恵・贈与システム）を強固に融合させて栄えた巨大帝国。" }
                 }
             },
             en: {
-                title: "GIFT WAR: Social Dynamics of Giving",
+                title: "GIFT WAR: Social Dynamics & Evolution",
                 help: "Help",
                 turn: "Years Survived",
                 score: "Civ Score",
                 complexity: "Social Complexity",
                 inequality: "Inequality Index",
                 cohesion: "Social Cohesion",
+                stage: "Social Stage",
+                giftCount: "Gift Count",
                 log: "History Log",
                 ai: "External Faction",
                 hand: "Available Strategy Cards",
@@ -413,34 +447,46 @@
                 close: "Close",
                 gameOver: "Society Collapsed!",
                 win: "Civilization Maintained",
-                aiText: "Other factions are accumulating resources.",
+                aiText: "Other factions are monitoring gift networks.",
                 reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40%",
                 reqFreeGift: "Req: Consumes Cohesion",
                 similarHeader: "[Similar Historical Society]",
-                cards: {
-                    accumulate: { name: "Accumulate", desc: "Complexity +12, Inequality +15. High score driver." },
-                    directGift: { name: "Direct Gift", desc: "Inequality -10, Cohesion +5, Complexity -2." },
-                    obligatory: { name: "Obligatory Reciprocity", desc: "Cohesion +8, Inequality +3. Stable maintenance." },
-                    potlatch: { name: "Potlatch", desc: "Destroys wealth: Inequality -30, Cohesion +15. Cost: Complexity -15." },
-                    freeGift: { name: "Pure Free Gift", desc: "Unconditional: Inequality -15, Cohesion +10. Cost: Zero complexity growth." }
+                warnFreeGift: "Repeated pure gifts caused extreme debt and dependency! Cohesion is dropping.",
+                evolutionMsg: "[EVOLUTION] Through gift networking and growth, society evolved to '{0}'!",
+                stages: {
+                    band: "Band",
+                    tribe: "Tribe",
+                    chiefdom: "Chiefdom",
+                    state: "State (Kingdom)"
                 },
-                helpContent: "1. Higher Complexity increases Score gained per turn.\n2. Potlatch drastically cuts inequality but sacrifices complexity.\n3. Pure Free Gift lowers inequality safely, but freezes complexity growth.",
+                cards: {
+                    accumulate: { name: "Accumulate", desc: "Increases complexity and inequality without increasing gift count." },
+                    directGift: { name: "Direct Gift", desc: "Reduces inequality, boosts cohesion and increases total gift count." },
+                    obligatory: { name: "Obligatory Reciprocity", desc: "Maintains stable relations through reciprocal gift networks." },
+                    potlatch: { name: "Potlatch", desc: "Destroys wealth to dramatically cut inequality. A massive gift ceremony." },
+                    freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Repeated use creates dependency and breaks cohesion." }
+                },
+                helpContent: "1. 4 Stages of Integration: Band ➔ Tribe ➔ Chiefdom ➔ State. Evolution requires both Complexity and Gift Count.\n2. Role of Gifts: Gift exchanges build social networks for evolution, but asymmetric gifts trigger instability.\n3. Pure Gift Trap: Consecutive free gifts destroy reciprocity, causing debt and severe cohesion drop.\n4. Potlatch: A drastic ceremonial gift destruction resetting extreme wealth inequality.",
                 societies: {
-                    jomon: { name: "Jomon Society / New Guinea Highlands", desc: "Avoided excessive resource accumulation, maintaining equality and giving relations for centuries without developing rigid state hierarchies." },
-                    kwakiutl: { name: "Northwest Coast Indigenous (Kwakiutl)", desc: "Controlled massive inequality by destruction/distribution of excess wealth in Potlatch ceremonies, sustaining social cohesion." },
-                    mesopotamia: { name: "Early Mesopotamian City-States", desc: "Rapid resource accumulation and urbanization led to wealth inequality and internal collapse within a relatively short era." },
-                    roman: { name: "Late Roman Empire", desc: "Reached immense complexity and wealth, but unchecked inequality ruined social cohesion, driving societal collapse." },
-                    inca: { name: "Inca Empire (Tawantinsuyu)", desc: "Balanced high complexity and empire-scale organization through redistribution and reciprocal gift systems rather than money." }
+                    nauru: { name: "Republic of Nauru / Foreign Aid Dependency Collapse", desc: "Relied excessively on unearned wealth, losing self-sufficiency and social norms." },
+                    san: { name: "San (Bushmen) / Post-Aid Dependency Era", desc: "Traditional sharing networks collapsed when unearned, continuous aid broke autonomous cohesion." },
+                    jomon: { name: "Jomon Society / New Guinea Highlands", desc: "Avoided excessive accumulation, maintaining equality and gift relations for centuries." },
+                    kwakiutl: { name: "Northwest Coast Indigenous (Kwakiutl)", desc: "Controlled inequality by destroying excess wealth in Potlatch ceremonies." },
+                    mesopotamia: { name: "Early Mesopotamian City-States", desc: "Rapid resource accumulation led to wealth inequality and internal collapse." },
+                    roman: { name: "Late Roman Empire", desc: "Reached immense complexity, but unchecked inequality ruined social cohesion." },
+                    inca: { name: "Inca Empire (Tawantinsuyu)", desc: "Balanced high complexity through state-level redistribution and reciprocal gift systems." }
                 }
             },
             zh: {
-                title: "GIFT WAR: 馈赠的社会功能",
+                title: "GIFT WAR: 馈赠动态与社会演化",
                 help: "说明",
                 turn: "生存年数",
                 score: "文明积分",
                 complexity: "社会复杂度",
                 inequality: "不平等指数",
                 cohesion: "社会凝聚力",
+                stage: "社会形态",
+                giftCount: "馈赠累计次数",
                 log: "历史日志",
                 ai: "外部势力",
                 hand: "可选策略卡牌",
@@ -448,34 +494,46 @@
                 close: "关闭",
                 gameOver: "社会已崩溃！",
                 win: "文明成功延续",
-                aiText: "其他势力正在积累资源。",
+                aiText: "其他势力正在密切关注馈赠网络。",
                 reqPotlatch: "条件: 复杂度≥30 且 不平等≥40%",
                 reqFreeGift: "条件: 消耗凝聚力",
                 similarHeader: "【相似的历史社会/文明】",
-                cards: {
-                    accumulate: { name: "资源积累", desc: "复杂度+12，不平等+15。高分主驱动力。" },
-                    directGift: { name: "直接馈赠", desc: "不平等-10，凝聚力+5，复杂度-2。" },
-                    obligatory: { name: "义务互惠", desc: "凝聚力+8，不平等+3。维持稳定。" },
-                    potlatch: { name: "夸富宴(毁财)", desc: "毁财: 不平等-30，凝聚力+15。代价: 复杂度-15。" },
-                    freeGift: { name: "无偿馈赠", desc: "无条件: 不平等-15，凝聚力+10。代价: 复杂度停滞。" }
+                warnFreeGift: "连续无偿赠与导致严重依赖与债务感！凝聚力急剧下降。",
+                evolutionMsg: "【社会演化】通过馈赠网络的建立与发展，社会结构成功演化为「{0}」！",
+                stages: {
+                    band: "游群 (Band)",
+                    tribe: "部落 (Tribe)",
+                    chiefdom: "酋邦 (Chiefdom)",
+                    state: "王国/国家 (State)"
                 },
-                helpContent: "1. 社会复杂度越高，每回合获得的文明积分越多。\n2. 夸富宴可大幅降低不平等但会牺牲复杂度。\n3. 无偿馈赠可安全降低不平等，但会使复杂度停止增长。",
+                cards: {
+                    accumulate: { name: "资源积累", desc: "增加复杂度和不平等，但不会增加馈赠次数。" },
+                    directGift: { name: "直接馈赠", desc: "降低不平等，提升凝聚力，增加社会演化所需的馈赠次数。" },
+                    obligatory: { name: "义务互惠", desc: "通过互惠馈赠网络巩固稳定的社会关系。" },
+                    potlatch: { name: "夸富宴(毁财)", desc: "通过销毁与再分配财富极大地平抑贫富差距。" },
+                    freeGift: { name: "无偿馈赠", desc: "无条件赠与。连续使用会产生严重依赖并破坏凝聚力。" }
+                },
+                helpContent: "1. 社会整合4阶段：游群 ➔ 部落 ➔ 酋邦 ➔ 王国。进化需要达到指定的【复杂度】与【馈赠次数】。\n2. 馈赠的作用：不断的互恵馈赠能拓展社会网络并促进进化，但失衡的馈赠会导致动荡。\n3. 无偿馈赠陷阱：连续无偿馈赠剥夺对方的回报能力，产生依赖与对抗，降低凝聚力。\n4. 夸富宴：高度不平等时发动的仪式性馈赠销毁，强制重置贫富差距。",
                 societies: {
+                    nauru: { name: "瑙鲁共和国 / 依赖型经济崩溃社会", desc: "过分依赖无偿援助与不劳而获的财富，导致自立能力与社会规范丧失。" },
+                    san: { name: "桑人（布什曼人）外援依赖期", desc: "原本高效的共享社会因长期接受单向无偿援助导致凝聚力瓦解。" },
                     jomon: { name: "绳文社会 / 新几内亚高地部落", desc: "避免过度资源积累，依靠平等与互赠长久维持社会稳定。" },
-                    kwakiutl: { name: "西北海岸原住民（夸克特尔族）", desc: "通过夸富宴销毁和再分配积累的财富，控制贫富差距并保持凝聚力。" },
-                    mesopotamia: { name: "早期美索不达米亚城邦", desc: "快速积累资源但财富过于集中，导致内乱并迅速走向崩溃。" },
-                    roman: { name: "罗马帝国晚期", desc: "拥有高度复杂的社会结构，但忽视贫富差距导致社会凝聚力彻底破裂。" },
+                    kwakiutl: { name: "西北海岸原住民（夸克特尔族）", desc: "通过夸富宴销毁和再分配财富，控制贫富差距并保持凝聚力。" },
+                    mesopotamia: { name: "早期美索不达米亚城邦", desc: "快速积累资源但财富过于集中，导致内乱并走向崩溃。" },
+                    roman: { name: "罗马帝国晚期", desc: "拥有高度复杂的社会结构，但忽视贫富差距导致社会凝聚力破裂。" },
                     inca: { name: "印加帝国", desc: "依靠大规模再分配与互惠馈赠制度维持庞大文明的独特帝国。" }
                 }
             },
             ko: {
-                title: "GIFT WAR: 증여의 사회적 기능",
+                title: "GIFT WAR: 증여 역학과 사회 진화",
                 help: "설명",
                 turn: "생존 년수",
                 score: "문명 점수",
                 complexity: "사회적 복잡성",
                 inequality: "불평등 지수",
                 cohesion: "사회적 결속도",
+                stage: "사회 형태",
+                giftCount: "증여 누적 횟수",
                 log: "사회 이력 로그",
                 ai: "외부 세력",
                 hand: "실행 가능한 전략 카드",
@@ -483,34 +541,46 @@
                 close: "닫기",
                 gameOver: "사회가 붕괴했습니다!",
                 win: "문명 유지 성공",
-                aiText: "타 세력이 자원을 축적하고 있습니다.",
+                aiText: "타 세력이 증여 네트워크의 동향を 주시하고 있습니다.",
                 reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
                 reqFreeGift: "조건: 결속도 소비",
                 similarHeader: "[유사한 역사적 사회]",
-                cards: {
-                    accumulate: { name: "자원 축적", desc: "복잡성 +12, 불평등 +15. 고득점 필수." },
-                    directGift: { name: "직접 증여", desc: "불평등 -10, 결속도 +5, 복잡성 -2." },
-                    obligatory: { name: "의무적 답례", desc: "결속도 +8, 불평등 +3. 안정 유지." },
-                    potlatch: { name: "포트래치(파기)", desc: "재화 파기: 불평등 -30, 결속도 +15. 대가: 복잡성 -15." },
-                    freeGift: { name: "무상 증여", desc: "대가 없음: 불평등 -15, 결속도 +10. 대가: 복잡성 성장 정지." }
+                warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성 발생! 결속도가 급감합니다.",
+                evolutionMsg: "[사회 진화] 증여 네트워크 구축과 성장을 통해 사회 구조가 '{0}'(으)로 진화했습니다!",
+                stages: {
+                    band: "バンド (Band)",
+                    tribe: "부족 (Tribe)",
+                    chiefdom: "군장국/추장제 (Chiefdom)",
+                    state: "왕국/국가 (State)"
                 },
-                helpContent: "1. 복잡성이 높을수록 턴당 문명 점수가 증가합니다.\n2. 포트래치는 복잡성을 크게 깎는 대신 불평등을 감소시킵니다.\n3. 무상 증여는 안전하지만 복잡성 성장이 정지됩니다.",
+                cards: {
+                    accumulate: { name: "자원 축적", desc: "복잡성과 불평등 증가. 증여 횟수는 늘어나지 않습니다." },
+                    directGift: { name: "직접 증여", desc: "불평등을 줄이고 결속도를 향상. 진화에 필요한 증여 횟수 증가." },
+                    obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계를 통해 안정한 사회 통합을 도모." },
+                    potlatch: { name: "포트래치(파기)", desc: "재화를 파기/분배하여 불평등を 대폭 감소시키는 의식적 증여." },
+                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존성을 유발하여 결속도 붕괴." }
+                },
+                helpContent: "1. 사회 통합 4단계: バンド ➔ 부족 ➔ 군장국 ➔ 왕국. 진화에는 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여의 함정: 무상 증여 남용은 일방적 부채감을 주어 의존성과 결속도 붕괴를 초래합니다.\n4. 포트래치: 극단적 불평등을 강제로 리셋하는 의식적 재화 파기 행사입니다.",
                 societies: {
-                    jomon: { name: "조몬 사회 / 뉴기니 고지대 부족", desc: "과도한 자원 축적을 피하고 평등과 증여 관계를 유지하여 장기간 안정되었던 사회." },
-                    kwakiutl: { name: "북미 태평양 북서안 원주민 (콰키우틀족)", desc: "포트래치 의식을 통해 잉여 재화를 의도적으로 파기 및 분배하여 결속도를 유지한 사회." },
-                    mesopotamia: { name: "초기 메소포타미아 도시국가", desc: "급격한 축적과 불평등 심화로 내부 분열을 겪으며 비교적 단기간에 붕괴한 문명." },
-                    roman: { name: "말기 로마 제국", desc: "높은 복잡성과 부를 이루었으나 극단적 불평등 방치로 사회적 결속력이 붕괴한 사회." },
-                    inca: { name: "잉카 제국", desc: "화폐 없이 대규모 재분배와 상호 증여 시스템으로 높은 복잡성을 유지했던 거대 제국." }
+                    nauru: { name: "나우루 공화국 / 의존 경제 붕괴 사회", desc: "과도한 무상 원조와 불로소득에 의존한 결과 자립 기반이 붕괴된 사회." },
+                    san: { name: "산족 (부시맨) 원조 의존기", desc: "고유의 공유 네트워크가 일방적 원조 지속으로 무너지고 자립성을 상실한 사례." },
+                    jomon: { name: "조몬 사회 / 뉴기니 고지대 부족", desc: "과도한 축적을 피하고 평등과 증여 관계を 유지하여 장기간 안정되었던 사회." },
+                    kwakiutl: { name: "북미 태평양 북서안 원주민 (콰키우틀족)", desc: "포트래치 의식을 통해 잉여 재화를 파기/분배하여 결속도를 유지한 사회." },
+                    mesopotamia: { name: "초기 메소포타미아 도시국가", desc: "급격한 축적과 불평등 심화로 내부 분열을 겪으며 붕괴한 문명." },
+                    roman: { name: "말기 로마 제국", desc: "높은 복잡성을 이루었으나 극단적 불평등 방치로 사회적 결속력이 붕괴한 사회." },
+                    inca: { name: "잉카 제국", desc: "대규모 재분배와 상호 증여 시스템으로 높은 복잡성을 유지했던 거대 제국." }
                 }
             },
             fr: {
-                title: "GIFT WAR: Fonction Sociale du Don",
+                title: "GIFT WAR: Dynamique du Don & Évolution",
                 help: "Aide",
                 turn: "Années Survécues",
                 score: "Score Civ",
                 complexity: "Complexité Sociale",
                 inequality: "Indice d'Inégalité",
                 cohesion: "Cohésion Sociale",
+                stage: "Stade Social",
+                giftCount: "Total des Dons",
                 log: "Journal Historique",
                 ai: "Faction Extérieure",
                 hand: "Cartes de Stratégie",
@@ -518,34 +588,46 @@
                 close: "Fermer",
                 gameOver: "La société s'est effondrée !",
                 win: "Civilisation Maintenue",
-                aiText: "D'autres factions accumulent des ressources.",
+                aiText: "D'autres factions surveillent les réseaux de dons.",
                 reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40%",
                 reqFreeGift: "Req: Consomme de la cohésion",
                 similarHeader: "[Société Historique Similaire]",
-                cards: {
-                    accumulate: { name: "Accumulation", desc: "Complexité +12, Inégalité +15. Moteur de score." },
-                    directGift: { name: "Don Direct", desc: "Inégalité -10, Cohésion +5, Complexité -2." },
-                    obligatory: { name: "Réciprocité Obligatoire", desc: "Cohésion +8, Inégalité +3. Maintien stable." },
-                    potlatch: { name: "Potlatch", desc: "Détruit la richesse: Inégalité -30, Cohésion +15. Coût: Complexité -15." },
-                    freeGift: { name: "Don Pur et Gratuit", desc: "Inconditionnel: Inégalité -15, Cohésion +10. Coût: Croissance stoppée." }
+                warnFreeGift: "Les dons gratuits répétés ont créé de la dépendance ! La cohésion chute.",
+                evolutionMsg: "[ÉVOLUTION] Grâce au réseau de dons et à la croissance, la société évolue vers '{0}' !",
+                stages: {
+                    band: "Bande",
+                    tribe: "Tribu",
+                    chiefdom: "Chefferie",
+                    state: "Royaume / État"
                 },
-                helpContent: "1. Une complexité plus élevée augmente le score.\n2. Le Potlatch réduit l'inégalité en sacrifiant la complexité.\n3. Le Don Pur stoppe la croissance de la complexité.",
+                cards: {
+                    accumulate: { name: "Accumulation", desc: "Augmente la complexité et l'inégalité sans augmenter les dons." },
+                    directGift: { name: "Don Direct", desc: "Réduit l'inégalité, augmente la cohésion et le nombre total de dons." },
+                    obligatory: { name: "Réciprocité Obligatoire", desc: "Maintient des relations stables grâce à des réseaux de réciprocité." },
+                    potlatch: { name: "Potlatch", desc: "Détruit la richesse pour couper l'inégalité. Un rituel de don massif." },
+                    freeGift: { name: "Don Pur et Gratuit", desc: "Inconditionnel. Une utilisation répétée crée de la dépendance." }
+                },
+                helpContent: "1. 4 Stades d'Intégration: Bande ➔ Tribu ➔ Chefferie ➔ Royaume. L'évolution nécessite Complexité + Nombre de dons.\n2. Rôle du Don: Le don structure les réseaux nécessaires à l'intégration sociale.\n3. Piège du Don Pur: Les dons purs consécutifs détruisent la réciprocité et provoquent l'effondrement de la cohésion.\n4. Potlatch: Destruction rituelle pour réinitialiser les inégalités extrêmes.",
                 societies: {
-                    jomon: { name: "Société Jomon / Hauts Plateaux de Nouvelle-Guinée", desc: "Évitait l'accumulation excessive, conservant l'égalité et les relations de don sur plusieurs siècles." },
-                    kwakiutl: { name: "Autochtones de la Côte Nord-Ouest (Kwakiutl)", desc: "Contrôlaient l'inégalité par la destruction/distribution de richesses lors du Potlatch." },
+                    nauru: { name: "République de Nauru / Effondrement par Dépendance", desc: "Société dépendant excessivement de l'aide extérieure, perdant toute autosuffisance." },
+                    san: { name: "Peuple San / Ère de Dépendance aux Aides", desc: "Le réseau traditionnel de partage s'est effondré suite à une aide unilatérale continue." },
+                    jomon: { name: "Société Jomon / Nouvelle-Guinée", desc: "Évitait l'accumulation excessive, conservant l'égalité et les dons sur plusieurs siècles." },
+                    kwakiutl: { name: "Autochtones Kwakiutl", desc: "Contrôlaient l'inégalité par la destruction/distribution de richesses lors du Potlatch." },
                     mesopotamia: { name: "Cités-États de Mésopotamie", desc: "Accumulation rapide menant à une forte inégalité et un effondrement précoce." },
                     roman: { name: "Empire Romain Tardif", desc: "Complexité immense, mais l'inégalité incontrôlée a brisé la cohésion sociale." },
-                    inca: { name: "Empire Inca", desc: "Maintint une haute complexité grâce à la redistribution massive et au don sans monnaie." }
+                    inca: { name: "Empire Inca", desc: "Maintint une haute complexité grâce à la redistribution massive et au don." }
                 }
             },
             es: {
-                title: "GIFT WAR: Función Social del Don",
+                title: "GIFT WAR: Dinámica del Don y Evolución",
                 help: "Ayuda",
                 turn: "Años Sobrevividos",
                 score: "Puntaje Civ",
                 complexity: "Complejidad Social",
                 inequality: "Índice de Desigualdad",
                 cohesion: "Cohesión Social",
+                stage: "Etapa Social",
+                giftCount: "Conteo de Dones",
                 log: "Registro Histórico",
                 ai: "Facción Externa",
                 hand: "Cartas de Estrategia",
@@ -553,47 +635,65 @@
                 close: "Cerrar",
                 gameOver: "¡La sociedad ha colapsado!",
                 win: "Civilización Mantenida",
-                aiText: "Otras facciones están acumulando recursos.",
+                aiText: "Otras facciones observan las redes de intercambio.",
                 reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40%",
                 reqFreeGift: "Req: Consume cohesión",
                 similarHeader: "[Sociedad Histórica Similar]",
-                cards: {
-                    accumulate: { name: "Acumulación", desc: "Complejidad +12, Desigualdad +15. Clave de puntaje." },
-                    directGift: { name: "Don Directo", desc: "Desigualdad -10, Cohesión +5, Complejidad -2." },
-                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Cohesión +8, Desigualdad +3. Mantenimiento estable." },
-                    potlatch: { name: "Potlatch", desc: "Destruye riqueza: Desigualdad -30, Cohesión +15. Costo: Complejidad -15." },
-                    freeGift: { name: "Don Puro y Gratuito", desc: "Incondicional: Desigualdad -15, Cohesión +10. Costo: Crecimiento cero." }
+                warnFreeGift: "¡Los dones puros repetidos crearon dependencia! La cohesión se derrumba.",
+                evolutionMsg: "¡[EVOLUCIÓN] Mediante la red de dones y el crecimiento, la sociedad evolucionó a '{0}'!",
+                stages: {
+                    band: "Banda",
+                    tribe: "Tribu",
+                    chiefdom: "Jefatura / Cacicazgo",
+                    state: "Reino / Estado"
                 },
-                helpContent: "1. Mayor complejidad aumenta los puntos por turno.\n2. Potlatch reduce desigualdad sacrificando complejidad.\n3. El Don Puro congela el crecimiento de la complejidad.",
+                cards: {
+                    accumulate: { name: "Acumulación", desc: "Sube complejidad y desigualdad sin sumar conteo de dones." },
+                    directGift: { name: "Don Directo", desc: "Reduce desigualdad y sube cohesión sumando dones para la evolución." },
+                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Mantiene relaciones estables mediante redes de don reciprocadas." },
+                    potlatch: { name: "Potlatch", desc: "Destruye riqueza para reducir desigualdad en una gran ceremonia." },
+                    freeGift: { name: "Don Puro y Gratuito", desc: "Incondicional. Su uso repetido genera dependencia y rompe la cohesión." }
+                },
+                helpContent: "1. 4 Etapas: Banda ➔ Tribu ➔ Jefatura ➔ Reino. Evolucionar requiere Complejidad y Conteo de Dones.\n2. Función del Don: Intercambiar dones establece la red social para permitir mayor integración.\n3. Trampa del Don Puro: Regalar sin condición destruye la reciprocidad y causa colapso de cohesión.\n4. Potlatch: Un ritual para destruir excedentes y nivelar la desigualdad.",
                 societies: {
-                    jomon: { name: "Sociedad Jomon / Tribus de Nueva Guinea", desc: "Evitó la acumulación excesiva de recursos, manteniendo la igualdad y la cohesión durante siglos." },
-                    kwakiutl: { name: "Indígenas de la Costa Noroeste (Kwakiutl)", desc: "Controlaron la desigualdad destruyendo/distribuyendo excesos de riqueza mediante el Potlatch." },
-                    mesopotamia: { name: "Primeras Ciudades-Estado de Mesopotamia", desc: "Acumulación rápida que generó desigualdad y colapso interno en un período relativamente corto." },
-                    roman: { name: "Imperio Romano Tardío", desc: "Alcanzó gran complejidad pero la desigualdad descontrolada destruyó la cohesión social." },
-                    inca: { name: "Imperio Inca", desc: "Mantuvo una alta complejidad mediante sistemas masivos de redistribución y dones recíprocos." }
+                    nauru: { name: "República de Nauru / Colapso por Dependencia", desc: "Sociedad que dependió excesivamente de ayuda externa, perdiendo autosuficiencia." },
+                    san: { name: "Pueblo San / Era de Dependencia de Ayuda", desc: "El sistema tradicional de reciprocidad colapsó debido a la ayuda unilateral continua." },
+                    jomon: { name: "Sociedad Jomon / Nueva Guinea", desc: "Evitó la acumulación excesiva de recursos, manteniendo la cohesión por siglos." },
+                    kwakiutl: { name: "Comunidad Indígena Kwakiutl", desc: "Controlaron la desigualdad destruyendo excesos de riqueza mediante el Potlatch." },
+                    mesopotamia: { name: "Primeras Ciudades-Estado de Mesopotamia", desc: "Acumulación rápida que generó desigualdad y colapso interno." },
+                    roman: { name: "Imperio Romano Tardío", desc: "Alcanzó gran complejidad pero la desigualdad destruyó la cohesión social." },
+                    inca: { name: "Imperio Inca", desc: "Mantuvo una alta complejidad mediante sistemas masivos de redistribución y dones." }
                 }
             }
         };
 
         let state = {
             lang: 'ja',
+            mode: 'agrarian',
             turn: 1,
             score: 0,
             complexity: 10,
             inequality: 10,
             cohesion: 100,
+            giftCount: 0,
+            stage: 'band', // band -> tribe -> chiefdom -> state
+            freeGiftStreak: 0,
             isGameOver: false
         };
 
         const DOM = {
             langSelect: document.getElementById('lang-select'),
+            modeSelect: document.getElementById('mode-select'),
             appTitle: document.getElementById('app-title'),
             btnHelp: document.getElementById('btn-help'),
+            lblStage: document.getElementById('lbl-stage'),
+            valStage: document.getElementById('val-stage'),
+            barStage: document.getElementById('bar-stage'),
             lblTurn: document.getElementById('lbl-turn'),
             valTurn: document.getElementById('val-turn'),
-            lblScore: document.getElementById('lbl-score'),
-            valScore: document.getElementById('val-score'),
-            barScore: document.getElementById('bar-score'),
+            lblGiftCount: document.getElementById('lbl-giftcount'),
+            valGiftCount: document.getElementById('val-giftcount'),
+            barGiftCount: document.getElementById('bar-giftcount'),
             lblComplexity: document.getElementById('lbl-complexity'),
             valComplexity: document.getElementById('val-complexity'),
             barComplexity: document.getElementById('bar-complexity'),
@@ -621,6 +721,10 @@
                 state.lang = e.target.value;
                 updateI18N();
             });
+            DOM.modeSelect.addEventListener('change', (e) => {
+                state.mode = e.target.value;
+                resetGame();
+            });
             DOM.btnHelp.addEventListener('click', showHelp);
             DOM.modalClose.addEventListener('click', hideModal);
             DOM.btnNext.addEventListener('click', () => processTurn(null));
@@ -630,12 +734,28 @@
             updateUI();
         }
 
+        function resetGame() {
+            state.turn = 1;
+            state.score = 0;
+            state.complexity = 10;
+            state.inequality = 10;
+            state.cohesion = 100;
+            state.giftCount = 0;
+            state.stage = 'band';
+            state.freeGiftStreak = 0;
+            state.isGameOver = false;
+            DOM.logBox.innerHTML = '';
+            renderHand();
+            updateUI();
+        }
+
         function updateI18N() {
             const t = I18N[state.lang];
             DOM.appTitle.textContent = t.title;
             DOM.btnHelp.textContent = t.help;
+            DOM.lblStage.textContent = t.stage;
             DOM.lblTurn.textContent = t.turn;
-            DOM.lblScore.textContent = t.score;
+            DOM.lblGiftCount.textContent = t.giftCount;
             DOM.lblComplexity.textContent = t.complexity;
             DOM.lblInequality.textContent = t.inequality;
             DOM.lblCohesion.textContent = t.cohesion;
@@ -646,6 +766,7 @@
             DOM.lblHand.textContent = t.hand;
             DOM.modalClose.textContent = t.close;
             renderHand();
+            updateUI();
         }
 
         function renderHand() {
@@ -710,22 +831,33 @@
                 applyCardEffect(actionKey);
                 addLog(`[Turn ${state.turn}] ${t.cards[actionKey].name}`, 'action');
             } else {
-                state.complexity += 2;
-                state.inequality += 5;
+                state.freeGiftStreak = 0;
+                const baseCompGrowth = state.mode === 'agrarian' ? 3 : 1;
+                const baseIneqGrowth = state.mode === 'agrarian' ? 6 : 2;
+                state.complexity += baseCompGrowth;
+                state.inequality += baseIneqGrowth;
                 addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
             }
 
-            const turnScore = Math.floor(state.complexity * (1 + state.complexity / 50));
-            state.score += turnScore;
-            addLog(`+${turnScore} ${t.score}`, 'info');
+            // チェック：社会形態の進化（複雑度＋贈与累積回数が条件）
+            checkEvolution();
 
-            state.inequality += Math.floor(state.complexity * 0.25);
+            // 文明スコア計算（社会形態に応じたボーナス）
+            const stageMultiplier = state.stage === 'state' ? 3 : (state.stage === 'chiefdom' ? 2 : (state.stage === 'tribe' ? 1.5 : 1));
+            const turnScore = Math.floor(state.complexity * stageMultiplier * (1 + state.complexity / 50));
+            state.score += turnScore;
+
+            // 社会形態に伴う自然な格差の上昇ペナルティ
+            const ineqCoeff = state.mode === 'agrarian' ? 0.3 : 0.15;
+            state.inequality += Math.floor(state.complexity * ineqCoeff);
+            
             if (state.inequality > 50) {
                 const penalty = Math.floor((state.inequality - 50) * 0.6);
                 state.cohesion -= penalty;
             }
 
-            state.complexity = Math.max(10, Math.min(100, state.complexity));
+            const maxComp = state.mode === 'forager' ? 45 : 100;
+            state.complexity = Math.max(10, Math.min(maxComp, state.complexity));
             state.inequality = Math.max(0, Math.min(100, state.inequality));
             state.cohesion = Math.max(0, Math.min(100, state.cohesion));
 
@@ -742,40 +874,94 @@
         }
 
         function applyCardEffect(key) {
+            const t = I18N[state.lang];
+            
+            if (key !== 'freeGift') {
+                state.freeGiftStreak = 0;
+            }
+
+            // 贈与カードを使った場合は累積贈与回数を加算
+            if (key === 'directGift' || key === 'obligatory' || key === 'potlatch' || key === 'freeGift') {
+                state.giftCount++;
+            }
+
             switch(key) {
                 case 'accumulate':
-                    state.complexity += 12;
-                    state.inequality += 15;
+                    if (state.mode === 'agrarian') {
+                        state.complexity += 14;
+                        state.inequality += 18;
+                    } else {
+                        state.complexity += 6;
+                        state.inequality += 8;
+                    }
                     break;
                 case 'directGift':
-                    state.inequality = Math.max(0, state.inequality - 10);
-                    state.cohesion += 5;
-                    state.complexity = Math.max(10, state.complexity - 2);
+                    state.inequality = Math.max(0, state.inequality - 12);
+                    state.cohesion += (state.mode === 'forager' ? 8 : 5);
+                    state.complexity += 3;
                     break;
                 case 'obligatory':
-                    state.cohesion += 8;
-                    state.inequality += 3;
+                    state.cohesion += 10;
+                    state.inequality += 2;
+                    state.complexity += 4;
                     break;
                 case 'potlatch':
-                    state.inequality = Math.max(0, state.inequality - 30);
-                    state.cohesion += 15;
-                    state.complexity = Math.max(10, state.complexity - 15);
+                    state.inequality = Math.max(0, state.inequality - 35);
+                    state.cohesion += 18;
+                    const compCost = state.mode === 'agrarian' ? 10 : 5;
+                    state.complexity = Math.max(10, state.complexity - compCost);
                     break;
                 case 'freeGift':
-                    state.inequality = Math.max(0, state.inequality - 15);
-                    state.cohesion += 10;
+                    state.freeGiftStreak++;
+                    if (state.freeGiftStreak >= 2) {
+                        const penalty = state.freeGiftStreak * 10;
+                        state.cohesion -= penalty;
+                        state.inequality = Math.max(0, state.inequality - 5);
+                        addLog(t.warnFreeGift, 'warn');
+                    } else {
+                        state.inequality = Math.max(0, state.inequality - 15);
+                        state.cohesion += 8;
+                    }
                     break;
             }
         }
 
+        function checkEvolution() {
+            const t = I18N[state.lang];
+            let nextStage = state.stage;
+
+            // バンド -> 部族 (複雑度25以上, 贈与3回以上)
+            if (state.stage === 'band' && state.complexity >= 25 && state.giftCount >= 3) {
+                nextStage = 'tribe';
+            } 
+            // 部族 -> 首長制 (複雑度50以上, 贈与8回以上)
+            else if (state.stage === 'tribe' && state.complexity >= 50 && state.giftCount >= 8) {
+                nextStage = 'chiefdom';
+            } 
+            // 首長制 -> 王国/国家 (複雑度80以上, 贈与15回以上)
+            else if (state.stage === 'chiefdom' && state.complexity >= 80 && state.giftCount >= 15) {
+                nextStage = 'state';
+            }
+
+            if (nextStage !== state.stage) {
+                state.stage = nextStage;
+                const stageName = t.stages[nextStage];
+                const msg = t.evolutionMsg.replace('{0}', stageName);
+                addLog(msg, 'evolution');
+            }
+        }
+
         function getSimilarSocietyKey() {
-            if (state.turn >= 20 && state.score >= 3000) {
+            if (state.freeGiftStreak >= 3) {
+                return state.mode === 'agrarian' ? 'nauru' : 'san';
+            }
+            if (state.stage === 'state' || (state.turn >= 20 && state.score >= 3000)) {
                 return 'inca';
-            } else if (state.turn >= 20 && state.score < 1200) {
+            } else if (state.stage === 'band' && state.turn >= 15) {
                 return 'jomon';
-            } else if (state.turn >= 12 && state.score >= 1500) {
+            } else if (state.stage === 'chiefdom' || state.giftCount >= 10) {
                 return 'kwakiutl';
-            } else if (state.turn < 10 && state.score >= 800) {
+            } else if (state.turn < 10 && state.complexity >= 50) {
                 return 'mesopotamia';
             } else {
                 return 'roman';
@@ -788,7 +974,9 @@
             const soc = t.societies[socKey];
 
             const resultText = `${t.gameOver}\n\n` +
+                `${t.stage}: ${t.stages[state.stage]}\n` +
                 `${t.turn}: ${state.turn}\n` +
+                `${t.giftCount}: ${state.giftCount}\n` +
                 `${t.score}: ${state.score}\n\n` +
                 `${t.similarHeader}\n` +
                 `■ ${soc.name}\n${soc.desc}`;
@@ -797,9 +985,18 @@
         }
 
         function updateUI() {
+            const t = I18N[state.lang];
+            DOM.valStage.textContent = t.stages[state.stage];
+            
+            let stageWidth = 25;
+            if (state.stage === 'tribe') stageWidth = 50;
+            if (state.stage === 'chiefdom') stageWidth = 75;
+            if (state.stage === 'state') stageWidth = 100;
+            DOM.barStage.style.width = `${stageWidth}%`;
+
             DOM.valTurn.textContent = state.turn;
-            DOM.valScore.textContent = state.score;
-            DOM.barScore.style.width = `${Math.min(100, state.score / 50)}%`;
+            DOM.valGiftCount.textContent = state.giftCount;
+            DOM.barGiftCount.style.width = `${Math.min(100, state.giftCount * 5)}%`;
 
             DOM.valComplexity.textContent = state.complexity;
             DOM.barComplexity.style.width = `${state.complexity}%`;
