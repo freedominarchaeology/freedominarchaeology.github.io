@@ -360,7 +360,6 @@
             let canvas, ctx;
             const keys = { left: false, right: false, jump: false };
 
-            // Touch / Gesture Variables
             let touchPath = [];
             let isSwiping = false;
 
@@ -425,20 +424,17 @@
                 document.getElementById('valMonsterHpText').textContent = state.inBattle ? `${monster.name} HP: ${Math.max(0, monster.hp)}/${monster.maxHp}` : `敵HP: ---`;
             }
 
-            // Gesture recognition logic
             function processGesture(dirHistory) {
                 if (!state.inBattle) return;
 
                 const baseAtk = WEAPONS[state.weaponIdx].atk;
                 const strDirs = dirHistory.join('');
 
-                // 1. 八華閃 (8-Slash Combo: U, D, L, R, RD-LU, RU-LD) -> 6+ direction inputs
                 if (dirHistory.length >= 6) {
                     executeSkill("八華閃 (8連斬)", baseAtk * 4.5, "#9b59b6", 8);
                     return;
                 }
 
-                // 2. 唐割 (Circle then Down)
                 if (strDirs.includes('RDLURD') || strDirs.includes('LDRULD') || (strDirs.length >= 3 && dirHistory[dirHistory.length - 1] === 'D')) {
                     if (dirHistory.length >= 3) {
                         executeSkill("唐割 (兜割り)", baseAtk * 2.8, "#e67e22", 1);
@@ -446,13 +442,11 @@
                     }
                 }
 
-                // 3. 燕返し (Left <-> Right)
                 if (strDirs.includes('LR') || strDirs.includes('RL')) {
                     executeSkill("燕返し (二段斬)", baseAtk * 2.0, "#3498db", 2);
                     return;
                 }
 
-                // 4. 突進突き (Back -> Forward)
                 const backDir = player.facing === 1 ? 'L' : 'R';
                 const fwdDir = player.facing === 1 ? 'R' : 'L';
                 if (strDirs.includes(backDir + fwdDir)) {
@@ -462,7 +456,6 @@
                     return;
                 }
 
-                // Standard Single Slash
                 executeSkill("斬撃", baseAtk, "#ffffff", 1);
             }
 
@@ -492,7 +485,7 @@
 
             function onMonsterDefeated() {
                 addLog(`討伐完了！ [${monster.name}] を撃破した。`);
-                state.valour += monster.type.includes("boss") ? 80 : 20;
+                state.valour += monster.type.includes("boss") || monster.type === "maou" || monster.type === "dragon" || monster.type === "angel" ? 80 : 20;
                 state.fame += 15;
                 state.leather += Math.floor(Math.random() * 2) + 1;
                 state.ore += Math.floor(Math.random() * 2) + 1;
@@ -507,7 +500,6 @@
 
             function spawnMonster() {
                 if (state.isHero) {
-                    // Boss Encounter Mode for Hero
                     const bosses = [
                         { name: "【ラスボス】魔王ルシファー", hp: 450, type: "maou" },
                         { name: "【ラスボス】破滅の邪竜バハムート", hp: 600, type: "dragon" },
@@ -569,7 +561,6 @@
 
                 const groundY = canvas.height - 25;
 
-                // Player Movement
                 if (keys.left) { player.vx = -4; player.facing = -1; }
                 else if (keys.right) { player.vx = 4; player.facing = 1; }
                 else if (player.dashTimer <= 0) { player.vx *= 0.7; }
@@ -594,7 +585,6 @@
                 player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
                 if (player.invulnerable > 0) player.invulnerable--;
 
-                // Monster Physics & AI
                 monster.x += monster.vx;
                 monster.vx *= 0.8;
 
@@ -604,15 +594,14 @@
                     monster.x += (player.x < monster.x ? -1 : 1) * 1.2;
                 } else {
                     monster.y = groundY;
-                    monster.x += (player.x < monster.x ? -1 : 1) * (monster.type.includes("maou") ? 1.0 : 0.6);
+                    monster.x += (player.x < monster.x ? -1 : 1) * (monster.type === "maou" || monster.type === "dragon" ? 0.9 : 0.6);
                 }
 
                 if (monster.hitTimer > 0) monster.hitTimer--;
 
-                // Player Hit Collision
                 const hitDist = Math.hypot(player.x - monster.x, (player.y - 20) - (monster.y - 20));
-                if (hitDist < 30 && player.invulnerable <= 0) {
-                    const dmg = monster.type.includes("maou") || monster.type.includes("dragon") ? 30 : 12;
+                if (hitDist < 35 && player.invulnerable <= 0) {
+                    const dmg = monster.type === "maou" || monster.type === "dragon" || monster.type === "angel" ? 30 : 12;
                     player.hp -= dmg;
                     player.invulnerable = 25;
                     player.vx = player.x < monster.x ? -7 : 7;
@@ -641,7 +630,6 @@
                     drawMonster(monster.x, monster.y, monster.type);
                 }
 
-                // Render Slash FX
                 for (let i = slashes.length - 1; i >= 0; i--) {
                     const s = slashes[i];
                     ctx.strokeStyle = s.color;
@@ -668,33 +656,137 @@
                 ctx.stroke();
             }
 
+            // 完全刷新されたモンスターグラフィック描画処理
             function drawMonster(x, y, type) {
                 ctx.save();
-                if (monster.hitTimer > 0) ctx.fillStyle = '#ffffff';
-
-                if (type === "dragon") {
-                    // Dragon boss
-                    ctx.fillStyle = '#c0392b';
-                    ctx.beginPath(); ctx.ellipse(x, y - 30, 35, 20, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#f1c40f';
-                    ctx.beginPath(); ctx.arc(x - 15, y - 35, 6, 0, Math.PI * 2); ctx.fill();
-                } else if (type === "maou") {
-                    // Maou boss
-                    ctx.fillStyle = '#8e44ad';
-                    ctx.beginPath(); ctx.arc(x, y - 30, 28, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#f39c12';
-                    ctx.fillRect(x - 10, y - 65, 20, 10);
-                } else if (type === "angel") {
-                    // Fallen Angel
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.beginPath(); ctx.arc(x, y - 30, 22, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = '#e74c3c';
-                    ctx.beginPath(); ctx.moveTo(x - 30, y - 30); ctx.lineTo(x + 30, y - 30); ctx.stroke();
-                } else {
-                    // Normal monsters
-                    ctx.fillStyle = type === "fly" ? '#8e44ad' : '#e74c3c';
-                    ctx.beginPath(); ctx.arc(x, y - 20, 20, 0, Math.PI * 2); ctx.fill();
+                
+                // 被弾フラッシュ処理
+                if (monster.hitTimer > 0) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#ffffff';
                 }
+
+                if (type === "fly") {
+                    // 1. 鴉天狗（飛翔怪異）
+                    const mY = y - 15;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
+                    ctx.beginPath(); ctx.ellipse(x, mY, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
+
+                    // 羽ばたく翼
+                    if (monster.hitTimer <= 0) ctx.strokeStyle = '#be2edd';
+                    ctx.lineWidth = 3;
+                    const wingFlap = Math.sin(Date.now() * 0.01) * 12;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 5, mY); ctx.lineTo(x - 24, mY - 15 + wingFlap);
+                    ctx.moveTo(x + 5, mY); ctx.lineTo(x + 24, mY - 15 + wingFlap);
+                    ctx.stroke();
+
+                    // 目とクチバシ
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath(); ctx.arc(x - 5, mY - 2, 3, 0, Math.PI * 2); ctx.arc(x + 5, mY - 2, 3, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#e67e22';
+                    ctx.beginPath(); ctx.moveTo(x - 4, mY + 2); ctx.lineTo(x + 4, mY + 2); ctx.lineTo(x, mY + 10); ctx.fill();
+
+                } else if (type === "ground") {
+                    // 2. 赤鬼怪異（地上鬼）
+                    const mY = y - 22;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#c0392b';
+                    ctx.beginPath(); ctx.arc(x, mY, 22, 0, Math.PI * 2); ctx.fill();
+
+                    // 角
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, mY - 18); ctx.lineTo(x - 18, mY - 36); ctx.lineTo(x - 3, mY - 20);
+                    ctx.fill();
+
+                    // 発光する赤目
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath(); ctx.arc(x - 8, mY - 4, 4, 0, Math.PI * 2); ctx.arc(x + 8, mY - 4, 4, 0, Math.PI * 2); ctx.fill();
+
+                    // 鋭い牙
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, mY + 8); ctx.lineTo(x - 6, mY + 16); ctx.lineTo(x - 2, mY + 8);
+                    ctx.moveTo(x + 2, mY + 8); ctx.lineTo(x + 6, mY + 16); ctx.lineTo(x + 10, mY + 8);
+                    ctx.fill();
+
+                } else if (type === "maou") {
+                    // 3. 【ラスボス】魔王ルシファー
+                    const mY = y - 30;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#2c3e50';
+                    ctx.beginPath(); ctx.arc(x, mY, 30, 0, Math.PI * 2); ctx.fill();
+
+                    // 邪悪な翼
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#8e44ad';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 20, mY); ctx.lineTo(x - 55, mY - 35); ctx.lineTo(x - 35, mY + 10);
+                    ctx.moveTo(x + 20, mY); ctx.lineTo(x + 55, mY - 35); ctx.lineTo(x + 35, mY + 10);
+                    ctx.fill();
+
+                    // 魔王の王冠＆巨大なツノ
+                    ctx.fillStyle = '#f39c12';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 15, mY - 25); ctx.lineTo(x - 28, mY - 50); ctx.lineTo(x - 8, mY - 30);
+                    ctx.lineTo(x, mY - 45);
+                    ctx.lineTo(x + 8, mY - 30); ctx.lineTo(x + 28, mY - 50); ctx.lineTo(x + 15, mY - 25);
+                    ctx.fill();
+
+                    // 紫に光る眼光
+                    ctx.fillStyle = '#9b59b6';
+                    ctx.beginPath(); ctx.arc(x - 10, mY - 4, 5, 0, Math.PI * 2); ctx.arc(x + 10, mY - 4, 5, 0, Math.PI * 2); ctx.fill();
+
+                } else if (type === "dragon") {
+                    // 4. 【ラスボス】破滅の邪竜バハムート
+                    const mY = y - 25;
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#7f8c8d';
+                    
+                    // 竜の面体構造
+                    ctx.beginPath();
+                    ctx.moveTo(x - 30, mY - 15); ctx.lineTo(x + 10, mY - 25);
+                    ctx.lineTo(x + 35, mY); ctx.lineTo(x + 10, mY + 20);
+                    ctx.lineTo(x - 30, mY + 10); ctx.closePath(); ctx.fill();
+
+                    // 竜のトゲ・角
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 20, mY - 20); ctx.lineTo(x - 45, mY - 45); ctx.lineTo(x - 10, mY - 22);
+                    ctx.moveTo(x - 10, mY - 22); ctx.lineTo(x - 30, mY - 50); ctx.lineTo(x, mY - 24);
+                    ctx.fill();
+
+                    // 黄金の咆哮口と鋭い牙
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath(); ctx.arc(x - 5, mY - 6, 6, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(x + 15, mY + 5); ctx.lineTo(x + 22, mY + 18); ctx.lineTo(x + 28, mY + 5); ctx.fill();
+
+                } else if (type === "angel") {
+                    // 5. 【ラスボス】堕天使サマエル
+                    const mY = y - 28;
+                    
+                    // 神聖な光輪 (Halo)
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.ellipse(x, mY - 38, 18, 6, 0, 0, Math.PI * 2); ctx.stroke();
+
+                    // 漆黒の6羽の翼
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#111111';
+                    for (let i = -1; i <= 1; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(x - 10, mY + i * 10); ctx.lineTo(x - 50, mY - 20 + i * 18); ctx.lineTo(x - 20, mY + 10 + i * 10);
+                        ctx.moveTo(x + 10, mY + i * 10); ctx.lineTo(x + 50, mY - 20 + i * 18); ctx.lineTo(x + 20, mY + 10 + i * 10);
+                        ctx.fill();
+                    }
+
+                    // 堕天使本体
+                    if (monster.hitTimer <= 0) ctx.fillStyle = '#ecf0f1';
+                    ctx.beginPath(); ctx.arc(x, mY, 20, 0, Math.PI * 2); ctx.fill();
+
+                    // 鮮血の十字・異形の眼
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.beginPath(); ctx.arc(x, mY - 2, 6, 0, Math.PI * 2); ctx.fill();
+                }
+
                 ctx.restore();
             }
 
@@ -704,7 +796,6 @@
                 requestAnimationFrame(gameLoop);
             }
 
-            // Touch & Swipe Gesture Interpreter
             function getDirection(dx, dy) {
                 const absX = Math.abs(dx);
                 const absY = Math.abs(dy);
@@ -742,7 +833,6 @@
                         processGesture(gestureHistory);
                         gestureHistory.length = 0;
                     } else {
-                        // Multi-tap detection for Rapid Thrust
                         tapCount++;
                         clearTimeout(tapTimer);
                         tapTimer = setTimeout(() => {
