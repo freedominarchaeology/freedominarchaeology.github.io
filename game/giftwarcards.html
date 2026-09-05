@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>Gift War - The Social Dynamics of Giving & Evolution</title>
     <style>
         * {
@@ -10,7 +10,10 @@
             margin: 0;
             padding: 0;
             user-select: none;
+            -webkit-user-select: none;
+            /* タップ時のダブルタップズームやピンチズームを防止 */
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         body {
             font-family: "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", serif;
@@ -50,6 +53,7 @@
             cursor: pointer;
             border-radius: 4px;
             font-size: 0.9rem;
+            touch-action: manipulation;
         }
         select:hover, button:hover {
             background: #3a3a3a;
@@ -214,6 +218,8 @@
             cursor: pointer;
             transition: transform 0.2s, border-color 0.2s;
             flex-shrink: 0;
+            /* カード上のすべてのジェスチャー・ダブルタップズームを完全に禁止 */
+            touch-action: none;
         }
         .card:hover:not(.disabled) {
             transform: translateY(-5px);
@@ -230,18 +236,21 @@
             font-weight: bold;
             color: #d4af37;
             text-align: center;
+            pointer-events: none;
         }
         .card-desc {
             font-size: 0.7rem;
             color: #bbb;
             line-height: 1.2;
             text-align: center;
+            pointer-events: none;
         }
         .card-req {
             font-size: 0.65rem;
             color: #e74c3c;
             text-align: center;
             font-weight: bold;
+            pointer-events: none;
         }
         .modal {
             display: none;
@@ -254,6 +263,7 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
+            touch-action: none;
         }
         .modal-content {
             background: #1e1e1e;
@@ -381,6 +391,21 @@
     <script>
     (function() {
         'use strict';
+
+        // iOS/Safariなどのダブルタップによるズーム動作を強制無効化
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // ピンチイン・ピンチアウトによるズーム動作を無効化
+        document.addEventListener('gesturestart', function(event) {
+            event.preventDefault();
+        });
 
         const I18N = {
             ja: {
@@ -541,11 +566,11 @@
                 close: "닫기",
                 gameOver: "사회가 붕괴했습니다!",
                 win: "문명 유지 성공",
-                aiText: "타 세력이 증여 네트워크의 동향を 주시하고 있습니다.",
+                aiText: "타 세力が 증여 네트워크의 동향を 주시하고 있습니다.",
                 reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
                 reqFreeGift: "조건: 결속도 소비",
                 similarHeader: "[유사한 역사적 사회]",
-                warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성 발생! 결속도가 급감합니다.",
+                warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성発生! 결속도가 급감합니다.",
                 evolutionMsg: "[사회 진화] 증여 네트워크 구축과 성장을 통해 사회 구조가 '{0}'(으)로 진화했습니다!",
                 stages: {
                     band: "バンド (Band)",
@@ -554,21 +579,21 @@
                     state: "왕국/국가 (State)"
                 },
                 cards: {
-                    accumulate: { name: "자원 축적", desc: "복잡성과 불평등 증가. 증여 횟수는 늘어나지 않습니다." },
-                    directGift: { name: "직접 증여", desc: "불평등을 줄이고 결속도를 향상. 진화에 필요한 증여 횟수 증가." },
-                    obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계를 통해 안정한 사회 통합을 도모." },
+                    accumulate: { name: "자원 축적", desc: "복잡성과 불평등 증가. 증여 횟数は 늘어나지 않습니다." },
+                    directGift: { name: "직접 증여", desc: "불평등を 줄이고 결속도를 향상. 진화に 필요한 증여 횟数 증가." },
+                    obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계を 통해 안정한 사회 통합을 도모." },
                     potlatch: { name: "포트래치(파기)", desc: "재화를 파기/분배하여 불평등を 대폭 감소시키는 의식적 증여." },
-                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존성을 유발하여 결속도 붕괴." }
+                    freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존性を 유발하여 결속도 붕괴." }
                 },
-                helpContent: "1. 사회 통합 4단계: バンド ➔ 부족 ➔ 군장국 ➔ 왕국. 진화에는 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여의 함정: 무상 증여 남용은 일방적 부채감을 주어 의존성과 결속도 붕괴를 초래합니다.\n4. 포트래치: 극단적 불평등을 강제로 리셋하는 의식적 재화 파기 행사입니다.",
+                helpContent: "1. 사회 통합 4단계: バンド ➔ 부족 ➔ 군장국 ➔ 왕국. 진화には 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여の 함정: 무상 증여 남용은 일방적 부채感を 주어 의존性と 결속도 붕괴를 초래합니다.\n4. 포트래치: 극단적 불평등を 강제로 리셋하는 의식적 재화 파기 행사입니다.",
                 societies: {
                     nauru: { name: "나우루 공화국 / 의존 경제 붕괴 사회", desc: "과도한 무상 원조와 불로소득에 의존한 결과 자립 기반이 붕괴된 사회." },
-                    san: { name: "산족 (부시맨) 원조 의존기", desc: "고유의 공유 네트워크가 일방적 원조 지속으로 무너지고 자립성을 상실한 사례." },
-                    jomon: { name: "조몬 사회 / 뉴기니 고지대 부족", desc: "과도한 축적을 피하고 평등과 증여 관계を 유지하여 장기간 안정되었던 사회." },
+                    san: { name: "산족 (부시맨) 원조 의존기", desc: "고유の 공유 네트워크가 일방적 원조 지속으로 무너지고 자립性を 상실한 사례." },
+                    jomon: { name: "조몬 사회 / 뉴기니 고지대 부족", desc: "과도한 축적を 피하고 평등과 증여 관계を 유지하여 장기간 안정되었던 사회." },
                     kwakiutl: { name: "북미 태평양 북서안 원주민 (콰키우틀족)", desc: "포트래치 의식을 통해 잉여 재화를 파기/분배하여 결속도를 유지한 사회." },
                     mesopotamia: { name: "초기 메소포타미아 도시국가", desc: "급격한 축적과 불평등 심화로 내부 분열을 겪으며 붕괴한 문명." },
-                    roman: { name: "말기 로마 제국", desc: "높은 복잡성을 이루었으나 극단적 불평등 방치로 사회적 결속력이 붕괴한 사회." },
-                    inca: { name: "잉카 제국", desc: "대규모 재분배와 상호 증여 시스템으로 높은 복잡성을 유지했던 거대 제국." }
+                    roman: { name: "말기 로마 제국", desc: "높은 복잡性を 이루었으나 극단적 불평등 방치로 사회적 결속力이 붕괴한 사회." },
+                    inca: { name: "잉카 제국", desc: "대규모 재분배와 상호 증여 시스템으로 높은 복잡性を 유지했던 거대 제국." }
                 }
             },
             fr: {
@@ -656,7 +681,7 @@
                 },
                 helpContent: "1. 4 Etapas: Banda ➔ Tribu ➔ Jefatura ➔ Reino. Evolucionar requiere Complejidad y Conteo de Dones.\n2. Función del Don: Intercambiar dones establece la red social para permitir mayor integración.\n3. Trampa del Don Puro: Regalar sin condición destruye la reciprocidad y causa colapso de cohesión.\n4. Potlatch: Un ritual para destruir excedentes y nivelar la desigualdad.",
                 societies: {
-                    nauru: { name: "República de Nauru / Colapso por Dependencia", desc: "Sociedad que dependió excesivamente de ayuda externa, perdiendo autosuficiencia." },
+                    nauru: { name: "República de Nauru / Colapso por Dependencia", desc: "Sociedad que dependió excesivamente de ayuda externa, perdiendo autosufficiencia." },
                     san: { name: "Pueblo San / Era de Dependencia de Ayuda", desc: "El sistema tradicional de reciprocidad colapsó debido a la ayuda unilateral continua." },
                     jomon: { name: "Sociedad Jomon / Nueva Guinea", desc: "Evitó la acumulación excesiva de recursos, manteniendo la cohesión por siglos." },
                     kwakiutl: { name: "Comunidad Indígena Kwakiutl", desc: "Controlaron la desigualdad destruyendo excesos de riqueza mediante el Potlatch." },
