@@ -436,7 +436,7 @@
         const SOC_DATABASE = {
             forager: {
                 10: {
-                    ja: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統的移動生活期）、ハザ族" },
+                    ja: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統적移動生活期）、ハザ族" },
                     en: { system: "Micro Mobile Band", diff: "Fully egalitarian group of 15–30 kin. No concept of resource ownership; immediate consumption.", ex: "Kalahari San (traditional mobile era), Hadza" },
                     zh: { system: "极小游动游群", diff: "以血缘为中心的15-30人完全平等群体。无资源所有权概念，即时消费。", ex: "喀拉哈里桑人（传统游牧期）、哈扎人" },
                     ko: { system: "극소 유목 밴드", diff: "혈연 중심 15~30인의 완전 평등 집단. 자원 소유 개념 없이 즉시 소비.", ex: "칼라하리 산족(전통 이동기), 하다자족" },
@@ -679,8 +679,8 @@
                 gameOver: "社会が崩壊しました！",
                 win: "文明の維持に成功しています",
                 aiText: "他勢力は贈与関係の動向を監視しています。",
-                reqPotlatch: "条件: 複雑度30以上 & 格差40%以上",
-                reqPanhellenic: "条件: 複雑度20以上",
+                reqPotlatch: "条件: 複雑度30以上 & 格差40%以上 & 食料50/道具20",
+                reqPanhellenic: "条件: 複雑度20以上 & 食料80/道具30",
                 reqMegalith: "条件: 人口100以上, 食料150以上, 道具50以上",
                 reqRitual: "条件: 食料20以上",
                 reqFreeGift: "条件: 結束度消費",
@@ -759,8 +759,8 @@
                 gameOver: "Society Collapsed!",
                 win: "Civilization Maintained",
                 aiText: "Other factions are monitoring gift networks.",
-                reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40%",
-                reqPanhellenic: "Req: Complexity ≥20",
+                reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40% & Food 50/Tools 20",
+                reqPanhellenic: "Req: Complexity ≥20 & Food 80/Tools 30",
                 reqMegalith: "Req: Pop≥100, Food≥150, Tools≥50",
                 reqRitual: "Req: Food ≥20",
                 reqFreeGift: "Req: Consumes Cohesion",
@@ -839,8 +839,8 @@
                 gameOver: "社会已崩溃！",
                 win: "文明成功延续",
                 aiText: "其他势力正在密切关注馈赠网络。",
-                reqPotlatch: "条件: 复杂度≥30 且 不平等≥40%",
-                reqPanhellenic: "条件: 复杂度≥20",
+                reqPotlatch: "条件: 复杂度≥30 且 不平等≥40% 且 粮食50/工具20",
+                reqPanhellenic: "条件: 复杂度≥20 且 粮食80/工具30",
                 reqMegalith: "条件: 人口≥100, 粮食≥150, 工具≥50",
                 reqRitual: "条件: 粮食 ≥20",
                 reqFreeGift: "条件: 消耗凝聚力",
@@ -918,14 +918,14 @@
                 close: "닫기",
                 gameOver: "사회가 붕괴했습니다!",
                 win: "문명 유지 성공",
-                aiText: "타 세力이 증여 네트워크의 동향을 주시하고 있습니다.",
-                reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
-                reqPanhellenic: "조건: 복잡성 20이상",
+                aiText: "타 세력이 증여 네트워크의 동향을 주시하고 있습니다.",
+                reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상 & 식량50/도구20",
+                reqPanhellenic: "조건: 복잡성 20이상 & 식량80/도구30",
                 reqMegalith: "조건: 인구≥100, 식량≥150, 도구≥50",
                 reqRitual: "조건: 식량 ≥20",
                 reqFreeGift: "조건: 결속도 소비",
                 similarHeader: "[해당하는 역사적 사회 모델]",
-                warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성発生! 결속도가 급감합니다.",
+                warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성 발생! 결속도가 급감합니다.",
                 evolutionMsg: "[사회 진화] 증여 네트워크 구축과 성장을 통해 사회 구조가 '{0}'(으)로 진화했습니다!",
                 modes: { forager: "수렵채집 사회", agrarian: "농경 사회" },
                 infoModal: {
@@ -965,7 +965,7 @@
                 },
                 cards: {
                     accumulate: { name: "자원 축적", desc: "인구, 식량, 도구, 복잡성, 불평등 증가. 증여 횟数は 늘어나지 않습니다." },
-                    directGift: { name: "직접 증여", desc: "식량과 도구를 분배하여 불평등を 줄이고 결속도를 향상." },
+                    directGift: { name: "직접 증여", desc: "식량과 도구를 분배하여 불평등을 줄이고 결속도를 향상." },
                     obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계를 통해 안정한 사회 통합을 도모." },
                     universalServices: { name: "보편적 사회서비스", desc: "교육 및 의료를 무상화하여 소득 격차가 삶의 질로 이어지지 않게 합니다." },
                     commons: { name: "커먼즈(공유자산) 부활", desc: "자원 및 지식의 독점을 막고 시민이 공동 관리하는 공유 영역을 확대." },
@@ -999,8 +999,8 @@
                 gameOver: "La société s'est effondrée !",
                 win: "Civilisation Maintenue",
                 aiText: "D'autres factions surveillent les réseaux de dons.",
-                reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40%",
-                reqPanhellenic: "Req: Complexité ≥20",
+                reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40% & Nourr.50/Outils20",
+                reqPanhellenic: "Req: Complexité ≥20 & Nourr.80/Outils30",
                 reqMegalith: "Req: Pop≥100, Nourriture≥150, Outils≥50",
                 reqRitual: "Req: Nourriture ≥20",
                 reqFreeGift: "Req: Consomme de la cohésion",
@@ -1079,8 +1079,8 @@
                 gameOver: "¡La sociedad ha colapsado!",
                 win: "Civilización Mantenida",
                 aiText: "Otras facciones observan las redes de intercambio.",
-                reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40%",
-                reqPanhellenic: "Req: Complejidad ≥20",
+                reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40% y Comida50/Herram20",
+                reqPanhellenic: "Req: Complejidad ≥20 y Comida80/Herram30",
                 reqMegalith: "Req: Pob≥100, Comida≥150, Herram.≥50",
                 reqRitual: "Req: Comida ≥20",
                 reqFreeGift: "Req: Consume cohesión",
@@ -1150,6 +1150,8 @@
                 description: "教育・医療・介護等を無償化・低価格化し、可処分所得の格差が生活品質に直結しない仕組みを整えます。",
                 cost: { food: 30, tools: 15 },
                 effect: (state) => {
+                    state.food = Math.max(0, state.food - 30);
+                    state.tools = Math.max(0, state.tools - 15);
                     state.inequality = Math.max(0, state.inequality - 15);
                     state.cohesion = Math.min(100, state.cohesion + 12);
                     state.complexity += 3;
@@ -1163,6 +1165,8 @@
                 description: "資源・土地・知的財産の独占を防ぎ、市民共同で管理・利用できる共有領域を拡大して結束を深めます。",
                 cost: { food: 15, tools: 15 },
                 effect: (state) => {
+                    state.food = Math.max(0, state.food - 15);
+                    state.tools = Math.max(0, state.tools - 15);
                     state.inequality = Math.max(0, state.inequality - 10);
                     state.cohesion = Math.min(100, state.cohesion + 16);
                     return "コモンズの復活により共有財が広がり、共同体の連携が緊密化しました。";
@@ -1187,9 +1191,12 @@
                 description: "富を過剰に贈与・破棄することで、格差による嫉妬や社会の歪みを一気にリセットします。",
                 cost: { food: 50, tools: 20 },
                 effect: (state) => {
+                    state.food = Math.max(0, state.food - 50);
+                    state.tools = Math.max(0, state.tools - 20);
+                    state.inequality = Math.max(0, state.inequality - 25);
                     state.dissatisfaction = Math.max(0, (state.dissatisfaction || 0) - 40);
                     state.prestige = (state.prestige || 0) + 30;
-                    return "大規模なポトラッチにより、社会内部の不満が劇的に低下しました。";
+                    return "大規模なポトラッチにより富が破棄・贈与され、社会内部の不満と格差が劇的に低下しました。";
                 }
             },
             {
@@ -1199,6 +1206,8 @@
                 description: "周辺グループを招いた平和的な競技・祭典を開催。外部との摩擦を減らし、内部の鬱憤を外部へ昇華させます。",
                 cost: { food: 80, tools: 30 },
                 effect: (state) => {
+                    state.food = Math.max(0, state.food - 80);
+                    state.tools = Math.max(0, state.tools - 30);
                     state.dissatisfaction = Math.max(0, (state.dissatisfaction || 0) - 30);
                     state.externalTension = Math.max(0, (state.externalTension || 0) - 50);
                     state.prestige = (state.prestige || 0) + 50;
@@ -1212,8 +1221,8 @@
                 description: "一定の人口・食料・道具を投入して巨大な古墳を造営。過剰労働力を統一目標へ集中させ結束を大幅に上昇。",
                 cost: { population: 100, food: 150, tools: 50 },
                 effect: (state) => {
-                    state.food = Math.max(0, state.food - 100);
-                    state.tools = Math.max(0, state.tools - 40);
+                    state.food = Math.max(0, state.food - 150);
+                    state.tools = Math.max(0, state.tools - 50);
                     state.dissatisfaction = Math.max(0, (state.dissatisfaction || 0) - 25);
                     state.cohesion = Math.min(100, state.cohesion + 40);
                     return "巨大な古墳の造営を通じて集団の結集力が誇示され、共同体の結束が劇的に強化されました！";
@@ -1445,12 +1454,12 @@
                 let reqMsg = "";
 
                 if (key === 'potlatch') {
-                    if (state.complexity < 30 || state.inequality < 40) {
+                    if (state.complexity < 30 || state.inequality < 40 || state.food < 50 || state.tools < 20) {
                         isExecutable = false;
                         reqMsg = t.reqPotlatch;
                     }
                 } else if (key === 'panhellenic_games') {
-                    if (state.complexity < 20) {
+                    if (state.complexity < 20 || state.food < 80 || state.tools < 30) {
                         isExecutable = false;
                         reqMsg = t.reqPanhellenic;
                     }
@@ -1505,25 +1514,25 @@
 
             if (cardId === 'accumulate') {
                 state.freeGiftStreak = 0;
-                state.population += 5;
-                state.food += 15;
+                state.population += 3;
+                state.food += 25;
                 state.tools += 5;
                 state.complexity += 2;
                 state.inequality = Math.min(100, state.inequality + 4);
-                logText = state.lang === 'ja' ? "資源蓄積を行いました。生産力と複雑度が上昇しましたが、格差も微増しました。" : "Accumulated resources.";
+                logText = state.lang === 'ja' ? "資源蓄積を行いました。人口・食料・道具・複雑度と格差が上昇しました。" : "Accumulated resources.";
             } else if (cardId === 'directGift') {
                 state.freeGiftStreak = 0;
                 state.giftCount += 1;
                 state.inequality = Math.max(0, state.inequality - 5);
                 state.cohesion = Math.min(100, state.cohesion + 8);
                 state.food = Math.max(0, state.food - 10);
-                logText = state.lang === 'ja' ? "直接贈与を実施。分配により格差が低下し、社会的結束が強化されました。" : "Executed direct gift.";
+                logText = state.lang === 'ja' ? "直接贈与を実施。食料を分配し格差が低下、社会的結束が強化されました。" : "Executed direct gift.";
             } else if (cardId === 'obligatory') {
                 state.freeGiftStreak = 0;
                 state.giftCount += 1;
                 state.cohesion = Math.min(100, state.cohesion + 5);
                 state.complexity += 1;
-                logText = state.lang === 'ja' ? "義務的返礼のネットワークを強化。安定した秩序が維持されています。" : "Maintained obligatory reciprocity.";
+                logText = state.lang === 'ja' ? "義務的返礼のネットワークを強化。安定した相互関係と確実な統合が維持されています。" : "Maintained obligatory reciprocity.";
             } else if (cardId === 'freeGift') {
                 state.freeGiftStreak += 1;
                 state.giftCount += 1;
@@ -1550,16 +1559,13 @@
         function triggerRandomEvent() {
             if (state.isGameOver) return;
             
-            // 災害・侵略・戦争などのランダム発生イベント
             const roll = Math.random();
             if (roll < 0.15) {
-                // 自然災害
                 const foodLoss = Math.floor(state.food * 0.3) + 10;
                 state.food = Math.max(0, state.food - foodLoss);
                 state.cohesion = Math.max(0, state.cohesion - 10);
                 addLog(`【自然災害】干ばつと飢饉が発生！ 食料-${foodLoss}、結束度-10`, 'event');
             } else if (roll < 0.25) {
-                // 異民族・外部勢力の侵略
                 const popLoss = Math.floor(state.population * 0.15) + 5;
                 const toolLoss = Math.floor(state.tools * 0.2) + 5;
                 state.population = Math.max(5, state.population - popLoss);
@@ -1567,7 +1573,6 @@
                 state.cohesion = Math.max(0, state.cohesion - 15);
                 addLog(`【外部侵略】他勢力からの襲撃！ 人口-${popLoss}、道具-${toolLoss}、結束度-15`, 'event');
             } else if (roll < 0.32) {
-                // 境界戦争・大規模軍事衝突
                 const popLoss = Math.floor(state.population * 0.2) + 8;
                 const foodLoss = Math.floor(state.food * 0.25);
                 state.population = Math.max(5, state.population - popLoss);
@@ -1583,10 +1588,8 @@
 
             state.turn += 1;
 
-            // ランダムイベントの判定
             triggerRandomEvent();
 
-            // 人口増減と消費
             const foodNeeded = Math.floor(state.population * 0.8);
             if (state.food >= foodNeeded) {
                 state.food -= foodNeeded;
@@ -1599,12 +1602,10 @@
                 addLog(`【食料不足】餓死者が発生！ 人口-${starvation}、結束度-12`, 'warn');
             }
 
-            // 自然な社会変動
             if (state.inequality > 50) {
                 state.cohesion = Math.max(0, state.cohesion - 3);
             }
 
-            // 社会段階のチェックと更新
             const prevStage = state.stage;
             const newStageKey = computeCurrentStageKey();
             state.stage = newStageKey;
@@ -1616,7 +1617,6 @@
                 addLog(t.evolutionMsg.replace('{0}', stageName), 'evolution');
             }
 
-            // 敗北判定
             if (state.cohesion <= 0 || state.population <= 0) {
                 state.isGameOver = true;
                 addLog(t.gameOver, 'event');
@@ -1669,7 +1669,6 @@
             const t = I18N[state.lang];
             const comp = state.complexity;
             
-            // 最も近い複雑度キーを探す
             const socDict = SOC_DATABASE[state.mode] || {};
             const keys = Object.keys(socDict).map(Number).sort((a,b) => a - b);
             let matchedKey = keys[0];
