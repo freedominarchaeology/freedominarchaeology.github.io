@@ -391,8 +391,8 @@
             </div>
             <div class="stat-box">
                 <div class="stat-title" id="lbl-food">食料獲得量</div>
-                <div class="stat-value" id="val-food">50</div>
-                <div class="stat-bar"><div class="stat-fill" id="bar-food"></div></div>
+                <div class="stat-value" id="val-food">80</div>
+            <div class="stat-bar"><div class="stat-fill" id="bar-food"></div></div>
             </div>
             <div class="stat-box">
                 <div class="stat-title" id="lbl-tools">道具生産量</div>
@@ -436,7 +436,7 @@
         const SOC_DATABASE = {
             forager: {
                 10: {
-                    ja: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統적移動生活期）、ハザ族" },
+                    ja: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統的移動生活期）、ハザ族" },
                     en: { system: "Micro Mobile Band", diff: "Fully egalitarian group of 15–30 kin. No concept of resource ownership; immediate consumption.", ex: "Kalahari San (traditional mobile era), Hadza" },
                     zh: { system: "极小游动游群", diff: "以血缘为中心的15-30人完全平等群体。无资源所有权概念，即时消费。", ex: "喀拉哈里桑人（传统游牧期）、哈扎人" },
                     ko: { system: "극소 유목 밴드", diff: "혈연 중심 15~30인의 완전 평등 집단. 자원 소유 개념 없이 즉시 소비.", ex: "칼라하리 산족(전통 이동기), 하다자족" },
@@ -648,7 +648,7 @@
                 100: {
                     ja: { system: "社会的複雑性の飽和極限", diff: "複雑性を維持するためのコストが限界を突破。極小のショックで全崩壊する状態。", ex: "崩壊直前の超巨大古代帝国" },
                     en: { system: "Saturated Complexity Limit", diff: "Cost to maintain complexity exceeds total capacity. Minor shocks cause total collapse.", ex: "Imminent collapse of oversized ancient empires" },
-                    zh: { system: "社会复杂性饱和极限", diff: "维持复杂的成本突破极限。微小的冲击即可引发全面崩溃。", ex: "崩潰直前的超巨型古代帝国" },
+                    zh: { system: "社会复杂性饱和极限", diff: "维持复杂的成本突破极限。微小的冲击即可引发全面崩溃。", ex: "崩潰直前の超巨型古代帝国" },
                     ko: { system: "사회적 복잡성 포화 극한", diff: "복잡성을 유지하기 위한 비용이 한계를 돌파. 극소의 충격으로도 전면 붕괴.", ex: "붕괴 직전의 초거대 고대 제국" },
                     fr: { system: "Limite de complexité saturée", diff: "Le coût du maintien dépasse les capacités. Le moindre choc provoque l'effondrement.", ex: "Effondrement imminente des super-empires anciens" },
                     es: { system: "Límite de complejidad saturada", diff: "El coste de mantener la estructura supera la capacidad. Un choque mínimo provoca colapso.", ex: "Colapso inminente de superimperios antiguos" }
@@ -1242,7 +1242,7 @@
             giftCount: 0,
             stage: 'band',
             population: 30,
-            food: 50,
+            food: 80,
             tools: 10,
             freeGiftStreak: 0,
             isGameOver: false,
@@ -1324,7 +1324,7 @@
             state.giftCount = 0;
             state.stage = 'band';
             state.population = state.mode === 'agrarian' ? 30 : 20;
-            state.food = state.mode === 'agrarian' ? 50 : 30;
+            state.food = state.mode === 'agrarian' ? 80 : 50;
             state.tools = state.mode === 'agrarian' ? 10 : 5;
             state.freeGiftStreak = 0;
             state.isGameOver = false;
@@ -1514,10 +1514,10 @@
 
             if (cardId === 'accumulate') {
                 state.freeGiftStreak = 0;
-                state.population += 3;
-                state.food += 25;
+                state.population += 2;
+                state.food += state.mode === 'agrarian' ? 40 : 30;
                 state.tools += 5;
-                state.complexity += 2;
+                state.complexity += 1;
                 state.inequality = Math.min(100, state.inequality + 4);
                 logText = state.lang === 'ja' ? "資源蓄積を行いました。人口・食料・道具・複雑度と格差が上昇しました。" : "Accumulated resources.";
             } else if (cardId === 'directGift') {
