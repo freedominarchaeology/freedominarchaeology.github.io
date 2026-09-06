@@ -2,521 +2,1332 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>社会進化シミュレーション</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>Gift War - The Social Dynamics of Giving & Evolution</title>
     <style>
-        :root {
-            --bg-color: #f4f1ea;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --accent-color: #8c6d46;
-            --border-color: #dcd6cd;
-            --danger-color: #b93838;
-            --success-color: #388e3c;
-        }
-
-        body {
-            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        .container {
-            max-width: 1000px;
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        header {
+            background-color: #1f1f1f;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            flex-wrap: wrap;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        h1 {
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: #d4af37;
+        }
+        .controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        select, button {
+            font-family: inherit;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            touch-action: manipulation;
+        }
+        select:hover, button:hover {
+            background: #3a3a3a;
+            border-color: #d4af37;
+        }
+        button:disabled {
+            background: #1a1a1a;
+            color: #555;
+            border-color: #333;
+            cursor: not-allowed;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            max-width: 1200px;
             margin: 0 auto;
+            width: 100%;
+        }
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            flex-shrink: 0;
+        }
+        .stat-box {
+            background: #121212;
+            padding: 6px 4px;
+            border-radius: 4px;
+            text-align: center;
+            border-left: 3px solid #d4af37;
+        }
+        .stat-box.stage-box {
+            border-left-color: #9b59b6;
+        }
+        .stat-box.dom-box {
+            border-left-color: #e74c3c;
+        }
+        .stat-title {
+            font-size: 0.7rem;
+            color: #aaa;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+        .stat-value {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        .stat-bar {
+            height: 4px;
+            background: #333;
+            margin-top: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .stat-fill {
+            height: 100%;
+            background: #d4af37;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .game-field {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 20px;
+            gap: 10px;
+            min-height: 180px;
+        }
+        .log-panel {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            min-height: 150px;
+            max-height: 250px;
+        }
+        .panel-title {
+            font-size: 0.85rem;
+            color: #d4af37;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+            flex-shrink: 0;
+        }
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #ccc;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 5px;
+            touch-action: pan-y;
+        }
+        .log-content::-webkit-scrollbar {
+            width: 5px;
+        }
+        .log-content::-webkit-scrollbar-track {
+            background: #121212;
+            border-radius: 3px;
+        }
+        .log-content::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        .log-entry {
+            padding: 4px 8px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.03);
+            word-break: break-all;
+        }
+        .log-entry.event { border-left: 2px solid #e74c3c; }
+        .log-entry.evolution { border-left: 2px solid #9b59b6; }
+        .log-entry.action { border-left: 2px solid #2ecc71; }
+        .log-entry.info { border-left: 2px solid #3498db; }
+        .log-entry.warn { border-left: 2px solid #f39c12; }
+        .ai-panel {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 150px;
+        }
+        .hand-area {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .cards-container {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding: 5px 0 10px 0;
+            touch-action: pan-x;
+            -webkit-overflow-scrolling: touch;
+        }
+        .card {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            width: 150px;
+            height: 195px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            flex-shrink: 0;
+        }
+        .card:hover:not(.disabled) {
+            transform: translateY(-3px);
+            border-color: #d4af37;
+            background: #333;
+        }
+        .card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #222;
+        }
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #d4af37;
+            text-align: center;
+            pointer-events: none;
+        }
+        .card-desc {
+            font-size: 0.68rem;
+            color: #bbb;
+            line-height: 1.25;
+            text-align: center;
+            pointer-events: none;
+        }
+        .card-req {
+            font-size: 0.6rem;
+            color: #e74c3c;
+            text-align: center;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 10px;
+        }
+        .modal-content {
+            background: #1e1e1e;
+            border: 1px solid #d4af37;
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+        .modal-title {
+            font-size: 1.1rem;
+            color: #d4af37;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+        }
+        .modal-body {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #ddd;
+            margin-bottom: 15px;
+            white-space: pre-line;
+        }
+        .close-btn {
+            background: #d4af37;
+            color: #000;
+            border: none;
+            font-weight: bold;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .purple-section {
+            color: #be90d4;
+            border-left: 2px solid #9b59b6;
+            padding-left: 8px;
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
         @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
+            body { height: auto; }
+            header { padding: 8px 10px; }
+            h1 { font-size: 1.0rem; }
+            .status-panel { 
+                grid-template-columns: repeat(4, 1fr); 
+                gap: 6px;
+                padding: 8px;
             }
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        h1, h2, h3 {
-            margin-top: 0;
-            color: var(--accent-color);
-        }
-
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px dashed var(--border-color);
-            padding-bottom: 4px;
-        }
-
-        .status-label {
-            font-weight: bold;
-        }
-
-        .button-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s, opacity 0.2s;
-        }
-
-        button:hover:not(:disabled) {
-            opacity: 0.9;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        .log-area {
-            height: 350px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            background-color: #faf8f5;
-            font-size: 13px;
-            line-height: 1.5;
-            border-radius: 5px;
-        }
-
-        .log-entry {
-            margin-bottom: 8px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 4px;
-        }
-
-        .log-danger { color: var(--danger-color); font-weight: bold; }
-        .log-success { color: var(--success-color); font-weight: bold; }
-        .log-event { color: #d97706; font-weight: bold; }
-
-        .progress-bar-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            height: 12px;
-            margin-top: 4px;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background-color: var(--accent-color);
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        .danger-bar {
-            background-color: var(--danger-color);
+            .stat-box { padding: 4px 2px; }
+            .stat-title { font-size: 0.65rem; }
+            .stat-value { font-size: 0.85rem; }
+            .game-field { grid-template-columns: 1fr; gap: 8px; }
+            .log-panel { max-height: 180px; }
+            .ai-panel { min-height: auto; gap: 8px; }
+            .cards-container { justify-content: flex-start; }
+            .card { width: 130px; height: 175px; padding: 6px; }
+            .card-title { font-size: 0.75rem; }
+            .card-desc { font-size: 0.62rem; }
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="main-column">
-        <div class="card">
-            <h1>社会進化シミュレーション</h1>
-            <p>現在の社会形態: <strong id="society-stage">遊動民(バンド)</strong></p>
-            <p id="society-desc" style="font-size: 0.9em; color: #666;"></p>
+    <header>
+        <h1 id="app-title">GIFT WAR</h1>
+        <div class="controls">
+            <select id="mode-select">
+                <option value="forager">狩猟採集社会</option>
+                <option value="agrarian" selected>農耕社会</option>
+            </select>
+            <button id="btn-soc">参照 (Societies)</button>
+            <button id="btn-help">HELP</button>
+            <select id="lang-select">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국語</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
         </div>
+    </header>
 
-        <div class="card">
-            <h2>社会ステータス</h2>
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">人口:</span>
-                    <span id="val-population">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">生産力 (蓄積余剰):</span>
-                    <span id="val-production">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">社会的複雑度:</span>
-                    <span id="val-complexity">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">社会的結束度:</span>
-                    <span id="val-cohesion">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">支配力:</span>
-                    <span id="val-dominance">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">累計贈与実績:</span>
-                    <span id="val-total-gifts">0</span>
-                </div>
+    <main>
+        <section class="status-panel">
+            <div class="stat-box stage-box">
+                <div class="stat-title" id="lbl-stage">社会形態</div>
+                <div class="stat-value" id="val-stage">バンド</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-stage" style="width: 25%; background:#9b59b6;"></div></div>
             </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-turn">生存年数 (Turn)</div>
+                <div class="stat-value" id="val-turn">1</div>
+                <div class="stat-bar"><div class="stat-fill" style="width: 100%;"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-giftcount">贈与累積回数</div>
+                <div class="stat-value" id="val-giftcount">0</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-giftcount" style="width: 0%;"></div></div>
+            </div>
+            <div class="stat-box dom-box">
+                <div class="stat-title" id="lbl-dominance">支配力</div>
+                <div class="stat-value" id="val-dominance">0</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-dominance" style="background:#e74c3c;"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-complexity">社会的複雑度</div>
+                <div class="stat-value" id="val-complexity">10</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-complexity"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-inequality">格差インデックス</div>
+                <div class="stat-value" id="val-inequality">10%</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-inequality"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-cohesion">社会的結束度</div>
+                <div class="stat-value" id="val-cohesion">100</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-cohesion"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-pop">人口</div>
+                <div class="stat-value" id="val-pop">30</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-pop"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-food">食料獲得量</div>
+                <div class="stat-value" id="val-food">80</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-food"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-tools">道具生産量</div>
+                <div class="stat-value" id="val-tools">10</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-tools"></div></div>
+            </div>
+        </section>
 
-            <div style="margin-top: 15px;">
-                <label class="status-label">社会的結束度ゲージ</label>
-                <div class="progress-bar-container">
-                    <div id="cohesion-bar" class="progress-bar danger-bar"></div>
+        <section class="game-field">
+            <div class="log-panel">
+                <div class="panel-title" id="lbl-log">社会履歴ログ</div>
+                <div class="log-content" id="log-box"></div>
+            </div>
+            <div class="ai-panel">
+                <div class="panel-title" id="lbl-ai">外部・他者勢力 (AI)</div>
+                <div id="ai-status" style="font-size:0.8rem; color:#aaa; line-height:1.4;">
+                    AI行動分析中...
                 </div>
+                <button id="btn-next" style="width: 100%; margin-top: 6px;">何もせず静観</button>
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <h2>行動・政策</h2>
-            <div class="button-group">
-                <button id="btn-next-turn" onclick="nextTurn()">次のターンへ進む</button>
-                <button id="btn-gift" onclick="actionDirectGift()">無償の贈与を行う</button>
-                <button id="btn-potlatch" onclick="actionPotlatch()">ポトラッチを開催</button>
-                <button id="btn-labor-small" onclick="actionLaborSmall()">共同労働（小規模墳）</button>
-                <button id="btn-labor-large" onclick="actionLaborLarge()">共同労働（古墳造営）</button>
-                <button id="btn-festival" onclick="actionFestival()">広域祭典を開催</button>
-                <button id="btn-evolve" onclick="actionEvolve()">社会形態を進化させる</button>
-            </div>
+        <section class="hand-area">
+            <div class="panel-title" id="lbl-hand">実行可能な戦略カード</div>
+            <div class="cards-container" id="cards-box"></div>
+        </section>
+    </main>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">理論解説</div>
+            <div class="modal-body" id="modal-body"></div>
+            <button class="close-btn" id="modal-close">閉じる</button>
         </div>
     </div>
 
-    <div class="side-column">
-        <div class="card">
-            <h2>歴史ログ</h2>
-            <div id="log-area" class="log-area"></div>
-        </div>
-    </div>
-</div>
+    <script>
+    (function() {
+        'use strict';
 
-<script>
-    // 社会形態の定義
-    const STAGES = [
-        {
-            name: "遊動民(バンド)",
-            minComplexity: 10,
-            desc: "小規模な血縁集団。移動生活を営む。",
-            evolveReq: { pop: 50, gift: 100, prod: 50 },
-            nextStageName: "部族社会"
-        },
-        {
-            name: "部族社会",
-            minComplexity: 40,
-            desc: "定住化が進み、贈与ネットワークによるポトラッチ等で社会的威信が競われる。",
-            evolveReq: { pop: 200, gift: 500, prod: 300 },
-            nextStageName: "首長制社会"
-        },
-        {
-            name: "首長制社会",
-            minComplexity: 100,
-            desc: "世襲首長が存在し、大規模な共同労働や広域祭典によって再分配と支配が行われる。",
-            evolveReq: { pop: 800, gift: 2000, prod: 1500 },
-            nextStageName: "国家"
-        },
-        {
-            name: "国家",
-            minComplexity: 250,
-            desc: "高度な階層化と制度的支配、集積された生産力を誇る文明段階。",
-            evolveReq: null,
-            nextStageName: null
-        }
-    ];
+        const STAGE_MIN_COMPLEXITY = {
+            band: 10,
+            tribe: 20,
+            chiefdom: 30,
+            state: 40
+        };
 
-    // ゲーム状態
-    let state = {
-        turn: 1,
-        stageIndex: 0,
-        population: 30,
-        production: 100,
-        complexity: 10,
-        cohesion: 50,
-        dominance: 10,
-        totalGifts: 0
-    };
+        const STAGE_REQ_GIFTS = {
+            band: 0,
+            tribe: 3,
+            chiefdom: 8,
+            state: 15
+        };
 
-    // 初期化
-    window.onload = function() {
-        updateUI();
-        addLog("ゲームを開始しました。適切な贈与と共同労働を行い、社会を進化させてください。");
-    };
+        const SOC_DATABASE = {
+            forager: {
+                10: {
+                    ja: { system: "極小遊動バンド", diff: "血縁を中心とした15〜30人の完全平等集団。資源の所有概念はなく即時消費。", ex: "カラハリ・サン族（旧来の伝統的移動生活期）、ハザ族" },
+                    en: { system: "Micro Mobile Band", diff: "Fully egalitarian group of 15–30 kin. No concept of resource ownership; immediate consumption.", ex: "Kalahari San (traditional mobile era), Hadza" },
+                    zh: { system: "极小游动游群", diff: "以血缘为中心的15-30人完全平等群体。无资源所有权概念，即时消费。", ex: "喀拉哈里桑人（传统游牧期）、哈扎人" },
+                    ko: { system: "극소 유목 밴드", diff: "혈연 중심 15~30인의 완전 평등 집단. 자원 소유 개념 없이 즉시 소비.", ex: "칼라하리 산족(전통 이동기), 하다자족" },
+                    fr: { system: "Micro-bande mobile", diff: "Groupe égalitaire de 15-30 proches. Pas de propriété ; consommation immédiate.", ex: "San du Kalahari (ère mobile), Hadza" },
+                    es: { system: "Microbanda móvil", diff: "Grupo igualitario de 15-30 parientes. Sin propiedad; consumo inmediato.", ex: "San del Kalahari (era móvil), Hadza" }
+                },
+                15: {
+                    ja: { system: "遊動バンド連合", diff: "複数家族の季節的集積。個人的所有はないが贈与を通じた広域相互扶助が成立。", ex: "イヌイットの冬季集落、オーストラリア先住民の移動バンド" },
+                    en: { system: "Mobile Band Coalition", diff: "Seasonal gathering of families. Wide-area mutual aid through gifts without personal property.", ex: "Inuit winter camps, Australian Aboriginal bands" },
+                    zh: { system: "游动游群联盟", diff: "多家庭的季节性聚集。无个人财产，但通过馈赠实现广域互助。", ex: "因纽特人冬季营地、澳大利亚原住民游群" },
+                    ko: { system: "유목 밴드 연합", diff: "다수 가족의 계절적 집적. 개인 소유 없이 증여를 통한 광역 상호부조.", ex: "이누이트 겨울 집락, 호주 원주민 이동 밴드" },
+                    fr: { system: "Coalition de bandes mobiles", diff: "Rassemblement saisonnier. Entraide via le don sans propriété privée.", ex: "Camps d'hiver inuits, bandes aborigènes" },
+                    es: { system: "Coalición de bandas móviles", diff: "Reunión estacional de familias. Ayuda mutua mediante dones sin propiedad privada.", ex: "Campamentos invernales inuit, bandas aborígenes" }
+                },
+                20: {
+                    ja: { system: "半定住型部族（初期）", diff: "特定の豊かな漁場や採取地に定住を開始。道具や装身具の個人的所有の萌芽。", ex: "縄文時代早期・前期の集落、北米カリフォルニア先住民" },
+                    en: { system: "Semi-sedentary Tribe (Early)", diff: "Settlement near rich fishing/gathering spots. Emergence of personal tools and ornaments.", ex: "Early Jomon villages, California Native Americans" },
+                    zh: { system: "半定居部落（初期）", diff: "开始在丰富渔场/采集地定居。出现工具和饰品的个人所有权萌芽。", ex: "绳文时代早期/前期聚落、加州原住民" },
+                    ko: { system: "반정주 부족 (초기)", diff: "풍부한 어장/채집지 정주 시작. 도구 및 장신구의 개인 소유 싹트기.", ex: "조몬 시대 조/전기 집락, 캘리포니아 원주민" },
+                    fr: { system: "Tribu semi-sédentaire (Début)", diff: "Sédentarisation près de zones riches. Début de la propriété personnelle d'outils.", ex: "Villages Jomon anciens, Amérindiens de Californie" },
+                    es: { system: "Tribu semisedentaria (Incipiente)", diff: "Asentamiento en zonas ricas. Aparición de propiedad personal de herramientas.", ex: "Aldeas Jomon tempranas, nativos de California" }
+                },
+                25: {
+                    ja: { system: "定住型狩猟採集部族", diff: "特定の資源（鮭・どんぐり等）の大規模貯蔵。長老や呪術師による儀礼的調整の発生。", ex: "縄文時代中期（三内丸山遺跡など）、パプアニューギニア高地狩猟採集民" },
+                    en: { system: "Sedentary Forager Tribe", diff: "Massive storage of key resources (salmon, acorns). Ritual mediation by elders/shamans.", ex: "Middle Jomon (Sannai-Maruyama), PNG Highland foragers" },
+                    zh: { system: "定居型猎采集落", diff: "大规模储存特定资源（鲑鱼、橡子等）。长老和巫师进行仪式性调解。", ex: "绳文时代中期（三内丸山遗址等）、巴布亚新几内亚高地采集民" },
+                    ko: { system: "정주형 수렵채집 부족", diff: "특정 자원(연어, 도토리) 대규모 저장. 장로/주술사에 의한 의례적 조정.", ex: "조몬 시대 중기(산나이마루야마 유적), 파푸아뉴기니 고지 수렵채집민" },
+                    fr: { system: "Tribu de chasseurs-cueilleurs sédentaires", diff: "Stockage massif (saumon, glands). Régulation rituelle par les aînés/chamans.", ex: "Jomon moyen (Sannai-Maruyama), Chasseurs de PNG" },
+                    es: { system: "Tribu cazadora-recolectora sedentaria", diff: "Almacenamiento masivo (salmón, bellotas). Mediación ritual de ancianos o chamanes.", ex: "Jomon Medio (Sannai-Maruyama), recolectores de Nueva Guinea" }
+                },
+                30: {
+                    ja: { system: "高度貯蔵・複合部族", diff: "特定資源の独占と貯蔵施設の管理。身分階層の萌芽と交易ネットワークの拡大。", ex: "北米太平洋北西海岸先住民（トリンギット族・初期クワキウトル族）" },
+                    en: { system: "Advanced Storage Complex Tribe", diff: "Monopolization of key resources and storage facilities. Early stratification and trade networks.", ex: "Pacific NW Coast peoples (Tlingit, early Kwakiutl)" },
+                    zh: { system: "高度储存复合部落", diff: "垄断特定资源与储存设施。社会阶层萌芽与贸易网络扩张。", ex: "北美太平洋西北海岸原住民（特林吉特人、早期克瓦基特尔人）" },
+                    ko: { system: "고도 저장 복합 부족", diff: "특정 자원 독점 및 저장 시설 관리. 신분 계층 싹트기 및 교역망 확대.", ex: "북미 태평양 북서해안 원주민(틀링깃족, 초기 크와키우틀족)" },
+                    fr: { system: "Tribu complexe à stockage avancé", diff: "Monopole des ressources et des stocks. Début de stratification et réseaux marchands.", ex: "Peuples du Nord-Ouest pacifique (Tlingit, début Kwakiutl)" },
+                    es: { system: "Tribu compleja de almacenamiento avanzado", diff: "Monopolio de recursos y almacenes. Inicio de estratificación y redes comerciales.", ex: "Pueblos del Noroeste del Pacífico (Tlingit, Kwakiutl temprano)" }
+                },
+                35: {
+                    ja: { system: "複合狩猟採集首長制", diff: "世襲首長と平民・奴隷の層化。富の誇示と再分配のための大規模儀礼（ポトラッチ）の成立。", ex: "19世紀北米クワキウトル族・ハイダ族（ポトラッチ全盛期）" },
+                    en: { system: "Complex Forager Chiefdom", diff: "Hereditary chiefs, commoners, slaves. Large-scale redistributive rituals (Potlatch).", ex: "19th c. Kwakiutl, Haida (Potlatch peak era)" },
+                    zh: { system: "复合采集酋邦", diff: "世袭酋长、平民与奴隶分化。设立用于炫耀财富与再分配的大型仪式（夸富宴）。", ex: "19世纪克瓦基特尔人、海达人（夸富宴鼎盛期）" },
+                    ko: { system: "복합 수렵채집 군장국", diff: "세습 군장, 평민, 노예 계층화. 부의 과시와 재분배를 위한 대규모 의례(포트래치) 성립.", ex: "19세기 크와키우틀족, 하이다족 (포트래치 전성기)" },
+                    fr: { system: "Chefferie complexe de chasseurs-cueilleurs", diff: "Chefs héréditaires, roturiers, esclaves. Rituel de redistribution massif (Potlatch).", ex: "Kwakiutl du XIXe siècle, Haida (apogée du Potlatch)" },
+                    es: { system: "Jefatura compleja cazadora-recolectora", diff: "Jefes hereditarios, plebleyos, esclavos. Rituales masivos de redistribución (Potlatch).", ex: "Kwakiutl del siglo XIX, Haida (apogeo del Potlatch)" }
+                },
+                40: {
+                    ja: { system: "特化型定住首長制", diff: "巨大な構造物や巨石遺構の建造。広域な地域間贈与体系の組織化と領有権の主張。", ex: "縄文時代後期・晩期（巨大木柱列遺構等）、ギョベクリ・テペ建造社会" },
+                    en: { system: "Specialized Sedentary Chiefdom", diff: "Construction of megaliths and massive structures. Organized regional gift exchanges.", ex: "Late Jomon (wooden pillar circles), Göbekli Tepe builders" },
+                    zh: { system: "专业化定居酋邦", diff: "建造大型建筑物或巨石遗迹。组织广域区域间赠与体系与领土主张。", ex: "绳文时代后期/晚期（巨型木柱遗迹等）、哥贝克力石阵建造社会" },
+                    ko: { system: "특화형 정주 군장국", diff: "거대 구조물 및 거석 유적 건조. 광역 지역 간 증여 체계 조직화.", ex: "조몬 시대 후/만기(거대 목주열 유적 등), 괴베클리 테페 건조 사회" },
+                    fr: { system: "Chefferie sédentaire spécialisée", diff: "Mégalithes et structures massives. Réseaux de dons régionaux organisés.", ex: "Jomon tardif (cercle de poteaux), bâtisseurs de Göbekli Tepe" },
+                    es: { system: "Jefatura sedentaria especializada", diff: "Construcción de megalitos y grandes estructuras. Redes organizadas de intercambio.", ex: "Jomon tardío (círculos de madera), constructores de Göbekli Tepe" }
+                },
+                45: {
+                    ja: { system: "狩猟採集複雑性の極致", diff: "非農耕でありながら高度な階層化と広域同盟を維持。これ以上の複雑化は農耕化を要する限界点。", ex: "カリフォルニア・チュマシュ族（貝貨通貨経済と世襲首長）" },
+                    en: { system: "Peak Forager Complexity", diff: "High stratification without agriculture. Maximum complexity possible before farming.", ex: "Chumash of California (shell-money economy, hereditary chiefs)" },
+                    zh: { system: "采集社会复杂性极致", diff: "非农耕却维持着高度阶层化与广域同盟。进一步复杂化需向农耕转型的极限。", ex: "加州丘马什人（贝币货币经济与世袭酋长）" },
+                    ko: { system: "수렵채집 복잡성의 극치", diff: "비농경임에도 고도 계층화 및 광역 동맹 유지. 농경화 없이 도달 가능한 정점.", ex: "캘리포니아 추마시족(패화 화폐 경제 및 세습 군장)" },
+                    fr: { system: "Sommet de la complexité de cueillette", diff: "Stratification élevée sans agriculture. Limite maximale avant l'agriculture.", ex: "Chumash de Californie (monnaie de coquillage, chefs héréditaires)" },
+                    es: { system: "Cúspide de complejidad recolectora", diff: "Alta estratificación sin agricultura. Límite máximo alcanzable sin cultivar.", ex: "Chumash de California (moneda de conchas, jefes hereditarios)" }
+                }
+            },
+            agrarian: {
+                10: {
+                    ja: { system: "初期農耕集落（バンド・部族）", diff: "小規模な刀耕火種農耕。土地の私有はなく共同体全体での共同耕作と再分配。", ex: "新石器時代初期ヤンシャオ文化（仰韶文化）、初期新石器ヨーロッパ" },
+                    en: { system: "Early Agrarian Village", diff: "Small-scale slash-and-burn. No land ownership; collective farming and sharing.", ex: "Early Neolithic Yangshao culture, Early Neolithic Europe" },
+                    zh: { system: "早期农耕聚落（游群/部落）", diff: "小规模刀耕火种。无土地私有，全共同体共同耕作与再分配。", ex: "新石器时代早期仰韶文化、早期新石器欧洲" },
+                    ko: { system: "초기 농경 집락 (밴드/부족)", diff: "소규모 화전 농경. 토지 사유 없이 공동체 전체의 공동 경작 및 재분배.", ex: "신석기 시대 초기 앙소 문화, 초기 신석기 유럽" },
+                    fr: { system: "Village agricole primitif", diff: "Culture sur brûlis à petite échelle. Pas de propriété foncière ; partage communautaire.", ex: "Culture Yangshao néolithique, Europe néolithique initiale" },
+                    es: { system: "Aldea agrícola incipiente", diff: "Cultivo de roza y quema a pequeña escala. Sin propiedad de la tierra; trabajo comunitario.", ex: "Cultura Yangshao del Neolítico temprano, Europa neolítica temprana" }
+                },
+                15: {
+                    ja: { system: "定住農耕村落複合", diff: "村落間のゆるやかな同盟。長老会による土地利用の調整と互恵的贈与体系。", ex: "縄文晩期〜初期弥生集落（板付遺跡等）、新石器時代バンチェン文化" },
+                    en: { system: "Sedentary Village Complex", diff: "Loose alliances between villages. Elder councils coordinate land use and gift exchanges.", ex: "Late Jomon to Early Yayoi (Itazuke site), Ban Chiang culture" },
+                    zh: { system: "定居农耕村落复合体", diff: "村落间松散同盟。长老会对土地利用进行协调与互惠赠与。", ex: "绳文晚期至弥生初期聚落（板付遗址等）、班清文化" },
+                    ko: { system: "정주 농경 마을 복합체", diff: "마을 간 느슨한 동맹. 장로회에 의한 토지 이용 조정 및 호혜적 증여.", ex: "조몬 만기~초기 야요이 집락(이타즈케 유적), 반창 문화" },
+                    fr: { system: "Complexe de villages sédentaires", diff: "Alliances lâches inter-villages. Conseil des aînés pour réguler les terres et les dons.", ex: "Fin Jomon à Yayoi (site d'Itazuke), Culture de Ban Chiang" },
+                    es: { system: "Complejo de aldeas sedentarias", diff: "Alianzas lazas entre aldeas. El consejo de ancianos gestiona tierras y dones.", ex: "Jomon final a Yayoi temprano (sitio Itazuke), Cultura Ban Chiang" }
+                },
+                20: {
+                    ja: { system: "部族制農耕社会", diff: "祖先崇拝と儀礼的再分配。特定の家系が再分配の中心的役割を担い始める。", ex: "弥生時代中期（環濠集落）、ニュージーランド・マオリ族の伝統社会" },
+                    en: { system: "Tribal Agrarian Society", diff: "Ancestor worship and ceremonial redistribution. Specific lineages emerge as central nodes.", ex: "Middle Yayoi (moated settlements), Traditional Maori society" },
+                    zh: { system: "部落制农耕社会", diff: "祖先崇拜与仪式性再分配。特定家族开始承担再分配的核心角色。", ex: "弥生时代中期（环濠聚落）、新西兰毛利人传统社会" },
+                    ko: { system: "부족제 농경 사회", diff: "조상 숭배와 의례적 재분배. 특정 가계가 재분배의 중심 역할 담당.", ex: "야요이 시대 중기(환호 집락), 뉴질랜드 마오리족 전통 사회" },
+                    fr: { system: "Société tribale agricole", diff: "Culte des ancêtres et redistribution rituelle. Émergence de lignées centrales.", ex: "Yayoi moyen (villages entourés de fossés), Société maorie" },
+                    es: { system: "Sociedad tribal agrícola", diff: "Culto a los antepasados y redistribución ritual. Linajes principales organizan recursos.", ex: "Yayoi Medio (asentamientos con foso), sociedad tradicional maorí" }
+                },
+                25: {
+                    ja: { system: "初期首長制（統合部族）", diff: "農産物・金属器の集積と長による再分配。地域間の小規模な対立と交易の拡大。", ex: "弥生時代後期（吉野ヶ里遺跡等）、青銅器時代初期ヨーロッパ" },
+                    en: { system: "Early Chiefdom (Integrated Tribe)", diff: "Accumulation of crops/bronze; chiefs redistribute. Regional rivalries and expanding trade.", ex: "Late Yayoi (Yoshinogari site), Early Bronze Age Europe" },
+                    zh: { system: "初期酋邦（整合部落）", diff: "农产品与金属器集聚，由首领再分配。区域间小规模冲突与贸易扩张。", ex: "弥生时代后期（吉野里遗址等）、青铜时代早期欧洲" },
+                    ko: { system: "초기 군장국 (통합 부족)", diff: "농산물/금속기 집적 및 군장에 의한 재분배. 소규모 지역 대립과 교역 확대.", ex: "야요이 시대 후기(요시노가리 유적), 청동기 시대 초기 유럽" },
+                    fr: { system: "Chefferie précoce", diff: "Accumulation de cultures/bronze rédistribués par le chef. Rivalités et commerce.", ex: "Yayoi tardif (Yoshinogari), Âge du bronze européen" },
+                    es: { system: "Jefatura temprana", diff: "Acumulación de cosechas y metales redistribuidos por el jefe. Rivalidades regionales.", ex: "Yayoi tardío (sitio Yoshinogari), Edad del Bronce temprana en Europa" }
+                },
+                30: {
+                    ja: { system: "首長制社会", diff: "首長の権力確立と身分差の定着。貢納制度と大規模墳墓（墳丘墓）の建造。", ex: "古墳時代出現期（箸墓古墳等）、ハワイ諸島伝統首長制社会" },
+                    en: { system: "Chiefdom Society", diff: "Established chief authority and social ranks. Tribute systems and monumental tombs.", ex: "Emergent Kofun period (Hashihaka Kofun), Hawaiian Chiefdoms" },
+                    zh: { system: "酋邦社会", diff: "首长权力确立与等级制度定型。纳贡制度与大规模坟墓（土丘墓）建造。", ex: "古坟时代出现期（箸墓古坟等）、夏威夷群岛传统酋邦" },
+                    ko: { system: "군장국 사회", diff: "군장의 권력 확립 및 신분 차이 정착. 공납 제도와 대규모 분묘 건조.", ex: "고분 시대 출현기(하시하카 고분), 하와이 제도 전통 군장국" },
+                    fr: { system: "Société de chefferie", diff: "Autorité du chef et classes sociales fixées. Tributs et tombes monumentales.", ex: "Période Kofun émergente (Hashihaka), Chefferies d'Hawaï" },
+                    es: { system: "Sociedad de jefatura", diff: "Consolidación del poder del jefe y rangos. Sistemas de tributo y túmulos gigantes.", ex: "Periodo Kofun incipiente (túmulo Hashihaka), jefaturas de Hawái" }
+                },
+                35: {
+                    ja: { system: "高度首長制（連合首長制）", diff: "複数の首長域の統合。広域な交易路の支配と軍事指導者の台頭。", ex: "古墳時代中期（巨大前方後円墳造営期）、ケルト人首長国" },
+                    en: { system: "Paramount Chiefdom", diff: "Integration of multiple chiefdoms. Control of key trade routes; rise of military leaders.", ex: "Middle Kofun period (keyhole tombs), Celtic Chiefdoms" },
+                    zh: { system: "高度酋邦（联合酋邦）", diff: "多个酋长领地整合。支配广域贸易路线与军事领袖崛起。", ex: "古坟时代中期（前方后圆坟造营期）、凯尔特人酋长国" },
+                    ko: { system: "고도 군장국 (연합 군장국)", diff: "복수 군장 영역의 통합. 광역 교역로 지배 및 군사 지도자 대두.", ex: "고분 시대 중기(거대 전방후원분 조영기), 켈트족 군장국" },
+                    fr: { system: "Chefferie suprême", diff: "Union de plusieurs chefferies. Contrôle des routes marchandes et chefs militaires.", ex: "Kofun moyen (grands tumulus), Chefferies celtes" },
+                    es: { system: "Jefatura suprema", diff: "Unión de varias jefaturas. Control de rutas comerciales y líderes militares.", ex: "Kofun Medio (grandes túmulos), jefaturas celtas" }
+                },
+                40: {
+                    ja: { system: "初期都市国家（王国萌芽）", diff: "灌漑農業と神殿・王宮による中央集権的備蓄。文字や記号による管理の開始。", ex: "初期メソポタミア都市国家（ウルク期）、夏王朝（二里頭文化）" },
+                    en: { system: "Early City-State (Nascent Kingdom)", diff: "Irrigation agriculture, centralized storage via temples/palaces. Early writing/record-keeping.", ex: "Early Mesopotamian city-states (Uruk), Erlitou culture (Xia)" },
+                    zh: { system: "早期城市国家（王国萌芽）", diff: "灌溉农业与神殿/王宫中央集权备荒。开始采用文字与符号管理。", ex: "早期美索不达米亚城邦（乌鲁克期）、夏朝（二里头文化）" },
+                    ko: { system: "초기 도시 국가 (왕국 싹트기)", diff: "관개 농업과 신전/왕궁에 의한 중앙집권적 비축. 문자 및 기호 관리 시작.", ex: "초기 메소포타미아 도시 국가(우루크기), 하나라(이리두 문화)" },
+                    fr: { system: "Cité-État primitive", diff: "Agriculture d'irrigation, stockage centralisé (temples/palais). Début de l'écriture.", ex: "Cités sumériennes (Uruk), Culture d'Erlitou (Dynastie Xia)" },
+                    es: { system: "Ciudad-Estado temprana", diff: "Agricultura de regadío y almacenes centrales (templos/palacios). Primeros escritos.", ex: "Ciudades mesopotámicas (Uruk), Cultura Erlitou (Dinastía Xia)" }
+                },
+                45: {
+                    ja: { system: "都市国家連合・初期王国", diff: "官僚制の萌芽と税制の導入。専門職人・兵士・農民の明確な分業構造。", ex: "メソポタミア初期王朝時代（ウル第1王朝）、シュメール都市国家" },
+                    en: { system: "City-State League / Early Kingdom", diff: "Emerging bureaucracy and taxation. Clear division of labor (craftsmen, soldiers, farmers).", ex: "Mesopotamian Early Dynastic (First Dynasty of Ur), Sumerian states" },
+                    zh: { system: "城邦联盟/早期王国", diff: "官僚制萌芽与税制引入。手工业者、士兵、农民的明确分工。", ex: "美索不达米亚早期王朝时代（乌尔第一王朝）、苏美尔城邦" },
+                    ko: { system: "도시 국가 연합 / 초기 왕국", diff: "관료제 싹트기 및 조세 제도 도입. 장인, 군인, 농민의 명확한 분업.", ex: "메소포타미아 초기 왕조 시대(우르 제1왕조), 슈메르 도시 국가" },
+                    fr: { system: "Ligue de cités-États / Royaume primitif", diff: "Bureaucratie et taxes naissantes. Division claire du travail (artisans, soldats, paysans).", ex: "Dynastique archaïque sumérien (Ur I), Cités de Sumer" },
+                    es: { system: "Liga de Ciudades-Estado / Reino temprano", diff: "Inicio de burocracia e impuestos. División del trabajo (artesanos, soldados, agricultores).", ex: "Dinástico Temprano sumerio (Primera Dinastía de Ur)" }
+                },
+                50: {
+                    ja: { system: "中央集権的王国", diff: "成文法や単位の統一。広大な領域の支配と身分制社会の全盛。", ex: "エジプト古王国（ピラミッド造営期）、商（殷）王朝" },
+                    en: { system: "Centralized Kingdom", diff: "Written laws and standardized units. Broad territorial rule and strict legal social strata.", ex: "Old Kingdom Egypt (Pyramid age), Shang Dynasty" },
+                    zh: { system: "中央集权王国", diff: "成文法与度量衡统一。统治广袤领土，等级制社会鼎盛。", ex: "埃及古王国（金字塔建造期）、商朝" },
+                    ko: { system: "중앙집권적 왕국", diff: "성문법 및 단위 통일. 광대한 영역 지배와 신분제 사회의 전성.", ex: "이집트 고왕국(피라미드 조영기), 상(은) 왕조" },
+                    fr: { system: "Royaume centralisé", diff: "Lois écrites, unités standardisées. Règne territorial étendu et classes strictes.", ex: "Ancien Empire égyptien (Pyramides), Dynastie Shang" },
+                    es: { system: "Reino centralizado", diff: "Leyes escritas y estandarización de medidas. Imperio territorial y estamentos fijos.", ex: "Imperio Antiguo de Egipto (Era de las Pirámides), Dinastía Shang" }
+                }
+            }
+        };
 
-    function updateUI() {
-        const currentStage = STAGES[state.stageIndex];
-        
-        // 最低社会的複雑度の維持チェック
-        if (state.complexity < currentStage.minComplexity) {
-            state.complexity = currentStage.minComplexity;
-        }
+        const I18N = {
+            ja: {
+                title: "GIFT WAR: 贈与ダイナミクスと社会進化",
+                help: "解説",
+                socBtn: "参照 (Societies)",
+                turn: "生存年数",
+                complexity: "社会的複雑度",
+                inequality: "格差インデックス",
+                cohesion: "社会的結束度",
+                dominance: "支配力",
+                stage: "社会形態",
+                giftCount: "贈与累積回数",
+                pop: "人口",
+                food: "食料獲得量",
+                tools: "道具生産量",
+                log: "社会履歴ログ",
+                ai: "外部・他者勢力",
+                hand: "実行可能な戦略カード",
+                next: "何もせず静観",
+                close: "閉じる",
+                gameOver: "社会が完全崩壊しました！",
+                aiText: "他勢力は贈与関係の動向を監視しています。",
+                reqPotlatch: "条件: 複雑度30以上 & 格差40%以上 & 食料50/道具20",
+                reqPanhellenic: "条件: 複雑度20以上 & 食料80/道具30",
+                reqMegalith: "条件: 人口100以上, 食料150以上, 道具50以上",
+                reqMegalithSmall: "条件: 人口30以上, 食料40以上, 道具15以上",
+                reqRitual: "条件: 食料20以上",
+                reqFreeGift: "条件: なし（連投で不満発生）",
+                evolutionMsg: "【社会進化】贈与のネットワーク強化({1}回)と成長により社会構造が「{0}」へと移行しました！",
+                modes: { forager: "狩猟採集社会", agrarian: "農耕社会" },
+                infoModal: {
+                    title: "現在の該当社会モデル ({0})",
+                    statusHeader: "【現在の社会ステータス】",
+                    lblStage: "形態",
+                    lblComp: "社会的複雑度",
+                    lblIneq: "格差インデックス",
+                    lblCoh: "社会的結束度",
+                    lblDom: "支配力",
+                    secSystem: "【社会制度】",
+                    secDiff: "【社会構造と特徴】",
+                    secEx: "【具体的歴史・人類学の例】",
+                    secKinship: "【親族構造】",
+                    secSocStruct: "【社会構造】"
+                },
+                resultModal: {
+                    lblMode: "生産形態",
+                    lblStage: "最終到達段階",
+                    lblTurn: "生存年数",
+                    lblGift: "贈与累積回数",
+                    lblComp: "最終社会的複雑度",
+                    lblDom: "最終支配力",
+                    lblKinship: "親族構造",
+                    lblSocStruct: "社会構造"
+                },
+                unknownSoc: { system: "不明な社会形態", diff: "データが存在しません。", ex: "該当なし" },
+                stages: {
+                    band: "バンド",
+                    tribe: "部族",
+                    chiefdom: "首長制",
+                    state: "王国 (国家)"
+                },
+                cards: {
+                    accumulate: { name: "資源蓄積", desc: "人口・食料・道具・複雑度と格差が上昇。贈与回数は増えません。" },
+                    directGift: { name: "直接贈与", desc: "食料・道具を分配。格差低下、結束度・支配力・贈与回数が上昇。" },
+                    obligatory: { name: "義務的返礼", desc: "安定した相互関係を維持。義務的再分配により統合を促進。" },
+                    universalServices: { name: "普遍的社会サービス", desc: "公共基盤を整え、可処分所得の格差が生活品質に直結しない仕組みを作る。" },
+                    commons: { name: "コモンズ（共有財）の復活", desc: "資源・土地の独占を防ぎ、共同管理領域を拡大して結束を深める。" },
+                    ritual: { name: "祭祀", desc: "食料を消費して聖なる儀礼を執り行い、社会的結束度を上昇させる。" },
+                    potlatch: { name: "ポトラッチ(過剰贈与)", desc: "富を過剰贈与・破棄し格差をリセット。支配力が大幅上昇。" },
+                    panhellenic_games: { name: "広域祭典(オリンピック)", desc: "周辺グループを招いた平和的祭典。外部摩擦を緩和し結束と支配力を強化。" },
+                    megalith_small: { name: "共同労働（小規模墳）", desc: "手頃な規模で労働力を集結。結束度と支配力を少し上昇させる。" },
+                    megalith_construction: { name: "共同労働（古墳造営）", desc: "巨大古墳を造営。結束度と支配力を劇的に上昇させる。" },
+                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。支配力が上昇するが、連投で結束崩壊。" }
+                },
+                helpContent: "【ゲームの概要】\n本ゲームは贈与と交換ネットワークによる社会進化をシミュレートするゲームです。\n\n【基本ルール】\n・社会的結束度が0になるとイベント「反乱/革命」が発生し人口が激減します。\n・支配力が高いほど「反乱/革命」による被害（人口減少）を抑えられます。\n・人口が0になると社会が完全崩壊（ゲームオーバー）します。\n・上位の社会形態へ進歩するには社会的複雑度だけでなく「一定の贈与累積回数」が必要です。"
+            },
+            en: {
+                title: "GIFT WAR: Social Dynamics & Evolution",
+                help: "Help",
+                socBtn: "Societies",
+                turn: "Years Survived",
+                complexity: "Social Complexity",
+                inequality: "Inequality Index",
+                cohesion: "Social Cohesion",
+                dominance: "Dominance",
+                stage: "Social Stage",
+                giftCount: "Gift Count",
+                pop: "Population",
+                food: "Food",
+                tools: "Tools",
+                log: "History Log",
+                ai: "External Faction",
+                hand: "Available Strategy Cards",
+                next: "Pass Turn",
+                close: "Close",
+                gameOver: "Society Completely Collapsed!",
+                aiText: "Other factions are monitoring gift networks.",
+                reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40% & Food 50/Tools 20",
+                reqPanhellenic: "Req: Complexity ≥20 & Food 80/Tools 30",
+                reqMegalith: "Req: Pop≥100, Food≥150, Tools≥50",
+                reqMegalithSmall: "Req: Pop≥30, Food≥40, Tools≥15",
+                reqRitual: "Req: Food ≥20",
+                reqFreeGift: "Req: None",
+                evolutionMsg: "[EVOLUTION] Through gift networking ({1} gifts) and growth, society evolved to '{0}'!",
+                modes: { forager: "Forager Society", agrarian: "Agrarian Society" },
+                infoModal: {
+                    title: "Current Society Model ({0})",
+                    statusHeader: "[Current Social Status]",
+                    lblStage: "Stage",
+                    lblComp: "Social Complexity",
+                    lblIneq: "Inequality Index",
+                    lblCoh: "Social Cohesion",
+                    lblDom: "Dominance",
+                    secSystem: "[Institutional System]",
+                    secDiff: "[Social Structure & Characteristics]",
+                    secEx: "[Historical Examples]",
+                    secKinship: "[Kinship Structure]",
+                    secSocStruct: "[Social Structure]"
+                },
+                resultModal: {
+                    lblMode: "Mode",
+                    lblStage: "Final Stage",
+                    lblTurn: "Years Survived",
+                    lblGift: "Gift Count",
+                    lblComp: "Final Complexity",
+                    lblDom: "Final Dominance",
+                    lblKinship: "Kinship Structure",
+                    lblSocStruct: "Social Structure"
+                },
+                unknownSoc: { system: "Unknown Society", diff: "No data available.", ex: "None" },
+                stages: {
+                    band: "Band",
+                    tribe: "Tribe",
+                    chiefdom: "Chiefdom",
+                    state: "State (Kingdom)"
+                },
+                cards: {
+                    accumulate: { name: "Accumulate", desc: "Increases population, food, tools, complexity and inequality without gifts." },
+                    directGift: { name: "Direct Gift", desc: "Reduces inequality, boosts cohesion and dominance, increases total gift count." },
+                    obligatory: { name: "Obligatory Reciprocity", desc: "Maintains stable relations through reciprocal gift networks." },
+                    universalServices: { name: "Universal Services", desc: "Provides free/low-cost public services to uncouple income from living standards." },
+                    commons: { name: "Revive the Commons", desc: "Expands shared resources managed collectively by citizens." },
+                    ritual: { name: "Ritual / Worship", desc: "Consumes food to perform sacred rituals, boosting social cohesion." },
+                    potlatch: { name: "Potlatch", desc: "Excessive gift giving to reset inequality and greatly increase dominance." },
+                    panhellenic_games: { name: "Panhellenic Games", desc: "Host regional games to ease tensions and boost cohesion & dominance." },
+                    megalith_small: { name: "Mound Work", desc: "Construct small mounds requiring modest resources to build cohesion & dominance." },
+                    megalith_construction: { name: "Megalith Work", desc: "Construct massive mounds requiring major resources to dramatically boost cohesion & dominance." },
+                    freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Increases dominance, but repeated use breaks cohesion." }
+                },
+                helpContent: "Simulate society evolution through gift networks.\nCohesion 0 triggers Revolts/Revolutions! Higher Dominance reduces revolt casualties."
+            }
+        };
 
-        // 値の表示更新
-        document.getElementById("society-stage").innerText = currentStage.name;
-        document.getElementById("society-desc").innerText = currentStage.desc;
-        document.getElementById("val-population").innerText = Math.floor(state.population);
-        document.getElementById("val-production").innerText = Math.floor(state.production);
-        document.getElementById("val-complexity").innerText = Math.floor(state.complexity);
-        document.getElementById("val-cohesion").innerText = Math.floor(state.cohesion);
-        document.getElementById("val-dominance").innerText = Math.floor(state.dominance);
-        document.getElementById("val-total-gifts").innerText = Math.floor(state.totalGifts);
+        const cards = [
+            { id: "accumulate" },
+            { id: "directGift" },
+            { id: "obligatory" },
+            { id: "universalServices" },
+            { id: "commons" },
+            { id: "ritual" },
+            { id: "potlatch" },
+            { id: "panhellenic_games" },
+            { id: "megalith_small" },
+            { id: "megalith_construction" },
+            { id: "freeGift" }
+        ];
 
-        // 結束度ゲージ
-        const cohesionBar = document.getElementById("cohesion-bar");
-        const cohesionPercent = Math.min(100, Math.max(0, state.cohesion));
-        cohesionBar.style.width = cohesionPercent + "%";
+        let state = {
+            lang: 'ja',
+            mode: 'agrarian',
+            turn: 1,
+            complexity: 10,
+            inequality: 10,
+            cohesion: 100,
+            dominance: 0,
+            giftCount: 0,
+            stage: 'band',
+            population: 30,
+            food: 80,
+            tools: 10,
+            freeGiftStreak: 0,
+            isGameOver: false,
+            dissatisfaction: 0,
+            externalTension: 50
+        };
 
-        // ボタンの有効/無効判定
-        document.getElementById("btn-potlatch").disabled = state.stageIndex < 1 || state.production < 50;
-        document.getElementById("btn-labor-small").disabled = state.stageIndex < 1 || state.production < 40;
-        document.getElementById("btn-labor-large").disabled = state.stageIndex < 2 || state.production < 150 || state.population < 150;
-        document.getElementById("btn-festival").disabled = state.production < 80;
+        const DOM = {
+            langSelect: document.getElementById('lang-select'),
+            modeSelect: document.getElementById('mode-select'),
+            appTitle: document.getElementById('app-title'),
+            btnHelp: document.getElementById('btn-help'),
+            btnSoc: document.getElementById('btn-soc'),
+            lblStage: document.getElementById('lbl-stage'),
+            valStage: document.getElementById('val-stage'),
+            barStage: document.getElementById('bar-stage'),
+            lblTurn: document.getElementById('lbl-turn'),
+            valTurn: document.getElementById('val-turn'),
+            lblGiftCount: document.getElementById('lbl-giftcount'),
+            valGiftCount: document.getElementById('val-giftcount'),
+            barGiftCount: document.getElementById('bar-giftcount'),
+            lblDominance: document.getElementById('lbl-dominance'),
+            valDominance: document.getElementById('val-dominance'),
+            barDominance: document.getElementById('bar-dominance'),
+            lblComplexity: document.getElementById('lbl-complexity'),
+            valComplexity: document.getElementById('val-complexity'),
+            barComplexity: document.getElementById('bar-complexity'),
+            lblInequality: document.getElementById('lbl-inequality'),
+            valInequality: document.getElementById('val-inequality'),
+            barInequality: document.getElementById('bar-inequality'),
+            lblCohesion: document.getElementById('lbl-cohesion'),
+            valCohesion: document.getElementById('val-cohesion'),
+            barCohesion: document.getElementById('bar-cohesion'),
+            lblPop: document.getElementById('lbl-pop'),
+            valPop: document.getElementById('val-pop'),
+            barPop: document.getElementById('bar-pop'),
+            lblFood: document.getElementById('lbl-food'),
+            valFood: document.getElementById('val-food'),
+            barFood: document.getElementById('bar-food'),
+            lblTools: document.getElementById('lbl-tools'),
+            valTools: document.getElementById('val-tools'),
+            barTools: document.getElementById('bar-tools'),
+            lblLog: document.getElementById('lbl-log'),
+            logBox: document.getElementById('log-box'),
+            lblAi: document.getElementById('lbl-ai'),
+            aiStatus: document.getElementById('ai-status'),
+            btnNext: document.getElementById('btn-next'),
+            lblHand: document.getElementById('lbl-hand'),
+            cardsBox: document.getElementById('cards-box'),
+            modal: document.getElementById('modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalBody: document.getElementById('modal-body'),
+            modalClose: document.getElementById('modal-close')
+        };
 
-        // 進化ボタンの設定
-        const evolveBtn = document.getElementById("btn-evolve");
-        if (currentStage.evolveReq) {
-            const req = currentStage.evolveReq;
-            evolveBtn.innerText = `社会進化 (${currentStage.nextStageName}へ)`;
-            const canEvolve = state.population >= req.pop && 
-                              state.totalGifts >= req.gift && 
-                              state.production >= req.prod;
-            evolveBtn.disabled = !canEvolve;
-        } else {
-            evolveBtn.innerText = "最高段階に達しています";
-            evolveBtn.disabled = true;
-        }
-    }
+        function init() {
+            DOM.langSelect.addEventListener('change', (e) => {
+                state.lang = e.target.value;
+                updateI18N();
+            });
+            DOM.modeSelect.addEventListener('change', (e) => {
+                state.mode = e.target.value;
+                resetGame();
+            });
+            DOM.btnHelp.addEventListener('click', showHelp);
+            DOM.btnSoc.addEventListener('click', showCurrentSocietyInfo);
+            DOM.modalClose.addEventListener('click', hideModal);
+            DOM.btnNext.addEventListener('click', () => processTurn(null));
 
-    function addLog(text, type = "") {
-        const logArea = document.getElementById("log-area");
-        const entry = document.createElement("div");
-        entry.className = "log-entry " + type;
-        entry.innerHTML = `<strong>[Turn ${state.turn}]</strong> ${text}`;
-        logArea.insertBefore(entry, logArea.firstChild);
-    }
-
-    // ターン進行
-    function nextTurn() {
-        state.turn++;
-        const stage = STAGES[state.stageIndex];
-
-        // 自然増殖・変動
-        const popGrowth = Math.floor(state.population * 0.05);
-        const prodGrowth = Math.floor(state.population * 1.5);
-        
-        state.population += popGrowth;
-        state.production += prodGrowth;
-        
-        // 自然減衰（結束度は緩やかに低下）
-        state.cohesion = Math.max(0, state.cohesion - 2);
-
-        // ランダムイベント判定
-        handleRandomEvents();
-
-        // 結束度0時の「反乱/革命」判定（極端に発生しやすくなる）
-        if (state.cohesion <= 0) {
-            triggerRebellion();
-        }
-
-        // 人口0による社会崩壊（ゲームオーバー）チェック
-        if (state.population <= 0) {
-            state.population = 0;
+            updateI18N();
+            renderHand();
             updateUI();
-            addLog("人口が0になり、社会が完全に崩壊しました。ゲームオーバーです。", "log-danger");
-            disableAllButtons();
-            return;
         }
 
-        updateUI();
-    }
-
-    // ランダムイベント処理
-    function handleRandomEvents() {
-        const rand = Math.random();
-
-        // 災害イベント (10%)
-        if (rand < 0.10) {
-            const lossProd = Math.floor(state.production * 0.3);
-            const lossPop = Math.floor(state.population * 0.15);
-            state.production -= lossProd;
-            state.population -= lossPop;
-            state.cohesion = Math.max(0, state.cohesion - 10);
-            addLog(`【災害発生】自然災害により生産力 ${lossProd} と人口 ${lossPop} を失いました。`, "log-danger");
-        } 
-        // 渡来人による生産力増加 (8%)
-        else if (rand < 0.18) {
-            const gainProd = Math.floor(state.population * 2.5) + 30;
-            const gainPop = Math.floor(Math.random() * 15) + 5;
-            state.production += gainProd;
-            state.population += gainPop;
-            state.complexity += 3;
-            addLog(`【渡来人の到来】新たな技術を持つ渡来人が定着し、生産力が ${gainProd} 増加、人口が ${gainPop} 増えました。`, "log-event");
+        function resetGame() {
+            state.turn = 1;
+            state.complexity = 10;
+            state.inequality = 10;
+            state.cohesion = 100;
+            state.dominance = 0;
+            state.giftCount = 0;
+            state.stage = 'band';
+            state.population = state.mode === 'agrarian' ? 30 : 20;
+            state.food = state.mode === 'agrarian' ? 80 : 50;
+            state.tools = state.mode === 'agrarian' ? 10 : 5;
+            state.freeGiftStreak = 0;
+            state.isGameOver = false;
+            state.dissatisfaction = 0;
+            state.externalTension = 50;
+            DOM.logBox.innerHTML = '';
+            renderHand();
+            updateUI();
         }
-        // 近隣帝国からの贈与 (7%)
-        else if (rand < 0.25) {
-            const giftProd = 150 + (state.stageIndex * 100);
-            state.production += giftProd;
-            state.dominance += 5;
-            addLog(`【帝国からの贈与】近隣の強力な帝国から突発的な財の贈与があり、生産力 ${giftProd} を獲得しました。`, "log-event");
+
+        function updateI18N() {
+            const t = I18N[state.lang] || I18N.ja;
+            DOM.appTitle.textContent = t.title;
+            DOM.btnHelp.textContent = t.help;
+            DOM.btnSoc.textContent = t.socBtn;
+            DOM.lblStage.textContent = t.stage;
+            DOM.lblTurn.textContent = t.turn;
+            DOM.lblGiftCount.textContent = t.giftCount;
+            if (DOM.lblDominance) DOM.lblDominance.textContent = t.dominance;
+            DOM.lblComplexity.textContent = t.complexity;
+            DOM.lblInequality.textContent = t.inequality;
+            DOM.lblCohesion.textContent = t.cohesion;
+            DOM.lblPop.textContent = t.pop;
+            DOM.lblFood.textContent = t.food;
+            DOM.lblTools.textContent = t.tools;
+            DOM.lblLog.textContent = t.log;
+            DOM.lblAi.textContent = t.ai;
+            DOM.aiStatus.textContent = t.aiText;
+            DOM.btnNext.textContent = t.next;
+            DOM.lblHand.textContent = t.hand;
+            DOM.modalClose.textContent = t.close;
+            renderHand();
+            updateUI();
         }
-    }
 
-    // 反乱/革命イベント（結束度0時に高確率発動、または通常イベントとして）
-    function triggerRebellion() {
-        addLog("【警告】社会的結束の欠如により「反乱/革命」が発生しました！", "log-danger");
-        
-        // 支配力によるダメージ軽減計算 (支配力が高いほど被害が減る)
-        // 支配力100でダメージを最大50%カット
-        const dmgReduction = Math.min(0.5, state.dominance / 200);
-        
-        const basePopLossRatio = 0.4; // 基本人口被害40%
-        const actualPopLossRatio = basePopLossRatio * (1 - dmgReduction);
-        
-        const popLoss = Math.floor(state.population * actualPopLossRatio);
-        const prodLoss = Math.floor(state.production * 0.3 * (1 - dmgReduction));
+        function computeKinshipAndSocialStructure() {
+            const comp = state.complexity;
+            const ineq = state.inequality;
+            const mode = state.mode;
+            const stage = computeCurrentStageKey();
 
-        state.population -= popLoss;
-        state.production -= prodLoss;
-        state.dominance = Math.max(0, state.dominance - 15);
+            let kinship = "";
+            let socStruct = "";
 
-        addLog(`反乱/革命の惨禍: 人口が ${popLoss} 減少、余剰生産力が ${prodLoss} 減少しました。(支配力による被害軽減: Math.floor(dmgReduction * 100)%)`, "log-danger");
-    }
+            if (state.lang === 'ja') {
+                if (stage === 'band') {
+                    kinship = "内婚的バンド構造（血縁を中心とした小規模集団）";
+                    socStruct = "平等主義的共同体（所有概念なし・即時消費）";
+                } else if (stage === 'tribe') {
+                    kinship = "二分組織・限定交換（血縁・互恵的婚姻関係）";
+                    socStruct = "環濠・村落複合体（長老会による土地・資源調整）";
+                } else if (stage === 'chiefdom') {
+                    kinship = "一般交換・首長系譜による婚姻同盟";
+                    socStruct = "階層化首長制社会（世襲首長・貢納・大型造営）";
+                } else {
+                    kinship = "複合的階層化親族体系（身分内婚の定着）";
+                    socStruct = "中央集権的領域国家・官僚制（成文法・税制）";
+                }
+            } else {
+                if (stage === 'band') {
+                    kinship = "Endogamous Band Structure";
+                    socStruct = "Egalitarian Kin Community";
+                } else if (stage === 'tribe') {
+                    kinship = "Dual / Restricted Exchange System";
+                    socStruct = "Reciprocal Village Alliance";
+                } else if (stage === 'chiefdom') {
+                    kinship = "Generalized Exchange System";
+                    socStruct = "Stratified Chiefdom";
+                } else {
+                    kinship = "Complex Stratified Kinship";
+                    socStruct = "Centralized State";
+                }
+            }
 
-    // アクション：無償の贈与
-    function actionDirectGift() {
-        const cost = 20;
-        if (state.production < cost) {
-            alert("生産力が足りません。");
-            return;
+            return { kinship, socStruct };
         }
-        state.production -= cost;
-        state.totalGifts += cost;
-        
-        // 効果: 支配力増加、結束度微増
-        const domGain = 3;
-        const cohGain = 5;
-        state.dominance += domGain;
-        state.cohesion = Math.min(100, state.cohesion + cohGain);
 
-        addLog(`無償の贈与を行いました。財を配ることで支配力が ${domGain} 上昇し、結束度が ${cohGain} 回復しました。`, "log-success");
-        updateUI();
-    }
+        function computeCurrentStageKey() {
+            const comp = state.complexity;
+            const gifts = state.giftCount;
 
-    // アクション：ポトラッチ開催
-    function actionPotlatch() {
-        const cost = 80;
-        if (state.production < cost) return;
+            if (comp >= 40 && gifts >= STAGE_REQ_GIFTS.state) return 'state';
+            if (comp >= 30 && gifts >= STAGE_REQ_GIFTS.chiefdom) return 'chiefdom';
+            if (comp >= 20 && gifts >= STAGE_REQ_GIFTS.tribe) return 'tribe';
+            return 'band';
+        }
 
-        state.production -= cost;
-        state.totalGifts += cost;
+        function enforceMinComplexity() {
+            const currentStage = computeCurrentStageKey();
+            const minComp = STAGE_MIN_COMPLEXITY[currentStage] || 10;
+            if (state.complexity < minComp) {
+                state.complexity = minComp;
+            }
+        }
 
-        // 効果: 支配力大幅増、社会的複雑度上昇、結束度上昇
-        const domGain = 12;
-        const compGain = 5;
-        const cohGain = 10;
+        function renderHand() {
+            while (DOM.cardsBox.firstChild) {
+                DOM.cardsBox.removeChild(DOM.cardsBox.firstChild);
+            }
 
-        state.dominance += domGain;
-        state.complexity += compGain;
-        state.cohesion = Math.min(100, state.cohesion + cohGain);
+            if (state.isGameOver) return;
 
-        addLog(`盛大なポトラッチを開催！財の破壊と過剰贈与により、威信と支配力が ${domGain}、複雑度が ${compGain} 上昇しました。`, "log-success");
-        updateUI();
-    }
-
-    // アクション：共同労働（小規模墳）
-    function actionLaborSmall() {
-        const prodCost = 40;
-        if (state.production < prodCost) return;
-
-        state.production -= prodCost;
-        
-        // 小規模な協働労働効果
-        const compGain = 4;
-        const cohGain = 8;
-        state.complexity += compGain;
-        state.cohesion = Math.min(100, state.cohesion + cohGain);
-
-        addLog(`共同労働（小規模墳）を実施。集団の協働により複雑度が ${compGain}、結束度が ${cohGain} 上昇しました。`);
-        updateUI();
-    }
-
-    // アクション：共同労働（古墳造営）
-    function actionLaborLarge() {
-        const prodCost = 150;
-        if (state.production < prodCost || state.population < 150) return;
-
-        state.production -= prodCost;
-
-        // 大規模な古墳造営効果（小規模より大幅に高い）
-        const compGain = 15;
-        const cohGain = 20;
-        const domGain = 10;
-
-        state.complexity += compGain;
-        state.cohesion = Math.min(100, state.cohesion + cohGain);
-        state.dominance += domGain;
-
-        addLog(`大規模な共同労働（古墳造営）を達成！圧倒的な権威の象徴により、複雑度 ${compGain}、結束度 ${cohGain}、支配力 ${domGain} が上昇しました。`, "log-success");
-        updateUI();
-    }
-
-    // アクション：広域祭典
-    function actionFestival() {
-        const cost = 80;
-        if (state.production < cost) return;
-
-        state.production -= cost;
-
-        // 強化された効果：大幅な結束度上昇、支配力増、複雑度増
-        const cohGain = 25;
-        const domGain = 8;
-        const compGain = 6;
-
-        state.cohesion = Math.min(100, state.cohesion + cohGain);
-        state.dominance += domGain;
-        state.complexity += compGain;
-
-        addLog(`広域祭典を開催！聖なる儀式と祝宴により人々の統合が深まり、結束度が ${cohGain}、支配力が ${domGain} 大幅に強化されました。`, "log-success");
-        updateUI();
-    }
-
-    // 社会形態進化
-    function actionEvolve() {
-        const currentStage = STAGES[state.stageIndex];
-        if (!currentStage.evolveReq) return;
-
-        const req = currentStage.evolveReq;
-        if (state.population >= req.pop && state.totalGifts >= req.gift && state.production >= req.prod) {
-            state.stageIndex++;
-            const newStage = STAGES[state.stageIndex];
+            const t = I18N[state.lang] || I18N.ja;
             
-            // 最低社会的複雑度を即時適用
-            state.complexity = Math.max(state.complexity, newStage.minComplexity);
-            state.cohesion = 100; // 進化時に結束度フル回復
+            cards.forEach(cardObj => {
+                const key = cardObj.id;
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                
+                let isExecutable = true;
+                let reqMsg = "";
 
-            addLog(`【社会進化】贈与ネットワークの拡大と成長により、社会形態が「${newStage.name}」へ進化しました！`, "log-success");
-            updateUI();
+                if (key === 'potlatch') {
+                    if (state.complexity < 30 || state.inequality < 40 || state.food < 50 || state.tools < 20) {
+                        isExecutable = false;
+                        reqMsg = t.reqPotlatch;
+                    }
+                } else if (key === 'panhellenic_games') {
+                    if (state.complexity < 20 || state.food < 80 || state.tools < 30) {
+                        isExecutable = false;
+                        reqMsg = t.reqPanhellenic;
+                    }
+                } else if (key === 'megalith_small') {
+                    if (state.population < 30 || state.food < 40 || state.tools < 15) {
+                        isExecutable = false;
+                        reqMsg = t.reqMegalithSmall;
+                    }
+                } else if (key === 'megalith_construction') {
+                    if (state.population < 100 || state.food < 150 || state.tools < 50) {
+                        isExecutable = false;
+                        reqMsg = t.reqMegalith;
+                    }
+                } else if (key === 'ritual') {
+                    if (state.food < 20) {
+                        isExecutable = false;
+                        reqMsg = t.reqRitual;
+                    }
+                } else if (key === 'universalServices') {
+                    if (state.food < 30 || state.tools < 15) {
+                        isExecutable = false;
+                        reqMsg = "食料30, 道具15が必要";
+                    }
+                } else if (key === 'commons') {
+                    if (state.food < 15 || state.tools < 15) {
+                        isExecutable = false;
+                        reqMsg = "食料15, 道具15が必要";
+                    }
+                }
+
+                if (!isExecutable) {
+                    cardEl.classList.add('disabled');
+                }
+
+                let cardName = (t.cards[key] && t.cards[key].name) || key;
+                let cardDesc = (t.cards[key] && t.cards[key].desc) || "";
+
+                cardEl.innerHTML = `
+                    <div class="card-title">${cardName}</div>
+                    <div class="card-desc">${cardDesc}</div>
+                    ${reqMsg ? `<div class="card-req">${reqMsg}</div>` : ''}
+                `;
+
+                if (isExecutable) {
+                    cardEl.addEventListener('click', () => playCard(key));
+                }
+
+                DOM.cardsBox.appendChild(cardEl);
+            });
         }
-    }
 
-    function disableAllButtons() {
-        const buttons = document.querySelectorAll("button");
-        buttons.forEach(btn => btn.disabled = true);
-    }
-</script>
+        function playCard(cardId) {
+            if (state.isGameOver) return;
 
+            let logText = "";
+            const t = I18N[state.lang] || I18N.ja;
+
+            if (cardId === 'accumulate') {
+                state.freeGiftStreak = 0;
+                state.population += 2;
+                state.food += state.mode === 'agrarian' ? 40 : 30;
+                state.tools += 5;
+                state.complexity += 1;
+                state.inequality = Math.min(100, state.inequality + 4);
+                logText = state.lang === 'ja' ? "資源蓄積を行いました。人口・食料・道具・複雑度と格差が上昇しました。" : "Accumulated resources.";
+            } else if (cardId === 'directGift') {
+                state.freeGiftStreak = 0;
+                state.giftCount += 1;
+                state.inequality = Math.max(0, state.inequality - 5);
+                state.cohesion = Math.min(100, state.cohesion + 8);
+                state.dominance += 5;
+                state.food = Math.max(0, state.food - 10);
+                logText = state.lang === 'ja' ? "直接贈与を実施。食料を分配し格差低下・結束力強化・支配力+5。" : "Executed direct gift (+5 Dominance).";
+            } else if (cardId === 'obligatory') {
+                state.freeGiftStreak = 0;
+                state.giftCount += 1;
+                state.cohesion = Math.min(100, state.cohesion + 5);
+                state.dominance += 3;
+                state.complexity += 1;
+                logText = state.lang === 'ja' ? "義務的返礼のネットワークを強化。安定した相互関係と確実な統合が維持されています。" : "Maintained obligatory reciprocity.";
+            } else if (cardId === 'universalServices') {
+                state.freeGiftStreak = 0;
+                state.food = Math.max(0, state.food - 30);
+                state.tools = Math.max(0, state.tools - 15);
+                state.inequality = Math.max(0, state.inequality - 15);
+                state.cohesion = Math.min(100, state.cohesion + 12);
+                state.complexity += 3;
+                logText = state.lang === 'ja' ? "公共基盤の無償化・低価格化により、生活品質の格差が解消されました。" : "Implemented universal services.";
+            } else if (cardId === 'commons') {
+                state.freeGiftStreak = 0;
+                state.food = Math.max(0, state.food - 15);
+                state.tools = Math.max(0, state.tools - 15);
+                state.inequality = Math.max(0, state.inequality - 10);
+                state.cohesion = Math.min(100, state.cohesion + 16);
+                logText = state.lang === 'ja' ? "コモンズの復活により共有財が広がり、共同体の連携が緊密化しました。" : "Revived the commons.";
+            } else if (cardId === 'ritual') {
+                state.freeGiftStreak = 0;
+                state.cohesion = Math.min(100, state.cohesion + 15);
+                state.food = Math.max(0, state.food - 20);
+                logText = state.lang === 'ja' ? "聖なる祭祀の執り行いにより、人々の社会的結束度が向上しました。" : "Performed ritual worship.";
+            } else if (cardId === 'potlatch') {
+                state.freeGiftStreak = 0;
+                state.giftCount += 1;
+                state.food = Math.max(0, state.food - 50);
+                state.tools = Math.max(0, state.tools - 20);
+                state.inequality = Math.max(0, state.inequality - 25);
+                state.dominance += 25;
+                state.cohesion = Math.min(100, state.cohesion + 10);
+                logText = state.lang === 'ja' ? "過剰贈与（ポトラッチ）を開催！格差が大幅リセットされ、威信と支配力が急上昇（支配力+25）！" : "Executed Potlatch (+25 Dominance)!";
+            } else if (cardId === 'panhellenic_games') {
+                state.freeGiftStreak = 0;
+                state.food = Math.max(0, state.food - 80);
+                state.tools = Math.max(0, state.tools - 30);
+                state.cohesion = Math.min(100, state.cohesion + 25);
+                state.dominance += 20;
+                state.externalTension = Math.max(0, state.externalTension - 50);
+                logText = state.lang === 'ja' ? "広域祭典が大成功を収めました！結束度+25、支配力+20、外部摩擦が大幅緩和！" : "Hosted Panhellenic Games (+20 Dominance)!";
+            } else if (cardId === 'megalith_small') {
+                state.freeGiftStreak = 0;
+                state.food = Math.max(0, state.food - 40);
+                state.tools = Math.max(0, state.tools - 15);
+                state.cohesion = Math.min(100, state.cohesion + 18);
+                state.dominance += 8;
+                logText = state.lang === 'ja' ? "小規模な墳墓の共同造営を完了。地元の結束度と威信が向上しました。" : "Constructed a small mound (+8 Dominance).";
+            } else if (cardId === 'megalith_construction') {
+                state.freeGiftStreak = 0;
+                state.food = Math.max(0, state.food - 150);
+                state.tools = Math.max(0, state.tools - 50);
+                state.cohesion = Math.min(100, state.cohesion + 40);
+                state.dominance += 15;
+                logText = state.lang === 'ja' ? "巨大な古墳の造営を達成！共同体の強力な結束力と王権の威信が示されました。" : "Completed massive Megalith Work (+15 Dominance).";
+            } else if (cardId === 'freeGift') {
+                state.freeGiftStreak += 1;
+                state.giftCount += 1;
+                state.dominance += 10;
+                state.inequality = Math.max(0, state.inequality - 8);
+                if (state.freeGiftStreak >= 2) {
+                    state.cohesion = Math.max(0, state.cohesion - 20);
+                    addLog(t.warnFreeGift || "一方的な無償贈与の連投により依存と負い目が発生！結束度が急激に低下しています。", 'warn');
+                } else {
+                    state.cohesion = Math.min(100, state.cohesion + 2);
+                }
+                logText = state.lang === 'ja' ? "無償の贈与を実施。見返りを求めない姿勢で支配力が向上(+10)。" : "Executed pure free gift (+10 Dominance).";
+            }
+
+            enforceMinComplexity();
+            addLog(logText, 'action');
+            processTurn(cardId);
+        }
+
+        function triggerRandomEvent() {
+            if (state.isGameOver) return;
+            
+            const roll = Math.random();
+            if (roll < 0.12) {
+                const foodLoss = Math.floor(state.food * 0.3) + 10;
+                state.food = Math.max(0, state.food - foodLoss);
+                state.cohesion = Math.max(0, state.cohesion - 10);
+                addLog(`【自然災害】干ばつと飢饉が発生！ 食料-${foodLoss}、結束度-10`, 'event');
+            } else if (roll < 0.22) {
+                const popLoss = Math.floor(state.population * 0.15) + 5;
+                const toolLoss = Math.floor(state.tools * 0.2) + 5;
+                state.population = Math.max(0, state.population - popLoss);
+                state.tools = Math.max(0, state.tools - toolLoss);
+                state.cohesion = Math.max(0, state.cohesion - 15);
+                addLog(`【外部侵略】他勢力からの襲撃！ 人口-${popLoss}、道具-${toolLoss}、結束度-15`, 'event');
+            } else if (roll < 0.30) {
+                const toolGain = Math.floor(state.tools * 0.5) + 15;
+                const foodGain = Math.floor(state.food * 0.3) + 20;
+                state.tools += toolGain;
+                state.food += foodGain;
+                state.complexity += 2;
+                addLog(`【渡来人到来】高度な技術を持つ渡来人が流入！ 道具+${toolGain}、食料+${foodGain}、複雑度+2`, 'event');
+            } else if (roll < 0.36) {
+                const giftFood = 60;
+                const giftTools = 30;
+                state.food += giftFood;
+                state.tools += giftTools;
+                state.dominance += 10;
+                addLog(`【近隣帝国からの贈与】突発的な富が流入！ 食料+${giftFood}、道具+${giftTools}、支配力+10`, 'event');
+            }
+        }
+
+        function processTurn(playedCardId) {
+            if (state.isGameOver) return;
+
+            state.turn += 1;
+
+            triggerRandomEvent();
+
+            const foodNeeded = Math.floor(state.population * 0.8);
+            if (state.food >= foodNeeded) {
+                state.food -= foodNeeded;
+                state.population += Math.floor(state.population * 0.05) + 1;
+            } else {
+                const starvation = Math.floor((foodNeeded - state.food) / 2) + 1;
+                state.food = 0;
+                state.population = Math.max(0, state.population - starvation);
+                state.cohesion = Math.max(0, state.cohesion - 12);
+                addLog(`【食料不足】餓死者が発生！ 人口-${starvation}、結束度-12`, 'warn');
+            }
+
+            if (state.inequality > 50) {
+                state.cohesion = Math.max(0, state.cohesion - 3);
+            }
+
+            if (state.cohesion <= 0 && state.population > 0) {
+                const baseLossRate = 0.6;
+                const reduction = Math.min(0.5, state.dominance * 0.005); 
+                const actualLossRate = Math.max(0.1, baseLossRate - reduction);
+                
+                const popLoss = Math.floor(state.population * actualLossRate) + 5;
+                state.population = Math.max(0, state.population - popLoss);
+                state.cohesion = 20; 
+                
+                addLog(`【反乱 / 革命】社会的結束の不全により大規模反乱が発生！ 支配力(${state.dominance})により損害緩和。 人口-${popLoss}、結束が20まで一時回復。`, 'event');
+            }
+
+            enforceMinComplexity();
+
+            const prevStage = state.stage;
+            const newStageKey = computeCurrentStageKey();
+            state.stage = newStageKey;
+
+            const t = I18N[state.lang] || I18N.ja;
+
+            if (prevStage !== newStageKey) {
+                const stageName = t.stages[newStageKey] || newStageKey;
+                addLog(t.evolutionMsg.replace('{0}', stageName).replace('{1}', state.giftCount), 'evolution');
+            }
+
+            if (state.population <= 0) {
+                state.isGameOver = true;
+                addLog(t.gameOver, 'event');
+                showResultModal();
+            }
+
+            updateUI();
+            renderHand();
+        }
+
+        function updateUI() {
+            const t = I18N[state.lang] || I18N.ja;
+            DOM.valTurn.textContent = state.turn;
+            DOM.valGiftCount.textContent = state.giftCount;
+            if (DOM.valDominance) DOM.valDominance.textContent = state.dominance;
+            DOM.valComplexity.textContent = state.complexity;
+            DOM.valInequality.textContent = state.inequality + '%';
+            DOM.valCohesion.textContent = state.cohesion;
+            DOM.valPop.textContent = state.population;
+            DOM.valFood.textContent = state.food;
+            DOM.valTools.textContent = state.tools;
+
+            const currentStageKey = computeCurrentStageKey();
+            DOM.valStage.textContent = t.stages[currentStageKey] || currentStageKey;
+
+            if (DOM.barDominance) DOM.barDominance.style.width = Math.min(100, state.dominance) + '%';
+            DOM.barComplexity.style.width = Math.min(100, state.complexity) + '%';
+            DOM.barInequality.style.width = Math.min(100, state.inequality) + '%';
+            DOM.barCohesion.style.width = Math.min(100, state.cohesion) + '%';
+            DOM.barPop.style.width = Math.min(100, state.population / 2) + '%';
+            DOM.barFood.style.width = Math.min(100, state.food / 2) + '%';
+            DOM.barTools.style.width = Math.min(100, state.tools / 2) + '%';
+        }
+
+        function addLog(text, type = 'info') {
+            if (!text) return;
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[Turn ${state.turn}] ${text}`;
+            DOM.logBox.appendChild(entry);
+            DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
+        }
+
+        function showHelp() {
+            const t = I18N[state.lang] || I18N.ja;
+            DOM.modalTitle.textContent = t.help;
+            DOM.modalBody.textContent = t.helpContent;
+            DOM.modal.style.display = 'flex';
+        }
+
+        function showCurrentSocietyInfo() {
+            const t = I18N[state.lang] || I18N.ja;
+            const comp = state.complexity;
+            
+            const socDict = SOC_DATABASE[state.mode] || {};
+            const keys = Object.keys(socDict).map(Number).sort((a,b) => a - b);
+            let matchedKey = keys[0];
+            for (let k of keys) {
+                if (comp >= k) matchedKey = k;
+            }
+
+            const socData = (socDict[matchedKey] && socDict[matchedKey][state.lang]) || t.unknownSoc;
+            const { kinship, socStruct } = computeKinshipAndSocialStructure();
+
+            DOM.modalTitle.textContent = t.infoModal.title.replace('{0}', t.modes[state.mode]);
+            
+            DOM.modalBody.innerHTML = `
+                <div><strong>${t.infoModal.statusHeader}</strong></div>
+                <div>${t.infoModal.lblStage}: ${t.stages[computeCurrentStageKey()]}</div>
+                <div>${t.infoModal.lblComp}: ${state.complexity}</div>
+                <div>${t.infoModal.lblDom}: ${state.dominance}</div>
+                <div>${t.infoModal.lblIneq}: ${state.inequality}%</div>
+                <div>${t.infoModal.lblCoh}: ${state.cohesion}</div>
+                <br>
+                <div><strong>${t.infoModal.secSystem}</strong> ${socData.system}</div>
+                <div><strong>${t.infoModal.secDiff}</strong> ${socData.diff}</div>
+                <div><strong>${t.infoModal.secEx}</strong> ${socData.ex}</div>
+                <br>
+                <div class="purple-section">
+                    <div><strong>${t.infoModal.secKinship}</strong></div>
+                    <div>${kinship}</div>
+                    <br>
+                    <div><strong>${t.infoModal.secSocStruct}</strong></div>
+                    <div>${socStruct}</div>
+                </div>
+            `;
+            
+            DOM.modal.style.display = 'flex';
+        }
+
+        function showResultModal() {
+            const t = I18N[state.lang] || I18N.ja;
+            const { kinship, socStruct } = computeKinshipAndSocialStructure();
+
+            DOM.modalTitle.textContent = t.gameOver;
+            DOM.modalBody.innerHTML = `
+                <div><strong>${t.resultModal.lblMode}:</strong> ${t.modes[state.mode]}</div>
+                <div><strong>${t.resultModal.lblStage}:</strong> ${t.stages[computeCurrentStageKey()]}</div>
+                <div><strong>${t.resultModal.lblTurn}:</strong> ${state.turn}</div>
+                <div><strong>${t.resultModal.lblGift}:</strong> ${state.giftCount}</div>
+                <div><strong>${t.resultModal.lblDom}:</strong> ${state.dominance}</div>
+                <div><strong>${t.resultModal.lblComp}:</strong> ${state.complexity}</div>
+                <br>
+                <div class="purple-section">
+                    <div><strong>${t.resultModal.lblKinship}:</strong> ${kinship}</div>
+                    <div><strong>${t.resultModal.lblSocStruct}:</strong> ${socStruct}</div>
+                </div>
+            `;
+            DOM.modal.style.display = 'flex';
+        }
+
+        function hideModal() {
+            DOM.modal.style.display = 'none';
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    })();
+    </script>
 </body>
 </html>
