@@ -545,7 +545,7 @@
                     zh: { system: "部落制农耕社会", diff: "祖先崇拜与仪式性再分配。特定家族开始承担再分配的核心角色。", ex: "弥生时代中期（环濠聚落）、新西兰毛利人传统社会" },
                     ko: { system: "부족제 농경 사회", diff: "조상 숭배와 의례적 재분배. 특정 가계가 재분배의 중심 역할 담당.", ex: "야요이 시대 중기(환호 집락), 뉴질랜드 마오리족 전통 사회" },
                     fr: { system: "Société tribale agricole", diff: "Culte des ancêtres et redistribution rituelle. Émergence de lignées centrales.", ex: "Yayoi moyen (villages entourés de fossés), Société maorie" },
-                    es: { system: "Sociedad tribal agrícola", diff: "Culto a los antepasados y redistribución ritual. Linajes principales organizan recursos.", ex: "Yayoi Medio (asentamientos con foso), sociedad tradicional maorí" }
+                    es: { system: "Sociedad tribal agrícola", diff: "Culto a los antepasados y redistribución ritual. Linajes principales organizan recursos.", ex: "Periodo Yayoi Medio (asentamientos con foso), sociedad tradicional maorí" }
                 },
                 25: {
                     ja: { system: "初期首長制（統合部族）", diff: "農産物・金属器の集積と長による再分配。地域間の小規模な対立と交易の拡大。", ex: "弥生時代後期（吉野ヶ里遺跡等）、青銅器時代初期ヨーロッパ" },
@@ -626,6 +626,7 @@
                 reqMegalithSmall: "条件: 人口30以上, 食料40以上, 道具15以上",
                 reqRitual: "条件: 食料20以上",
                 reqFreeGift: "条件: なし（連投で不満発生）",
+                reqProductionRev: "条件: 道具10000以上",
                 evolutionMsg: "【社会進化】贈与のネットワーク強化({1}回)と成長により社会構造が「{0}」へと移行しました！",
                 modes: { forager: "狩猟採集社会", agrarian: "農耕社会" },
                 infoModal: {
@@ -670,7 +671,8 @@
                     panhellenic_games: { name: "広域祭典(オリンピック)", desc: "周辺グループを招いた平和的祭典。外部摩擦を緩和し結束と支配力を強化。" },
                     megalith_small: { name: "共同労働（小規模墳）", desc: "手頃な規模で労働力を集結。結束度と支配力を少し上昇させる。" },
                     megalith_construction: { name: "共同労働（古墳造営）", desc: "巨大古墳を造営。結束度と支配力を劇的に上昇させる。" },
-                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。支配力が上昇するが、連投で結束崩壊。" }
+                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。支配力が上昇するが、連投で結束崩壊。" },
+                    productionRevolution: { name: "生産革命", desc: "余剰な道具10000を技術革新により食糧1000に変換します。" }
                 },
                 helpContent: "【ゲームの概要】\n本ゲームは贈与と交換ネットワークによる社会進化をシミュレートするゲームです。\n\n【基本ルール】\n・社会的結束度が0になるとイベント「反乱/革命」が発生し人口が激減します。\n・支配力が高いほど「反乱/革命」による被害（人口減少）を抑えられます。\n・人口が0になると社会が完全崩壊（ゲームオーバー）します。\n・上位の社会形態へ進歩するには社会的複雑度だけでなく「一定の贈与累積回数」が必要です。"
             },
@@ -701,6 +703,7 @@
                 reqMegalithSmall: "Req: Pop≥30, Food≥40, Tools≥15",
                 reqRitual: "Req: Food ≥20",
                 reqFreeGift: "Req: None",
+                reqProductionRev: "Req: Tools ≥ 10000",
                 evolutionMsg: "[EVOLUTION] Through gift networking ({1} gifts) and growth, society evolved to '{0}'!",
                 modes: { forager: "Forager Society", agrarian: "Agrarian Society" },
                 infoModal: {
@@ -745,7 +748,8 @@
                     panhellenic_games: { name: "Panhellenic Games", desc: "Host regional games to ease tensions and boost cohesion & dominance." },
                     megalith_small: { name: "Mound Work", desc: "Construct small mounds requiring modest resources to build cohesion & dominance." },
                     megalith_construction: { name: "Megalith Work", desc: "Construct massive mounds requiring major resources to dramatically boost cohesion & dominance." },
-                    freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Increases dominance, but repeated use breaks cohesion." }
+                    freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Increases dominance, but repeated use breaks cohesion." },
+                    productionRevolution: { name: "Production Revolution", desc: "Converts 10000 surplus tools into 1000 food through technological innovation." }
                 },
                 helpContent: "Simulate society evolution through gift networks.\nCohesion 0 triggers Revolts/Revolutions! Higher Dominance reduces revolt casualties."
             }
@@ -762,7 +766,8 @@
             { id: "panhellenic_games" },
             { id: "megalith_small" },
             { id: "megalith_construction" },
-            { id: "freeGift" }
+            { id: "freeGift" },
+            { id: "productionRevolution" }
         ];
 
         let state = {
@@ -781,7 +786,9 @@
             freeGiftStreak: 0,
             isGameOver: false,
             dissatisfaction: 0,
-            externalTension: 50
+            externalTension: 50,
+            recentColdWave: false,
+            recentRebellion: false
         };
 
         const DOM = {
@@ -866,6 +873,8 @@
             state.isGameOver = false;
             state.dissatisfaction = 0;
             state.externalTension = 50;
+            state.recentColdWave = false;
+            state.recentRebellion = false;
             DOM.logBox.innerHTML = '';
             renderHand();
             updateUI();
@@ -1008,6 +1017,11 @@
                         isExecutable = false;
                         reqMsg = "食料15, 道具15が必要";
                     }
+                } else if (key === 'productionRevolution') {
+                    if (state.tools < 10000) {
+                        isExecutable = false;
+                        reqMsg = t.reqProductionRev;
+                    }
                 }
 
                 if (!isExecutable) {
@@ -1123,6 +1137,12 @@
                     state.cohesion = Math.min(100, state.cohesion + 2);
                 }
                 logText = state.lang === 'ja' ? "無償の贈与を実施。見返りを求めない姿勢で支配力が向上(+10)。" : "Executed pure free gift (+10 Dominance).";
+            } else if (cardId === 'productionRevolution') {
+                state.freeGiftStreak = 0;
+                state.tools -= 10000;
+                state.food += 1000;
+                state.complexity += 5;
+                logText = state.lang === 'ja' ? "【生産革命】技術革新により道具10000を食糧1000に変換しました！社会的複雑度+5。" : "Executed Production Revolution!";
             }
 
             enforceMinComplexity();
@@ -1134,18 +1154,34 @@
             if (state.isGameOver) return;
             
             const roll = Math.random();
-            if (roll < 0.12) {
+            if (roll < 0.05) {
+                state.recentColdWave = true;
+                const popLoss = Math.floor(state.population * 0.4) + 10;
+                const foodLoss = Math.floor(state.food * 0.8);
+                state.population = Math.max(0, state.population - popLoss);
+                state.food = Math.max(0, state.food - foodLoss);
+                state.cohesion = Math.max(0, state.cohesion - 30);
+                addLog(`【災害「大寒波」】未曽有の極寒が社会を襲う！ 人口-${popLoss}、食料-${foodLoss}、結束度-30`, 'event');
+            } else if (roll < 0.12) {
                 const foodLoss = Math.floor(state.food * 0.3) + 10;
                 state.food = Math.max(0, state.food - foodLoss);
                 state.cohesion = Math.max(0, state.cohesion - 10);
                 addLog(`【自然災害】干ばつと飢饉が発生！ 食料-${foodLoss}、結束度-10`, 'event');
             } else if (roll < 0.22) {
-                const popLoss = Math.floor(state.population * 0.15) + 5;
-                const toolLoss = Math.floor(state.tools * 0.2) + 5;
+                let popLossMult = 0.15;
+                let baseToolLoss = 5;
+                let extraMsg = "";
+                if (state.recentColdWave && state.recentRebellion) {
+                    popLossMult = 0.85;
+                    baseToolLoss = 50;
+                    extraMsg = "（大寒波→反乱→侵略の三重苦により社会構造が壊滅！）";
+                }
+                const popLoss = Math.floor(state.population * popLossMult) + 5;
+                const toolLoss = Math.floor(state.tools * 0.2) + baseToolLoss;
                 state.population = Math.max(0, state.population - popLoss);
                 state.tools = Math.max(0, state.tools - toolLoss);
                 state.cohesion = Math.max(0, state.cohesion - 15);
-                addLog(`【外部侵略】他勢力からの襲撃！ 人口-${popLoss}、道具-${toolLoss}、結束度-15`, 'event');
+                addLog(`【外部侵略】他勢力からの襲撃！${extraMsg} 人口-${popLoss}、道具-${toolLoss}、結束度-15`, 'event');
             } else if (roll < 0.30) {
                 const toolGain = Math.floor(state.tools * 0.5) + 15;
                 const foodGain = Math.floor(state.food * 0.3) + 20;
@@ -1187,6 +1223,7 @@
             }
 
             if (state.cohesion <= 0 && state.population > 0) {
+                state.recentRebellion = true;
                 const baseLossRate = 0.6;
                 const reduction = Math.min(0.5, state.dominance * 0.005); 
                 const actualLossRate = Math.max(0.1, baseLossRate - reduction);
