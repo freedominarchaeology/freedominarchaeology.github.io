@@ -642,7 +642,7 @@
                 95: {
                     ja: { system: "システム不全寸前文明", diff: "資源の枯渇、極度な格差、信頼の失墜により社会基盤が完全に目詰まりした状態。", ex: "マヤ文明末期（古典期崩壊直前）" },
                     en: { system: "Near-System Collapse Civ", diff: "Resource depletion, extreme gap, loss of trust. Social foundation is completely clogged.", ex: "Terminal Classic Maya civilization (pre-collapse)" },
-                    zh: { system: "系统失灵边缘文明", diff: "资源枯竭、极度贫富差距、信任破产导致社会基石完全瘫痪。", ex: "玛雅文明末期（古典期崩溃前夕）" },
+                    zh: { system: "系统失灵边缘文明", diff: "资源枯枯竭、极度贫富差距、信任破产导致社会基石完全瘫痪。", ex: "玛雅文明末期（古典期崩溃前夕）" },
                     ko: { system: "시스템 기능 마비 직전 문명", diff: "자원 고갈, 극심한 격차, 신뢰 실추로 사회 기반이 완전히 마비된 상태.", ex: "마야 문명 말기(고전기 붕괴 직전)" },
                     fr: { system: "Civilisation au bord de l'effondrement", diff: "Épuisement des ressources, fossé extrême, perte de confiance. Blocage total.", ex: "Civilisation maya classique tardive (avant effondrement)" },
                     es: { system: "Civilización al borde del colapso", diff: "Agotamiento de recursos, desigualdad extrema, pérdida de confianza. Parálisis total.", ex: "Maya Clásico Terminal (previo al colapso)" }
@@ -1551,67 +1551,80 @@
             const comp = state.complexity;
             const ineq = state.inequality;
             const mode = state.mode;
+            const stage = computeCurrentStageKey();
 
             let kinship = "";
             let socStruct = "";
 
             if (state.lang === 'ja') {
-                // 親族構造の判定
-                if (pop < 50 && comp < 20) {
+                // 最終到達段階（社会形態）に応じた厳密な整合性の確保
+                if (stage === 'band') {
                     kinship = "内婚的バンド構造（近親婚禁忌未分離・小規模血縁集団）";
-                } else if (comp >= 20 && comp < 45) {
-                    if (mode === 'agrarian' && ineq > 30) {
+                    socStruct = "平等主義的血縁共同体（即時消費・所有概念なし）";
+                } else if (stage === 'tribe') {
+                    if (mode === 'agrarian' && ineq > 25) {
                         kinship = "限定交換（Restricted Exchange / 二分組織・直接の婚姻交換サイクル Cm=2, Cd≥2）";
                     } else {
                         kinship = "二分組織（Dual Organization / 2氏族間での直接の女性交換 Cm=2, Cd=1）";
                     }
-                } else if (comp >= 45 && comp < 70) {
-                    kinship = "一般交換（Generalized Exchange / 多氏族間の間接的循環婚姻 Cm≥3, Cd=1）";
-                } else {
-                    kinship = "複合的階層化親族体系（単系・双系継承の混在および階級内婚の定着）";
-                }
-
-                // 社会構造の判定
-                if (comp < 20) {
-                    socStruct = "平等主義的血縁共同体（即時消費・所有概念なし）";
-                } else if (comp < 40) {
                     socStruct = "互恵的環濠・村落複合体（長老会による土地・資源調整）";
-                } else if (comp < 65) {
+                } else if (stage === 'chiefdom') {
+                    if (comp >= 35) {
+                        kinship = "一般交換（Generalized Exchange / 多氏族間の間接的循環婚姻 Cm≥3, Cd=1）";
+                    } else {
+                        kinship = "限定交換・首長系譜による婚姻同盟";
+                    }
                     socStruct = "階層化首長制社会（世襲首長・貢納制・大規模モニュメント造営）";
                 } else {
+                    // state
+                    kinship = "複合的階層化親族体系（単系・双系継承の混在および階級内婚の定着）";
                     socStruct = "中央集権的領域国家・官僚制（成文法・税制・専門分業構造）";
                 }
             } else if (state.lang === 'en') {
-                if (pop < 50 && comp < 20) {
+                if (stage === 'band') {
                     kinship = "Endogamous Band Structure (Small kin group, early incest norm)";
-                } else if (comp >= 20 && comp < 45) {
-                    kinship = (mode === 'agrarian' && ineq > 30) ? 
+                    socStruct = "Egalitarian Kinship Community";
+                } else if (stage === 'tribe') {
+                    kinship = (mode === 'agrarian' && ineq > 25) ? 
                         "Restricted Exchange (Direct bride exchange with multi-generation cycles Cm=2, Cd≥2)" :
                         "Dual Organization (Direct bride exchange between two clans Cm=2, Cd=1)";
-                } else if (comp >= 45 && comp < 70) {
-                    kinship = "Generalized Exchange (Indirect marital cycle across multiple clans Cm≥3, Cd=1)";
+                    socStruct = "Reciprocal Village Alliance";
+                } else if (stage === 'chiefdom') {
+                    kinship = (comp >= 35) ?
+                        "Generalized Exchange (Indirect marital cycle across multiple clans Cm≥3, Cd=1)" :
+                        "Restricted Exchange with Chiefly Lineage Alliances";
+                    socStruct = "Stratified Chiefdom Society";
                 } else {
                     kinship = "Complex Stratified Kinship System (Endogamous class structure)";
+                    socStruct = "Centralized Territorial State";
                 }
-
-                if (comp < 20) socStruct = "Egalitarian Kinship Community";
-                else if (comp < 40) socStruct = "Reciprocal Village Alliance";
-                else if (comp < 65) socStruct = "Stratified Chiefdom Society";
-                else socStruct = "Centralized Territorial State";
             } else {
-                // その他言語向けフォールバック（英語表記ベース）
-                if (pop < 50 && comp < 20) kinship = "Endogamous Band Structure";
-                else if (comp < 45) kinship = "Restricted / Dual Exchange System";
-                else if (comp < 70) kinship = "Generalized Exchange System";
-                else kinship = "Complex Stratified Kinship";
-
-                if (comp < 20) socStruct = "Egalitarian Kin Community";
-                else if (comp < 40) socStruct = "Reciprocal Village Alliance";
-                else if (comp < 65) socStruct = "Stratified Chiefdom";
-                else socStruct = "Centralized State";
+                // その他言語向けフォールバック
+                if (stage === 'band') {
+                    kinship = "Endogamous Band Structure";
+                    socStruct = "Egalitarian Kin Community";
+                } else if (stage === 'tribe') {
+                    kinship = "Restricted / Dual Exchange System";
+                    socStruct = "Reciprocal Village Alliance";
+                } else if (stage === 'chiefdom') {
+                    kinship = "Generalized Exchange System";
+                    socStruct = "Stratified Chiefdom";
+                } else {
+                    kinship = "Complex Stratified Kinship";
+                    socStruct = "Centralized State";
+                }
             }
 
             return { kinship, socStruct };
+        }
+
+        // 現在の条件に基づき社会段階（band/tribe/chiefdom/state）のキーを厳密に計算
+        function computeCurrentStageKey() {
+            const comp = state.complexity;
+            if (comp < 20) return 'band';
+            if (comp < 30) return 'tribe';
+            if (comp < 40) return 'chiefdom';
+            return 'state';
         }
 
         function renderHand() {
@@ -1667,304 +1680,263 @@
                     cardEl.classList.add('disabled');
                 }
 
-                const cardData = t.cards[key] || { name: cardObj.name || key, desc: cardObj.description || "" };
+                const titleEl = document.createElement('div');
+                titleEl.className = 'card-title';
+                titleEl.textContent = cardObj.name || t.cards[key]?.name || key;
 
-                const title = document.createElement('div');
-                title.className = 'card-title';
-                title.textContent = cardData.name;
+                const descEl = document.createElement('div');
+                descEl.className = 'card-desc';
+                descEl.textContent = cardObj.description || t.cards[key]?.desc || "";
 
-                const desc = document.createElement('div');
-                desc.className = 'card-desc';
-                desc.textContent = cardData.desc;
+                cardEl.appendChild(titleEl);
+                cardEl.appendChild(descEl);
 
-                cardEl.appendChild(title);
-                cardEl.appendChild(desc);
-
-                if (reqMsg) {
-                    const req = document.createElement('div');
-                    req.className = 'card-req';
-                    req.textContent = reqMsg;
-                    cardEl.appendChild(req);
+                if (!isExecutable && reqMsg) {
+                    const reqEl = document.createElement('div');
+                    reqEl.className = 'card-req';
+                    reqEl.textContent = reqMsg;
+                    cardEl.appendChild(reqEl);
                 }
 
                 if (isExecutable) {
-                    cardEl.addEventListener('click', () => processTurn(key));
+                    cardEl.addEventListener('click', () => processTurn(cardObj));
                 }
+
                 DOM.cardsBox.appendChild(cardEl);
             });
         }
 
-        function processTurn(actionKey) {
+        function processTurn(selectedCard) {
             if (state.isGameOver) return;
 
-            const t = I18N[state.lang];
-            
-            if (actionKey) {
-                applyCardEffect(actionKey);
-                const cardName = t.cards[actionKey] ? t.cards[actionKey].name : actionKey;
-                addLog(`[Turn ${state.turn}] ${cardName}`, 'action');
+            let actionLogMsg = "";
+            let logType = "action";
+
+            if (selectedCard) {
+                if (selectedCard.effect) {
+                    actionLogMsg = selectedCard.effect(state);
+                } else if (selectedCard.id === 'accumulate') {
+                    state.population += 5;
+                    state.food += 20;
+                    state.tools += 5;
+                    state.complexity += 2;
+                    state.inequality += 4;
+                    state.freeGiftStreak = 0;
+                    actionLogMsg = "資源の蓄積を推進しました。(人口+5, 食料+20, 道具+5, 複雑度+2, 格差+4%)";
+                } else if (selectedCard.id === 'directGift') {
+                    state.food = Math.max(0, state.food - 15);
+                    state.tools = Math.max(0, state.tools - 5);
+                    state.inequality = Math.max(0, state.inequality - 8);
+                    state.cohesion = Math.min(100, state.cohesion + 10);
+                    state.giftCount += 1;
+                    state.freeGiftStreak = 0;
+                    actionLogMsg = "直接贈与を実施しました。(食料-15, 道具-5, 格差-8%, 結束度+10, 贈与+1)";
+                } else if (selectedCard.id === 'obligatory') {
+                    state.food = Math.max(0, state.food - 10);
+                    state.inequality = Math.max(0, state.inequality - 4);
+                    state.cohesion = Math.min(100, state.cohesion + 6);
+                    state.giftCount += 1;
+                    state.freeGiftStreak = 0;
+                    actionLogMsg = "義務的返礼を行いました。(食料-10, 格差-4%, 結束度+6, 贈与+1)";
+                } else if (selectedCard.id === 'freeGift') {
+                    state.giftCount += 1;
+                    state.freeGiftStreak += 1;
+                    if (state.freeGiftStreak >= 2) {
+                        state.cohesion = Math.max(0, state.cohesion - 25);
+                        actionLogMsg = I18N[state.lang].warnFreeGift;
+                        logType = "warn";
+                    } else {
+                        state.cohesion = Math.min(100, state.cohesion + 5);
+                        actionLogMsg = "見返りを求めない無償の贈与を行いました。";
+                    }
+                }
             } else {
                 state.freeGiftStreak = 0;
-                const baseCompGrowth = state.mode === 'agrarian' ? 3 : 1;
-                const baseIneqGrowth = state.mode === 'agrarian' ? 6 : 2;
-                state.complexity += baseCompGrowth;
-                state.inequality += baseIneqGrowth;
-                state.population += Math.floor(state.population * 0.05);
-                state.food += Math.floor(state.population * 0.8);
-                state.tools += Math.floor(state.population * 0.2);
-                addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
+                actionLogMsg = "何もせず静観しました。";
+                logType = "info";
             }
 
+            // スコア・ターン・成長計算
+            state.turn += 1;
+            state.score += Math.floor(state.complexity * 10 + state.cohesion * 2 - state.inequality * 5);
+
+            // 自然増減
+            if (state.mode === 'agrarian') {
+                state.food += Math.floor(state.population * 0.8);
+                state.inequality = Math.min(100, state.inequality + 1);
+            } else {
+                state.food += Math.floor(state.population * 0.5);
+            }
+
+            // 進化判定
             checkEvolution();
 
-            const stageMultiplier = state.stage === 'state' ? 3 : (state.stage === 'chiefdom' ? 2 : (state.stage === 'tribe' ? 1.5 : 1));
-            const turnScore = Math.floor(state.complexity * stageMultiplier * (1 + state.complexity / 50));
-            state.score += turnScore;
+            // 敗北/終了判定
+            checkGameStatus();
 
-            const ineqCoeff = state.mode === 'agrarian' ? 0.3 : 0.15;
-            state.inequality += Math.floor(state.complexity * ineqCoeff);
-            
-            if (state.inequality > 50) {
-                const penalty = Math.floor((state.inequality - 50) * 0.6);
-                state.cohesion -= penalty;
-            }
-
-            const maxComp = state.mode === 'forager' ? 45 : 100;
-            state.complexity = Math.max(10, Math.min(maxComp, state.complexity));
-            state.inequality = Math.max(0, Math.min(100, state.inequality));
-            state.cohesion = Math.max(0, Math.min(100, state.cohesion));
-
-            if (state.cohesion <= 0) {
-                state.isGameOver = true;
-                addLog(`[CRASH] ${t.gameOver}`, 'event');
-                showGameOverResult();
-            } else {
-                state.turn++;
-            }
-
+            addLog(actionLogMsg, logType);
             renderHand();
             updateUI();
         }
 
-        function applyCardEffect(key) {
-            const t = I18N[state.lang];
-            
-            if (key !== 'freeGift') {
-                state.freeGiftStreak = 0;
-            }
-
-            if (key === 'directGift' || key === 'obligatory' || key === 'potlatch' || key === 'freeGift' || key === 'panhellenic_games' || key === 'megalith_construction' || key === 'ritual' || key === 'timebank' || key === 'philanthropy') {
-                state.giftCount++;
-            }
-
-            const customCard = cards.find(c => c.id === key);
-            if (customCard && typeof customCard.effect === 'function') {
-                const logMsg = customCard.effect(state);
-                if (logMsg && state.lang === 'ja') {
-                    addLog(logMsg, 'info');
-                }
-            }
-
-            switch(key) {
-                case 'accumulate':
-                    if (state.mode === 'agrarian') {
-                        state.complexity += 14;
-                        state.inequality += 18;
-                        state.population += 15;
-                        state.food += 60;
-                        state.tools += 25;
-                    } else {
-                        state.complexity += 6;
-                        state.inequality += 8;
-                        state.population += 5;
-                        state.food += 25;
-                        state.tools += 10;
-                    }
-                    break;
-                case 'directGift':
-                    state.inequality = Math.max(0, state.inequality - 12);
-                    state.cohesion = Math.min(100, state.cohesion + (state.mode === 'forager' ? 8 : 5));
-                    state.complexity += 3;
-                    state.food = Math.max(0, state.food - 15);
-                    state.tools = Math.max(0, state.tools - 5);
-                    break;
-                case 'obligatory':
-                    state.cohesion = Math.min(100, state.cohesion + 10);
-                    state.inequality += 2;
-                    state.complexity += 4;
-                    state.food = Math.max(0, state.food - 10);
-                    break;
-                case 'potlatch':
-                    state.inequality = Math.max(0, state.inequality - 35);
-                    state.cohesion = Math.min(100, state.cohesion + 18);
-                    const compCost = state.mode === 'agrarian' ? 10 : 5;
-                    state.complexity = Math.max(10, state.complexity - compCost);
-                    break;
-                case 'panhellenic_games':
-                    state.inequality = Math.max(0, state.inequality - 20);
-                    state.cohesion = Math.min(100, state.cohesion + 25);
-                    state.complexity += 5;
-                    break;
-                case 'freeGift':
-                    state.freeGiftStreak++;
-                    if (state.freeGiftStreak >= 2) {
-                        const penalty = state.freeGiftStreak * 10;
-                        state.cohesion -= penalty;
-                        state.inequality = Math.max(0, state.inequality - 5);
-                        addLog(t.warnFreeGift, 'warn');
-                    } else {
-                        state.inequality = Math.max(0, state.inequality - 15);
-                        state.cohesion = Math.min(100, state.cohesion + 8);
-                    }
-                    break;
-            }
-        }
-
         function checkEvolution() {
-            const t = I18N[state.lang];
-            let nextStage = state.stage;
+            const oldStage = state.stage;
+            const newStageKey = computeCurrentStageKey();
 
-            if (state.stage === 'band' && state.complexity >= 25 && state.giftCount >= 3) {
-                nextStage = 'tribe';
-            } 
-            else if (state.stage === 'tribe' && state.complexity >= 50 && state.giftCount >= 8) {
-                nextStage = 'chiefdom';
-            } 
-            else if (state.stage === 'chiefdom' && state.complexity >= 80 && state.giftCount >= 15) {
-                nextStage = 'state';
-            }
-
-            if (nextStage !== state.stage) {
-                state.stage = nextStage;
-                const stageName = t.stages[nextStage];
-                const msg = t.evolutionMsg.replace('{0}', stageName);
+            if (oldStage !== newStageKey) {
+                state.stage = newStageKey;
+                const stageName = I18N[state.lang].stages[newStageKey];
+                const msg = I18N[state.lang].evolutionMsg.replace('{0}', stageName);
                 addLog(msg, 'evolution');
             }
         }
 
-        function getSocietyDetails(mode, complexity) {
-            const roundedComp = Math.max(10, Math.min(mode === 'forager' ? 45 : 100, Math.round(complexity / 5) * 5));
-            const entry = SOC_DATABASE[mode] && SOC_DATABASE[mode][roundedComp];
-            const lang = state.lang;
-            const t = I18N[lang];
-            const data = (entry && (entry[lang] || entry.ja)) || t.unknownSoc;
-            return {
-                compKey: roundedComp,
-                data: data
-            };
+        function checkGameStatus() {
+            if (state.cohesion <= 0 || state.inequality >= 100 || state.food <= 0) {
+                state.isGameOver = true;
+                addLog(I18N[state.lang].gameOver, 'event');
+                showResultModal();
+            }
         }
 
-        function showCurrentSocietyInfo() {
-            const t = I18N[state.lang];
-            const modeText = t.modes[state.mode];
-            const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
-            const infoT = t.infoModal;
-            const { kinship, socStruct } = computeKinshipAndSocialStructure();
-
-            const title = infoT.title.replace('{0}', modeText);
-            const body = `${infoT.statusHeader}
-・${infoT.lblStage}: ${t.stages[state.stage]}
-・${infoT.lblComp}: ${state.complexity} (${infoT.lblIndex}: ${compKey})
-・${infoT.lblIneq}: ${state.inequality}%
-・${infoT.lblCoh}: ${state.cohesion}
-・${t.pop}: ${state.population} | ${t.food}: ${state.food} | ${t.tools}: ${state.tools}
-
-<div class="purple-section">
-${infoT.secKinship}
-${kinship}
-
-${infoT.secSocStruct}
-${socStruct}
-</div>
-
-----------------------------------------
-${infoT.secSystem}
-${data.system}
-
-${infoT.secDiff}
-${data.diff}
-
-${infoT.secEx}
-■ ${data.ex}`;
-
-            showModal(title, body);
-        }
-
-        function showGameOverResult() {
-            const t = I18N[state.lang];
-            const modeText = t.modes[state.mode];
-            const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
-            const resT = t.resultModal;
-            const { kinship, socStruct } = computeKinshipAndSocialStructure();
-
-            const resultText = `${t.gameOver}\n\n` +
-                `・${resT.lblMode}: ${modeText}\n` +
-                `・${resT.lblStage}: ${t.stages[state.stage]}\n` +
-                `・${resT.lblTurn}: ${state.turn}\n` +
-                `・${resT.lblGift}: ${state.giftCount}\n` +
-                `・${resT.lblScore}: ${state.score}\n` +
-                `・${resT.lblComp}: ${state.complexity} (${resT.lblIndex}: ${compKey})\n\n` +
-                `<div class="purple-section">` +
-                `■ ${resT.lblKinship}: ${kinship}\n` +
-                `■ ${resT.lblSocStruct}: ${socStruct}\n` +
-                `</div>\n` +
-                `${t.similarHeader}\n` +
-                `■ ${resT.lblSystem}: ${data.system}\n` +
-                `■ ${resT.lblDiff}:\n${data.diff}\n` +
-                `■ ${resT.lblEx}:\n${data.ex}`;
-
-            showModal(t.gameOver, resultText);
-        }
-
-        function updateUI() {
-            const t = I18N[state.lang];
-            DOM.valStage.textContent = t.stages[state.stage];
-            
-            let stageWidth = 25;
-            if (state.stage === 'tribe') stageWidth = 50;
-            if (state.stage === 'chiefdom') stageWidth = 75;
-            if (state.stage === 'state') stageWidth = 100;
-            DOM.barStage.style.width = `${stageWidth}%`;
-
-            DOM.valTurn.textContent = state.turn;
-            DOM.valGiftCount.textContent = state.giftCount;
-            DOM.barGiftCount.style.width = `${Math.min(100, state.giftCount * 5)}%`;
-
-            DOM.valComplexity.textContent = state.complexity;
-            DOM.barComplexity.style.width = `${state.complexity}%`;
-            
-            DOM.valInequality.textContent = `${state.inequality}%`;
-            DOM.barInequality.style.width = `${state.inequality}%`;
-
-            DOM.valCohesion.textContent = state.cohesion;
-            DOM.barCohesion.style.width = `${state.cohesion}%`;
-
-            DOM.valPop.textContent = state.population;
-            DOM.barPop.style.width = `${Math.min(100, state.population / 2)}%`;
-
-            DOM.valFood.textContent = state.food;
-            DOM.barFood.style.width = `${Math.min(100, state.food / 3)}%`;
-
-            DOM.valTools.textContent = state.tools;
-            DOM.barTools.style.width = `${Math.min(100, state.tools)}%`;
-        }
-
-        function addLog(msg, type) {
+        function addLog(msg, type = 'info') {
             const entry = document.createElement('div');
             entry.className = `log-entry ${type}`;
-            entry.textContent = msg;
+            entry.textContent = `[Yr ${state.turn}] ${msg}`;
             DOM.logBox.appendChild(entry);
             DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
         }
 
-        function showHelp() {
+        function updateUI() {
             const t = I18N[state.lang];
-            showModal(t.help, t.helpContent);
+            const stageKey = state.stage;
+
+            DOM.valStage.textContent = t.stages[stageKey] || stageKey;
+            DOM.valTurn.textContent = state.turn;
+            DOM.valGiftCount.textContent = state.giftCount;
+            DOM.valComplexity.textContent = state.complexity;
+            DOM.valInequality.textContent = `${state.inequality}%`;
+            DOM.valCohesion.textContent = state.cohesion;
+            DOM.valPop.textContent = state.population;
+            DOM.valFood.textContent = state.food;
+            DOM.valTools.textContent = state.tools;
+
+            // バー表示更新
+            DOM.barStage.style.width = `${Math.min(100, (state.complexity / 50) * 100)}%`;
+            DOM.barGiftCount.style.width = `${Math.min(100, (state.giftCount / 30) * 100)}%`;
+            DOM.barComplexity.style.width = `${Math.min(100, state.complexity)}%`;
+            DOM.barInequality.style.width = `${state.inequality}%`;
+            DOM.barCohesion.style.width = `${state.cohesion}%`;
+            DOM.barPop.style.width = `${Math.min(100, (state.population / 200) * 100)}%`;
+            DOM.barFood.style.width = `${Math.min(100, (state.food / 300) * 100)}%`;
+            DOM.barTools.style.width = `${Math.min(100, (state.tools / 150) * 100)}%`;
         }
 
-        function showModal(title, text) {
-            DOM.modalTitle.textContent = title;
-            DOM.modalBody.innerHTML = text;
+        // 社会モデル参照モーダル
+        function showCurrentSocietyInfo() {
+            const modeDb = SOC_DATABASE[state.mode] || SOC_DATABASE.agrarian;
+            
+            // 現在の複雑度に近いインデックスを取得
+            const keys = Object.keys(modeDb).map(Number).sort((a, b) => a - b);
+            let closestKey = keys[0];
+            for (let k of keys) {
+                if (state.complexity >= k) closestKey = k;
+            }
+
+            const data = modeDb[closestKey]?.[state.lang] || modeDb[closestKey]?.ja || I18N[state.lang].unknownSoc;
+            const t = I18N[state.lang];
+            const infoT = t.infoModal;
+            const { kinship, socStruct } = computeKinshipAndSocialStructure();
+
+            DOM.modalTitle.textContent = infoT.title.replace('{0}', t.modes[state.mode]);
+            
+            let html = `
+                <div style="margin-bottom:12px;">
+                    <strong>${infoT.statusHeader}</strong><br>
+                    • ${infoT.lblStage}: ${t.stages[state.stage]}<br>
+                    • ${infoT.lblComp}: ${state.complexity} (${infoT.lblIndex}: ${closestKey})<br>
+                    • ${infoT.lblIneq}: ${state.inequality}% | ${infoT.lblCoh}: ${state.cohesion}
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong>${infoT.secSystem}</strong><br>
+                    ${data.system}
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong>${infoT.secDiff}</strong><br>
+                    ${data.diff}
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong>${infoT.secEx}</strong><br>
+                    ${data.ex}
+                </div>
+                
+                <!-- 紫色の論理的整合セクション（親族・社会構造） -->
+                <div class="purple-section">
+                    <strong>${infoT.secKinship}</strong><br>
+                    ${kinship}<br><br>
+                    <strong>${infoT.secSocStruct}</strong><br>
+                    ${socStruct}
+                </div>
+            `;
+
+            DOM.modalBody.innerHTML = html;
+            showModal();
+        }
+
+        // ゲーム終了結果モーダル
+        function showResultModal() {
+            const modeDb = SOC_DATABASE[state.mode] || SOC_DATABASE.agrarian;
+            const keys = Object.keys(modeDb).map(Number).sort((a, b) => a - b);
+            let closestKey = keys[0];
+            for (let k of keys) {
+                if (state.complexity >= k) closestKey = k;
+            }
+
+            const data = modeDb[closestKey]?.[state.lang] || modeDb[closestKey]?.ja || I18N[state.lang].unknownSoc;
+            const t = I18N[state.lang];
+            const resT = t.resultModal;
+            const { kinship, socStruct } = computeKinshipAndSocialStructure();
+
+            DOM.modalTitle.textContent = t.gameOver;
+
+            let html = `
+                <div style="margin-bottom:12px;">
+                    <strong>【${t.gameOver}】</strong><br>
+                    • ${resT.lblMode}: ${t.modes[state.mode]}<br>
+                    • ${resT.lblStage}: ${t.stages[state.stage]}<br>
+                    • ${resT.lblTurn}: ${state.turn}<br>
+                    • ${resT.lblGift}: ${state.giftCount}<br>
+                    • ${resT.lblScore}: ${state.score}
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong>${resT.lblComp}:</strong> ${state.complexity} (${resT.lblIndex}: ${closestKey})<br>
+                    <strong>${resT.lblSystem}:</strong> ${data.system}
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong>${resT.lblDiff}:</strong><br>${data.diff}
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong>${resT.lblEx}:</strong><br>${data.ex}
+                </div>
+
+                <!-- 紫色の論理的整合セクション（親族・社会構造） -->
+                <div class="purple-section">
+                    <strong>${resT.lblKinship}:</strong><br>${kinship}<br><br>
+                    <strong>${resT.lblSocStruct}:</strong><br>${socStruct}
+                </div>
+            `;
+
+            DOM.modalBody.innerHTML = html;
+            showModal();
+        }
+
+        function showHelp() {
+            DOM.modalTitle.textContent = I18N[state.lang].help;
+            DOM.modalBody.textContent = I18N[state.lang].helpContent;
+            showModal();
+        }
+
+        function showModal() {
             DOM.modal.style.display = 'flex';
         }
 
@@ -1972,7 +1944,8 @@ ${infoT.secEx}
             DOM.modal.style.display = 'none';
         }
 
-        window.addEventListener('DOMContentLoaded', init);
+        // 起動処理
+        init();
     })();
     </script>
 </body>
