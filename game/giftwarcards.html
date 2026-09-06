@@ -301,49 +301,32 @@
             border-radius: 4px;
         }
 
+        /* 紫色の追加項目エリア */
+        .purple-section {
+            color: #be90d4;
+            border-left: 2px solid #9b59b6;
+            padding-left: 8px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
         @media (max-width: 768px) {
-            body {
-                height: auto;
-            }
-            header {
-                padding: 8px 10px;
-            }
-            h1 {
-                font-size: 1.0rem;
-            }
+            body { height: auto; }
+            header { padding: 8px 10px; }
+            h1 { font-size: 1.0rem; }
             .status-panel { 
                 grid-template-columns: repeat(3, 1fr); 
                 gap: 6px;
                 padding: 8px;
             }
-            .stat-box {
-                padding: 4px 2px;
-            }
-            .stat-title {
-                font-size: 0.65rem;
-            }
-            .stat-value {
-                font-size: 0.85rem;
-            }
-            .game-field { 
-                grid-template-columns: 1fr; 
-                gap: 8px;
-            }
-            .log-panel {
-                max-height: 180px;
-            }
-            .ai-panel { 
-                min-height: auto;
-                gap: 8px;
-            }
-            .cards-container {
-                justify-content: flex-start;
-            }
-            .card { 
-                width: 130px; 
-                height: 165px; 
-                padding: 6px; 
-            }
+            .stat-box { padding: 4px 2px; }
+            .stat-title { font-size: 0.65rem; }
+            .stat-value { font-size: 0.85rem; }
+            .game-field { grid-template-columns: 1fr; gap: 8px; }
+            .log-panel { max-height: 180px; }
+            .ai-panel { min-height: auto; gap: 8px; }
+            .cards-container { justify-content: flex-start; }
+            .card { width: 130px; height: 165px; padding: 6px; }
             .card-title { font-size: 0.75rem; }
             .card-desc { font-size: 0.62rem; }
         }
@@ -401,6 +384,22 @@
                 <div class="stat-title" id="lbl-cohesion">社会的結束度</div>
                 <div class="stat-value" id="val-cohesion">100</div>
                 <div class="stat-bar"><div class="stat-fill" id="bar-cohesion"></div></div>
+            </div>
+            <!-- 新規追加パラメータ -->
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-pop">人口</div>
+                <div class="stat-value" id="val-pop">30</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-pop"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-food">食料獲得量</div>
+                <div class="stat-value" id="val-food">50</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-food"></div></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title" id="lbl-tools">道具生産量</div>
+                <div class="stat-value" id="val-tools">10</div>
+                <div class="stat-bar"><div class="stat-fill" id="bar-tools"></div></div>
             </div>
         </section>
 
@@ -671,6 +670,9 @@
                 cohesion: "社会的結束度",
                 stage: "社会形態",
                 giftCount: "贈与累積回数",
+                pop: "人口",
+                food: "食料獲得量",
+                tools: "道具生産量",
                 log: "社会履歴ログ",
                 ai: "外部・他者勢力",
                 hand: "実行可能な戦略カード",
@@ -681,7 +683,8 @@
                 aiText: "他勢力は贈与関係の動向を監視しています。",
                 reqPotlatch: "条件: 複雑度30以上 & 格差40%以上",
                 reqPanhellenic: "条件: 複雑度20以上",
-                reqMegalith: "条件: 結束度40以上",
+                reqMegalith: "条件: 人口100以上, 食料150以上, 道具50以上",
+                reqRitual: "条件: 食料20以上",
                 reqFreeGift: "条件: 結束度消費",
                 similarHeader: "【該当する現実世界・歴史上の社会モデル】",
                 warnFreeGift: "一方的な無償贈与の連投により依存と過度の負い目が発生！結束度が急激に低下しています。",
@@ -697,7 +700,9 @@
                     lblCoh: "社会的結束度",
                     secSystem: "【社会制度】",
                     secDiff: "【社会構造と特徴（現実世界での変化）】",
-                    secEx: "【具体的歴史・人類学の例】"
+                    secEx: "【具体的歴史・人類学の例】",
+                    secKinship: "【親族構造（論文モデル参照）】",
+                    secSocStruct: "【社会構造（論文モデル参照）】"
                 },
                 resultModal: {
                     lblMode: "生産形態",
@@ -709,7 +714,9 @@
                     lblIndex: "インデックス",
                     lblSystem: "制度形態",
                     lblDiff: "社会構造の特質",
-                    lblEx: "該当する歴史的社会・文明例"
+                    lblEx: "該当する歴史的社会・文明例",
+                    lblKinship: "親族構造",
+                    lblSocStruct: "社会構造"
                 },
                 unknownSoc: { system: "不明な社会形態", diff: "データが存在しません。", ex: "該当なし" },
                 stages: {
@@ -719,15 +726,16 @@
                     state: "王国 (国家)"
                 },
                 cards: {
-                    accumulate: { name: "資源蓄積", desc: "複雑度と格差が上昇。蓄積を進めますが贈与回数は増えません。" },
-                    directGift: { name: "直接贈与", desc: "格差を下げ、結束度を向上。社会統合を進める贈与回数が増加。" },
+                    accumulate: { name: "資源蓄積", desc: "人口・食料・道具・複雑度と格差が上昇。蓄積を進めますが贈与回数は増えません。" },
+                    directGift: { name: "直接贈与", desc: "食料・道具を分配し格差を下げ結束度を向上。贈与回数が増加。" },
                     obligatory: { name: "義務的返礼", desc: "安定した相互関係を維持。義務的再分配により確実な統合を促す。" },
+                    ritual: { name: "祭祀", desc: "食料を消費して聖なる儀礼を執り行い、共同体の社会的結束度を上昇させます。" },
                     potlatch: { name: "ポトラッチ(過剰贈与)", desc: "富を過剰に贈与・破棄することで格差による嫉妬や社会の歪みを一気にリセット。" },
                     panhellenic_games: { name: "広域祭典(オリンピック)", desc: "周辺グループを招いた平和的な競技・祭典を開催。外部との摩擦を減らし結束を強化。" },
-                    megalith_construction: { name: "共同労働(古墳造営)", desc: "巨大なモニュメントを共同で造営。過剰労働力を統一目標へ集中させ結束を大幅に上昇。" },
+                    megalith_construction: { name: "共同労働(古墳造営)", desc: "一定の人口・食料・道具を投入して巨大な古墳を造営。結束度を大幅に上昇。" },
                     freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。連投すると依存を生み結束が崩壊します。" }
                 },
-                helpContent: "【社会進化と贈与のメカニクス】\n1. 社会統合の4段階: バンド ➔ 部族 ➔ 首長制 ➔ 王国の順に社会が進化します。進化には【社会的複雑度】と【贈与累積回数】の双方が必要です。\n2. 贈与の影響: 贈与（返礼・ポトラッチ・祭典・共同労働含む）を重ねることで社会相互作用が強まり社会進化を推進しますが、不平等な贈与は社会を揺るがします。\n3. 無償の贈与の罠: 連続で無償の贈与を行うと相手の返礼能力を奪い、「依存」と「負い目」を生み出して結束度が急減します。\n4. 各種社会戦略: 祭典や大規模な共同労働モニュメント造営は、過度な格差や不満を解消し共同体の結束を維持するための重要な儀礼的装置です。"
+                helpContent: "【社会進化と贈与のメカニクス】\n1. 社会統合の4段階: バンド ➔ 部族 ➔ 首長制 ➔ 王国の順に社会が進化します。進化には【社会的複雑度】と【贈与累積回数】の双方が必要です。\n2. 贈与の影響: 贈与（返礼・ポトラッチ・祭典・共同労働含む）を重ねることで社会相互作用が強まり社会進化を推進しますが、不平等な贈与は社会を揺るがします。\n3. 無償の贈与の罠: 連続で無償の贈与を行うと相手の返礼能力を奪い、「依存」と「負い目」を生み出して結束度が急減します。\n4. 各種社会戦略: 祭祀、祭典、古墳造営（一定の人口・食料・道具が必要）は、過度な格差や不満を解消し共同体の結束を維持するための重要な儀礼的装置です。"
             },
             en: {
                 title: "GIFT WAR: Social Dynamics & Evolution",
@@ -740,6 +748,9 @@
                 cohesion: "Social Cohesion",
                 stage: "Social Stage",
                 giftCount: "Gift Count",
+                pop: "Population",
+                food: "Food",
+                tools: "Tools",
                 log: "History Log",
                 ai: "External Faction",
                 hand: "Available Strategy Cards",
@@ -750,7 +761,8 @@
                 aiText: "Other factions are monitoring gift networks.",
                 reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40%",
                 reqPanhellenic: "Req: Complexity ≥20",
-                reqMegalith: "Req: Cohesion ≥40",
+                reqMegalith: "Req: Pop≥100, Food≥150, Tools≥50",
+                reqRitual: "Req: Food ≥20",
                 reqFreeGift: "Req: Consumes Cohesion",
                 similarHeader: "[Corresponding Historical Society Model]",
                 warnFreeGift: "Repeated pure gifts caused extreme debt and dependency! Cohesion is dropping.",
@@ -766,7 +778,9 @@
                     lblCoh: "Social Cohesion",
                     secSystem: "[Institutional System]",
                     secDiff: "[Social Structure & Real-world Characteristics]",
-                    secEx: "[Historical & Anthropological Examples]"
+                    secEx: "[Historical & Anthropological Examples]",
+                    secKinship: "[Kinship Structure (Paper Model)]",
+                    secSocStruct: "[Social Structure (Paper Model)]"
                 },
                 resultModal: {
                     lblMode: "Mode",
@@ -778,7 +792,9 @@
                     lblIndex: "Index Key",
                     lblSystem: "System",
                     lblDiff: "Structural Traits",
-                    lblEx: "Historical Examples"
+                    lblEx: "Historical Examples",
+                    lblKinship: "Kinship Structure",
+                    lblSocStruct: "Social Structure"
                 },
                 unknownSoc: { system: "Unknown Society", diff: "No data available.", ex: "None" },
                 stages: {
@@ -788,15 +804,16 @@
                     state: "State (Kingdom)"
                 },
                 cards: {
-                    accumulate: { name: "Accumulate", desc: "Increases complexity and inequality without increasing gift count." },
+                    accumulate: { name: "Accumulate", desc: "Increases population, food, tools, complexity and inequality without gifts." },
                     directGift: { name: "Direct Gift", desc: "Reduces inequality, boosts cohesion and increases total gift count." },
                     obligatory: { name: "Obligatory Reciprocity", desc: "Maintains stable relations through reciprocal gift networks." },
+                    ritual: { name: "Ritual / Worship", desc: "Consumes food to perform sacred rituals, boosting social cohesion." },
                     potlatch: { name: "Potlatch", desc: "Excessive gift giving/destruction to reset social inequality and envy." },
                     panhellenic_games: { name: "Panhellenic Games", desc: "Host regional games to ease external tensions and boost cohesion." },
-                    megalith_construction: { name: "Megalith Work", desc: "Construct massive monuments to unify labor force and solidify cohesion." },
+                    megalith_construction: { name: "Megalith Work", desc: "Construct massive mounds requiring specific population, food, and tools to solidify cohesion." },
                     freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Repeated use creates dependency and breaks cohesion." }
                 },
-                helpContent: "1. 4 Stages of Integration: Band ➔ Tribe ➔ Chiefdom ➔ State. Evolution requires both Complexity and Gift Count.\n2. Role of Gifts: Gift exchanges build social networks for evolution, but asymmetric gifts trigger instability.\n3. Pure Gift Trap: Consecutive free gifts destroy reciprocity, causing debt and severe cohesion drop.\n4. Potlatch & Festivals: Massive ceremonies and public labor projects reset extreme inequality and strengthen cohesion."
+                helpContent: "1. 4 Stages of Integration: Band ➔ Tribe ➔ Chiefdom ➔ State. Evolution requires both Complexity and Gift Count.\n2. Role of Gifts: Gift exchanges build social networks for evolution, but asymmetric gifts trigger instability.\n3. Pure Gift Trap: Consecutive free gifts destroy reciprocity, causing debt and severe cohesion drop.\n4. Potlatch, Rituals & Mounds: Sacred rituals and monumental constructions (requiring population, food, tools) reset extreme inequality and strengthen cohesion."
             },
             zh: {
                 title: "GIFT WAR: 馈赠动态与社会演化",
@@ -809,6 +826,9 @@
                 cohesion: "社会凝聚力",
                 stage: "社会形态",
                 giftCount: "馈赠累计次数",
+                pop: "人口",
+                food: "粮食",
+                tools: "工具",
                 log: "历史日志",
                 ai: "外部势力",
                 hand: "可选策略卡牌",
@@ -819,7 +839,8 @@
                 aiText: "其他势力正在密切关注馈赠网络。",
                 reqPotlatch: "条件: 复杂度≥30 且 不平等≥40%",
                 reqPanhellenic: "条件: 复杂度≥20",
-                reqMegalith: "条件: 凝聚力≥40",
+                reqMegalith: "条件: 人口≥100, 粮食≥150, 工具≥50",
+                reqRitual: "条件: 粮食 ≥20",
                 reqFreeGift: "条件: 消耗凝聚力",
                 similarHeader: "【对应的现实与历史社会模型】",
                 warnFreeGift: "连续无偿赠与导致严重依赖与债务感！凝聚力急剧下降。",
@@ -835,7 +856,9 @@
                     lblCoh: "社会凝聚力",
                     secSystem: "【社会制度】",
                     secDiff: "【社会结构与特征（现实演变）】",
-                    secEx: "【具体历史/人类学实例】"
+                    secEx: "【具体历史/人类学实例】",
+                    secKinship: "【亲属结构（基于论文模型）】",
+                    secSocStruct: "【社会结构（基于论文模型）】"
                 },
                 resultModal: {
                     lblMode: "生产形态",
@@ -847,7 +870,9 @@
                     lblIndex: "对应索引",
                     lblSystem: "制度形态",
                     lblDiff: "社会结构特质",
-                    lblEx: "对应历史社会/文明实例"
+                    lblEx: "对应历史社会/文明实例",
+                    lblKinship: "亲属结构",
+                    lblSocStruct: "社会结构"
                 },
                 unknownSoc: { system: "未知社会形态", diff: "暂无数据。", ex: "无" },
                 stages: {
@@ -857,15 +882,16 @@
                     state: "王国/国家 (State)"
                 },
                 cards: {
-                    accumulate: { name: "资源积累", desc: "增加复杂度和不平等，但不会增加馈赠次数。" },
-                    directGift: { name: "直接馈赠", desc: "降低不平等，提升凝聚力，增加社会演化所需的馈赠次数。" },
+                    accumulate: { name: "资源积累", desc: "增加人口、粮食、工具、复杂度和不平等，但不会增加馈赠次数。" },
+                    directGift: { name: "直接馈赠", desc: "分配粮食与工具，降低不平等，提升凝聚力，增加馈赠次数。" },
                     obligatory: { name: "义务互惠", desc: "通过互惠馈赠网络巩固稳定的社会关系。" },
+                    ritual: { name: "祭祀", desc: "消耗粮食举行神圣仪式，显著提升共同体的社会凝聚力。" },
                     potlatch: { name: "夸富宴(过剩赠与)", desc: "通过过度赠与或销毁财物，一举消除因贫富差距引发的嫉妒与社会矛盾。" },
                     panhellenic_games: { name: "广域祭典(奥运会)", desc: "举办跨区域竞技与祭典，缓和外部摩擦并大幅巩固内部凝聚力。" },
-                    megalith_construction: { name: "共同劳动(古坟营造)", desc: "共同营造巨型遗迹与建筑，集中过剩劳动力以极大地强化凝聚力。" },
+                    megalith_construction: { name: "共同劳动(古坟营造)", desc: "投入特定人口、粮食与工具建造巨型古坟，大幅提升凝聚力。" },
                     freeGift: { name: "无偿馈赠", desc: "无条件赠与。连续使用会产生严重依赖并破坏凝聚力。" }
                 },
-                helpContent: "1. 社会整合4阶段：游群 ➔ 部落 ➔ 酋邦 ➔ 王国。进化需要达到指定的【复杂度】与【馈赠次数】。\n2. 馈赠的作用：不断的互恵馈赠能拓展社会网络并促进进化，但失衡的馈赠会导致动荡。\n3. 无偿馈赠陷阱：连续无偿馈赠剥夺对方的回报能力，产生依赖与对抗，降低凝聚力。\n4. 大型仪式与工程：夸富宴、广域祭典与巨石工程是消除不平等、集中劳动力并维持共同体凝聚力的关键社会机制。"
+                helpContent: "1. 社会整合4阶段：游群 ➔ 部落 ➔ 酋邦 ➔ 王国。进化需要达到指定的【复杂度】与【馈赠次数】。\n2. 馈赠的作用：互恵馈赠拓展社会网络，但失衡的馈赠会导致动荡。\n3. 无偿馈赠陷阱：连续无偿馈赠产生依赖，降低凝聚力。\n4. 大型仪式与工程：祭祀、夸富宴与古坟营造（需要特定人口、粮食、工具）是维持凝聚力的关键机制。"
             },
             ko: {
                 title: "GIFT WAR: 증여 역학과 사회 진화",
@@ -878,6 +904,9 @@
                 cohesion: "사회적 결속도",
                 stage: "사회 형태",
                 giftCount: "증여 누적 횟수",
+                pop: "인구",
+                food: "식량",
+                tools: "도구",
                 log: "사회 이력 로그",
                 ai: "외부 세력",
                 hand: "실행 가능한 전략 카드",
@@ -888,7 +917,8 @@
                 aiText: "타 세力이 증여 네트워크의 동향을 주시하고 있습니다.",
                 reqPotlatch: "조건: 복잡성 30이상 & 불평등 40%이상",
                 reqPanhellenic: "조건: 복잡성 20이상",
-                reqMegalith: "조건: 결속도 40이상",
+                reqMegalith: "조건: 인구≥100, 식량≥150, 도구≥50",
+                reqRitual: "조건: 식량 ≥20",
                 reqFreeGift: "조건: 결속도 소비",
                 similarHeader: "[해당하는 역사적 사회 모델]",
                 warnFreeGift: "일방적인 무상 증여 남용으로 부채감과 의존성発生! 결속도가 급감합니다.",
@@ -904,7 +934,9 @@
                     lblCoh: "사회적 결속도",
                     secSystem: "[사회 제도]",
                     secDiff: "[사회 구조 및 특징 (현실의 변화)]",
-                    secEx: "[구체적 역사/인류학 사례]"
+                    secEx: "[구체적 역사/인류학 사례]",
+                    secKinship: "[친족 구조 (논문 모델 참조)]",
+                    secSocStruct: "[사회 구조 (논문 모델 참조)]"
                 },
                 resultModal: {
                     lblMode: "생산 형태",
@@ -916,7 +948,9 @@
                     lblIndex: "인덱스",
                     lblSystem: "제도 형태",
                     lblDiff: "사회 구조의 특성",
-                    lblEx: "해당하는 역사적 사회/문명 사례"
+                    lblEx: "해당하는 역사적 사회/문명 사례",
+                    lblKinship: "친족 구조",
+                    lblSocStruct: "사회 구조"
                 },
                 unknownSoc: { system: "알 수 없는 사회 형태", diff: "데이터가 존재하지 않습니다.", ex: "해당 없음" },
                 stages: {
@@ -926,15 +960,16 @@
                     state: "왕국/국가 (State)"
                 },
                 cards: {
-                    accumulate: { name: "자원 축적", desc: "복잡성과 불평등 증가. 증여 횟数は 늘어나지 않습니다." },
-                    directGift: { name: "직접 증여", desc: "불평등を 줄이고 결속도를 향상. 진화に 필요한 증여 횟数 증가." },
-                    obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계を 통해 안정한 사회 통합을 도모." },
+                    accumulate: { name: "자원 축적", desc: "인구, 식량, 도구, 복잡성, 불평등 증가. 증여 횟数は 늘어나지 않습니다." },
+                    directGift: { name: "직접 증여", desc: "식량과 도구를 분배하여 불평등を 줄이고 결속도를 향상." },
+                    obligatory: { name: "의무적 답례", desc: "호혜적 증여 관계를 통해 안정한 사회 통합을 도모." },
+                    ritual: { name: "제사 (祭祀)", desc: "식량을 소비하여 신성한 의식을 거행, 사회적 결속도를 상승시킵니다." },
                     potlatch: { name: "포트래치(과잉증여)", desc: "부의 과잉 증여 및 파기로 불평등과 질투를 일제히 리셋." },
                     panhellenic_games: { name: "광역 제전(올림픽)", desc: "주변 집단을 초청한 평화적 축제로 외부 마찰을 줄이고 결속 강화." },
-                    megalith_construction: { name: "공동 노동(고분 조영)", desc: "거대 모뉴먼트를 공동 조영하여 노동력을 집중시키고 결속도 대폭 상승." },
+                    megalith_construction: { name: "공동 노동(고분 조영)", desc: "일정 인구, 식량, 도구를 투입하여 거대 고분을 조영, 결속도 대폭 상승." },
                     freeGift: { name: "무상 증여", desc: "대가 없는 증여. 연속 사용 시 의존성을 유발하여 결속도 붕괴." }
                 },
-                helpContent: "1. 사회 통합 4단계: 밴드 ➔ 부족 ➔ 군장국 ➔ 왕국. 진화에는 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속을 강화하여 다음 진화 단계를 가능케 합니다.\n3. 무상 증여の 함정: 무상 증여 남용은 일방적 부채感を 주어 의존性と 결속도 붕괴를 초래합니다.\n4. 대형 제전 및 공공 조영: 포트래치, 제전, 거석 조영은 극단적 불평등을 완화하고 결속력을 강화하는 사회적 기전입니다."
+                helpContent: "1. 사회 통합 4단계: 밴드 ➔ 부족 ➔ 군장국 ➔ 왕국. 진화에는 복잡성과 함께 【증여 누적 횟수】가 필수적입니다.\n2. 증여의 역할: 증여 네트워크는 사회적 결속を 강화합니다.\n3. 무상 증여の 함정: 무상 증여 남용은 부채감과 의존성을 초래합니다.\n4. 제사 및 고분 조영: 제사와 거대 고분 조영(인구, 식량, 도구 필요)은 결속력을 강화하는 중요한 사회적 기전입니다."
             },
             fr: {
                 title: "GIFT WAR: Dynamique du Don & Évolution",
@@ -947,6 +982,9 @@
                 cohesion: "Cohésion Sociale",
                 stage: "Stade Social",
                 giftCount: "Total des Dons",
+                pop: "Population",
+                food: "Nourriture",
+                tools: "Outils",
                 log: "Journal Historique",
                 ai: "Faction Extérieure",
                 hand: "Cartes de Stratégie",
@@ -957,7 +995,8 @@
                 aiText: "D'autres factions surveillent les réseaux de dons.",
                 reqPotlatch: "Req: Complexité ≥30 & Inégalité ≥40%",
                 reqPanhellenic: "Req: Complexité ≥20",
-                reqMegalith: "Req: Cohésion ≥40",
+                reqMegalith: "Req: Pop≥100, Nourriture≥150, Outils≥50",
+                reqRitual: "Req: Nourriture ≥20",
                 reqFreeGift: "Req: Consomme de la cohésion",
                 similarHeader: "[Modèle de société historique correspondant]",
                 warnFreeGift: "Les dons gratuits répétés ont créé de la dépendance ! La cohésion chute.",
@@ -973,7 +1012,9 @@
                     lblCoh: "Cohésion sociale",
                     secSystem: "[Système institutionnel]",
                     secDiff: "[Structure sociale & Caractéristiques]",
-                    secEx: "[Exemples historiques & anthropologiques]"
+                    secEx: "[Exemples historiques & anthropologiques]",
+                    secKinship: "[Structure de parenté (Modèle d'article)]",
+                    secSocStruct: "[Structure sociale (Modèle d'article)]"
                 },
                 resultModal: {
                     lblMode: "Mode de production",
@@ -985,7 +1026,9 @@
                     lblIndex: "Indice",
                     lblSystem: "Système",
                     lblDiff: "Traits structurels",
-                    lblEx: "Exemples historiques"
+                    lblEx: "Exemples historiques",
+                    lblKinship: "Structure de parenté",
+                    lblSocStruct: "Structure sociale"
                 },
                 unknownSoc: { system: "Société inconnue", diff: "Pas de données.", ex: "Aucun" },
                 stages: {
@@ -995,15 +1038,16 @@
                     state: "Royaume / État"
                 },
                 cards: {
-                    accumulate: { name: "Accumulation", desc: "Augmente la complexité et l'inégalité sans augmenter les dons." },
-                    directGift: { name: "Don Direct", desc: "Réduit l'inégalité, augmente la cohésion et le nombre total de dons." },
+                    accumulate: { name: "Accumulation", desc: "Augmente la population, nourriture, outils, complexité et inégalité." },
+                    directGift: { name: "Don Direct", desc: "Distribue nourriture et outils, réduit l'inégalité et augmente la cohésion." },
                     obligatory: { name: "Réciprocité Obligatoire", desc: "Maintient des relations stables grâce à des réseaux de réciprocité." },
+                    ritual: { name: "Rites / Sacré", desc: "Consomme de la nourriture pour célébrer des rites, augmentant la cohésion." },
                     potlatch: { name: "Potlatch (Sur-don)", desc: "Don excessif / destruction de biens pour réinitialiser les inégalités." },
                     panhellenic_games: { name: "Grands Jeux", desc: "Organise des jeux régionaux pour apaiser les tensions et unir." },
-                    megalith_construction: { name: "Travail Monumental", desc: "Construit de grands monuments pour canaliser le travail et souder la société." },
+                    megalith_construction: { name: "Travail Monumental", desc: "Nécessite population, nourriture et outils pour ériger de grands tumulus." },
                     freeGift: { name: "Don Pur et Gratuit", desc: "Inconditionnel. Une utilisation répétée crée de la dépendance." }
                 },
-                helpContent: "1. 4 Stades d'Intégration: Bande ➔ Tribu ➔ Chefferie ➔ Royaume. L'évolution nécessite Complexité + Nombre de dons.\n2. Rôle du Don: Le don structure les réseaux nécessaires à l'intégration sociale.\n3. Piège du Don Pur: Les dons purs consécutifs détruisent la réciprocité et provoquent l'effondrement de la cohésion.\n4. Rituels et Grands Travaux: Le Potlatch, les grands jeux et monuments sont essentiels pour maintenir l'équilibre social."
+                helpContent: "1. 4 Stades: Bande ➔ Tribu ➔ Chefferie ➔ Royaume.\n2. Rôle du Don: Structuration des réseaux.\n3. Piège du Don Pur: Perte de cohésion.\n4. Rites et Monuments: Les rites sacrés et la construction de tumulus (exigeant population, nourriture et outils) renforcent la cohésion."
             },
             es: {
                 title: "GIFT WAR: Dinámica del Don y Evolución",
@@ -1016,6 +1060,9 @@
                 cohesion: "Social Cohesion",
                 stage: "Etapa Social",
                 giftCount: "Conteo de Dones",
+                pop: "Población",
+                food: "Comida",
+                tools: "Herramientas",
                 log: "Registro Histórico",
                 ai: "Facción Externa",
                 hand: "Cartas de Estrategia",
@@ -1026,7 +1073,8 @@
                 aiText: "Otras facciones observan las redes de intercambio.",
                 reqPotlatch: "Req: Complejidad ≥30 y Desigualdad ≥40%",
                 reqPanhellenic: "Req: Complejidad ≥20",
-                reqMegalith: "Req: Cohesión ≥40",
+                reqMegalith: "Req: Pob≥100, Comida≥150, Herram.≥50",
+                reqRitual: "Req: Comida ≥20",
                 reqFreeGift: "Req: Consume cohesión",
                 similarHeader: "[Modelo de sociedad histórica correspondiente]",
                 warnFreeGift: "¡Los dones puros repetidos crearon dependencia! La cohesión se derrumba.",
@@ -1042,7 +1090,9 @@
                     lblCoh: "Cohesión social",
                     secSystem: "[Sistema institucional]",
                     secDiff: "[Estructura social y características]",
-                    secEx: "[Ejemplos históricos y antropológicos]"
+                    secEx: "[Ejemplos históricos y antropológicos]",
+                    secKinship: "[Estructura de Parentesco (Modelo de Artículo)]",
+                    secSocStruct: "[Estructura Social (Modelo de Artículo)]"
                 },
                 resultModal: {
                     lblMode: "Modo",
@@ -1054,7 +1104,9 @@
                     lblIndex: "Índice clave",
                     lblSystem: "Sistema",
                     lblDiff: "Rasgos estructurales",
-                    lblEx: "Ejemplos históricos"
+                    lblEx: "Ejemplos históricos",
+                    lblKinship: "Estructura de Parentesco",
+                    lblSocStruct: "Estructura Social"
                 },
                 unknownSoc: { system: "Sociedad desconocida", diff: "Sin datos disponibles.", ex: "Ninguno" },
                 stages: {
@@ -1064,49 +1116,54 @@
                     state: "Reino / Estado"
                 },
                 cards: {
-                    accumulate: { name: "Acumulación", desc: "Sube complejidad y desigualdad sin sumar conteo de dones." },
-                    directGift: { name: "Don Directo", desc: "Reduce desigualdad y sube cohesión sumando dones para la evolución." },
-                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Mantiene relaciones estables mediante redes de don reciprocadas." },
+                    accumulate: { name: "Acumulación", desc: "Aumenta población, comida, herramientas, complejidad y desigualdad." },
+                    directGift: { name: "Don Directo", desc: "Distribuye bienes, reduce desigualdad y sube cohesión sumando dones." },
+                    obligatory: { name: "Reciprocidad Obligatoria", desc: "Mantiene relaciones estables mediante redes reciprocadas." },
+                    ritual: { name: "Ritual / Culto", desc: "Consume comida para celebrar rituales sagrados, elevando la cohesión." },
                     potlatch: { name: "Potlatch (Exceso de Don)", desc: "Don o destrucción masiva para reajustar la desigualdad social." },
                     panhellenic_games: { name: "Juegos Panhelénicos", desc: "Organiza festivales regionales para reducir fricciones y unir." },
-                    megalith_construction: { name: "Obra Monumental", desc: "Construye monumentos gigantes para unificar el trabajo y la cohesión." },
+                    megalith_construction: { name: "Obra Monumental", desc: "Requiere población, comida y herramientas para erigir grandes túmulos." },
                     freeGift: { name: "Don Puro y Gratuito", desc: "Incondicional. Su uso repetido genera dependencia y rompe la cohesión." }
                 },
-                helpContent: "1. 4 Etapas: Banda ➔ Tribu ➔ Jefatura ➔ Reino. Evolucionar requiere Complejidad y Conteo de Dones.\n2. Función del Don: Intercambiar dones establece la red social para permitir mayor integración.\n3. Trampa del Don Puro: Regalar sin condición destruye la reciprocidad y causa colapso de cohesión.\n4. Rituales y Obras: El Potlatch, los juegos regionales y las construcciones megalíticas reducen desigualdades y consolidan la cohesión."
+                helpContent: "1. 4 Etapas: Banda ➔ Tribu ➔ Jefatura ➔ Reino.\n2. Función del Don: Redes sociales.\n3. Trampa del Don Puro: Caída de cohesión.\n4. Rituales y Túmulos: Celebrar rituales y construir túmulos (requiere población, comida y herramientas) fortalece la cohesión."
             }
         };
 
-        // 基本の既存カードリスト
+        // 全戦略カードの定義（「祭祀」を追加、古墳造営・直接贈与等を拡張）
         const cards = [
             { id: "accumulate" },
             { id: "directGift" },
             { id: "obligatory" },
-            { id: "freeGift" }
-        ];
-
-        // 追加・改修された新カード定義
-        const additionalCards = [
-            // 1. ポトラッチ（過剰贈与）
+            {
+                id: "ritual",
+                name: "祭祀",
+                type: "ritual",
+                description: "食料を消費して聖なる儀礼を執り行い、共同体の社会的結束度を上昇させます。",
+                cost: { food: 20 },
+                effect: (state) => {
+                    state.cohesion = Math.min(100, state.cohesion + 15);
+                    state.food = Math.max(0, state.food - 20);
+                    return "聖なる祭祀の執り行いにより、人々の社会的結束度が向上しました。";
+                }
+            },
             {
                 id: "potlatch",
                 name: "ポトラッチ（過剰贈与）",
                 type: "redistribution",
                 description: "富を過剰に贈与・破棄することで、格差による嫉妬や社会の歪みを一気にリセットします。",
-                cost: { food: 50, prestige: 20 },
+                cost: { food: 50, tools: 20 },
                 effect: (state) => {
                     state.dissatisfaction = Math.max(0, (state.dissatisfaction || 0) - 40);
                     state.prestige = (state.prestige || 0) + 30;
                     return "大規模なポトラッチにより、社会内部の不満が劇的に低下しました。";
                 }
             },
-
-            // 2. 広域祭典（オリンピック）
             {
                 id: "panhellenic_games",
                 name: "広域祭典（オリンピック）",
                 type: "festival",
                 description: "周辺グループを招いた平和的な競技・祭典を開催。外部との摩擦を減らし、内部の鬱憤を外部へ昇華させます。",
-                cost: { food: 80, goods: 30 },
+                cost: { food: 80, tools: 30 },
                 effect: (state) => {
                     state.dissatisfaction = Math.max(0, (state.dissatisfaction || 0) - 30);
                     state.externalTension = Math.max(0, (state.externalTension || 0) - 50);
@@ -1114,24 +1171,22 @@
                     return "広域祭典が成功を収め、内外の緊張が大幅に緩和されました！";
                 }
             },
-
-            // 3. 共同労働・祭祀複合（古墳造営）
             {
                 id: "megalith_construction",
                 name: "共同労働・祭祀複合（古墳造営）",
                 type: "monument",
-                description: "巨大なモニュメントを共同で造営。過剰労働力を統一目標へ集中させ、崩壊を未然に防ぎます。",
-                cost: { food: 100, labor: 50 },
+                description: "一定の人口・食料・道具を投入して巨大な古墳を造営。過剰労働力を統一目標へ集中させ結束を大幅に上昇。",
+                cost: { population: 100, food: 150, tools: 50 },
                 effect: (state) => {
+                    state.food = Math.max(0, state.food - 100);
+                    state.tools = Math.max(0, state.tools - 40);
                     state.dissatisfaction = Math.max(0, (state.dissatisfaction || 0) - 25);
-                    state.socialCohesion = (state.socialCohesion || 100) + 40;
-                    return "巨大モニュメントの造営を通じて共同体の結束が固まり、社会の崩壊リスクが低下しました。";
+                    state.cohesion = Math.min(100, state.cohesion + 40);
+                    return "巨大な古墳の造営を通じて集団の結集力が誇示され、共同体の結束が劇的に強化されました！";
                 }
-            }
+            },
+            { id: "freeGift" }
         ];
-
-        // 既存のカードリストに追加・結合
-        cards.push(...additionalCards);
 
         let state = {
             lang: 'ja',
@@ -1143,13 +1198,15 @@
             cohesion: 100,
             giftCount: 0,
             stage: 'band',
+            // 新規拡張パラメータ
+            population: 30,
+            food: 50,
+            tools: 10,
             freeGiftStreak: 0,
             isGameOver: false,
-            // 追加カードの効果用拡張パラメータ
             dissatisfaction: 0,
             prestige: 0,
-            externalTension: 50,
-            socialCohesion: 100
+            externalTension: 50
         };
 
         const DOM = {
@@ -1175,6 +1232,15 @@
             lblCohesion: document.getElementById('lbl-cohesion'),
             valCohesion: document.getElementById('val-cohesion'),
             barCohesion: document.getElementById('bar-cohesion'),
+            lblPop: document.getElementById('lbl-pop'),
+            valPop: document.getElementById('val-pop'),
+            barPop: document.getElementById('bar-pop'),
+            lblFood: document.getElementById('lbl-food'),
+            valFood: document.getElementById('val-food'),
+            barFood: document.getElementById('bar-food'),
+            lblTools: document.getElementById('lbl-tools'),
+            valTools: document.getElementById('val-tools'),
+            barTools: document.getElementById('bar-tools'),
             lblLog: document.getElementById('lbl-log'),
             logBox: document.getElementById('log-box'),
             lblAi: document.getElementById('lbl-ai'),
@@ -1215,12 +1281,14 @@
             state.cohesion = 100;
             state.giftCount = 0;
             state.stage = 'band';
+            state.population = state.mode === 'agrarian' ? 30 : 20;
+            state.food = state.mode === 'agrarian' ? 50 : 30;
+            state.tools = state.mode === 'agrarian' ? 10 : 5;
             state.freeGiftStreak = 0;
             state.isGameOver = false;
             state.dissatisfaction = 0;
             state.prestige = 0;
             state.externalTension = 50;
-            state.socialCohesion = 100;
             DOM.logBox.innerHTML = '';
             renderHand();
             updateUI();
@@ -1237,6 +1305,9 @@
             DOM.lblComplexity.textContent = t.complexity;
             DOM.lblInequality.textContent = t.inequality;
             DOM.lblCohesion.textContent = t.cohesion;
+            DOM.lblPop.textContent = t.pop;
+            DOM.lblFood.textContent = t.food;
+            DOM.lblTools.textContent = t.tools;
             DOM.lblLog.textContent = t.log;
             DOM.lblAi.textContent = t.ai;
             DOM.aiStatus.textContent = t.aiText;
@@ -1245,6 +1316,75 @@
             DOM.modalClose.textContent = t.close;
             renderHand();
             updateUI();
+        }
+
+        /* 論文（Itao & Kaneko 2020）に基づく親族構造および社会構造の動的計算 */
+        function computeKinshipAndSocialStructure() {
+            const pop = state.population;
+            const comp = state.complexity;
+            const ineq = state.inequality;
+            const mode = state.mode;
+
+            let kinship = "";
+            let socStruct = "";
+
+            if (state.lang === 'ja') {
+                // 親族構造の判定
+                if (pop < 50 && comp < 20) {
+                    kinship = "内婚的バンド構造（近親婚禁忌未未分離・小規模血縁集団）";
+                } else if (comp >= 20 && comp < 45) {
+                    if (mode === 'agrarian' && ineq > 30) {
+                        kinship = "限定交換（Restricted Exchange / 二分組織・直接の婚姻交換サイクル Cm=2, Cd≥2）";
+                    } else {
+                        kinship = "二分組織（Dual Organization / 2氏族間での直接の女性交換 Cm=2, Cd=1）";
+                    }
+                } else if (comp >= 45 && comp < 70) {
+                    kinship = "一般交換（Generalized Exchange / 多氏族間の間接的循環婚姻 Cm≥3, Cd=1）";
+                } else {
+                    kinship = "複合的階層化親族体系（単系・双系継承の混在および階級内婚の定着）";
+                }
+
+                // 社会構造の判定
+                if (comp < 20) {
+                    socStruct = "平等主義的血縁共同体（即時消費・所有概念なし）";
+                } else if (comp < 40) {
+                    socStruct = "互恵的環濠・村落複合体（長老会による土地・資源調整）";
+                } else if (comp < 65) {
+                    socStruct = "階層化首長制社会（世襲首長・貢納制・大規模モニュメント造営）";
+                } else {
+                    socStruct = "中央集権的領域国家・官僚制（成文法・税制・専門分業構造）";
+                }
+            } else if (state.lang === 'en') {
+                if (pop < 50 && comp < 20) {
+                    kinship = "Endogamous Band Structure (Small kin group, early incest norm)";
+                } else if (comp >= 20 && comp < 45) {
+                    kinship = (mode === 'agrarian' && ineq > 30) ? 
+                        "Restricted Exchange (Direct bride exchange with multi-generation cycles Cm=2, Cd≥2)" :
+                        "Dual Organization (Direct bride exchange between two clans Cm=2, Cd=1)";
+                } else if (comp >= 45 && comp < 70) {
+                    kinship = "Generalized Exchange (Indirect marital cycle across multiple clans Cm≥3, Cd=1)";
+                } else {
+                    kinship = "Complex Stratified Kinship System (Endogamous class structure)";
+                }
+
+                if (comp < 20) socStruct = "Egalitarian Kinship Community";
+                else if (comp < 40) socStruct = "Reciprocal Village Alliance";
+                else if (comp < 65) socStruct = "Stratified Chiefdom Society";
+                else socStruct = "Centralized Territorial State";
+            } else {
+                // その他言語向けフォールバック（英語表記ベース）
+                if (pop < 50 && comp < 20) kinship = "Endogamous Band Structure";
+                else if (comp < 45) kinship = "Restricted / Dual Exchange System";
+                else if (comp < 70) kinship = "Generalized Exchange System";
+                else kinship = "Complex Stratified Kinship";
+
+                if (comp < 20) socStruct = "Egalitarian Kin Community";
+                else if (comp < 40) socStruct = "Reciprocal Village Alliance";
+                else if (comp < 65) socStruct = "Stratified Chiefdom";
+                else socStruct = "Centralized State";
+            }
+
+            return { kinship, socStruct };
         }
 
         function renderHand() {
@@ -1275,9 +1415,15 @@
                         reqMsg = t.reqPanhellenic;
                     }
                 } else if (key === 'megalith_construction') {
-                    if (state.cohesion < 40) {
+                    // 古墳造営の発動条件改修：一定の人口(100)、食料(150)、道具(50)が必要
+                    if (state.population < 100 || state.food < 150 || state.tools < 50) {
                         isExecutable = false;
                         reqMsg = t.reqMegalith;
+                    }
+                } else if (key === 'ritual') {
+                    if (state.food < 20) {
+                        isExecutable = false;
+                        reqMsg = t.reqRitual;
                     }
                 }
 
@@ -1327,6 +1473,9 @@
                 const baseIneqGrowth = state.mode === 'agrarian' ? 6 : 2;
                 state.complexity += baseCompGrowth;
                 state.inequality += baseIneqGrowth;
+                state.population += Math.floor(state.population * 0.05);
+                state.food += Math.floor(state.population * 0.8);
+                state.tools += Math.floor(state.population * 0.2);
                 addLog(`[Turn ${state.turn}] ${t.next}`, 'action');
             }
 
@@ -1368,12 +1517,11 @@
                 state.freeGiftStreak = 0;
             }
 
-            if (key === 'directGift' || key === 'obligatory' || key === 'potlatch' || key === 'freeGift' || key === 'panhellenic_games' || key === 'megalith_construction') {
+            if (key === 'directGift' || key === 'obligatory' || key === 'potlatch' || key === 'freeGift' || key === 'panhellenic_games' || key === 'megalith_construction' || key === 'ritual') {
                 state.giftCount++;
             }
 
-            // 新規追加カードオブジェクトのカスタムエフェクト関数があれば実行
-            const customCard = additionalCards.find(c => c.id === key);
+            const customCard = cards.find(c => c.id === key);
             if (customCard && typeof customCard.effect === 'function') {
                 const logMsg = customCard.effect(state);
                 if (logMsg && state.lang === 'ja') {
@@ -1386,36 +1534,40 @@
                     if (state.mode === 'agrarian') {
                         state.complexity += 14;
                         state.inequality += 18;
+                        state.population += 15;
+                        state.food += 60;
+                        state.tools += 25;
                     } else {
                         state.complexity += 6;
                         state.inequality += 8;
+                        state.population += 5;
+                        state.food += 25;
+                        state.tools += 10;
                     }
                     break;
                 case 'directGift':
                     state.inequality = Math.max(0, state.inequality - 12);
-                    state.cohesion += (state.mode === 'forager' ? 8 : 5);
+                    state.cohesion = Math.min(100, state.cohesion + (state.mode === 'forager' ? 8 : 5));
                     state.complexity += 3;
+                    state.food = Math.max(0, state.food - 15);
+                    state.tools = Math.max(0, state.tools - 5);
                     break;
                 case 'obligatory':
-                    state.cohesion += 10;
+                    state.cohesion = Math.min(100, state.cohesion + 10);
                     state.inequality += 2;
                     state.complexity += 4;
+                    state.food = Math.max(0, state.food - 10);
                     break;
                 case 'potlatch':
                     state.inequality = Math.max(0, state.inequality - 35);
-                    state.cohesion += 18;
+                    state.cohesion = Math.min(100, state.cohesion + 18);
                     const compCost = state.mode === 'agrarian' ? 10 : 5;
                     state.complexity = Math.max(10, state.complexity - compCost);
                     break;
                 case 'panhellenic_games':
                     state.inequality = Math.max(0, state.inequality - 20);
-                    state.cohesion += 25;
+                    state.cohesion = Math.min(100, state.cohesion + 25);
                     state.complexity += 5;
-                    break;
-                case 'megalith_construction':
-                    state.inequality = Math.max(0, state.inequality - 15);
-                    state.cohesion += 35;
-                    state.complexity += 8;
                     break;
                 case 'freeGift':
                     state.freeGiftStreak++;
@@ -1426,7 +1578,7 @@
                         addLog(t.warnFreeGift, 'warn');
                     } else {
                         state.inequality = Math.max(0, state.inequality - 15);
-                        state.cohesion += 8;
+                        state.cohesion = Math.min(100, state.cohesion + 8);
                     }
                     break;
             }
@@ -1471,6 +1623,7 @@
             const modeText = t.modes[state.mode];
             const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
             const infoT = t.infoModal;
+            const { kinship, socStruct } = computeKinshipAndSocialStructure();
 
             const title = infoT.title.replace('{0}', modeText);
             const body = `${infoT.statusHeader}
@@ -1478,6 +1631,15 @@
 ・${infoT.lblComp}: ${state.complexity} (${infoT.lblIndex}: ${compKey})
 ・${infoT.lblIneq}: ${state.inequality}%
 ・${infoT.lblCoh}: ${state.cohesion}
+・${t.pop}: ${state.population} | ${t.food}: ${state.food} | ${t.tools}: ${state.tools}
+
+<div class="purple-section">
+${infoT.secKinship}
+${kinship}
+
+${infoT.secSocStruct}
+${socStruct}
+</div>
 
 ----------------------------------------
 ${infoT.secSystem}
@@ -1497,6 +1659,7 @@ ${infoT.secEx}
             const modeText = t.modes[state.mode];
             const { compKey, data } = getSocietyDetails(state.mode, state.complexity);
             const resT = t.resultModal;
+            const { kinship, socStruct } = computeKinshipAndSocialStructure();
 
             const resultText = `${t.gameOver}\n\n` +
                 `・${resT.lblMode}: ${modeText}\n` +
@@ -1505,6 +1668,10 @@ ${infoT.secEx}
                 `・${resT.lblGift}: ${state.giftCount}\n` +
                 `・${resT.lblScore}: ${state.score}\n` +
                 `・${resT.lblComp}: ${state.complexity} (${resT.lblIndex}: ${compKey})\n\n` +
+                `<div class="purple-section">` +
+                `■ ${resT.lblKinship}: ${kinship}\n` +
+                `■ ${resT.lblSocStruct}: ${socStruct}\n` +
+                `</div>\n` +
                 `${t.similarHeader}\n` +
                 `■ ${resT.lblSystem}: ${data.system}\n` +
                 `■ ${resT.lblDiff}:\n${data.diff}\n` +
@@ -1535,6 +1702,15 @@ ${infoT.secEx}
 
             DOM.valCohesion.textContent = state.cohesion;
             DOM.barCohesion.style.width = `${state.cohesion}%`;
+
+            DOM.valPop.textContent = state.population;
+            DOM.barPop.style.width = `${Math.min(100, state.population / 2)}%`;
+
+            DOM.valFood.textContent = state.food;
+            DOM.barFood.style.width = `${Math.min(100, state.food / 3)}%`;
+
+            DOM.valTools.textContent = state.tools;
+            DOM.barTools.style.width = `${Math.min(100, state.tools)}%`;
         }
 
         function addLog(msg, type) {
@@ -1552,7 +1728,7 @@ ${infoT.secEx}
 
         function showModal(title, text) {
             DOM.modalTitle.textContent = title;
-            DOM.modalBody.textContent = text;
+            DOM.modalBody.innerHTML = text;
             DOM.modal.style.display = 'flex';
         }
 
