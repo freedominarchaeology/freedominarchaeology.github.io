@@ -318,7 +318,7 @@
             header { padding: 8px 10px; }
             h1 { font-size: 1.0rem; }
             .status-panel { 
-                grid-template-columns: repeat(4, 1fr); 
+                grid-template-columns: repeat(4, 1fr);
                 gap: 6px;
                 padding: 8px;
             }
@@ -593,755 +593,823 @@
                     zh: { system: "城邦联盟/早期王国", diff: "官僚制萌芽与税制引入。手工业者、士兵、农民的明确分工。", ex: "美索不达米亚早期王朝时代（乌尔第一王朝）、苏美尔城邦" },
                     ko: { system: "도시 국가 연합 / 초기 왕국", diff: "관료제 싹트기 및 조세 제도 도입. 장인, 군인, 농민의 명확한 분업.", ex: "메소포타미아 초기 왕조 시대(우르 제1왕조), 슈메르 도시 국가" },
                     fr: { system: "Ligue de cités-États / Royaume primitif", diff: "Bureaucratie et taxes naissantes. Division claire du travail (artisans, soldats, paysans).", ex: "Dynastique archaïque sumérien (Ur I), Cités de Sumer" },
-                    es: { system: "Liga de Ciudades-Estado / Reino temprano", diff: "Inicio de burocracia e impuestos. División del trabajo (artesanos, soldados, agricultores).", ex: "Dinástico Temprano sumerio (Primera Dinastía de Ur)" }
-                },
-                50: {
-                    ja: { system: "中央集権的王国", diff: "成文法や単位の統一。広大な領域の支配と身分制社会の全盛。", ex: "エジプト古王国（ピラミッド造営期）、商（殷）王朝" },
-                    en: { system: "Centralized Kingdom", diff: "Written laws and standardized units. Broad territorial rule and strict legal social strata.", ex: "Old Kingdom Egypt (Pyramid age), Shang Dynasty" },
-                    zh: { system: "中央集权王国", diff: "成文法与度量衡统一。统治广袤领土，等级制社会鼎盛。", ex: "埃及古王国（金字塔建造期）、商朝" },
-                    ko: { system: "중앙집권적 왕국", diff: "성문법 및 단위 통일. 광대한 영역 지배와 신분제 사회의 전성.", ex: "이집트 고왕국(피라미드 조영기), 상(은) 왕조" },
-                    fr: { system: "Royaume centralisé", diff: "Lois écrites, unités standardisées. Règne territorial étendu et classes strictes.", ex: "Ancien Empire égyptien (Pyramides), Dynastie Shang" },
-                    es: { system: "Reino centralizado", diff: "Leyes escritas y estandarización de medidas. Imperio territorial y estamentos fijos.", ex: "Imperio Antiguo de Egipto (Era de las Pirámides), Dinastía Shang" }
+                    es: { system: "Liga de Ciudades-Estado / Reino incipiente", diff: "Burocracia inicial e impuestos. División clara del trabajo (artesanos, soldados, agricultores).", ex: "Dinástico Temprano mesopotámico (Primera Dinastía de Ur), Sumeria" }
                 }
             }
         };
 
         const I18N = {
             ja: {
-                title: "GIFT WAR: 贈与ダイナミクスと社会進化",
-                help: "解説",
-                socBtn: "参照 (Societies)",
-                turn: "生存年数",
-                complexity: "社会的複雑度",
-                inequality: "格差インデックス",
-                cohesion: "社会的結束度",
-                dominance: "支配力",
-                stage: "社会形態",
-                giftCount: "贈与累積回数",
-                pop: "人口",
-                food: "食料獲得量",
-                tools: "道具生産量",
-                log: "社会履歴ログ",
-                ai: "外部・他者勢力",
-                hand: "実行可能な戦略カード",
-                next: "何もせず静観",
-                close: "閉じる",
-                gameOver: "社会が完全崩壊しました！",
-                aiText: "他勢力は贈与関係の動向を監視しています。",
-                reqPotlatch: "条件: 複雑度30以上 & 格差40%以上 & 食料50/道具20",
-                reqPanhellenic: "条件: 複雑度20以上 & 食料80/道具30",
-                reqMegalith: "条件: 人口100以上, 食料150以上, 道具50以上",
-                reqMegalithSmall: "条件: 人口30以上, 食料40以上, 道具15以上",
-                reqRitual: "条件: 食料20以上",
-                reqFreeGift: "条件: なし（連投で不満発生）",
-                reqProductionRev: "条件: 道具10000以上",
-                evolutionMsg: "【社会進化】贈与のネットワーク強化({1}回)と成長により社会構造が「{0}」へと移行しました！",
-                devolutionMsg: "【社会退化】人口減少または社会的複雑度の低下により、社会構造が「{0}」へと退化しました...",
-                modes: { forager: "狩猟採集社会", agrarian: "農耕社会" },
-                infoModal: {
-                    title: "現在の該当社会モデル ({0})",
-                    statusHeader: "【現在の社会ステータス】",
-                    lblStage: "形態",
-                    lblComp: "社会的複雑度",
-                    lblIneq: "格差インデックス",
-                    lblCoh: "社会的結束度",
-                    lblDom: "支配力",
-                    secSystem: "【社会制度】",
-                    secDiff: "【社会構造と特徴】",
-                    secEx: "【具体的歴史・人類学の例】",
-                    secKinship: "【親族構造】",
-                    secSocStruct: "【社会構造】"
-                },
-                resultModal: {
-                    lblMode: "生産形態",
-                    lblStage: "最終到達段階",
-                    lblTurn: "生存年数",
-                    lblGift: "贈与累積回数",
-                    lblComp: "最終社会的複雑度",
-                    lblDom: "最終支配力",
-                    lblKinship: "親族構造",
-                    lblSocStruct: "社会構造"
-                },
-                unknownSoc: { system: "不明な社会形態", diff: "データが存在しません。", ex: "該当なし" },
+                appTitle: "GIFT WAR - 贈与と社会進化の動態 -",
+                btnSoc: "参照 (Societies)",
+                btnHelp: "HELP",
+                btnNext: "何もせず静観",
+                lblStage: "社会形態",
+                lblTurn: "生存年数 (Turn)",
+                lblGiftCount: "贈与累積回数",
+                lblDominance: "支配力",
+                lblComplexity: "社会的複雑度",
+                lblInequality: "格差インデックス",
+                lblCohesion: "社会的結束度",
+                lblPop: "人口",
+                lblFood: "食料獲得量",
+                lblTools: "道具生産量",
+                lblLog: "社会履歴ログ",
+                lblAI: "外部・他者勢力 (AI)",
+                lblHand: "実行可能な戦略カード",
+                gameOver: "ゲームオーバー",
+                gameClear: "文明の到達（ゲームクリア）",
+                modalTitleSoc: "社会的複雑度と社会システム対照表",
+                modalTitleHelp: "理論解説 & ヘルプ",
                 stages: {
                     band: "バンド",
                     tribe: "部族",
                     chiefdom: "首長制",
-                    state: "王国 (国家)"
+                    state: "国家"
                 },
-                cards: {
-                    accumulate: { name: "資源蓄積", desc: "人口・食料・道具・複雑度と格差が上昇。贈与回数は増えません。" },
-                    directGift: { name: "直接贈与", desc: "食料・道具を分配。格差低下、結束度・支配力・贈与回数が上昇。" },
-                    obligatory: { name: "義務的返礼", desc: "安定した相互関係を維持。義務的再分配により統合を促進。" },
-                    universalServices: { name: "普遍的社会サービス", desc: "公共基盤を整え、可処分所得の格差が生活品質に直結しない仕組みを作る。" },
-                    commons: { name: "コモンズ（共有財）の復活", desc: "資源・土地の独占を防ぎ、共同管理領域を拡大して結束を深める。" },
-                    ritual: { name: "祭祀", desc: "食料を消費して聖なる儀礼を執り行い、社会的結束度を上昇させる。" },
-                    potlatch: { name: "ポトラッチ(過剰贈与)", desc: "富を過剰贈与・破棄し格差をリセット。支配力が大幅上昇。" },
-                    panhellenic_games: { name: "広域祭典(オリンピック)", desc: "周辺グループを招いた平和的祭典。外部摩擦を緩和し結束と支配力を強化。" },
-                    megalith_small: { name: "共同労働（小規模墳）", desc: "手頃な規模で労働力を集結。結束度と支配力を少し上昇させる。" },
-                    megalith_construction: { name: "共同労働（古墳造営）", desc: "巨大古墳を造営。結束度と支配力を劇的に上昇させる。" },
-                    freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。支配力が上昇するが、連投で結束崩壊。" },
-                    productionRevolution: { name: "生産革命", desc: "余剰な道具10000を技術革新により食糧1000に変換します。" }
-                },
-                helpContent: "【ゲームの概要】\n本ゲームは贈与と交換ネットワークによる社会進化をシミュレートするゲームです。\n\n【基本ルール】\n・社会的結束度が0になるとイベント「反乱/革命」が発生し人口が激減します。\n・支配力が高いほど「反乱/革命」による被害（人口減少）を抑えられます。\n・人口が0になると社会が完全崩壊（ゲームオーバー）します。\n・上位の社会形態へ進歩するには社会的複雑度、一定の贈与累積回数、および【必要人口】が必要です。\n・人口または社会的複雑度が最低ラインを下回ると社会形態が「退化」します。"
-            },
-            en: {
-                title: "GIFT WAR: Social Dynamics & Evolution",
-                help: "Help",
-                socBtn: "Societies",
-                turn: "Years Survived",
-                complexity: "Social Complexity",
-                inequality: "Inequality Index",
-                cohesion: "Social Cohesion",
-                dominance: "Dominance",
-                stage: "Social Stage",
-                giftCount: "Gift Count",
-                pop: "Population",
-                food: "Food",
-                tools: "Tools",
-                log: "History Log",
-                ai: "External Faction",
-                hand: "Available Strategy Cards",
-                next: "Pass Turn",
-                close: "Close",
-                gameOver: "Society Completely Collapsed!",
-                aiText: "Other factions are monitoring gift networks.",
-                reqPotlatch: "Req: Complexity ≥30 & Inequality ≥40% & Food 50/Tools 20",
-                reqPanhellenic: "Req: Complexity ≥20 & Food 80/Tools 30",
-                reqMegalith: "Req: Pop≥100, Food≥150, Tools≥50",
-                reqMegalithSmall: "Req: Pop≥30, Food≥40, Tools≥15",
-                reqRitual: "Req: Food ≥20",
-                reqFreeGift: "Req: None",
-                reqProductionRev: "Req: Tools ≥ 10000",
-                evolutionMsg: "[EVOLUTION] Through gift networking ({1} gifts) and growth, society evolved to '{0}'!",
-                devolutionMsg: "[DEVOLUTION] Due to loss of population or complexity, society devolved to '{0}'...",
-                modes: { forager: "Forager Society", agrarian: "Agrarian Society" },
-                infoModal: {
-                    title: "Current Society Model ({0})",
-                    statusHeader: "[Current Social Status]",
-                    lblStage: "Stage",
-                    lblComp: "Social Complexity",
-                    lblIneq: "Inequality Index",
-                    lblCoh: "Social Cohesion",
-                    lblDom: "Dominance",
-                    secSystem: "[Institutional System]",
-                    secDiff: "[Social Structure & Characteristics]",
-                    secEx: "[Historical Examples]",
-                    secKinship: "[Kinship Structure]",
-                    secSocStruct: "[Social Structure]"
+                modes: {
+                    forager: "狩猟採集社会",
+                    agrarian: "農耕社会"
                 },
                 resultModal: {
-                    lblMode: "Mode",
-                    lblStage: "Final Stage",
-                    lblTurn: "Years Survived",
-                    lblGift: "Gift Count",
-                    lblComp: "Final Complexity",
-                    lblDom: "Final Dominance",
-                    lblKinship: "Kinship Structure",
-                    lblSocStruct: "Social Structure"
-                },
-                unknownSoc: { system: "Unknown Society", diff: "No data available.", ex: "None" },
+                    lblMode: "モード",
+                    lblStage: "最終到達形態",
+                    lblTurn: "生存ターン数",
+                    lblGift: "贈与累積",
+                    lblDom: "支配力",
+                    lblComp: "最終複雑度",
+                    lblKinship: "親族・社会関係指標",
+                    lblSocStruct: "最終社会構造分類"
+                }
+            },
+            en: {
+                appTitle: "GIFT WAR - Dynamics of Giving & Evolution -",
+                btnSoc: "Ref (Societies)",
+                btnHelp: "HELP",
+                btnNext: "Wait & Observe",
+                lblStage: "Social Stage",
+                lblTurn: "Survival (Turn)",
+                lblGiftCount: "Total Gifts Given",
+                lblDominance: "Dominance",
+                lblComplexity: "Complexity",
+                lblInequality: "Inequality Index",
+                lblCohesion: "Cohesion",
+                lblPop: "Population",
+                lblFood: "Food Production",
+                lblTools: "Tool Production",
+                lblLog: "History Log",
+                lblAI: "External Forces (AI)",
+                lblHand: "Available Action Cards",
+                gameOver: "Game Over",
+                gameClear: "Civilization Reached (Clear)",
+                modalTitleSoc: "Complexity & Social System Reference",
+                modalTitleHelp: "Theoretical Background & Help",
                 stages: {
                     band: "Band",
                     tribe: "Tribe",
                     chiefdom: "Chiefdom",
-                    state: "State (Kingdom)"
+                    state: "State"
                 },
-                cards: {
-                    accumulate: { name: "Accumulate", desc: "Increases population, food, tools, complexity and inequality without gifts." },
-                    directGift: { name: "Direct Gift", desc: "Reduces inequality, boosts cohesion and dominance, increases total gift count." },
-                    obligatory: { name: "Obligatory Reciprocity", desc: "Maintains stable relations through reciprocal gift networks." },
-                    universalServices: { name: "Universal Services", desc: "Provides free/low-cost public services to uncouple income from living standards." },
-                    commons: { name: "Revive the Commons", desc: "Expands shared resources managed collectively by citizens." },
-                    ritual: { name: "Ritual / Worship", desc: "Consumes food to perform sacred rituals, boosting social cohesion." },
-                    potlatch: { name: "Potlatch", desc: "Excessive gift giving to reset inequality and greatly increase dominance." },
-                    panhellenic_games: { name: "Panhellenic Games", desc: "Host regional games to ease tensions and boost cohesion & dominance." },
-                    megalith_small: { name: "Mound Work", desc: "Construct small mounds requiring modest resources to build cohesion & dominance." },
-                    megalith_construction: { name: "Megalith Work", desc: "Construct massive mounds requiring major resources to dramatically boost cohesion & dominance." },
-                    freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Increases dominance, but repeated use breaks cohesion." },
-                    productionRevolution: { name: "Production Revolution", desc: "Converts 10000 surplus tools into 1000 food through technological innovation." }
+                modes: {
+                    forager: "Forager",
+                    agrarian: "Agrarian"
                 },
-                helpContent: "Simulate society evolution through gift networks.\nCohesion 0 triggers Revolts! Higher Dominance reduces revolt casualties.\nIf population or complexity falls below the minimum required threshold, society devolves to a lower stage."
+                resultModal: {
+                    lblMode: "Mode",
+                    lblStage: "Final Stage",
+                    lblTurn: "Turns Survived",
+                    lblGift: "Total Gifts",
+                    lblDom: "Dominance",
+                    lblComp: "Final Complexity",
+                    lblKinship: "Kinship & Social Metric",
+                    lblSocStruct: "Final Social Structure Class"
+                }
+            },
+            zh: {
+                appTitle: "GIFT WAR - 馈赠与社会演化动态 -",
+                btnSoc: "参考 (Societies)",
+                btnHelp: "帮助",
+                btnNext: "观望静置",
+                lblStage: "社会形态",
+                lblTurn: "生存年数 (Turn)",
+                lblGiftCount: "累计赠与次数",
+                lblDominance: "支配力",
+                lblComplexity: "社会复杂度",
+                lblInequality: "差距指数",
+                lblCohesion: "社会凝聚力",
+                lblPop: "人口",
+                lblFood: "粮食产量",
+                lblTools: "工具产量",
+                lblLog: "社会历史日志",
+                lblAI: "外部势力量 (AI)",
+                lblHand: "可执行策略卡",
+                gameOver: "游戏结束",
+                gameClear: "文明达标 (通关)",
+                modalTitleSoc: "复杂度与社会体系对照表",
+                modalTitleHelp: "理论背景与帮助",
+                stages: {
+                    band: "游群",
+                    tribe: "部落",
+                    chiefdom: "酋邦",
+                    state: "国家"
+                },
+                modes: {
+                    forager: "采集社会",
+                    agrarian: "农耕社会"
+                },
+                resultModal: {
+                    lblMode: "模式",
+                    lblStage: "最终形态",
+                    lblTurn: "生存回合数",
+                    lblGift: "累计赠与",
+                    lblDom: "支配力",
+                    lblComp: "最终复杂度",
+                    lblKinship: "亲属与社会关系指标",
+                    lblSocStruct: "最终社会结构分类"
+                }
+            },
+            ko: {
+                appTitle: "GIFT WAR - 증여와 사회 진화의 동태 -",
+                btnSoc: "참조 (Societies)",
+                btnHelp: "도움말",
+                btnNext: "관망하기",
+                lblStage: "사회 형태",
+                lblTurn: "생존 년수 (Turn)",
+                lblGiftCount: "증여 누적 횟수",
+                lblDominance: "지배력",
+                lblComplexity: "사회적 복잡도",
+                lblInequality: "격차 인덱스",
+                lblCohesion: "사회적 결속도",
+                lblPop: "인구",
+                lblFood: "식량 생산량",
+                lblTools: "도구 생산량",
+                lblLog: "사회 이력 로그",
+                lblAI: "외부/타자 세력 (AI)",
+                lblHand: "실행 가능 전략 카드",
+                gameOver: "게임 오버",
+                gameClear: "문명 도달 (클리어)",
+                modalTitleSoc: "사회적 복잡도 및 사회 시스템 대조표",
+                modalTitleHelp: "이론 해설 및 도움말",
+                stages: {
+                    band: "밴드",
+                    tribe: "부족",
+                    chiefdom: "군장국",
+                    state: "국가"
+                },
+                modes: {
+                    forager: "수렵채집 사회",
+                    agrarian: "농경 사회"
+                },
+                resultModal: {
+                    lblMode: "모드",
+                    lblStage: "최종 도달 형태",
+                    lblTurn: "생존 턴 수",
+                    lblGift: "증여 누적",
+                    lblDom: "지배력",
+                    lblComp: "최종 복잡도",
+                    lblKinship: "친족 및 사회 관계 지표",
+                    lblSocStruct: "최종 사회 구조 분류"
+                }
+            },
+            fr: {
+                appTitle: "GIFT WAR - Dynamique du Don et Évolution -",
+                btnSoc: "Réf (Sociétés)",
+                btnHelp: "AIDE",
+                btnNext: "Observer",
+                lblStage: "Stade Social",
+                lblTurn: "Survie (Tour)",
+                lblGiftCount: "Dons Cumulés",
+                lblDominance: "Dominance",
+                lblComplexity: "Complexité",
+                lblInequality: "Inégalité",
+                lblCohesion: "Cohésion",
+                lblPop: "Population",
+                lblFood: "Nourriture",
+                lblTools: "Outils",
+                lblLog: "Journal Historique",
+                lblAI: "Forces Extérieures (IA)",
+                lblHand: "Cartes d'Action Disponibles",
+                gameOver: "Fin de Partie",
+                gameClear: "Civilisation Atteinte (Gagné)",
+                modalTitleSoc: "Complexité & Référence des Systèmes",
+                modalTitleHelp: "Fondements Théoriques & Aide",
+                stages: {
+                    band: "Bande",
+                    tribe: "Tribu",
+                    chiefdom: "Chefferie",
+                    state: "État"
+                },
+                modes: {
+                    forager: "Chasseurs-cueilleurs",
+                    agrarian: "Agricole"
+                },
+                resultModal: {
+                    lblMode: "Mode",
+                    lblStage: "Stade Final",
+                    lblTurn: "Tours Survécus",
+                    lblGift: "Total des Dons",
+                    lblDom: "Dominance",
+                    lblComp: "Complexité Finale",
+                    lblKinship: "Métrique de Parenté & Sociale",
+                    lblSocStruct: "Structure Sociale Finale"
+                }
+            },
+            es: {
+                appTitle: "GIFT WAR - Dinámica del Don y Evolución -",
+                btnSoc: "Ref (Sociedades)",
+                btnHelp: "AYUDA",
+                btnNext: "Observar",
+                lblStage: "Etapa Social",
+                lblTurn: "Supervivencia (Turno)",
+                lblGiftCount: "Regalos Totales",
+                lblDominance: "Dominancia",
+                lblComplexity: "Complejidad",
+                lblInequality: "Desigualdad",
+                lblCohesion: "Cohesión",
+                lblPop: "Población",
+                lblFood: "Comida",
+                lblTools: "Herramientas",
+                lblLog: "Registro Histórico",
+                lblAI: "Fuerzas Externas (IA)",
+                lblHand: "Cartas de Acción Disponibles",
+                gameOver: "Fin del Juego",
+                gameClear: "Civilización Alcanzada (Victoria)",
+                modalTitleSoc: "Complejidad y Referencia Social",
+                modalTitleHelp: "Fundamentos Teóricos y Ayuda",
+                stages: {
+                    band: "Banda",
+                    tribe: "Tribu",
+                    chiefdom: "Jefatura",
+                    state: "Estado"
+                },
+                modes: {
+                    forager: "Cazadores-Recolectores",
+                    agrarian: "Agrícola"
+                },
+                resultModal: {
+                    lblMode: "Modo",
+                    lblStage: "Etapa Final",
+                    lblTurn: "Turnos Sobrevividos",
+                    lblGift: "Regalos Totales",
+                    lblDom: "Dominancia",
+                    lblComp: "Complejidad Final",
+                    lblKinship: "Métrica de Parentesco y Sociedad",
+                    lblSocStruct: "Estructura Social Final"
+                }
             }
         };
 
-        const cards = [
-            { id: "accumulate" },
-            { id: "directGift" },
-            { id: "obligatory" },
-            { id: "universalServices" },
-            { id: "commons" },
-            { id: "ritual" },
-            { id: "potlatch" },
-            { id: "panhellenic_games" },
-            { id: "megalith_small" },
-            { id: "megalith_construction" },
-            { id: "freeGift" },
-            { id: "productionRevolution" }
+        const CARDS_MASTER = [
+            {
+                id: 'reciprocal_gift',
+                title: { ja: "互恵的贈与", en: "Reciprocal Gift", zh: "互惠赠与", ko: "호혜적 증여", fr: "Don Réciproque", es: "Regalo Recíproco" },
+                desc: {
+                    ja: "余剰資源を他者・他集団に贈与し、互恵的債務関係と社会的信用の基盤を作る。",
+                    en: "Give surplus resources to generate reciprocal debt and build trust.",
+                    zh: "赠与剩余资源，建立互惠债务关系与社会信用基础。",
+                    ko: "잉여 자원을 다른 집단에 증여하여 호혜적 채무 관계와 사회적 신뢰 구축.",
+                    fr: "Offrez des ressources pour créer une dette réciproque et de la confiance.",
+                    es: "Regala excedentes para crear deuda recíproca y confianza."
+                },
+                req: { food: 15 },
+                effect: { food: -15, giftCount: 1, cohesion: 5, dominance: 2 }
+            },
+            {
+                id: 'potlatch',
+                title: { ja: "過剰贈与 (Potlatch)", en: "Potlatch (Over-gift)", zh: "夸富宴 (过剩赠与)", ko: "과잉 증여 (포트래치)", fr: "Potlatch (Sur-don)", es: "Potlatch (Sobredón)" },
+                desc: {
+                    ja: "圧倒的な量の財を贈与（あるいは破壊）し、相手を「返礼不能」にして強力な支配力と名声を得る。",
+                    en: "Bestow overwhelming wealth to render rivals unable to repay, gaining massive dominance.",
+                    zh: "赠与（或摧毁）压倒性的财富，使对方“无法报答”，获得强力的支配力与声望。",
+                    ko: "압도적인 재화를 증여(또는 파괴)하여 상대의 답례를 불가능하게 만들어 강력한 지배력 획득.",
+                    fr: "Offrez une richesse écrasante pour rendre l'autre incapable de rendre, gagnant une immense dominance.",
+                    es: "Ofrece riquezas abrumadoras para imposibilitar la devolución, ganando gran dominancia."
+                },
+                req: { food: 30, tools: 10, minStage: 'tribe' },
+                effect: { food: -30, tools: -10, giftCount: 2, dominance: 8, inequality: 5 }
+            },
+            {
+                id: 'coercion',
+                title: { ja: "武力/威圧の行使", en: "Use of Coercion/Force", zh: "行使武力/威慑", ko: "무력/위력 행사", fr: "Usage de la Force", es: "Uso de la Fuerza" },
+                desc: {
+                    ja: "直接的な武力や強制力を用いて支配を確立する。短期的には強力だが結束度が大幅に低下する。",
+                    en: "Establish dominance directly by force. Effective short-term, but severely damages cohesion.",
+                    zh: "使用直接武力或强制力建立统治。短期内有效，但显著降低凝聚力。",
+                    ko: "직접적인 무력이나 강제력을 사용하여 지배 확립. 단기적으로 강력하나 결속도 급감.",
+                    fr: "Établissez la dominance par la force. Efficace à court terme, mais nuit gravement à la cohésion.",
+                    es: "Establece dominancia por la fuerza. Eficaz a corto plazo, pero destruye la cohesión."
+                },
+                req: { tools: 10 },
+                effect: { tools: -10, dominance: 10, cohesion: -15, inequality: 8 }
+            },
+            {
+                id: 'infra_build',
+                title: { ja: "共有インフラ整備", en: "Shared Infrastructure", zh: "建设公共设施", ko: "공유 인프라 정비", fr: "Infrastructure Commune", es: "Infraestructura Común" },
+                desc: {
+                    ja: "灌漑や大規模貯蔵施設を建設し、社会全体の生産力と複雑度を高める。",
+                    en: "Build irrigation or storage to boost total productivity and complexity.",
+                    zh: "建设灌溉或大规模储存设施，提高整体生产力与复杂度。",
+                    ko: "관개 시설이나 대규모 저장 시설을 건설하여 사회 전체의 생산력과 복잡도 향상.",
+                    fr: "Construisez des infrastructures d'irrigation pour stimuler la productivité.",
+                    es: "Construye infraestructuras para aumentar la productividad y complejidad."
+                },
+                req: { food: 20, tools: 15 },
+                effect: { food: -20, tools: -15, complexity: 3, foodGen: 10, toolsGen: 5 }
+            },
+            {
+                id: 'redistribution',
+                title: { ja: "儀礼的再分配", en: "Ritual Redistribution", zh: "仪式性再分配", ko: "의례적 재분배", fr: "Redistribution Rituelle", es: "Redistribución Ritual" },
+                desc: {
+                    ja: "集積した資源を宴会や祭祀を通じて人々に再分配し、格差感を和らげ結束度を高める。",
+                    en: "Redistribute stored wealth through feasts to lower inequality and restore cohesion.",
+                    zh: "通过盛宴或祭祀将积聚的资源再分配给大众，缓解不平等并提高凝聚力。",
+                    ko: "축적된 자원을 잔치나 제사를 통해 재분배하여 격차를 완화하고 결속도 향상.",
+                    fr: "Redistribuez la richesse lors de fêtes pour réduire les inégalités et restaurer la cohésion.",
+                    es: "Redistribuye riquezas en festines para reducir la desigualdad y restaurar la cohesión."
+                },
+                req: { food: 25 },
+                effect: { food: -25, inequality: -8, cohesion: 12, dominance: -2 }
+            }
         ];
 
         let state = {
             lang: 'ja',
             mode: 'agrarian',
             turn: 1,
+            stage: 'band',
+            giftCount: 0,
+            dominance: 0,
             complexity: 10,
             inequality: 10,
             cohesion: 100,
-            dominance: 0,
-            giftCount: 0,
-            stage: 'band',
-            population: 30,
+            pop: 30,
             food: 80,
             tools: 10,
-            freeGiftStreak: 0,
-            isGameOver: false,
-            dissatisfaction: 0,
-            externalTension: 50,
-            recentColdWave: false,
-            recentRebellion: false
+            foodGenBase: 30,
+            toolsGenBase: 5,
+            foodGenBonus: 0,
+            toolsGenBonus: 0,
+            gameEnded: false
         };
 
-        const DOM = {
-            langSelect: document.getElementById('lang-select'),
-            modeSelect: document.getElementById('mode-select'),
-            appTitle: document.getElementById('app-title'),
-            btnHelp: document.getElementById('btn-help'),
-            btnSoc: document.getElementById('btn-soc'),
-            lblStage: document.getElementById('lbl-stage'),
-            valStage: document.getElementById('val-stage'),
-            barStage: document.getElementById('bar-stage'),
-            lblTurn: document.getElementById('lbl-turn'),
-            valTurn: document.getElementById('val-turn'),
-            lblGiftCount: document.getElementById('lbl-giftcount'),
-            valGiftCount: document.getElementById('val-giftcount'),
-            barGiftCount: document.getElementById('bar-giftcount'),
-            lblDominance: document.getElementById('lbl-dominance'),
-            valDominance: document.getElementById('val-dominance'),
-            barDominance: document.getElementById('bar-dominance'),
-            lblComplexity: document.getElementById('lbl-complexity'),
-            valComplexity: document.getElementById('val-complexity'),
-            barComplexity: document.getElementById('bar-complexity'),
-            lblInequality: document.getElementById('lbl-inequality'),
-            valInequality: document.getElementById('val-inequality'),
-            barInequality: document.getElementById('bar-inequality'),
-            lblCohesion: document.getElementById('lbl-cohesion'),
-            valCohesion: document.getElementById('val-cohesion'),
-            barCohesion: document.getElementById('bar-cohesion'),
-            lblPop: document.getElementById('lbl-pop'),
-            valPop: document.getElementById('val-pop'),
-            barPop: document.getElementById('bar-pop'),
-            lblFood: document.getElementById('lbl-food'),
-            valFood: document.getElementById('val-food'),
-            barFood: document.getElementById('bar-food'),
-            lblTools: document.getElementById('lbl-tools'),
-            valTools: document.getElementById('val-tools'),
-            barTools: document.getElementById('bar-tools'),
-            lblLog: document.getElementById('lbl-log'),
-            logBox: document.getElementById('log-box'),
-            lblAi: document.getElementById('lbl-ai'),
-            aiStatus: document.getElementById('ai-status'),
-            btnNext: document.getElementById('btn-next'),
-            lblHand: document.getElementById('lbl-hand'),
-            cardsBox: document.getElementById('cards-box'),
-            modal: document.getElementById('modal'),
-            modalTitle: document.getElementById('modal-title'),
-            modalBody: document.getElementById('modal-body'),
-            modalClose: document.getElementById('modal-close')
-        };
+        const DOM = {};
 
         function init() {
-            DOM.langSelect.addEventListener('change', (e) => {
-                state.lang = e.target.value;
-                updateI18N();
-            });
+            DOM.modeSelect = document.getElementById('mode-select');
+            DOM.langSelect = document.getElementById('lang-select');
+            DOM.btnSoc = document.getElementById('btn-soc');
+            DOM.btnHelp = document.getElementById('btn-help');
+            DOM.btnNext = document.getElementById('btn-next');
+            DOM.cardsBox = document.getElementById('cards-box');
+            DOM.logBox = document.getElementById('log-box');
+            DOM.aiStatus = document.getElementById('ai-status');
+            DOM.modal = document.getElementById('modal');
+            DOM.modalTitle = document.getElementById('modal-title');
+            DOM.modalBody = document.getElementById('modal-body');
+            DOM.modalClose = document.getElementById('modal-close');
+
+            DOM.valStage = document.getElementById('val-stage');
+            DOM.valTurn = document.getElementById('val-turn');
+            DOM.valGiftcount = document.getElementById('val-giftcount');
+            DOM.valDominance = document.getElementById('val-dominance');
+            DOM.valComplexity = document.getElementById('val-complexity');
+            DOM.valInequality = document.getElementById('val-inequality');
+            DOM.valCohesion = document.getElementById('val-cohesion');
+            DOM.valPop = document.getElementById('val-pop');
+            DOM.valFood = document.getElementById('val-food');
+            DOM.valTools = document.getElementById('val-tools');
+
+            DOM.barStage = document.getElementById('bar-stage');
+            DOM.barGiftcount = document.getElementById('bar-giftcount');
+            DOM.barDominance = document.getElementById('bar-dominance');
+            DOM.barComplexity = document.getElementById('bar-complexity');
+            DOM.barInequality = document.getElementById('bar-inequality');
+            DOM.barCohesion = document.getElementById('bar-cohesion');
+            DOM.barPop = document.getElementById('bar-pop');
+            DOM.barFood = document.getElementById('bar-food');
+            DOM.barTools = document.getElementById('bar-tools');
+
             DOM.modeSelect.addEventListener('change', (e) => {
                 state.mode = e.target.value;
                 resetGame();
             });
-            DOM.btnHelp.addEventListener('click', showHelp);
-            DOM.btnSoc.addEventListener('click', showCurrentSocietyInfo);
-            DOM.modalClose.addEventListener('click', hideModal);
-            DOM.btnNext.addEventListener('click', () => processTurn(null));
 
-            updateI18N();
-            renderHand();
-            updateUI();
+            DOM.langSelect.addEventListener('change', (e) => {
+                state.lang = e.target.value;
+                updateI18nUI();
+                renderCards();
+            });
+
+            DOM.btnSoc.addEventListener('click', showSocModal);
+            DOM.btnHelp.addEventListener('click', showHelpModal);
+            DOM.btnNext.addEventListener('click', () => playTurn(null));
+            DOM.modalClose.addEventListener('click', hideModal);
+
+            resetGame();
         }
 
         function resetGame() {
             state.turn = 1;
+            state.stage = 'band';
+            state.giftCount = 0;
+            state.dominance = 0;
             state.complexity = 10;
             state.inequality = 10;
             state.cohesion = 100;
-            state.dominance = 0;
-            state.giftCount = 0;
-            state.stage = 'band';
-            state.population = state.mode === 'agrarian' ? 30 : 20;
-            state.food = state.mode === 'agrarian' ? 80 : 50;
-            state.tools = state.mode === 'agrarian' ? 10 : 5;
-            state.freeGiftStreak = 0;
-            state.isGameOver = false;
-            state.dissatisfaction = 0;
-            state.externalTension = 50;
-            state.recentColdWave = false;
-            state.recentRebellion = false;
+            state.pop = 30;
+            state.food = 80;
+            state.tools = 10;
+            state.foodGenBonus = 0;
+            state.toolsGenBonus = 0;
+            state.gameEnded = false;
+
             DOM.logBox.innerHTML = '';
-            renderHand();
+            addLog(getSystemMsg('startMsg'), 'info');
             updateUI();
+            renderCards();
         }
 
-        function updateI18N() {
+        function getSystemMsg(key) {
+            const msgs = {
+                ja: {
+                    startMsg: "新たな社会の歴史が始まりました。",
+                    turnHeader: `--- 生存年数 (Turn) ${state.turn} ---`,
+                    starvation: "食料不足により飢餓が発生！人口と結束度が減少しました。",
+                    rebellion: "高い格差と支配力に対する不満から【反乱/革命】が勃発！社会構造が大きく破壊されました。",
+                    rebellionMitigated: "高い支配力と武力により反乱を鎮圧・軽減しました！(抑え込んだダメージ分、支配力が減少しました)",
+                    clearMsg: "社会は【国家 (State)】形態に到達し、複雑な文明構造を確立しました！"
+                },
+                en: {
+                    startMsg: "A new societal history has begun.",
+                    turnHeader: `--- Turn ${state.turn} ---`,
+                    starvation: "Famine occurred due to lack of food! Population and Cohesion dropped.",
+                    rebellion: "[Rebellion/Revolution] broke out due to high inequality and oppression! Social structures damaged.",
+                    rebellionMitigated: "Rebellion suppressed/mitigated by high dominance and military force! (Dominance decreased equal to mitigated damage)",
+                    clearMsg: "Your society reached the [State] stage, establishing complex civilization!"
+                },
+                zh: {
+                    startMsg: "新的社会历史开始了。",
+                    turnHeader: `--- 生存年数 (Turn) ${state.turn} ---`,
+                    starvation: "粮食不足引发饥荒！人口与凝聚力下降。",
+                    rebellion: "对高差距与高压的不满引发了【叛乱/革命】！社会结构遭到严重破坏。",
+                    rebellionMitigated: "利用强大的支配力与武力镇压/减轻了叛乱！(支配力降低了与被抵消伤害等量的数值)",
+                    clearMsg: "社会达到了【国家】形态，建立了复杂的文明结构！"
+                },
+                ko: {
+                    startMsg: "새로운 사회의 역사가 시작되었습니다.",
+                    turnHeader: `--- 생존 년수 (Turn) ${state.turn} ---`,
+                    starvation: "식량 부족으로 인한 기근 발생! 인구와 결속도가 감소했습니다.",
+                    rebellion: "높은 격차와 지배력에 대한 불만으로 【반란/혁명】 발발! 사회 구조가 크게 파괴되었습니다.",
+                    rebellionMitigated: "강력한 지배력과 무력으로 반란을 진압/경감했습니다! (감쇄한 피해량만큼 지배력이 감소했습니다)",
+                    clearMsg: "사회는 【국가】 형태에 도달하여 복잡한 문명 구조를 확립했습니다!"
+                },
+                fr: {
+                    startMsg: "Une nouvelle histoire sociétale commence.",
+                    turnHeader: `--- Tour ${state.turn} ---`,
+                    starvation: "Famine due au manque de nourriture ! La population et la cohésion ont chuté.",
+                    rebellion: "[Rébellion/Révolution] a éclaté en raison des inégalités et de l'oppression ! Structures endommagées.",
+                    rebellionMitigated: "Rébellion réprimée/atténuée par une forte dominance et la force militaire ! (La dominance a diminué à hauteur des dégâts annulés)",
+                    clearMsg: "Votre société a atteint le stade de [l'État], établissant une civilisation complexe !"
+                },
+                es: {
+                    startMsg: "Una nueva historia social ha comenzado.",
+                    turnHeader: `--- Turno ${state.turn} ---`,
+                    starvation: "¡Falta de alimentos provocó hambruna! La población y la cohesión cayeron.",
+                    rebellion: "¡[Rebelión/Revolución] estalló debido a la alta desigualdad y opresión! Estructura dañada.",
+                    rebellionMitigated: "¡Rebelión suprimida/mitigada gracias a la alta dominancia y fuerza militar! (La dominancia disminuyó en la misma cantidad de daño mitogado)",
+                    clearMsg: "¡Su sociedad alcanzó la etapa de [Estado], estableciendo una civilización compleja!"
+                }
+            };
+            return msgs[state.lang][key] || msgs.ja[key];
+        }
+
+        function updateI18nUI() {
             const t = I18N[state.lang] || I18N.ja;
-            DOM.appTitle.textContent = t.title;
-            DOM.btnHelp.textContent = t.help;
-            DOM.btnSoc.textContent = t.socBtn;
-            DOM.lblStage.textContent = t.stage;
-            DOM.lblTurn.textContent = t.turn;
-            DOM.lblGiftCount.textContent = t.giftCount;
-            if (DOM.lblDominance) DOM.lblDominance.textContent = t.dominance;
-            DOM.lblComplexity.textContent = t.complexity;
-            DOM.lblInequality.textContent = t.inequality;
-            DOM.lblCohesion.textContent = t.cohesion;
-            DOM.lblPop.textContent = t.pop;
-            DOM.lblFood.textContent = t.food;
-            DOM.lblTools.textContent = t.tools;
-            DOM.lblLog.textContent = t.log;
-            DOM.lblAi.textContent = t.ai;
-            DOM.aiStatus.textContent = t.aiText;
-            DOM.btnNext.textContent = t.next;
-            DOM.lblHand.textContent = t.hand;
-            DOM.modalClose.textContent = t.close;
-            renderHand();
+            document.getElementById('app-title').textContent = t.appTitle;
+            DOM.btnSoc.textContent = t.btnSoc;
+            DOM.btnHelp.textContent = t.btnHelp;
+            DOM.btnNext.textContent = t.btnNext;
+
+            document.getElementById('lbl-stage').textContent = t.lblStage;
+            document.getElementById('lbl-turn').textContent = t.lblTurn;
+            document.getElementById('lbl-giftcount').textContent = t.lblGiftCount;
+            document.getElementById('lbl-dominance').textContent = t.lblDominance;
+            document.getElementById('lbl-complexity').textContent = t.lblComplexity;
+            document.getElementById('lbl-inequality').textContent = t.lblInequality;
+            document.getElementById('lbl-cohesion').textContent = t.lblCohesion;
+            document.getElementById('lbl-pop').textContent = t.lblPop;
+            document.getElementById('lbl-food').textContent = t.lblFood;
+            document.getElementById('lbl-tools').textContent = t.lblTools;
+
+            document.getElementById('lbl-log').textContent = t.lblLog;
+            document.getElementById('lbl-ai').textContent = t.lblAI;
+            document.getElementById('lbl-hand').textContent = t.lblHand;
+
             updateUI();
-        }
-
-        function computeKinshipAndSocialStructure() {
-            const comp = state.complexity;
-            const ineq = state.inequality;
-            const mode = state.mode;
-            const stage = computeCurrentStageKey();
-
-            let kinship = "";
-            let socStruct = "";
-
-            if (state.lang === 'ja') {
-                if (stage === 'band') {
-                    kinship = "内婚的バンド構造（血縁を中心とした小規模集団）";
-                    socStruct = "平等主義的共同体（所有概念なし・即時消費）";
-                } else if (stage === 'tribe') {
-                    kinship = "二分組織・限定交換（血縁・互恵的婚姻関係）";
-                    socStruct = "環濠・村落複合体（長老会による土地・資源調整）";
-                } else if (stage === 'chiefdom') {
-                    kinship = "一般交換・首長系譜による婚姻同盟";
-                    socStruct = "階層化首長制社会（世襲首長・貢納・大型造営）";
-                } else {
-                    kinship = "複合的階層化親族体系（身分内婚の定着）";
-                    socStruct = "中央集権的領域国家・官僚制（成文法・税制）";
-                }
-            } else {
-                if (stage === 'band') {
-                    kinship = "Endogamous Band Structure";
-                    socStruct = "Egalitarian Kin Community";
-                } else if (stage === 'tribe') {
-                    kinship = "Dual / Restricted Exchange System";
-                    socStruct = "Reciprocal Village Alliance";
-                } else if (stage === 'chiefdom') {
-                    kinship = "Generalized Exchange System";
-                    socStruct = "Stratified Chiefdom";
-                } else {
-                    kinship = "Complex Stratified Kinship";
-                    socStruct = "Centralized State";
-                }
-            }
-
-            return { kinship, socStruct };
         }
 
         function computeCurrentStageKey() {
-            const comp = state.complexity;
-            const gifts = state.giftCount;
-            const pop = state.population;
-
-            if (comp >= STAGE_MIN_COMPLEXITY.state && gifts >= STAGE_REQ_GIFTS.state && pop >= STAGE_REQ_POP.state) return 'state';
-            if (comp >= STAGE_MIN_COMPLEXITY.chiefdom && gifts >= STAGE_REQ_GIFTS.chiefdom && pop >= STAGE_REQ_POP.chiefdom) return 'chiefdom';
-            if (comp >= STAGE_MIN_COMPLEXITY.tribe && gifts >= STAGE_REQ_GIFTS.tribe && pop >= STAGE_REQ_POP.tribe) return 'tribe';
+            if (state.complexity >= STAGE_MIN_COMPLEXITY.state && state.giftCount >= STAGE_REQ_GIFTS.state && state.pop >= STAGE_REQ_POP.state) {
+                return 'state';
+            }
+            if (state.complexity >= STAGE_MIN_COMPLEXITY.chiefdom && state.giftCount >= STAGE_REQ_GIFTS.chiefdom && state.pop >= STAGE_REQ_POP.chiefdom) {
+                return 'chiefdom';
+            }
+            if (state.complexity >= STAGE_MIN_COMPLEXITY.tribe && state.giftCount >= STAGE_REQ_GIFTS.tribe && state.pop >= STAGE_REQ_POP.tribe) {
+                return 'tribe';
+            }
             return 'band';
         }
 
-        function renderHand() {
-            while (DOM.cardsBox.firstChild) {
-                DOM.cardsBox.removeChild(DOM.cardsBox.firstChild);
-            }
-
-            if (state.isGameOver) return;
-
+        function updateUI() {
             const t = I18N[state.lang] || I18N.ja;
-            
-            cards.forEach(cardObj => {
-                const key = cardObj.id;
+            state.stage = computeCurrentStageKey();
+
+            DOM.valStage.textContent = t.stages[state.stage];
+            DOM.valTurn.textContent = state.turn;
+            DOM.valGiftcount.textContent = state.giftCount;
+            DOM.valDominance.textContent = Math.round(state.dominance);
+            DOM.valComplexity.textContent = Math.round(state.complexity);
+            DOM.valInequality.textContent = Math.round(state.inequality) + '%';
+            DOM.valCohesion.textContent = Math.round(state.cohesion);
+            DOM.valPop.textContent = Math.round(state.pop);
+            DOM.valFood.textContent = Math.round(state.food);
+            DOM.valTools.textContent = Math.round(state.tools);
+
+            const stageProg = state.stage === 'band' ? 25 : state.stage === 'tribe' ? 50 : state.stage === 'chiefdom' ? 75 : 100;
+            DOM.barStage.style.width = stageProg + '%';
+            DOM.barGiftcount.style.width = Math.min(100, (state.giftCount / 20) * 100) + '%';
+            DOM.barDominance.style.width = Math.min(100, state.dominance) + '%';
+            DOM.barComplexity.style.width = Math.min(100, (state.complexity / 50) * 100) + '%';
+            DOM.barInequality.style.width = Math.min(100, state.inequality) + '%';
+            DOM.barCohesion.style.width = Math.min(100, state.cohesion) + '%';
+            DOM.barPop.style.width = Math.min(100, (state.pop / 600) * 100) + '%';
+            DOM.barFood.style.width = Math.min(100, (state.food / 200) * 100) + '%';
+            DOM.barTools.style.width = Math.min(100, (state.tools / 100) * 100) + '%';
+        }
+
+        function renderCards() {
+            DOM.cardsBox.innerHTML = '';
+            if (state.gameEnded) return;
+
+            CARDS_MASTER.forEach(card => {
+                const title = card.title[state.lang] || card.title.ja;
+                const desc = card.desc[state.lang] || card.desc.ja;
+
+                let canUse = true;
+                let reqText = [];
+
+                if (card.req.food && state.food < card.req.food) {
+                    canUse = false;
+                    reqText.push(`Food:${card.req.food}`);
+                }
+                if (card.req.tools && state.tools < card.req.tools) {
+                    canUse = false;
+                    reqText.push(`Tools:${card.req.tools}`);
+                }
+                if (card.req.minStage) {
+                    const stageRanks = { band: 1, tribe: 2, chiefdom: 3, state: 4 };
+                    if (stageRanks[state.stage] < stageRanks[card.req.minStage]) {
+                        canUse = false;
+                        const t = I18N[state.lang] || I18N.ja;
+                        reqText.push(`Req:${t.stages[card.req.minStage]}`);
+                    }
+                }
+
                 const cardEl = document.createElement('div');
-                cardEl.className = 'card';
-                
-                let isExecutable = true;
-                let reqMsg = "";
-
-                if (key === 'potlatch') {
-                    if (state.complexity < 30 || state.inequality < 40 || state.food < 50 || state.tools < 20) {
-                        isExecutable = false;
-                        reqMsg = t.reqPotlatch;
-                    }
-                } else if (key === 'panhellenic_games') {
-                    if (state.complexity < 20 || state.food < 80 || state.tools < 30) {
-                        isExecutable = false;
-                        reqMsg = t.reqPanhellenic;
-                    }
-                } else if (key === 'megalith_small') {
-                    if (state.population < 30 || state.food < 40 || state.tools < 15) {
-                        isExecutable = false;
-                        reqMsg = t.reqMegalithSmall;
-                    }
-                } else if (key === 'megalith_construction') {
-                    if (state.population < 100 || state.food < 150 || state.tools < 50) {
-                        isExecutable = false;
-                        reqMsg = t.reqMegalith;
-                    }
-                } else if (key === 'ritual') {
-                    if (state.food < 20) {
-                        isExecutable = false;
-                        reqMsg = t.reqRitual;
-                    }
-                } else if (key === 'universalServices') {
-                    if (state.food < 30 || state.tools < 15) {
-                        isExecutable = false;
-                        reqMsg = "食料30, 道具15が必要";
-                    }
-                } else if (key === 'commons') {
-                    if (state.food < 15 || state.tools < 15) {
-                        isExecutable = false;
-                        reqMsg = "食料15, 道具15が必要";
-                    }
-                } else if (key === 'productionRevolution') {
-                    if (state.tools < 10000) {
-                        isExecutable = false;
-                        reqMsg = t.reqProductionRev;
-                    }
-                }
-
-                if (!isExecutable) {
-                    cardEl.classList.add('disabled');
-                }
-
-                let cardName = (t.cards[key] && t.cards[key].name) || key;
-                let cardDesc = (t.cards[key] && t.cards[key].desc) || "";
-
+                cardEl.className = `card ${canUse ? '' : 'disabled'}`;
                 cardEl.innerHTML = `
-                    <div class="card-title">${cardName}</div>
-                    <div class="card-desc">${cardDesc}</div>
-                    ${reqMsg ? `<div class="card-req">${reqMsg}</div>` : ''}
+                    <div class="card-title">${title}</div>
+                    <div class="card-desc">${desc}</div>
+                    <div class="card-req">${reqText.join(' ')}</div>
                 `;
 
-                if (isExecutable) {
-                    cardEl.addEventListener('click', () => playCard(key));
+                if (canUse) {
+                    cardEl.addEventListener('click', () => playTurn(card));
                 }
 
                 DOM.cardsBox.appendChild(cardEl);
             });
         }
 
-        function playCard(cardId) {
-            if (state.isGameOver) return;
-
-            let logText = "";
-            const t = I18N[state.lang] || I18N.ja;
-
-            if (cardId === 'accumulate') {
-                state.freeGiftStreak = 0;
-                state.population += 2;
-                state.food += state.mode === 'agrarian' ? 40 : 30;
-                state.tools += 5;
-                state.complexity += 1;
-                state.inequality = Math.min(100, state.inequality + 4);
-                logText = state.lang === 'ja' ? "資源蓄積を行いました。人口・食料・道具・複雑度と格差が上昇しました。" : "Accumulated resources.";
-            } else if (cardId === 'directGift') {
-                state.freeGiftStreak = 0;
-                state.giftCount += 1;
-                state.inequality = Math.max(0, state.inequality - 5);
-                state.cohesion = Math.min(100, state.cohesion + 8);
-                state.dominance += 5;
-                state.food = Math.max(0, state.food - 10);
-                logText = state.lang === 'ja' ? "直接贈与を実施。食料を分配し格差低下・結束力強化・支配力+5。" : "Executed direct gift (+5 Dominance).";
-            } else if (cardId === 'obligatory') {
-                state.freeGiftStreak = 0;
-                state.giftCount += 1;
-                state.cohesion = Math.min(100, state.cohesion + 5);
-                state.dominance += 3;
-                state.complexity += 1;
-                logText = state.lang === 'ja' ? "義務的返礼のネットワークを強化。安定した相互関係と確実な統合が維持されています。" : "Maintained obligatory reciprocity.";
-            } else if (cardId === 'universalServices') {
-                state.freeGiftStreak = 0;
-                state.food = Math.max(0, state.food - 30);
-                state.tools = Math.max(0, state.tools - 15);
-                state.inequality = Math.max(0, state.inequality - 15);
-                state.cohesion = Math.min(100, state.cohesion + 12);
-                state.complexity += 3;
-                logText = state.lang === 'ja' ? "公共基盤の無償化・低価格化により、生活品質の格差が解消されました。" : "Implemented universal services.";
-            } else if (cardId === 'commons') {
-                state.freeGiftStreak = 0;
-                state.food = Math.max(0, state.food - 15);
-                state.tools = Math.max(0, state.tools - 15);
-                state.inequality = Math.max(0, state.inequality - 10);
-                state.cohesion = Math.min(100, state.cohesion + 16);
-                logText = state.lang === 'ja' ? "コモンズの復活により共有財が広がり、共同体の連携が緊密化しました。" : "Revived the commons.";
-            } else if (cardId === 'ritual') {
-                state.freeGiftStreak = 0;
-                state.cohesion = Math.min(100, state.cohesion + 15);
-                state.food = Math.max(0, state.food - 20);
-                logText = state.lang === 'ja' ? "聖なる祭祀の執り行いにより、人々の社会的結束度が向上しました。" : "Performed ritual worship.";
-            } else if (cardId === 'potlatch') {
-                state.freeGiftStreak = 0;
-                state.giftCount += 1;
-                state.food = Math.max(0, state.food - 50);
-                state.tools = Math.max(0, state.tools - 20);
-                state.inequality = Math.max(0, state.inequality - 25);
-                state.dominance += 25;
-                state.cohesion = Math.min(100, state.cohesion + 10);
-                logText = state.lang === 'ja' ? "過剰贈与（ポトラッチ）を開催！格差が大幅リセットされ、威信と支配力が急上昇（支配力+25）！" : "Executed Potlatch (+25 Dominance)!";
-            } else if (cardId === 'panhellenic_games') {
-                state.freeGiftStreak = 0;
-                state.food = Math.max(0, state.food - 80);
-                state.tools = Math.max(0, state.tools - 30);
-                state.cohesion = Math.min(100, state.cohesion + 25);
-                state.dominance += 20;
-                state.externalTension = Math.max(0, state.externalTension - 50);
-                logText = state.lang === 'ja' ? "広域祭典が大成功を収めました！結束度+25、支配力+20、外部摩擦が大幅緩和！" : "Hosted Panhellenic Games (+20 Dominance)!";
-            } else if (cardId === 'megalith_small') {
-                state.freeGiftStreak = 0;
-                state.food = Math.max(0, state.food - 40);
-                state.tools = Math.max(0, state.tools - 15);
-                state.cohesion = Math.min(100, state.cohesion + 18);
-                state.dominance += 8;
-                logText = state.lang === 'ja' ? "小規模な墳墓の共同造営を完了。地元の結束度と威信が向上しました。" : "Constructed a small mound (+8 Dominance).";
-            } else if (cardId === 'megalith_construction') {
-                state.freeGiftStreak = 0;
-                state.food = Math.max(0, state.food - 150);
-                state.tools = Math.max(0, state.tools - 50);
-                state.cohesion = Math.min(100, state.cohesion + 40);
-                state.dominance += 15;
-                logText = state.lang === 'ja' ? "巨大な古墳の造営を達成！共同体の強力な結束力と王権の威信が示されました。" : "Completed massive Megalith Work (+15 Dominance).";
-            } else if (cardId === 'freeGift') {
-                state.freeGiftStreak += 1;
-                state.giftCount += 1;
-                state.dominance += 10;
-                state.inequality = Math.max(0, state.inequality - 8);
-                if (state.freeGiftStreak >= 2) {
-                    state.cohesion = Math.max(0, state.cohesion - 20);
-                    addLog(t.warnFreeGift || "一方的な無償贈与の連投により依存と負い目が発生！結束度が急激に低下しています。", 'warn');
-                } else {
-                    state.cohesion = Math.min(100, state.cohesion + 2);
-                }
-                logText = state.lang === 'ja' ? "無償の贈与を実施。見返りを求めない姿勢で支配力が向上(+10)。" : "Executed pure free gift (+10 Dominance).";
-            } else if (cardId === 'productionRevolution') {
-                state.freeGiftStreak = 0;
-                state.tools -= 10000;
-                state.food += 1000;
-                state.complexity += 5;
-                logText = state.lang === 'ja' ? "【生産革命】技術革新により道具10000を食糧1000に変換しました！社会的複雑度+5。" : "Executed Production Revolution!";
-            }
-
-            addLog(logText, 'action');
-            processTurn(cardId);
-        }
-
-        function triggerRandomEvent() {
-            if (state.isGameOver) return;
-            
-            const roll = Math.random();
-            if (roll < 0.05) {
-                state.recentColdWave = true;
-                const popLoss = Math.floor(state.population * 0.4) + 10;
-                const foodLoss = Math.floor(state.food * 0.8);
-                state.population = Math.max(0, state.population - popLoss);
-                state.food = Math.max(0, state.food - foodLoss);
-                state.cohesion = Math.max(0, state.cohesion - 30);
-                state.complexity = Math.max(1, state.complexity - 3);
-                addLog(`【災害「大寒波」】未曽有の極寒が社会を襲う！ 人口-${popLoss}、食料-${foodLoss}、結束度-30、複雑度-3`, 'event');
-            } else if (roll < 0.12) {
-                const foodLoss = Math.floor(state.food * 0.3) + 10;
-                state.food = Math.max(0, state.food - foodLoss);
-                state.cohesion = Math.max(0, state.cohesion - 10);
-                addLog(`【自然災害】干ばつと飢饉が発生！ 食料-${foodLoss}、結束度-10`, 'event');
-            } else if (roll < 0.22) {
-                let popLossMult = 0.15;
-                let baseToolLoss = 5;
-                let extraMsg = "";
-                if (state.recentColdWave && state.recentRebellion) {
-                    popLossMult = 0.85;
-                    baseToolLoss = 50;
-                    extraMsg = "（大寒波→反乱→侵略の三重苦により社会構造が壊滅！）";
-                }
-                const popLoss = Math.floor(state.population * popLossMult) + 5;
-                const toolLoss = Math.floor(state.tools * 0.2) + baseToolLoss;
-                state.population = Math.max(0, state.population - popLoss);
-                state.tools = Math.max(0, state.tools - toolLoss);
-                state.cohesion = Math.max(0, state.cohesion - 15);
-                state.complexity = Math.max(1, state.complexity - 2);
-                addLog(`【外部侵略】他勢力からの襲撃！${extraMsg} 人口-${popLoss}、道具-${toolLoss}、結束度-15、複雑度-2`, 'event');
-            } else if (roll < 0.30) {
-                const toolGain = Math.floor(state.tools * 0.5) + 15;
-                const foodGain = Math.floor(state.food * 0.3) + 20;
-                state.tools += toolGain;
-                state.food += foodGain;
-                state.complexity += 2;
-                addLog(`【渡来人到来】高度な技術を持つ渡来人が流入！ 道具+${toolGain}、食料+${foodGain}、複雑度+2`, 'event');
-            } else if (roll < 0.36) {
-                const giftFood = 60;
-                const giftTools = 30;
-                state.food += giftFood;
-                state.tools += giftTools;
-                state.dominance += 10;
-                addLog(`【近隣帝国からの贈与】突発的な富が流入！ 食料+${giftFood}、道具+${giftTools}、支配力+10`, 'event');
-            }
-        }
-
-        function processTurn(playedCardId) {
-            if (state.isGameOver) return;
-
-            state.turn += 1;
-
-            triggerRandomEvent();
-
-            const foodNeeded = Math.floor(state.population * 0.8);
-            if (state.food >= foodNeeded) {
-                state.food -= foodNeeded;
-                const growthRate = state.mode === 'agrarian' ? 0.003 : 0.05;
-                state.population += Math.floor(state.population * growthRate) + 1;
-            } else {
-                const starvation = Math.floor((foodNeeded - state.food) / 2) + 1;
-                state.food = 0;
-                state.population = Math.max(0, state.population - starvation);
-                state.cohesion = Math.max(0, state.cohesion - 12);
-                addLog(`【食料不足】餓死者が発生！ 人口-${starvation}、結束度-12`, 'warn');
-            }
-
-            if (state.inequality > 50) {
-                state.cohesion = Math.max(0, state.cohesion - 3);
-            }
-
-            if (state.cohesion <= 0 && state.population > 0) {
-                state.recentRebellion = true;
-                const baseLossRate = 0.6;
-                const reduction = Math.min(0.5, state.dominance * 0.005); 
-                const actualLossRate = Math.max(0.1, baseLossRate - reduction);
-                
-                const popLoss = Math.floor(state.population * actualLossRate) + 5;
-                state.population = Math.max(0, state.population - popLoss);
-                state.cohesion = 20; 
-                state.complexity = Math.max(1, state.complexity - 5);
-                
-                addLog(`【反乱 / 革命】社会的結束の不全により大規模反乱が発生！ 支配力(${state.dominance})により損害緩和。 人口-${popLoss}、複雑度-5、結束が20まで一時回復。`, 'event');
-            }
-
-            const stageOrder = ['band', 'tribe', 'chiefdom', 'state'];
-            const prevStage = state.stage;
-            const newStageKey = computeCurrentStageKey();
-            state.stage = newStageKey;
-
-            const t = I18N[state.lang] || I18N.ja;
-
-            if (prevStage !== newStageKey) {
-                const stageName = t.stages[newStageKey] || newStageKey;
-                const prevIdx = stageOrder.indexOf(prevStage);
-                const newIdx = stageOrder.indexOf(newStageKey);
-                if (newIdx > prevIdx) {
-                    addLog(t.evolutionMsg.replace('{0}', stageName).replace('{1}', state.giftCount), 'evolution');
-                } else {
-                    addLog(t.devolutionMsg.replace('{0}', stageName), 'devolution');
-                }
-            }
-
-            if (state.population <= 0) {
-                state.isGameOver = true;
-                addLog(t.gameOver, 'event');
-                showResultModal();
-            }
-
-            updateUI();
-            renderHand();
-        }
-
-        function updateUI() {
-            const t = I18N[state.lang] || I18N.ja;
-            DOM.valTurn.textContent = state.turn;
-            DOM.valGiftCount.textContent = state.giftCount;
-            if (DOM.valDominance) DOM.valDominance.textContent = state.dominance;
-            DOM.valComplexity.textContent = state.complexity;
-            DOM.valInequality.textContent = state.inequality + '%';
-            DOM.valCohesion.textContent = state.cohesion;
-            DOM.valPop.textContent = state.population;
-            DOM.valFood.textContent = state.food;
-            DOM.valTools.textContent = state.tools;
-
-            const currentStageKey = computeCurrentStageKey();
-            DOM.valStage.textContent = t.stages[currentStageKey] || currentStageKey;
-
-            if (DOM.barDominance) DOM.barDominance.style.width = Math.min(100, state.dominance) + '%';
-            DOM.barComplexity.style.width = Math.min(100, state.complexity) + '%';
-            DOM.barInequality.style.width = Math.min(100, state.inequality) + '%';
-            DOM.barCohesion.style.width = Math.min(100, state.cohesion) + '%';
-            DOM.barPop.style.width = Math.min(100, state.population / 2) + '%';
-            DOM.barFood.style.width = Math.min(100, state.food / 2) + '%';
-            DOM.barTools.style.width = Math.min(100, state.tools / 2) + '%';
-        }
-
-        function addLog(text, type = 'info') {
-            if (!text) return;
+        function addLog(msg, type = 'info') {
             const entry = document.createElement('div');
             entry.className = `log-entry ${type}`;
-            entry.textContent = `[Turn ${state.turn}] ${text}`;
+            entry.textContent = msg;
             DOM.logBox.appendChild(entry);
             DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
         }
 
-        function showHelp() {
+        function playTurn(selectedCard) {
+            if (state.gameEnded) return;
+
+            addLog(getSystemMsg('turnHeader'), 'info');
+
+            if (selectedCard) {
+                const title = selectedCard.title[state.lang] || selectedCard.title.ja;
+                addLog(`▶ 戦略実行: 【${title}】`, 'action');
+
+                const eff = selectedCard.effect;
+                if (eff.food) state.food += eff.food;
+                if (eff.tools) state.tools += eff.tools;
+                if (eff.giftCount) state.giftCount += eff.giftCount;
+                if (eff.dominance) state.dominance = Math.max(0, state.dominance + eff.dominance);
+                if (eff.inequality) state.inequality = Math.max(0, Math.min(100, state.inequality + eff.inequality));
+                if (eff.cohesion) state.cohesion = Math.max(0, Math.min(100, state.cohesion + eff.cohesion));
+                if (eff.complexity) state.complexity += eff.complexity;
+                if (eff.foodGen) state.foodGenBonus += eff.foodGen;
+                if (eff.toolsGen) state.toolsGenBonus += eff.toolsGen;
+            } else {
+                addLog("▶ 静観を選択しました。", "info");
+            }
+
+            processTurnEndPhase();
+        }
+
+        function processTurnEndPhase() {
+            // Food & Resource Generation
+            const isAgrarian = state.mode === 'agrarian';
+            const baseFoodMult = isAgrarian ? 1.5 : 1.0;
+            const generatedFood = Math.round((state.foodGenBase + state.foodGenBonus) * baseFoodMult * (1 + state.complexity * 0.02));
+            const generatedTools = Math.round((state.toolsGenBase + state.toolsGenBonus) * (1 + state.complexity * 0.015));
+
+            state.food += generatedFood;
+            state.tools += generatedTools;
+
+            // Food Consumption
+            const foodNeeded = Math.round(state.pop * 1.2);
+            if (state.food >= foodNeeded) {
+                state.food -= foodNeeded;
+                state.pop += Math.round(state.pop * 0.05); // Natural pop growth
+            } else {
+                const deficit = foodNeeded - state.food;
+                state.food = 0;
+                const dead = Math.round(deficit * 0.5);
+                state.pop = Math.max(5, state.pop - dead);
+                state.cohesion = Math.max(0, state.cohesion - 15);
+                addLog(getSystemMsg('starvation'), 'event');
+            }
+
+            // Automatic Complexity and Inequality Dynamics
+            const newStageKey = computeCurrentStageKey();
+            if (newStageKey !== state.stage) {
+                const t = I18N[state.lang] || I18N.ja;
+                const stageRanks = { band: 1, tribe: 2, chiefdom: 3, state: 4 };
+                if (stageRanks[newStageKey] > stageRanks[state.stage]) {
+                    addLog(`★ 社会形態が【${t.stages[newStageKey]}】へ進化した！`, 'evolution');
+                } else {
+                    addLog(`⚠ 社会構造が【${t.stages[newStageKey]}】へ衰退した...`, 'devolution');
+                }
+                state.stage = newStageKey;
+            }
+
+            // Natural Complexity growth from population and gifts
+            state.complexity += (state.pop * 0.01) + (state.giftCount * 0.1);
+
+            // Dominance & Inequality drift
+            if (state.dominance > 0) {
+                state.inequality = Math.min(100, state.inequality + state.dominance * 0.1);
+            }
+
+            // Rebellion Event
+            if (state.inequality > 60 && Math.random() < 0.4) {
+                let baseCohesionDmg = 25;
+                let baseCompDmg = 5;
+
+                let damageCut = 0;
+                if (state.dominance > 0) {
+                    damageCut = Math.min(baseCohesionDmg, state.dominance);
+                }
+
+                let actualCohesionDmg = baseCohesionDmg - damageCut;
+
+                state.cohesion = Math.max(0, state.cohesion - actualCohesionDmg);
+                state.complexity = Math.max(10, state.complexity - baseCompDmg);
+
+                if (damageCut > 0) {
+                    state.dominance = Math.max(0, state.dominance - damageCut);
+                    addLog(getSystemMsg('rebellionMitigated'), 'warn');
+                } else {
+                    addLog(getSystemMsg('rebellion'), 'event');
+                }
+            }
+
+            // AI Status Update
+            updateAIStatus();
+
+            state.turn++;
+            updateUI();
+            checkGameStatus();
+            renderCards();
+        }
+
+        function updateAIStatus() {
+            const aiMsgs = {
+                ja: [
+                    "隣接バンド：交易の申し入れを検討中...",
+                    "競合首長国：威信財の蓄積を注視している。",
+                    "周縁部族：こちらの贈与余力を警戒中。"
+                ],
+                en: [
+                    "Neighboring Band: Considering trade proposal...",
+                    "Rival Chiefdom: Monitoring prestige goods accumulated.",
+                    "Peripheral Tribe: Wary of your gift capacity."
+                ],
+                zh: [
+                    "相邻游群：正在考虑交易提议...",
+                    "竞争酋邦：正在密切关注威信财的积聚。",
+                    "周边部落：对本方的赠与余力保持警惕。"
+                ],
+                ko: [
+                    "인접 밴드: 교역 제안 검토 중...",
+                    "경쟁 군장국: 위신재의 축적을 주시하고 있음.",
+                    "주변 부족: 이쪽의 증여 여력을 경계 중."
+                ],
+                fr: [
+                    "Bande voisine : Envisage une proposition commerciale...",
+                    "Chefferie rivale : Surveille l'accumulation de biens de prestige.",
+                    "Tribu périphérique : Méfiante de votre capacité de don."
+                ],
+                es: [
+                    "Banda vecina: Considerando propuesta comercial...",
+                    "Jefatura rival: Monitoreando bienes de prestigio acumulados.",
+                    "Tribu periférica: Cautelosa ante su capacidad de dar regalos."
+                ]
+            };
+            const list = aiMsgs[state.lang] || aiMsgs.ja;
+            DOM.aiStatus.textContent = list[Math.floor(Math.random() * list.length)];
+        }
+
+        function checkGameStatus() {
+            if (state.pop <= 5 || state.cohesion <= 0) {
+                state.gameEnded = true;
+                addLog("💀 社会が崩壊しました。ゲームオーバー。", 'event');
+                showResultModal();
+            } else if (state.stage === 'state' && state.complexity >= 45) {
+                state.gameEnded = true;
+                addLog(getSystemMsg('clearMsg'), 'evolution');
+                showResultModal();
+            }
+        }
+
+        function computeKinshipAndSocialStructure() {
+            let kinship = "";
+            let socStruct = "";
+
+            if (state.stage === 'band') {
+                kinship = "一系・双系血縁グループ（単元的・非重層的親族網）";
+                socStruct = "平等的バンド社会（極小規模・即時消費型）";
+            } else if (state.stage === 'tribe') {
+                kinship = "単系氏族（Clans）・リネージ（Lineages）構造";
+                socStruct = "分節的部族社会（Segmentary Lineage Society）";
+            } else if (state.stage === 'chiefdom') {
+                kinship = "世襲的階層化親族（Ranked Lineages）・首長家系";
+                socStruct = "首長制社会（Chiefdom / Redistribution Network）";
+            } else {
+                kinship = "親族結合の解体と階層・官僚制的社会関係への再編";
+                socStruct = "初期国家・都市国家体系（State / Stratified Society）";
+            }
+
+            return { kinship, socStruct };
+        }
+
+        function showSocModal() {
             const t = I18N[state.lang] || I18N.ja;
-            DOM.modalTitle.textContent = t.help;
-            DOM.modalBody.textContent = t.helpContent;
+            const db = SOC_DATABASE[state.mode] || SOC_DATABASE.agrarian;
+
+            DOM.modalTitle.textContent = t.modalTitleSoc;
+            let html = `<p style="margin-bottom:10px; font-size:0.8rem; color:#aaa;">モード: ${t.modes[state.mode]}</p>`;
+
+            Object.keys(db).sort((a,b)=>a-b).forEach(compKey => {
+                const item = db[compKey][state.lang] || db[compKey].ja;
+                html += `
+                    <div style="margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:6px;">
+                        <div style="color:#d4af37; font-weight:bold;">Complexity ${compKey}+ : ${item.system}</div>
+                        <div style="font-size:0.8rem; color:#ccc; margin-top:2px;">${item.diff}</div>
+                        <div style="font-size:0.75rem; color:#888; margin-top:2px;"><em>例: ${item.ex}</em></div>
+                    </div>
+                `;
+            });
+
+            DOM.modalBody.innerHTML = html;
             DOM.modal.style.display = 'flex';
         }
 
-        function showCurrentSocietyInfo() {
+        function showHelpModal() {
             const t = I18N[state.lang] || I18N.ja;
-            const comp = state.complexity;
-            
-            const socDict = SOC_DATABASE[state.mode] || {};
-            const keys = Object.keys(socDict).map(Number).sort((a,b) => a - b);
-            let matchedKey = keys[0];
-            for (let k of keys) {
-                if (comp >= k) matchedKey = k;
-            }
-
-            const socData = (socDict[matchedKey] && socDict[matchedKey][state.lang]) || t.unknownSoc;
             const { kinship, socStruct } = computeKinshipAndSocialStructure();
 
-            DOM.modalTitle.textContent = t.infoModal.title.replace('{0}', t.modes[state.mode]);
-            
+            DOM.modalTitle.textContent = t.modalTitleHelp;
             DOM.modalBody.innerHTML = `
-                <div><strong>${t.infoModal.statusHeader}</strong></div>
-                <div>${t.infoModal.lblStage}: ${t.stages[computeCurrentStageKey()]}</div>
-                <div>${t.infoModal.lblComp}: ${state.complexity}</div>
-                <div>${t.infoModal.lblDom}: ${state.dominance}</div>
-                <div>${t.infoModal.lblIneq}: ${state.inequality}%</div>
-                <div>${t.infoModal.lblCoh}: ${state.cohesion}</div>
-                <br>
-                <div><strong>${t.infoModal.secSystem}</strong> ${socData.system}</div>
-                <div><strong>${t.infoModal.secDiff}</strong> ${socData.diff}</div>
-                <div><strong>${t.infoModal.secEx}</strong> ${socData.ex}</div>
-                <br>
+                <div><strong>【贈与と支配の理論（モース/サーリンズ/モリス）】</strong></div>
+                <div style="margin-top:4px; font-size:0.8rem; color:#ccc;">
+                    ・<strong>贈与 (Gift):</strong> 単なる善意ではなく、相手に返礼義務（債務）を負わせる社会的行為です。過剰な贈与（ポトラッチ）は相手を屈服させ、支配力を生み出します。<br>
+                    ・<strong>支配力 (Dominance):</strong> 社会的威信や強制力を表します。高すぎると格差が広がり反乱の原因になります。<br>
+                    ・<strong>社会的複雑度 (Complexity):</strong> 人口、生産力、贈与蓄積によって上昇し、社会形態（バンド→部族→首長制→国家）を進化させます。
+                </div>
                 <div class="purple-section">
-                    <div><strong>${t.infoModal.secKinship}</strong></div>
+                    <div style="font-weight:bold;">現在の推測社会構造形態：</div>
                     <div>${kinship}</div>
-                    <br>
-                    <div><strong>${t.infoModal.secSocStruct}</strong></div>
                     <div>${socStruct}</div>
                 </div>
             `;
@@ -1359,8 +1427,8 @@
                 <div><strong>${t.resultModal.lblStage}:</strong> ${t.stages[computeCurrentStageKey()]}</div>
                 <div><strong>${t.resultModal.lblTurn}:</strong> ${state.turn}</div>
                 <div><strong>${t.resultModal.lblGift}:</strong> ${state.giftCount}</div>
-                <div><strong>${t.resultModal.lblDom}:</strong> ${state.dominance}</div>
-                <div><strong>${t.resultModal.lblComp}:</strong> ${state.complexity}</div>
+                <div><strong>${t.resultModal.lblDom}:</strong> ${Math.round(state.dominance)}</div>
+                <div><strong>${t.resultModal.lblComp}:</strong> ${Math.round(state.complexity)}</div>
                 <br>
                 <div class="purple-section">
                     <div><strong>${t.resultModal.lblKinship}:</strong> ${kinship}</div>
