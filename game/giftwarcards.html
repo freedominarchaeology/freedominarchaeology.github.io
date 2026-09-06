@@ -179,6 +179,7 @@
         }
         .log-entry.event { border-left: 2px solid #e74c3c; }
         .log-entry.evolution { border-left: 2px solid #9b59b6; }
+        .log-entry.devolution { border-left: 2px solid #e67e22; }
         .log-entry.action { border-left: 2px solid #2ecc71; }
         .log-entry.info { border-left: 2px solid #3498db; }
         .log-entry.warn { border-left: 2px solid #f39c12; }
@@ -455,6 +456,13 @@
             state: 15
         };
 
+        const STAGE_REQ_POP = {
+            band: 10,
+            tribe: 50,
+            chiefdom: 200,
+            state: 500
+        };
+
         const SOC_DATABASE = {
             forager: {
                 10: {
@@ -628,6 +636,7 @@
                 reqFreeGift: "条件: なし（連投で不満発生）",
                 reqProductionRev: "条件: 道具10000以上",
                 evolutionMsg: "【社会進化】贈与のネットワーク強化({1}回)と成長により社会構造が「{0}」へと移行しました！",
+                devolutionMsg: "【社会退化】人口減少または社会的複雑度の低下により、社会構造が「{0}」へと退化しました...",
                 modes: { forager: "狩猟採集社会", agrarian: "農耕社会" },
                 infoModal: {
                     title: "現在の該当社会モデル ({0})",
@@ -674,7 +683,7 @@
                     freeGift: { name: "無償の贈与", desc: "見返りを求めない贈与。支配力が上昇するが、連投で結束崩壊。" },
                     productionRevolution: { name: "生産革命", desc: "余剰な道具10000を技術革新により食糧1000に変換します。" }
                 },
-                helpContent: "【ゲームの概要】\n本ゲームは贈与と交換ネットワークによる社会進化をシミュレートするゲームです。\n\n【基本ルール】\n・社会的結束度が0になるとイベント「反乱/革命」が発生し人口が激減します。\n・支配力が高いほど「反乱/革命」による被害（人口減少）を抑えられます。\n・人口が0になると社会が完全崩壊（ゲームオーバー）します。\n・上位の社会形態へ進歩するには社会的複雑度だけでなく「一定の贈与累積回数」が必要です。"
+                helpContent: "【ゲームの概要】\n本ゲームは贈与と交換ネットワークによる社会進化をシミュレートするゲームです。\n\n【基本ルール】\n・社会的結束度が0になるとイベント「反乱/革命」が発生し人口が激減します。\n・支配力が高いほど「反乱/革命」による被害（人口減少）を抑えられます。\n・人口が0になると社会が完全崩壊（ゲームオーバー）します。\n・上位の社会形態へ進歩するには社会的複雑度、一定の贈与累積回数、および【必要人口】が必要です。\n・人口または社会的複雑度が最低ラインを下回ると社会形態が「退化」します。"
             },
             en: {
                 title: "GIFT WAR: Social Dynamics & Evolution",
@@ -705,6 +714,7 @@
                 reqFreeGift: "Req: None",
                 reqProductionRev: "Req: Tools ≥ 10000",
                 evolutionMsg: "[EVOLUTION] Through gift networking ({1} gifts) and growth, society evolved to '{0}'!",
+                devolutionMsg: "[DEVOLUTION] Due to loss of population or complexity, society devolved to '{0}'...",
                 modes: { forager: "Forager Society", agrarian: "Agrarian Society" },
                 infoModal: {
                     title: "Current Society Model ({0})",
@@ -751,7 +761,7 @@
                     freeGift: { name: "Pure Free Gift", desc: "Unconditional gift. Increases dominance, but repeated use breaks cohesion." },
                     productionRevolution: { name: "Production Revolution", desc: "Converts 10000 surplus tools into 1000 food through technological innovation." }
                 },
-                helpContent: "Simulate society evolution through gift networks.\nCohesion 0 triggers Revolts/Revolutions! Higher Dominance reduces revolt casualties."
+                helpContent: "Simulate society evolution through gift networks.\nCohesion 0 triggers Revolts! Higher Dominance reduces revolt casualties.\nIf population or complexity falls below the minimum required threshold, society devolves to a lower stage."
             }
         };
 
@@ -950,19 +960,12 @@
         function computeCurrentStageKey() {
             const comp = state.complexity;
             const gifts = state.giftCount;
+            const pop = state.population;
 
-            if (comp >= 40 && gifts >= STAGE_REQ_GIFTS.state) return 'state';
-            if (comp >= 30 && gifts >= STAGE_REQ_GIFTS.chiefdom) return 'chiefdom';
-            if (comp >= 20 && gifts >= STAGE_REQ_GIFTS.tribe) return 'tribe';
+            if (comp >= STAGE_MIN_COMPLEXITY.state && gifts >= STAGE_REQ_GIFTS.state && pop >= STAGE_REQ_POP.state) return 'state';
+            if (comp >= STAGE_MIN_COMPLEXITY.chiefdom && gifts >= STAGE_REQ_GIFTS.chiefdom && pop >= STAGE_REQ_POP.chiefdom) return 'chiefdom';
+            if (comp >= STAGE_MIN_COMPLEXITY.tribe && gifts >= STAGE_REQ_GIFTS.tribe && pop >= STAGE_REQ_POP.tribe) return 'tribe';
             return 'band';
-        }
-
-        function enforceMinComplexity() {
-            const currentStage = computeCurrentStageKey();
-            const minComp = STAGE_MIN_COMPLEXITY[currentStage] || 10;
-            if (state.complexity < minComp) {
-                state.complexity = minComp;
-            }
         }
 
         function renderHand() {
@@ -1145,7 +1148,6 @@
                 logText = state.lang === 'ja' ? "【生産革命】技術革新により道具10000を食糧1000に変換しました！社会的複雑度+5。" : "Executed Production Revolution!";
             }
 
-            enforceMinComplexity();
             addLog(logText, 'action');
             processTurn(cardId);
         }
@@ -1161,7 +1163,8 @@
                 state.population = Math.max(0, state.population - popLoss);
                 state.food = Math.max(0, state.food - foodLoss);
                 state.cohesion = Math.max(0, state.cohesion - 30);
-                addLog(`【災害「大寒波」】未曽有の極寒が社会を襲う！ 人口-${popLoss}、食料-${foodLoss}、結束度-30`, 'event');
+                state.complexity = Math.max(1, state.complexity - 3);
+                addLog(`【災害「大寒波」】未曽有の極寒が社会を襲う！ 人口-${popLoss}、食料-${foodLoss}、結束度-30、複雑度-3`, 'event');
             } else if (roll < 0.12) {
                 const foodLoss = Math.floor(state.food * 0.3) + 10;
                 state.food = Math.max(0, state.food - foodLoss);
@@ -1181,7 +1184,8 @@
                 state.population = Math.max(0, state.population - popLoss);
                 state.tools = Math.max(0, state.tools - toolLoss);
                 state.cohesion = Math.max(0, state.cohesion - 15);
-                addLog(`【外部侵略】他勢力からの襲撃！${extraMsg} 人口-${popLoss}、道具-${toolLoss}、結束度-15`, 'event');
+                state.complexity = Math.max(1, state.complexity - 2);
+                addLog(`【外部侵略】他勢力からの襲撃！${extraMsg} 人口-${popLoss}、道具-${toolLoss}、結束度-15、複雑度-2`, 'event');
             } else if (roll < 0.30) {
                 const toolGain = Math.floor(state.tools * 0.5) + 15;
                 const foodGain = Math.floor(state.food * 0.3) + 20;
@@ -1209,7 +1213,8 @@
             const foodNeeded = Math.floor(state.population * 0.8);
             if (state.food >= foodNeeded) {
                 state.food -= foodNeeded;
-                state.population += Math.floor(state.population * 0.05) + 1;
+                const growthRate = state.mode === 'agrarian' ? 0.003 : 0.05;
+                state.population += Math.floor(state.population * growthRate) + 1;
             } else {
                 const starvation = Math.floor((foodNeeded - state.food) / 2) + 1;
                 state.food = 0;
@@ -1231,12 +1236,12 @@
                 const popLoss = Math.floor(state.population * actualLossRate) + 5;
                 state.population = Math.max(0, state.population - popLoss);
                 state.cohesion = 20; 
+                state.complexity = Math.max(1, state.complexity - 5);
                 
-                addLog(`【反乱 / 革命】社会的結束の不全により大規模反乱が発生！ 支配力(${state.dominance})により損害緩和。 人口-${popLoss}、結束が20まで一時回復。`, 'event');
+                addLog(`【反乱 / 革命】社会的結束の不全により大規模反乱が発生！ 支配力(${state.dominance})により損害緩和。 人口-${popLoss}、複雑度-5、結束が20まで一時回復。`, 'event');
             }
 
-            enforceMinComplexity();
-
+            const stageOrder = ['band', 'tribe', 'chiefdom', 'state'];
             const prevStage = state.stage;
             const newStageKey = computeCurrentStageKey();
             state.stage = newStageKey;
@@ -1245,7 +1250,13 @@
 
             if (prevStage !== newStageKey) {
                 const stageName = t.stages[newStageKey] || newStageKey;
-                addLog(t.evolutionMsg.replace('{0}', stageName).replace('{1}', state.giftCount), 'evolution');
+                const prevIdx = stageOrder.indexOf(prevStage);
+                const newIdx = stageOrder.indexOf(newStageKey);
+                if (newIdx > prevIdx) {
+                    addLog(t.evolutionMsg.replace('{0}', stageName).replace('{1}', state.giftCount), 'evolution');
+                } else {
+                    addLog(t.devolutionMsg.replace('{0}', stageName), 'devolution');
+                }
             }
 
             if (state.population <= 0) {
