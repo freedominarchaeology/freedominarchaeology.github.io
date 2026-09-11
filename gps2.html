@@ -822,6 +822,9 @@
         // Base64組み込みフォントをjsPDFに同期適用する関数（ネットワーク通信完全不要）
         function applyJapaneseFontToPDF(doc) {
             try {
+                if (typeof IPAEX_GOTHIC_BASE64 !== 'string' || IPAEX_GOTHIC_BASE64.length === 0) {
+                    return false;
+                }
                 doc.addFileToVFS('JapaneseFont.ttf', IPAEX_GOTHIC_BASE64);
                 doc.addFont('JapaneseFont.ttf', 'JapaneseFont', 'normal');
                 doc.setFont('JapaneseFont');
@@ -833,8 +836,8 @@
         }
 
         // 完全なベクターグラフィックス（編集可能なPDF）出力関数
-        async function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
-            return new Promise(async (resolve) => {
+        function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
+            return new Promise((resolve) => {
                 try {
                     if (typeof window.jspdf === 'undefined') {
                         resolve(null);
