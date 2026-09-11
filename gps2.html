@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>高精度平面直角座標測位アプリ（考古学フィールドワーク対応版）</title>
     <!-- jsPDFライブラリの読み込み -->
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js](https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js)"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- JSZipライブラリの読み込み -->
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js](https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js)"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -796,7 +796,7 @@
         async function loadJapaneseFontToPDF(doc) {
             try {
                 if (!cachedFontBase64) {
-                    const fontUrl = '[https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.ttf](https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.ttf)';
+                    const fontUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.ttf';
                     const res = await fetch(fontUrl);
                     if (res.ok) {
                         const buffer = await res.arrayBuffer();
