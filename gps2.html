@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>高精度平面直角座標測位アプリ（考古学フィールドワーク対応版）</title>
     <!-- jsPDFライブラリの読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js](https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js)"></script>
     <!-- JSZipライブラリの読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js](https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js)"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -791,63 +791,39 @@
             URL.revokeObjectURL(url);
         }
 
-        // ベジェ曲線を用いたなめらかな軌跡描画関数
-        function drawSmoothBezierPath(ctx, points, toCanvasCoordFunc, isPointInPageFunc) {
-            if (!points || points.length === 0) return;
-
-            let drawing = false;
-            ctx.beginPath();
-
-            if (points.length === 1) {
-                if (isPointInPageFunc(points[0].x, points[0].y)) {
-                    const cv = toCanvasCoordFunc(points[0].x, points[0].y);
-                    ctx.arc(cv.x, cv.y, 3, 0, Math.PI * 2);
-                    ctx.fill();
+        // 日本語フォントを非同期でフェッチしてjsPDFに読み込むキャッシュ機能
+        let cachedFontBase64 = null;
+        async function loadJapaneseFontToPDF(doc) {
+            try {
+                if (!cachedFontBase64) {
+                    const fontUrl = '[https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.ttf](https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.ttf)';
+                    const res = await fetch(fontUrl);
+                    if (res.ok) {
+                        const buffer = await res.arrayBuffer();
+                        let binary = '';
+                        const bytes = new Uint8Array(buffer);
+                        const len = bytes.byteLength;
+                        for (let i = 0; i < len; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        cachedFontBase64 = btoa(binary);
+                    }
                 }
-                return;
-            }
-
-            const firstValidIdx = points.findIndex(p => isPointInPageFunc(p.x, p.y));
-            if (firstValidIdx === -1) return;
-
-            const firstCv = toCanvasCoordFunc(points[firstValidIdx].x, points[firstValidIdx].y);
-            ctx.moveTo(firstCv.x, firstCv.y);
-            drawing = true;
-
-            for (let i = firstValidIdx; i < points.length - 1; i++) {
-                const p0 = points[i];
-                const p1 = points[i + 1];
-
-                if (!isPointInPageFunc(p1.x, p1.y)) {
-                    drawing = false;
-                    continue;
+                if (cachedFontBase64) {
+                    doc.addFileToVFS('NotoSansJP.ttf', cachedFontBase64);
+                    doc.addFont('NotoSansJP.ttf', 'NotoSansJP', 'normal');
+                    doc.setFont('NotoSansJP');
+                    return true;
                 }
-
-                const cv0 = toCanvasCoordFunc(p0.x, p0.y);
-                const cv1 = toCanvasCoordFunc(p1.x, p1.y);
-
-                if (!drawing) {
-                    ctx.moveTo(cv0.x, cv0.y);
-                    drawing = true;
-                }
-
-                const midX = (cv0.x + cv1.x) / 2;
-                const midY = (cv0.y + cv1.y) / 2;
-                ctx.quadraticCurveTo(cv0.x, cv0.y, midX, midY);
+            } catch (e) {
+                console.warn("日本語フォントのロードに失敗したため、標準フォントを使用します:", e);
             }
-
-            const lastP = points[points.length - 1];
-            if (isPointInPageFunc(lastP.x, lastP.y)) {
-                const lastCv = toCanvasCoordFunc(lastP.x, lastP.y);
-                ctx.lineTo(lastCv.x, lastCv.y);
-            }
-
-            ctx.stroke();
+            return false;
         }
 
-        // 非同期処理に対応したPDF生成関数（描画の最適化・サイズ圧縮）
+        // 完全なベクターグラフィックス（編集可能なPDF）出力関数
         async function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
-            return new Promise((resolve) => {
+            return new Promise(async (resolve) => {
                 try {
                     if (typeof window.jspdf === 'undefined') {
                         resolve(null);
@@ -879,15 +855,13 @@
 
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+                    const hasJPFont = await loadJapaneseFontToPDF(doc);
 
-                    const CanvasW = 2000, CanvasH = 1414;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = CanvasW; canvas.height = CanvasH;
-                    const ctx = canvas.getContext('2d');
-
-                    const margin = 100;
-                    const drawWidth = CanvasW - (margin * 2);
-                    const drawHeight = CanvasH - (margin * 2) - 50;
+                    // 描画エリア領域パラメータ (mm)
+                    const marginLeft = 20;
+                    const marginTop = 25;
+                    const drawWidth = 380;
+                    const drawHeight = 245;
 
                     const marginRatio = 0.1;
                     const totalMetersX = spanX * (1 + marginRatio * 2);
@@ -905,11 +879,10 @@
                     const pageMinY = centerY - (drawWidth / scale) / 2;
                     const pageMaxY = centerY + (drawWidth / scale) / 2;
 
-                    const pxPerMM = CanvasW / 420;
-                    const scaleDenominator = Math.round((1000 * pxPerMM) / scale);
+                    const scaleDenominator = Math.round(1000 / scale);
 
-                    const maxSpan = Math.max(spanX, spanY);
                     let gridInterval = 10;
+                    const maxSpan = Math.max(spanX, spanY);
                     if (maxSpan <= 10) gridInterval = 1;
                     else if (maxSpan <= 50) gridInterval = 5;
                     else if (maxSpan <= 200) gridInterval = 10;
@@ -918,20 +891,30 @@
                     else if (maxSpan <= 5000) gridInterval = 500;
                     else gridInterval = 1000;
 
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, CanvasW, CanvasH);
+                    // タイトル・ヘッダー情報（編集可能テキスト）
+                    if (hasJPFont) {
+                        doc.setFont('NotoSansJP');
+                        doc.setFontSize(16);
+                        doc.setTextColor(17, 24, 39);
+                        doc.text(`考古学フィールドワーク 測位・軌跡描画レポート (${titleTimeStr})`, 15, 12);
 
-                    ctx.fillStyle = '#111827';
-                    ctx.font = `bold 28px ${JAPANESE_FONT_FAMILY}`;
-                    ctx.fillText(`考古学フィールドワーク 測位・軌跡描画レポート (${titleTimeStr})`, 70, 60);
+                        doc.setFontSize(9);
+                        doc.setTextColor(75, 85, 99);
+                        doc.text(`縮尺: 1/${scaleDenominator.toLocaleString()}   |   記録点: ${validRec.length}箇所   |   基準点: ${validKnown.length}箇所   |   ログ点数: ${validLog.length}点`, 15, 18);
+                    } else {
+                        doc.setFont('helvetica');
+                        doc.setFontSize(16);
+                        doc.setTextColor(17, 24, 39);
+                        doc.text(`Archaeological Survey Report (${titleTimeStr})`, 15, 12);
 
-                    ctx.font = `14px ${JAPANESE_FONT_FAMILY}`;
-                    ctx.fillStyle = '#4b5563';
-                    ctx.fillText(`縮尺: 1/${scaleDenominator.toLocaleString()}   |   記録点: ${validRec.length}箇所   |   基準点: ${validKnown.length}箇所   |   ログ点数: ${validLog.length}点`, 70, 88);
+                        doc.setFontSize(9);
+                        doc.setTextColor(75, 85, 99);
+                        doc.text(`Scale: 1/${scaleDenominator.toLocaleString()}   |   Record Points: ${validRec.length}   |   Known Points: ${validKnown.length}   |   Log Points: ${validLog.length}`, 15, 18);
+                    }
 
-                    function toCanvasCoord(x, y) {
-                        const px = margin + (y - pageMinY) * scale;
-                        const py = margin + 50 + drawHeight - ((x - pageMinX) * scale);
+                    function toPdfCoord(x, y) {
+                        const px = marginLeft + (y - pageMinY) * scale;
+                        const py = marginTop + drawHeight - ((x - pageMinX) * scale);
                         return { x: px, y: py };
                     }
 
@@ -939,106 +922,153 @@
                         return x >= pageMinX && x <= pageMaxX && y >= pageMinY && y <= pageMaxY;
                     }
 
-                    ctx.strokeStyle = '#374151';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(margin, margin + 50, drawWidth, drawHeight);
+                    // 1. 外枠（ベクター矩形）
+                    doc.setDrawColor(55, 65, 81);
+                    doc.setLineWidth(0.4);
+                    doc.rect(marginLeft, marginTop, drawWidth, drawHeight);
 
+                    // 1. グリッド線（ベクター直線・テキスト）
                     const startX = Math.floor(pageMinX / gridInterval) * gridInterval;
                     const endX = Math.ceil(pageMaxX / gridInterval) * gridInterval;
                     const startY = Math.floor(pageMinY / gridInterval) * gridInterval;
                     const endY = Math.ceil(pageMaxY / gridInterval) * gridInterval;
 
-                    ctx.strokeStyle = '#e5e7eb';
-                    ctx.lineWidth = 1;
-                    ctx.font = `11px ${JAPANESE_FONT_FAMILY}`;
-                    ctx.fillStyle = '#6b7280';
+                    doc.setDrawColor(229, 231, 235);
+                    doc.setLineWidth(0.15);
+                    doc.setFontSize(7);
+                    doc.setTextColor(107, 114, 128);
 
                     for (let yVal = startY; yVal <= endY; yVal += gridInterval) {
-                        const p = toCanvasCoord(pageMinX, yVal);
-                        if (p.x >= margin && p.x <= margin + drawWidth) {
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, margin + 50);
-                            ctx.lineTo(p.x, margin + 50 + drawHeight);
-                            ctx.stroke();
-                            ctx.fillText(`Y:${yVal}m`, p.x - 20, margin + 50 + drawHeight + 18);
+                        const p = toPdfCoord(pageMinX, yVal);
+                        if (p.x >= marginLeft && p.x <= marginLeft + drawWidth) {
+                            doc.line(p.x, marginTop, p.x, marginTop + drawHeight);
+                            doc.text(`Y:${yVal}m`, p.x, marginTop + drawHeight + 4, { align: 'center' });
                         }
                     }
 
                     for (let xVal = startX; xVal <= endX; xVal += gridInterval) {
-                        const p = toCanvasCoord(xVal, pageMinY);
-                        if (p.y >= margin + 50 && p.y <= margin + 50 + drawHeight) {
-                            ctx.beginPath();
-                            ctx.moveTo(margin, p.y);
-                            ctx.lineTo(margin + drawWidth, p.y);
-                            ctx.stroke();
-                            ctx.fillText(`X:${xVal}m`, margin - 75, p.y + 4);
+                        const p = toPdfCoord(xVal, pageMinY);
+                        if (p.y >= marginTop && p.y <= marginTop + drawHeight) {
+                            doc.line(marginLeft, p.y, marginLeft + drawWidth, p.y);
+                            doc.text(`X:${xVal}m`, marginLeft - 1.5, p.y + 1, { align: 'right' });
                         }
                     }
 
-                    // 軌跡ライン（赤線）の描画
+                    // 2. 測位軌跡（ベクターパス）の描画
                     if (validLog.length > 0) {
-                        ctx.strokeStyle = '#ef4444';
-                        ctx.lineWidth = 3;
-                        drawSmoothBezierPath(ctx, validLog, toCanvasCoord, isPointInPage);
+                        doc.setDrawColor(239, 68, 68);
+                        doc.setLineWidth(0.5);
 
-                        validLog.forEach(p => {
-                            if (isPointInPage(p.x, p.y)) {
-                                const cv = toCanvasCoord(p.x, p.y);
-                                ctx.fillStyle = 'rgba(239, 68, 68, 0.7)';
-                                ctx.beginPath();
-                                ctx.arc(cv.x, cv.y, 3, 0, Math.PI * 2);
-                                ctx.fill();
+                        if (validLog.length === 1) {
+                            if (isPointInPage(validLog[0].x, validLog[0].y)) {
+                                const cv = toPdfCoord(validLog[0].x, validLog[0].y);
+                                doc.setFillColor(239, 68, 68);
+                                doc.circle(cv.x, cv.y, 0.6, 'F');
                             }
-                        });
+                        } else {
+                            const firstValidIdx = validLog.findIndex(p => isPointInPage(p.x, p.y));
+                            if (firstValidIdx !== -1) {
+                                let pathCmds = [];
+                                let drawing = false;
+
+                                for (let i = firstValidIdx; i < validLog.length - 1; i++) {
+                                    const p0 = validLog[i];
+                                    const p1 = validLog[i + 1];
+
+                                    if (!isPointInPage(p1.x, p1.y)) {
+                                        drawing = false;
+                                        continue;
+                                    }
+
+                                    const cv0 = toPdfCoord(p0.x, p0.y);
+                                    const cv1 = toPdfCoord(p1.x, p1.y);
+
+                                    if (!drawing) {
+                                        pathCmds.push({ op: 'm', c: [cv0.x, cv0.y] });
+                                        drawing = true;
+                                    }
+
+                                    const midX = (cv0.x + cv1.x) / 2;
+                                    const midY = (cv0.y + cv1.y) / 2;
+
+                                    const pPrev = (pathCmds.length > 0 && pathCmds[pathCmds.length-1].c) ? 
+                                        { x: pathCmds[pathCmds.length-1].c[pathCmds[pathCmds.length-1].c.length-2], y: pathCmds[pathCmds.length-1].c[pathCmds[pathCmds.length-1].c.length-1] } : cv0;
+
+                                    const c1x = pPrev.x + (2/3) * (cv0.x - pPrev.x);
+                                    const c1y = pPrev.y + (2/3) * (cv0.y - pPrev.y);
+                                    const c2x = midX + (2/3) * (cv0.x - midX);
+                                    const c2y = midY + (2/3) * (cv0.y - midY);
+
+                                    pathCmds.push({ op: 'c', c: [c1x, c1y, c2x, c2y, midX, midY] });
+                                }
+
+                                const lastP = validLog[validLog.length - 1];
+                                if (isPointInPage(lastP.x, lastP.y) && drawing) {
+                                    const lastCv = toPdfCoord(lastP.x, lastP.y);
+                                    pathCmds.push({ op: 'l', c: [lastCv.x, lastCv.y] });
+                                }
+
+                                if (pathCmds.length > 0) {
+                                    doc.path(pathCmds);
+                                    doc.stroke();
+                                }
+                            }
+
+                            // ログ点のプロット（円図形）
+                            doc.setFillColor(239, 68, 68);
+                            validLog.forEach(p => {
+                                if (isPointInPage(p.x, p.y)) {
+                                    const cv = toPdfCoord(p.x, p.y);
+                                    doc.circle(cv.x, cv.y, 0.5, 'F');
+                                }
+                            });
+                        }
                     }
 
+                    // 1. 縮尺スケールバー（ベクター線・テキスト）
                     let scaleMeters = gridInterval;
                     let scalePx = scaleMeters * scale;
-                    if (scalePx < 40) {
+                    if (scalePx < 10) {
                         scaleMeters *= 2;
                         scalePx = scaleMeters * scale;
                     }
-                    const sbX = margin + 20;
-                    const sbY = margin + 50 + drawHeight - 20;
+                    const sbX = marginLeft + 5;
+                    const sbY = marginTop + drawHeight - 5;
 
-                    ctx.strokeStyle = '#111827';
-                    ctx.fillStyle = '#111827';
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.moveTo(sbX, sbY);
-                    ctx.lineTo(sbX + scalePx, sbY);
-                    ctx.moveTo(sbX, sbY - 6);
-                    ctx.lineTo(sbX, sbY + 6);
-                    ctx.moveTo(sbX + scalePx, sbY - 6);
-                    ctx.lineTo(sbX + scalePx, sbY + 6);
-                    ctx.stroke();
+                    doc.setDrawColor(17, 24, 39);
+                    doc.setLineWidth(0.5);
+                    doc.line(sbX, sbY, sbX + scalePx, sbY);
+                    doc.line(sbX, sbY - 1.5, sbX, sbY + 1.5);
+                    doc.line(sbX + scalePx, sbY - 1.5, sbX + scalePx, sbY + 1.5);
 
-                    ctx.font = `bold 12px ${JAPANESE_FONT_FAMILY}`;
-                    ctx.fillText(`0`, sbX - 4, sbY - 10);
-                    ctx.fillText(`${scaleMeters} m`, sbX + scalePx - 15, sbY - 10);
+                    doc.setFontSize(8);
+                    doc.setTextColor(17, 24, 39);
+                    doc.text('0', sbX, sbY - 2, { align: 'center' });
+                    doc.text(`${scaleMeters} m`, sbX + scalePx, sbY - 2, { align: 'center' });
 
-                    function drawAnnotatedPointCanvas(ptX, ptY, ptZ, rawName, pointColorHex, labelPrefix) {
+                    // 3, 4, 5. 基準点・記録点の注釈描画関数（ベクタープロット、引き出し線、ラベル矩形、文字データ）
+                    function drawAnnotatedPointPDF(ptX, ptY, ptZ, rawName, colorRGB, labelPrefix) {
                         if (!isPointInPage(ptX, ptY)) return;
 
-                        const cvPt = toCanvasCoord(ptX, ptY);
-                        const nameStr = String(rawName || '名称未設定');
+                        const cvPt = toPdfCoord(ptX, ptY);
+                        const nameStr = String(rawName || (hasJPFont ? '名称未設定' : 'Unnamed'));
                         const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
                         const titleText = `${labelPrefix}${nameStr}`;
 
-                        ctx.fillStyle = pointColorHex;
-                        ctx.strokeStyle = '#000000';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.arc(cvPt.x, cvPt.y, 6, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.stroke();
+                        // プロット図形 (円)
+                        doc.setFillColor(colorRGB.r, colorRGB.g, colorRGB.b);
+                        doc.setDrawColor(0, 0, 0);
+                        doc.setLineWidth(0.3);
+                        doc.circle(cvPt.x, cvPt.y, 1.2, 'FD');
 
-                        ctx.font = `bold 12px ${JAPANESE_FONT_FAMILY}`;
-                        const boxWidth = Math.max(ctx.measureText(titleText).width, 130) + 16;
-                        const boxHeight = 65;
+                        // 注釈ボックスサイズ算出
+                        doc.setFontSize(8);
+                        const titleWidth = doc.getTextWidth(titleText);
+                        const boxWidth = Math.max(titleWidth, 25) + 4;
+                        const boxHeight = 14;
 
-                        let offsetX = cvPt.x > CanvasW / 2 ? -boxWidth - 30 : 30;
-                        let offsetY = cvPt.y > CanvasH / 2 ? -boxHeight - 15 : 15;
+                        let offsetX = cvPt.x > (marginLeft + drawWidth / 2) ? -boxWidth - 6 : 6;
+                        let offsetY = cvPt.y > (marginTop + drawHeight / 2) ? -boxHeight - 3 : 3;
 
                         let textX = cvPt.x + offsetX;
                         let textY = cvPt.y + offsetY;
@@ -1046,34 +1076,39 @@
                         const lineTargetX = textX < cvPt.x ? textX + boxWidth : textX;
                         const lineTargetY = textY + boxHeight / 2;
 
-                        ctx.strokeStyle = '#4b5563';
-                        ctx.lineWidth = 1.2;
-                        ctx.beginPath();
-                        ctx.moveTo(cvPt.x, cvPt.y);
-                        ctx.lineTo(lineTargetX, lineTargetY);
-                        ctx.stroke();
+                        // 各種ラベルの引き出し線 (パス)
+                        doc.setDrawColor(75, 85, 99);
+                        doc.setLineWidth(0.25);
+                        doc.line(cvPt.x, cvPt.y, lineTargetX, lineTargetY);
 
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                        ctx.strokeStyle = '#9ca3af';
-                        ctx.lineWidth = 1;
-                        ctx.fillRect(textX, textY, boxWidth, boxHeight);
-                        ctx.strokeRect(textX, textY, boxWidth, boxHeight);
+                        // 注釈ボックス (矩形)
+                        doc.setFillColor(255, 255, 255);
+                        doc.setDrawColor(156, 163, 175);
+                        doc.setLineWidth(0.2);
+                        doc.rect(textX, textY, boxWidth, boxHeight, 'FD');
 
-                        ctx.fillStyle = '#000000';
-                        ctx.font = `bold 12px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillText(titleText, textX + 8, textY + 16);
-                        ctx.font = `11px ${JAPANESE_FONT_FAMILY}`;
-                        ctx.fillText(`X: ${ptX.toFixed(3)}`, textX + 8, textY + 32);
-                        ctx.fillText(`Y: ${ptY.toFixed(3)}`, textX + 8, textY + 46);
-                        ctx.fillText(`Z: ${zText}`, textX + 8, textY + 60);
+                        // ラベル内のテキスト情報
+                        doc.setTextColor(0, 0, 0);
+                        doc.setFontSize(7.5);
+                        doc.text(titleText, textX + 1.5, textY + 3.5);
+
+                        doc.setFontSize(6.5);
+                        doc.setTextColor(31, 41, 55);
+                        doc.text(`X: ${ptX.toFixed(3)}`, textX + 1.5, textY + 6.8);
+                        doc.text(`Y: ${ptY.toFixed(3)}`, textX + 1.5, textY + 9.8);
+                        doc.text(`Z: ${zText}`, textX + 1.5, textY + 12.8);
                     }
 
-                    validKnown.forEach(kp => drawAnnotatedPointCanvas(kp.targetX, kp.targetY, kp.targetZ, kp.name, "#2563eb", "基準: "));
-                    validRec.forEach(rp => drawAnnotatedPointCanvas(rp.x, rp.y, rp.z, rp.name, "#eab308", "記録: "));
+                    const knownPrefix = hasJPFont ? "基準: " : "Ref: ";
+                    const recPrefix = hasJPFont ? "記録: " : "Rec: ";
 
-                    // データ容量削減のため JPEG 圧縮 (品質 0.75) を適用してPDFに追加
-                    const imgData = canvas.toDataURL('image/jpeg', 0.75);
-                    doc.addImage(imgData, 'JPEG', 0, 0, 420, 297);
+                    validKnown.forEach(kp => {
+                        drawAnnotatedPointPDF(kp.targetX, kp.targetY, kp.targetZ, kp.name, { r: 37, g: 99, b: 235 }, knownPrefix);
+                    });
+
+                    validRec.forEach(rp => {
+                        drawAnnotatedPointPDF(rp.x, rp.y, rp.z, rp.name, { r: 234, g: 179, b: 8 }, recPrefix);
+                    });
 
                     resolve(doc);
                 } catch (err) {
@@ -1243,7 +1278,7 @@
             container.innerHTML = '';
 
             if (knownPoints.length === 0) {
-                container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">登録された既知点はありません</div>';
+                container.innerHTML = '登録された既知点はありません';
                 return;
             }
 
@@ -1607,7 +1642,6 @@
                             document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';
                             document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';
 
-                            // 2: 記録中であれば1秒間のサンプル用バッファに追記
                             if (isLogging) {
                                 currentSecondSamples.push({
                                     x: coords.x,
@@ -1624,7 +1658,6 @@
                             statusEl.style.color = isLogging ? "#ef4444" : "#4ade80";
                         }
 
-                        // リアルタイム軌跡プレビューの更新
                         renderRealtimePreview();
                     } catch (err) {}
                 },
