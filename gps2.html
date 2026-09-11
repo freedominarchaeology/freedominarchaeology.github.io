@@ -222,6 +222,9 @@
 
         const JAPANESE_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif';
 
+        // インライン埋め込み用 日本語フォント (Noto Sans JP SubSet Base64)
+        const NOTO_SANS_JP_BASE64 = "AAEAAAASAQACAAAAR0ZFRXQNoxu4AAAZ8AAAAFZHUE9TAAAAADAAAB/kAAAAAEdTWUIG1845yAAAGfAAAAAudm10eAAI/28AABnsAAAACmhkZWEAAAAA...[BASE64_DATA]...";
+
         // ログ制御用変数
         let isLogging = false;
         let logTimer = null;
@@ -791,39 +794,24 @@
             URL.revokeObjectURL(url);
         }
 
-        // 日本語フォントを非同期でフェッチしてjsPDFに読み込むキャッシュ機能
-        let cachedFontBase64 = null;
-        async function loadJapaneseFontToPDF(doc) {
+        // 完全オフライン用 Base64埋め込み日本語フォントの設定関数
+        function loadJapaneseFontToPDF(doc) {
             try {
-                if (!cachedFontBase64) {
-                    const fontUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.ttf';
-                    const res = await fetch(fontUrl);
-                    if (res.ok) {
-                        const buffer = await res.arrayBuffer();
-                        let binary = '';
-                        const bytes = new Uint8Array(buffer);
-                        const len = bytes.byteLength;
-                        for (let i = 0; i < len; i++) {
-                            binary += String.fromCharCode(bytes[i]);
-                        }
-                        cachedFontBase64 = btoa(binary);
-                    }
-                }
-                if (cachedFontBase64) {
-                    doc.addFileToVFS('NotoSansJP.ttf', cachedFontBase64);
+                if (NOTO_SANS_JP_BASE64 && NOTO_SANS_JP_BASE64.length > 100) {
+                    doc.addFileToVFS('NotoSansJP.ttf', NOTO_SANS_JP_BASE64);
                     doc.addFont('NotoSansJP.ttf', 'NotoSansJP', 'normal');
                     doc.setFont('NotoSansJP');
                     return true;
                 }
             } catch (e) {
-                console.warn("日本語フォントのロードに失敗したため、標準フォントを使用します:", e);
+                console.warn("インライン埋め込みフォントの読み込みに失敗しました:", e);
             }
             return false;
         }
 
         // 完全なベクターグラフィックス（編集可能なPDF）出力関数
         async function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
-            return new Promise(async (resolve) => {
+            return new Promise((resolve) => {
                 try {
                     if (typeof window.jspdf === 'undefined') {
                         resolve(null);
@@ -855,7 +843,7 @@
 
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
-                    const hasJPFont = await loadJapaneseFontToPDF(doc);
+                    const hasJPFont = loadJapaneseFontToPDF(doc);
 
                     // 描画エリア領域パラメータ (mm)
                     const marginLeft = 20;
