@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D PointCloud Contour Editor</title>
+    <title>3D PointCloud Editor (Color & Multi-Select)</title>
     <style>
         /* オフラインレイアウト崩れ防止・汎用明朝体指定 */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body {
             font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
             background-color: #1e1e1e;
@@ -14,6 +14,7 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+            touch-action: none; /* スマホブラウザのスクロール等防止 */
         }
         #sidebar {
             width: 320px;
@@ -22,7 +23,7 @@
             display: flex;
             flex-direction: column;
             padding: 15px;
-            gap: 15px;
+            gap: 12px;
             z-index: 10;
             box-shadow: 2px 0 5px rgba(0,0,0,0.5);
             overflow-y: auto;
@@ -30,7 +31,7 @@
         #viewport-container {
             flex: 1;
             position: relative;
-            background-color: #111;
+            background-color: #000;
         }
         canvas {
             width: 100%;
@@ -57,13 +58,16 @@
             border: 1px solid #555; color: #fff;
             font-family: inherit; border-radius: 2px;
         }
+        input[type="number"] { user-select: text; }
+        select#selected-list { margin-bottom: 8px; background: #222; }
         button {
             cursor: pointer; background: #0e639c; border: none;
-            margin-top: 8px; font-weight: bold;
+            margin-top: 5px; font-weight: bold;
         }
-        button:hover { background: #1177bb; }
-        button:disabled { background: #444; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #1177bb; }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
         .coord-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         #info-overlay {
             position: absolute; bottom: 10px; left: 10px;
             background: rgba(0,0,0,0.7); padding: 8px 12px;
@@ -94,9 +98,11 @@
     </div>
 
     <div class="panel-group">
-        <div class="panel-title" id="title-selection">選択点座標編集</div>
-        <div id="selected-index-text">選択: なし</div>
-        <div class="coord-inputs">
+        <div class="panel-title" id="title-selection">選択点 (複数対応) / 座標編集</div>
+        <select id="selected-list" size="5" onchange="onSelectionChange()"></select>
+        <button id="btn-remove-sel" onclick="removeSelectedPoint()" disabled>選択解除</button>
+        
+        <div class="coord-inputs" style="margin-top: 10px;">
             <div><label>X</label><input type="number" step="any" id="input-x" disabled></div>
             <div><label>Y</label><input type="number" step="any" id="input-y" disabled></div>
             <div><label>Z</label><input type="number" step="any" id="input-z" disabled></div>
@@ -122,12 +128,12 @@
 <script>
 /** 辞書データ (多言語対応) **/
 const i18n = {
-    ja: { titleFile: "ファイル操作", import: "PLYインポート", export: "PLYエクスポート", titleSelection: "選択点座標編集", selected: "選択: 点 ", none: "なし", apply: "座標適用", titleContour: "等高線設定", step: "等高線ピッチ (Z)", generate: "等高線生成", points: "点数: ", contours: "等高線ライン数: ", errLoad: "PLYファイルの読み込みに失敗しました。" },
-    en: { titleFile: "File Operations", import: "Import PLY", export: "Export PLY", titleSelection: "Selected Point Edit", selected: "Selected: Index ", none: "None", apply: "Apply Coordinates", titleContour: "Contour Settings", step: "Contour Interval (Z)", generate: "Generate Contours", points: "Points: ", contours: "Contour Lines: ", errLoad: "Failed to load PLY file." },
-    zh: { titleFile: "文件操作", import: "导入 PLY", export: "导出 PLY", titleSelection: "编辑选中点坐标", selected: "已选择: 点 ", none: "无", apply: "应用坐标", titleContour: "等高线设置", step: "等高线间距 (Z)", generate: "生成等高线", points: "点数: ", contours: "等高线数: ", errLoad: "无法加载PLY文件。" },
-    ko: { titleFile: "파일 작업", import: "PLY 가져오기", export: "PLY 내보내기", titleSelection: "선택한 점 좌표 편집", selected: "선택됨: 점 ", none: "없음", apply: "좌표 적용", titleContour: "등고선 설정", step: "등고선 간격 (Z)", generate: "등고선 생성", points: "점 개수: ", contours: "등고선 수: ", errLoad: "PLY 파일을 불러오지 못했습니다." },
-    fr: { titleFile: "Fichier", import: "Importer PLY", export: "Exporter PLY", titleSelection: "Éditer le point", selected: "Sélection: Index ", none: "Aucun", apply: "Appliquer", titleContour: "Lignes de niveau", step: "Intervalle (Z)", generate: "Générer", points: "Points: ", contours: "Lignes: ", errLoad: "Échec du chargement du fichier PLY." },
-    es: { titleFile: "Archivo", import: "Importar PLY", export: "Exportar PLY", titleSelection: "Editar Punto", selected: "Selección: Índice ", none: "Ninguno", apply: "Aplicar", titleContour: "Curvas de Nivel", step: "Intervalo (Z)", generate: "Generar", points: "Puntos: ", contours: "Líneas: ", errLoad: "Error al cargar el archivo PLY." }
+    ja: { titleFile: "ファイル操作", import: "PLYインポート", export: "PLYエクスポート", titleSelection: "選択点 (複数対応) / 座標編集", removeSel: "選択解除", apply: "座標適用", titleContour: "等高線設定", step: "等高線ピッチ (Z)", generate: "等高線生成", points: "点数: ", contours: "等高線ライン数: ", errLoad: "PLY読込失敗" },
+    en: { titleFile: "File Operations", import: "Import PLY", export: "Export PLY", titleSelection: "Selected Points / Edit", removeSel: "Deselect", apply: "Apply Coord", titleContour: "Contour Settings", step: "Interval (Z)", generate: "Generate Contours", points: "Points: ", contours: "Contours: ", errLoad: "Failed to load PLY" },
+    zh: { titleFile: "文件操作", import: "导入 PLY", export: "导出 PLY", titleSelection: "选中点 (多选) / 编辑", removeSel: "取消选择", apply: "应用坐标", titleContour: "等高线设置", step: "间距 (Z)", generate: "生成等高线", points: "点数: ", contours: "等高线数: ", errLoad: "读取失败" },
+    ko: { titleFile: "파일 작업", import: "PLY 가져오기", export: "PLY 내보내기", titleSelection: "선택된 점 (다중) / 편집", removeSel: "선택 해제", apply: "좌표 적용", titleContour: "등고선 설정", step: "간격 (Z)", generate: "등고선 생성", points: "점 수: ", contours: "등고선 수: ", errLoad: "불러오기 실패" },
+    fr: { titleFile: "Fichier", import: "Importer PLY", export: "Exporter PLY", titleSelection: "Points Sélectionnés", removeSel: "Désélectionner", apply: "Appliquer", titleContour: "Lignes de niveau", step: "Intervalle (Z)", generate: "Générer", points: "Points: ", contours: "Lignes: ", errLoad: "Erreur" },
+    es: { titleFile: "Archivo", import: "Importar PLY", export: "Exportar PLY", titleSelection: "Puntos Seleccionados", removeSel: "Deseleccionar", apply: "Aplicar", titleContour: "Curvas de Nivel", step: "Intervalo (Z)", generate: "Generar", points: "Puntos: ", contours: "Líneas: ", errLoad: "Error" }
 };
 
 let currentLang = 'ja';
@@ -138,6 +144,7 @@ function changeLanguage(lang) {
     document.getElementById('btn-import').innerText = t.import;
     document.getElementById('btn-export').innerText = t.export;
     document.getElementById('title-selection').innerText = t.titleSelection;
+    document.getElementById('btn-remove-sel').innerText = t.removeSel;
     document.getElementById('btn-apply-coord').innerText = t.apply;
     document.getElementById('title-contour').innerText = t.titleContour;
     document.getElementById('lbl-step').innerText = t.step;
@@ -146,24 +153,35 @@ function changeLanguage(lang) {
 }
 
 /** 3Dエンジン 状態管理 **/
-let pointCloudData = null; // [x,y,z, r,g,b] の連続一次元配列
+let pointCloudData = null; // [x,y,z, r,g,b] 
 let pointCount = 0;
-let selectedIndex = -1;
-let contourLines = []; // { p1: index, p2: index } の配列 (エクスポート用)
+let contourLines = [];
 
+// 複数選択管理
+let selectedIndices = []; // 選択された点のインデックス配列
+let activeIndex = -1;     // リスト内で現在アクティブ（編集対象）な点のインデックス
+
+// カメラ・ジェスチャー制御
 let camera = { rotX: 0.5, rotY: 0.5, zoom: 1.0, panX: 0, panY: 0 };
-let isDragging = false, lastMouse = { x: 0, y: 0 }, dragMode = 0;
+let isDragging = false, dragMode = 0; // 0:回転, 1:パン
+let lastMouse = { x: 0, y: 0 };
+let initialPinchDist = null, lastTouchCenter = null;
+let touchStartTime = 0, touchStartPos = { x: 0, y: 0 };
 
 const canvas = document.getElementById('renderCanvas');
-const ctx = canvas.getContext('2d', { alpha: false }); // 透過オフで高速化
+const ctx = canvas.getContext('2d', { alpha: false }); 
+let canvasWidth = 0, canvasHeight = 0;
+let renderReq = null;
 
 function initCanvas() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
+    // PC マウス操作
     canvas.addEventListener('mousedown', e => {
         isDragging = true;
-        dragMode = e.button; 
+        // 左クリック(0)は回転、右クリック(2)または中クリック(1)はパン移動
+        dragMode = (e.button === 0) ? 0 : 1; 
         lastMouse = { x: e.clientX, y: e.clientY };
     });
     
@@ -173,36 +191,109 @@ function initCanvas() {
         if (dragMode === 0) { camera.rotY += dx * 0.005; camera.rotX += dy * 0.005; }
         else { camera.panX += dx; camera.panY += dy; }
         lastMouse = { x: e.clientX, y: e.clientY };
-        render();
+        requestRender();
     });
 
-    window.addEventListener('mouseup', () => isDragging = false);
-    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('mouseup', e => {
+        isDragging = false;
+        // マウスでのクリック選択判定（移動距離が小さければクリックとみなす）
+        if (pointCount > 0 && Math.abs(e.clientX - lastMouse.x) < 3 && Math.abs(e.clientY - lastMouse.y) < 3) {
+            selectPointAt(e.clientX, e.clientY);
+        }
+    });
+    
+    canvas.addEventListener('contextmenu', e => e.preventDefault()); // 右クリックメニュー禁止
+    
     canvas.addEventListener('wheel', e => {
         camera.zoom *= (e.deltaY > 0) ? 0.9 : 1.1;
-        render();
+        requestRender();
     }, { passive: true });
 
-    canvas.addEventListener('click', e => {
-        if (pointCount > 0) selectPointAt(e.clientX, e.clientY);
-    });
+    // スマホ・タブレット タッチ操作
+    canvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+            isDragging = true; dragMode = 0;
+            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            touchStartTime = Date.now();
+            touchStartPos = { ...lastMouse };
+        } else if (e.touches.length === 2) {
+            isDragging = true; dragMode = 1;
+            let dx = e.touches[0].clientX - e.touches[1].clientX;
+            let dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialPinchDist = Math.hypot(dx, dy);
+            lastTouchCenter = {
+                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+            };
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault(); // スクロール防止
+        if (!isDragging) return;
+        
+        if (e.touches.length === 1 && dragMode === 0) {
+            const dx = e.touches[0].clientX - lastMouse.x;
+            const dy = e.touches[0].clientY - lastMouse.y;
+            camera.rotY += dx * 0.008; camera.rotX += dy * 0.008;
+            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length === 2) {
+            let cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            let cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            if (lastTouchCenter) {
+                camera.panX += (cx - lastTouchCenter.x);
+                camera.panY += (cy - lastTouchCenter.y);
+            }
+            lastTouchCenter = { x: cx, y: cy };
+            
+            let dx = e.touches[0].clientX - e.touches[1].clientX;
+            let dy = e.touches[0].clientY - e.touches[1].clientY;
+            let dist = Math.hypot(dx, dy);
+            if (initialPinchDist) {
+                camera.zoom *= (dist / initialPinchDist);
+                initialPinchDist = dist;
+            }
+        }
+        requestRender();
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+        e.preventDefault();
+        if (e.changedTouches.length === 1 && dragMode === 0) {
+            let dist = Math.hypot(e.changedTouches[0].clientX - touchStartPos.x, e.changedTouches[0].clientY - touchStartPos.y);
+            if (dist < 10 && (Date.now() - touchStartTime) < 300) {
+                if (pointCount > 0) selectPointAt(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        }
+        if (e.touches.length === 0) {
+            isDragging = false; initialPinchDist = null; lastTouchCenter = null;
+        } else if (e.touches.length === 1) {
+            dragMode = 0;
+            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            initialPinchDist = null; lastTouchCenter = null;
+        }
+    }, { passive: false });
 }
 
 function resizeCanvas() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-    render();
+    canvasWidth = canvas.parentElement.clientWidth;
+    canvasHeight = canvas.parentElement.clientHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    requestRender();
 }
 
 /** メモリ管理 **/
 function freeMemory() {
     pointCloudData = null;
     contourLines = [];
+    selectedIndices = [];
+    activeIndex = -1;
     pointCount = 0;
-    selectedIndex = -1;
+    updateSelectionUI();
 }
 
-/** PLY Parser (エラー検知＆メモリ適正化) **/
+/** 堅牢なPLY Parser (色情報の動的解析対応) **/
 function handleFileSelect(evt) {
     const file = evt.target.files[0];
     if (!file) return;
@@ -215,13 +306,12 @@ function handleFileSelect(evt) {
             document.getElementById('btn-export').disabled = false;
             document.getElementById('btn-gen-contour').disabled = false;
             updateUIInfo();
-            resetCamera();
-            render();
+            camera = { rotX: 0.5, rotY: 0.5, zoom: 1.0, panX: 0, panY: 0 };
+            requestRender();
         } catch (err) {
             console.error(err);
             alert(i18n[currentLang].errLoad);
         } finally {
-            // メモリの即時解放 (GC促進)
             e.target.result = null; 
             evt.target.value = ''; 
         }
@@ -230,152 +320,216 @@ function handleFileSelect(evt) {
     reader.readAsArrayBuffer(file);
 }
 
+function getPropSize(typeStr) {
+    switch(typeStr) {
+        case 'char': case 'uchar': case 'int8': case 'uint8': return 1;
+        case 'short': case 'ushort': case 'int16': case 'uint16': return 2;
+        case 'int': case 'uint': case 'int32': case 'uint32': case 'float': case 'float32': return 4;
+        case 'double': case 'float64': return 8;
+        default: return 4;
+    }
+}
+
 function parsePLY(buffer) {
     const dec = new TextDecoder('utf-8');
-    const headerBytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 8192));
+    const headerBytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 10240));
     const headerText = dec.decode(headerBytes);
     
     let isBinary = false;
     let headerLength = 0;
+    let vertexCount = 0;
+    
+    let props = [];
+    let currentElement = '';
     
     const lines = headerText.split('\n');
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = lines[i].trim().replace(/\s+/g, ' ');
         if (line.includes('binary_little_endian')) isBinary = true;
-        if (line.startsWith('element vertex')) pointCount = parseInt(line.split(' ')[2], 10);
+        if (line.startsWith('element')) {
+            const parts = line.split(' ');
+            currentElement = parts[1];
+            if (currentElement === 'vertex') vertexCount = parseInt(parts[2], 10);
+        }
+        if (line.startsWith('property') && currentElement === 'vertex') {
+            const parts = line.split(' ');
+            props.push({ type: parts[1], name: parts[2], size: getPropSize(parts[1]) });
+        }
         if (line === 'end_header') {
             headerLength = headerText.indexOf('end_header') + 11;
             break;
         }
     }
 
-    if(pointCount === 0) throw new Error("Invalid PLY format");
+    if (vertexCount === 0) throw new Error("Invalid PLY");
+    pointCount = vertexCount;
     pointCloudData = new Float32Array(pointCount * 6); 
+
+    let pIdx = { x:-1, y:-1, z:-1, r:-1, g:-1, b:-1 };
+    let totalStride = 0;
+    props.forEach((p, i) => {
+        if (p.name === 'x') pIdx.x = { idx: i, offset: totalStride, type: p.type };
+        if (p.name === 'y') pIdx.y = { idx: i, offset: totalStride, type: p.type };
+        if (p.name === 'z') pIdx.z = { idx: i, offset: totalStride, type: p.type };
+        if (p.name === 'red') pIdx.r = { idx: i, offset: totalStride, type: p.type };
+        if (p.name === 'green') pIdx.g = { idx: i, offset: totalStride, type: p.type };
+        if (p.name === 'blue') pIdx.b = { idx: i, offset: totalStride, type: p.type };
+        totalStride += p.size;
+    });
 
     if (isBinary) {
         const view = new DataView(buffer, headerLength);
-        let offset = 0;
+        let byteOffset = 0;
+        
+        function readVal(type, off) {
+            if(type === 'uchar' || type === 'uint8') return view.getUint8(off);
+            if(type === 'float' || type === 'float32') return view.getFloat32(off, true);
+            if(type === 'double' || type === 'float64') return view.getFloat64(off, true);
+            return 0; // 簡易化
+        }
+
         for (let i = 0; i < pointCount; i++) {
             const idx = i * 6;
-            pointCloudData[idx]     = view.getFloat32(offset, true);
-            pointCloudData[idx + 1] = view.getFloat32(offset + 4, true);
-            pointCloudData[idx + 2] = view.getFloat32(offset + 8, true);
-            pointCloudData[idx + 3] = 0.5; pointCloudData[idx + 4] = 0.8; pointCloudData[idx + 5] = 1.0;
-            offset += 12; // 基本的な x,y,z のみパース
+            pointCloudData[idx]   = readVal(pIdx.x.type, byteOffset + pIdx.x.offset);
+            pointCloudData[idx+1] = readVal(pIdx.y.type, byteOffset + pIdx.y.offset);
+            pointCloudData[idx+2] = readVal(pIdx.z.type, byteOffset + pIdx.z.offset);
+            
+            // 色情報があれば読み取り、なければグレー
+            pointCloudData[idx+3] = pIdx.r.idx !== -1 ? readVal(pIdx.r.type, byteOffset + pIdx.r.offset) : 180;
+            pointCloudData[idx+4] = pIdx.g.idx !== -1 ? readVal(pIdx.g.type, byteOffset + pIdx.g.offset) : 180;
+            pointCloudData[idx+5] = pIdx.b.idx !== -1 ? readVal(pIdx.b.type, byteOffset + pIdx.b.offset) : 180;
+            
+            byteOffset += totalStride;
         }
     } else {
+        // ASCII Parser
         const text = dec.decode(buffer);
         const dataStr = text.substring(headerLength).trim();
-        let cursor = 0;
+        const dataArray = dataStr.split(/\s+/);
         
-        // メモリ消費を防ぐため、文字列を配列化せず正規表現検索で数値を抽出
-        const regex = /([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)/g;
-        let match;
-        let i = 0, comp = 0;
-        
-        while ((match = regex.exec(dataStr)) !== null && i < pointCount) {
-            if (comp < 3) {
-                pointCloudData[i * 6 + comp] = parseFloat(match[1]);
-            } else if (comp === 3) {
-                // 色はデフォルト
-                pointCloudData[i * 6 + 3] = 0.5; 
-                pointCloudData[i * 6 + 4] = 0.8; 
-                pointCloudData[i * 6 + 5] = 1.0;
-            }
-            comp++;
-            if (comp >= 3) { // 最低 x,y,z の3要素分読んだら次へ進める設計 (実際はプロパティ数に依存)
-                // 簡易実装として改行などで区切る想定
-                const nextCharIndex = regex.lastIndex;
-                if(dataStr.charAt(nextCharIndex) === '\n' || comp >= 6) { i++; comp = 0; }
-            }
+        let ptr = 0;
+        const propCount = props.length;
+        for (let i = 0; i < pointCount; i++) {
+            const idx = i * 6;
+            pointCloudData[idx]   = parseFloat(dataArray[ptr + pIdx.x.idx]);
+            pointCloudData[idx+1] = parseFloat(dataArray[ptr + pIdx.y.idx]);
+            pointCloudData[idx+2] = parseFloat(dataArray[ptr + pIdx.z.idx]);
+            
+            pointCloudData[idx+3] = pIdx.r.idx !== -1 ? parseInt(dataArray[ptr + pIdx.r.idx]) : 180;
+            pointCloudData[idx+4] = pIdx.g.idx !== -1 ? parseInt(dataArray[ptr + pIdx.g.idx]) : 180;
+            pointCloudData[idx+5] = pIdx.b.idx !== -1 ? parseInt(dataArray[ptr + pIdx.b.idx]) : 180;
+            
+            ptr += propCount;
         }
     }
 }
 
-/** 最適化バッチレンダリング **/
+function requestRender() {
+    if (!renderReq) {
+        renderReq = requestAnimationFrame(() => {
+            render();
+            renderReq = null;
+        });
+    }
+}
+
+/** 超高速 ImageData レンダー (カラー対応) **/
 function render() {
+    if (canvasWidth === 0 || canvasHeight === 0) return;
+    
+    // 背景をクリア
     ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     if (!pointCloudData || pointCount === 0) return;
 
-    const cx = canvas.width / 2 + camera.panX;
-    const cy = canvas.height / 2 + camera.panY;
+    const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    const data = imgData.data;
+
+    const cx = canvasWidth / 2 + camera.panX;
+    const cy = canvasHeight / 2 + camera.panY;
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX);
     const cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
 
-    ctx.fillStyle = '#00bfff';
-    ctx.beginPath();
-
-    let selPx = -1, selPy = -1;
-
+    // ポイントを ImageData に直接書き込み (2x2 pxで視認性向上)
     for (let i = 0; i < pointCount; i++) {
         const idx = i * 6;
         let x = pointCloudData[idx], y = pointCloudData[idx+1], z = pointCloudData[idx+2];
         
-        // 3D 回転行列の計算
-        let x1 = x * cosY + z * sinY;
-        let z1 = -x * sinY + z * cosY;
-        let y1 = y * cosX - z1 * sinX;
-        let z2 = y * sinX + z1 * cosX;
+        let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
+        let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
 
         const proj = scale / (z2 + 500);
-        const px = cx + x1 * proj;
-        const py = cy - y1 * proj;
+        let px = Math.floor(cx + x1 * proj);
+        let py = Math.floor(cy - y1 * proj);
 
-        if (px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
-            if (i === selectedIndex) {
-                selPx = px; selPy = py;
-            } else {
-                ctx.rect(px - 1, py - 1, 2, 2); // パス追加
-            }
+        if (px >= 0 && px < canvasWidth - 1 && py >= 0 && py < canvasHeight - 1) {
+            let r = pointCloudData[idx+3], g = pointCloudData[idx+4], b = pointCloudData[idx+5];
+            let p = (py * canvasWidth + px) * 4;
+            
+            // 2x2 描画
+            data[p] = r; data[p+1] = g; data[p+2] = b; data[p+3] = 255;
+            data[p+4] = r; data[p+5] = g; data[p+6] = b; data[p+7] = 255;
+            let pDown = p + (canvasWidth * 4);
+            data[pDown] = r; data[pDown+1] = g; data[pDown+2] = b; data[pDown+3] = 255;
+            data[pDown+4] = r; data[pDown+5] = g; data[pDown+6] = b; data[pDown+7] = 255;
         }
     }
-    ctx.fill(); // 全ポイントを一括描画（超高速）
+    ctx.putImageData(imgData, 0, 0);
 
-    // 等高線描画
+    // 等高線描画 (Canvas API)
     if (contourLines.length > 0) {
-        ctx.strokeStyle = '#00ff00';
+        ctx.strokeStyle = 'rgba(0, 255, 128, 0.8)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (let i = 0; i < contourLines.length; i++) {
-            const p1Idx = contourLines[i].p1 * 6;
-            const p2Idx = contourLines[i].p2 * 6;
+            const p1Idx = contourLines[i].p1 * 6, p2Idx = contourLines[i].p2 * 6;
             
             let xA = pointCloudData[p1Idx], yA = pointCloudData[p1Idx+1], zA = pointCloudData[p1Idx+2];
             let xB = pointCloudData[p2Idx], yB = pointCloudData[p2Idx+1], zB = pointCloudData[p2Idx+2];
 
-            // P1
             let x1A = xA * cosY + zA * sinY, z1A = -xA * sinY + zA * cosY;
             let y1A = yA * cosX - z1A * sinX, z2A = yA * sinX + z1A * cosX;
             let p1x = cx + x1A * (scale / (z2A + 500)), p1y = cy - y1A * (scale / (z2A + 500));
             
-            // P2
             let x1B = xB * cosY + zB * sinY, z1B = -xB * sinY + zB * cosY;
             let y1B = yB * cosX - z1B * sinX, z2B = yB * sinX + z1B * cosX;
             let p2x = cx + x1B * (scale / (z2B + 500)), p2y = cy - y1B * (scale / (z2B + 500));
             
-            ctx.moveTo(p1x, p1y);
-            ctx.lineTo(p2x, p2y);
+            ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y);
         }
         ctx.stroke();
     }
 
-    // 選択点ハイライト
-    if (selPx !== -1) {
-        ctx.fillStyle = '#ff0000';
-        ctx.fillRect(selPx - 4, selPy - 4, 8, 8);
-    }
+    // 選択された複数点のハイライト
+    selectedIndices.forEach(idx => {
+        let x = pointCloudData[idx*6], y = pointCloudData[idx*6+1], z = pointCloudData[idx*6+2];
+        let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
+        let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
+        const proj = scale / (z2 + 500);
+        let px = cx + x1 * proj, py = cy - y1 * proj;
+
+        if (idx === activeIndex) {
+            // アクティブな点は大きく黄色で描画
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.9)';
+            ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+        } else {
+            // その他の選択点は赤い四角
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(px - 3, py - 3, 6, 6);
+        }
+    });
 }
 
-/** 選択・座標適用 **/
+/** 複数点の選択・UI連動ロジック **/
 function selectPointAt(mx, my) {
-    const cx = canvas.width/2 + camera.panX, cy = canvas.height/2 + camera.panY;
+    const cx = canvasWidth/2 + camera.panX, cy = canvasHeight/2 + camera.panY;
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX);
     const cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
 
-    let minDist = 15; // px
+    let minDist = 20; // ピクセル許容範囲
     let closest = -1;
 
     for (let i = 0; i < pointCount; i++) {
@@ -383,40 +537,81 @@ function selectPointAt(mx, my) {
         let x = pointCloudData[idx], y = pointCloudData[idx+1], z = pointCloudData[idx+2];
         let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
         let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
+        let px = cx + x1 * (scale / (z2 + 500)), py = cy - y1 * (scale / (z2 + 500));
 
-        const proj = scale / (z2 + 500);
-        const px = cx + x1 * proj, py = cy - y1 * proj;
-
-        const dist = Math.hypot(px - mx, py - my);
+        let dist = Math.hypot(px - mx, py - my);
         if (dist < minDist) { minDist = dist; closest = i; }
     }
 
-    selectedIndex = closest;
     if (closest !== -1) {
-        const idx = closest * 6;
+        if (!selectedIndices.includes(closest)) {
+            selectedIndices.push(closest);
+        }
+        activeIndex = closest;
+        updateSelectionUI();
+        requestRender();
+    }
+}
+
+function updateSelectionUI() {
+    const listEl = document.getElementById('selected-list');
+    listEl.innerHTML = '';
+    
+    selectedIndices.forEach((idx, i) => {
+        let opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = `Pt [${idx}]`;
+        if (idx === activeIndex) opt.selected = true;
+        listEl.appendChild(opt);
+    });
+
+    const hasSelection = (activeIndex !== -1);
+    document.getElementById('btn-remove-sel').disabled = !hasSelection;
+    ['x','y','z'].forEach(id => document.getElementById(`input-${id}`).disabled = !hasSelection);
+    document.getElementById('btn-apply-coord').disabled = !hasSelection;
+
+    if (hasSelection) {
+        const idx = activeIndex * 6;
         document.getElementById('input-x').value = pointCloudData[idx].toFixed(4);
         document.getElementById('input-y').value = pointCloudData[idx+1].toFixed(4);
         document.getElementById('input-z').value = pointCloudData[idx+2].toFixed(4);
-        ['x','y','z'].forEach(id => document.getElementById(`input-${id}`).disabled = false);
-        document.getElementById('btn-apply-coord').disabled = false;
+    } else {
+        document.getElementById('input-x').value = '';
+        document.getElementById('input-y').value = '';
+        document.getElementById('input-z').value = '';
     }
-    updateUIInfo();
-    render();
+}
+
+function onSelectionChange() {
+    const listEl = document.getElementById('selected-list');
+    if (listEl.value) {
+        activeIndex = parseInt(listEl.value, 10);
+        updateSelectionUI();
+        requestRender();
+    }
+}
+
+function removeSelectedPoint() {
+    if (activeIndex === -1) return;
+    selectedIndices = selectedIndices.filter(i => i !== activeIndex);
+    activeIndex = selectedIndices.length > 0 ? selectedIndices[selectedIndices.length - 1] : -1;
+    updateSelectionUI();
+    requestRender();
 }
 
 function applyCoordinateChange() {
-    if (selectedIndex === -1) return;
-    const idx = selectedIndex * 6;
+    if (activeIndex === -1) return;
+    const idx = activeIndex * 6;
     pointCloudData[idx]   = parseFloat(document.getElementById('input-x').value);
     pointCloudData[idx+1] = parseFloat(document.getElementById('input-y').value);
     pointCloudData[idx+2] = parseFloat(document.getElementById('input-z').value);
-    render();
+    requestRender();
 }
 
-/** 適正化済み・等高線生成ロジック **/
+/** 等高線ロジック **/
 function generateContours() {
     if (!pointCloudData) return;
-    contourLines = []; // メモリ初期化
+    contourLines = []; 
     const step = parseFloat(document.getElementById('contour-step').value);
     
     let minZ = Infinity, maxZ = -Infinity;
@@ -425,116 +620,78 @@ function generateContours() {
         if (z < minZ) minZ = z;
         if (z > maxZ) maxZ = z;
     }
-
     const tolerance = step * 0.15;
-    
     for (let cz = Math.ceil(minZ / step) * step; cz <= maxZ; cz += step) {
-        let slicePoints = [];
-        
-        // 1. Zレイヤーにある点を抽出
+        let slice = [];
         for (let i = 0; i < pointCount; i++) {
-            const z = pointCloudData[i * 6 + 2];
-            if (Math.abs(z - cz) < tolerance) {
-                slicePoints.push({
-                    idx: i,
-                    x: pointCloudData[i * 6],
-                    y: pointCloudData[i * 6 + 1]
-                });
+            if (Math.abs(pointCloudData[i * 6 + 2] - cz) < tolerance) {
+                slice.push({ idx: i, x: pointCloudData[i * 6], y: pointCloudData[i * 6 + 1] });
             }
         }
-        
-        if (slicePoints.length < 3) continue;
-
-        // 2. 輪郭として描画するため、スライス重心からの角度でソート
+        if (slice.length < 3) continue;
         let cx = 0, cy = 0;
-        slicePoints.forEach(p => { cx += p.x; cy += p.y; });
-        cx /= slicePoints.length; cy /= slicePoints.length;
-
-        slicePoints.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-
-        // 3. 辺（エッジ）として保存
-        for (let i = 0; i < slicePoints.length; i++) {
-            contourLines.push({
-                p1: slicePoints[i].idx,
-                p2: slicePoints[(i + 1) % slicePoints.length].idx
-            });
+        slice.forEach(p => { cx += p.x; cy += p.y; });
+        cx /= slice.length; cy /= slice.length;
+        slice.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+        for (let i = 0; i < slice.length; i++) {
+            contourLines.push({ p1: slice[i].idx, p2: slice[(i + 1) % slice.length].idx });
         }
     }
-    
     updateUIInfo();
-    render();
+    requestRender();
 }
 
-/** メモリ最適化 PLYエクスポート (Blob Chunk結合) **/
+/** 統合PLYエクスポート **/
 function exportPLY() {
     if (!pointCloudData) return;
-    
-    // 巨大データでメモリ不足にならないよう、配列にChunkとして格納
     const blobParts = []; 
-    
     let header = "ply\nformat ascii 1.0\n";
     header += `element vertex ${pointCount}\n`;
     header += "property float x\nproperty float y\nproperty float z\n";
     header += "property uchar red\nproperty uchar green\nproperty uchar blue\n";
-    
-    // 等高線をエッジ情報としてPLYに書き込む
     if (contourLines.length > 0) {
         header += `element edge ${contourLines.length}\n`;
         header += "property int vertex1\nproperty int vertex2\n";
     }
     header += "end_header\n";
-    
     blobParts.push(header);
 
-    // 頂点データの出力 (Chunk書き込み)
     const chunkSize = 10000;
     let chunk = [];
     for (let i = 0; i < pointCount; i++) {
         const idx = i * 6;
-        chunk.push(`${pointCloudData[idx]} ${pointCloudData[idx+1]} ${pointCloudData[idx+2]} 0 191 255\n`);
-        if (chunk.length >= chunkSize) {
-            blobParts.push(chunk.join(''));
-            chunk = [];
-        }
+        let r = Math.round(pointCloudData[idx+3]);
+        let g = Math.round(pointCloudData[idx+4]);
+        let b = Math.round(pointCloudData[idx+5]);
+        chunk.push(`${pointCloudData[idx]} ${pointCloudData[idx+1]} ${pointCloudData[idx+2]} ${r} ${g} ${b}\n`);
+        if (chunk.length >= chunkSize) { blobParts.push(chunk.join('')); chunk = []; }
     }
     if (chunk.length > 0) blobParts.push(chunk.join(''));
     
-    // 等高線エッジデータの出力
     if (contourLines.length > 0) {
         chunk = [];
         for (let i = 0; i < contourLines.length; i++) {
             chunk.push(`${contourLines[i].p1} ${contourLines[i].p2}\n`);
-            if (chunk.length >= chunkSize) {
-                blobParts.push(chunk.join(''));
-                chunk = [];
-            }
+            if (chunk.length >= chunkSize) { blobParts.push(chunk.join('')); chunk = []; }
         }
         if (chunk.length > 0) blobParts.push(chunk.join(''));
     }
 
-    // Blob生成と即時ダウンロード、およびメモリ解放
     const blob = new Blob(blobParts, { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = "contoured_cloud.ply";
+    link.download = "contoured_color_cloud.ply";
     link.click();
-    
-    // 即時メモリ解放
     URL.revokeObjectURL(link.href);
     blobParts.length = 0; 
 }
-
-function resetCamera() { camera = { rotX: 0.5, rotY: 0.5, zoom: 1.0, panX: 0, panY: 0 }; }
 
 function updateUIInfo() {
     const t = i18n[currentLang];
     document.getElementById('stat-points').innerText = t.points + pointCount;
     document.getElementById('stat-contours').innerText = t.contours + contourLines.length;
-    document.getElementById('selected-index-text').innerText = 
-        (selectedIndex !== -1) ? (t.selected + selectedIndex) : (t.selected + t.none);
 }
 
-// 初期化実行
 initCanvas();
 changeLanguage('ja');
 </script>
