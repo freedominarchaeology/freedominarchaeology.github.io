@@ -340,7 +340,8 @@ function renderRealtimePreview() {
 document.getElementById('add-rec-btn').addEventListener('click', () => {  
   const nameInput = document.getElementById('rec-name');  
   const userEnteredName = nameInput.value ? String(nameInput.value).trim() : "";  
-  const name = userEnteredName !== "" ? userEnteredName : `記録点_${recordedPoints.length + 1}`;  
+  const recIndex = recordedPoints.length + 1;  
+  const name = userEnteredName !== "" ? userEnteredName : `地点_${recIndex}`;  
   const coords = getCurrentTransformedCoords();  
   if (!coords) {  
     alert('現在地のGPS信号が取得できていません。');  
@@ -348,6 +349,7 @@ document.getElementById('add-rec-btn').addEventListener('click', () => {
   }  
   const newPoint = {  
     id: Date.now(),  
+    num: recIndex,  
     name: name,  
     x: coords.x,  
     y: coords.y,  
@@ -358,7 +360,7 @@ document.getElementById('add-rec-btn').addEventListener('click', () => {
   saveRecordedPoints();  
   nameInput.value = "";  
   renderRecordedPointsList();  
-  alert(`記録点「${name}」を記録しました!`);  
+  alert(`記録点 No.${recIndex} (名称:${name}) を記録しました!`);  
 });  
   
 function saveRecordedPoints() {  
@@ -377,7 +379,8 @@ function renderRecordedPointsList() {
     container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">記録された点はありません</div>';  
     return;  
   }  
-  recordedPoints.forEach((pt) => {  
+  recordedPoints.forEach((pt, idx) => {  
+    pt.num = idx + 1; // 連番の同期  
     const zStr = pt.z !== null && pt.z !== undefined ? pt.z.toFixed(2) : '---';  
     const div = document.createElement('div');  
     div.className = 'point-item';  
@@ -388,7 +391,7 @@ function renderRecordedPointsList() {
     titleDiv.style.color = '#eab308';  
     titleDiv.style.fontWeight = 'bold';  
     titleDiv.style.marginBottom = '2px';  
-    titleDiv.textContent = pt.name;  
+    titleDiv.textContent = `No.${pt.num} : ${pt.name}`;  
     const detailDiv = document.createElement('div');  
     detailDiv.style.color = '#aaa';  
     detailDiv.style.fontSize = '10px';  
@@ -419,14 +422,14 @@ document.getElementById('export-csv-btn').addEventListener('click', () => {
     alert("出力する記録点・基準点データがありません。");  
     return;  
   }  
-  let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
-  recordedPoints.forEach(p => {  
+  let csvContent = "\uFEFF種別,リストNo,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
+  recordedPoints.forEach((p, idx) => {  
     const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";  
-    csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
+    csvContent += `記録点,No.${idx + 1},"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
   });  
-  knownPoints.forEach(p => {  
+  knownPoints.forEach((p, idx) => {  
     const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : "";  
-    csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;  
+    csvContent += `基準点,Ref.${idx + 1},"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;  
   });  
   
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });  
@@ -450,11 +453,11 @@ function saveCsvToStorage(points) {
   const timeStr = formatTimestamp(new Date(points[0].time));  
   const fileName = `${timeStr}.csv`;  
   const storageKey = `${STORAGE_CSV_PREFIX}${fileName}`;  
-  let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
+  let csvContent = "\uFEFF種別,リストNo,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
   points.forEach((p, idx) => {  
     const tStr = new Date(p.time).toLocaleString('ja-JP');  
     const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";  
-    csvContent += `軌跡ログ,Track_${idx+1},${tStr},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
+    csvContent += `軌跡ログ,Trk.${idx+1},Track_${idx+1},${tStr},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
   });  
   try {  
     localStorage.setItem(storageKey, csvContent);  
@@ -596,10 +599,10 @@ function parseCsvToLogPoints(csvText) {
     const line = lines[i].trim();  
     if (!line) continue;  
     const cols = line.split(',');  
-    if (cols.length >= 5) {  
-      const x = parseFloat(cols[3]);  
-      const y = parseFloat(cols[4]);  
-      const z = cols[5] ? parseFloat(cols[5]) : null;  
+    if (cols.length >= 6) {  
+      const x = parseFloat(cols[4]);  
+      const y = parseFloat(cols[5]);  
+      const z = cols[6] ? parseFloat(cols[6]) : null;  
       if (!isNaN(x) && !isNaN(y)) {  
         points.push({ x, y, z });  
       }  
@@ -665,14 +668,14 @@ async function packageAndDownloadZip() {
   }  
   
   if (recordedPoints.length > 0 || knownPoints.length > 0) {  
-    let masterCsv = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
-    recordedPoints.forEach(p => {  
+    let masterCsv = "\uFEFF種別,リストNo,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
+    recordedPoints.forEach((p, idx) => {  
       const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";  
-      masterCsv += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
+      masterCsv += `記録点,No.${idx + 1},"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
     });  
-    knownPoints.forEach(p => {  
+    knownPoints.forEach((p, idx) => {  
       const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : "";  
-      masterCsv += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;  
+      masterCsv += `基準点,Ref.${idx + 1},"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;  
     });  
     zip.file('registered_points_master.csv', masterCsv);  
   }  
@@ -721,10 +724,8 @@ function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
       const { jsPDF } = window.jspdf;  
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });  
       
-      // フォント設定（標準Helveticaフォントを使用しエラー回避）
-      const hasJPFont = false;  
-      doc.setFont('helvetica');
-
+      doc.setFont('helvetica');  
+  
       const marginLeft = 20;  
       const marginTop = 25;  
       const drawWidth = 380;  
@@ -888,22 +889,22 @@ function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
       doc.text('0', sbX, sbY - 2, { align: 'center' });  
       doc.text(`${scaleMeters}m`, sbX + scalePx, sbY - 2, { align: 'center' });  
   
-      function drawAnnotatedPointPDF(ptX, ptY, ptZ, rawName, colorRGB, labelPrefix) {  
+      // PDF上の点とラベルの描画（ナンバー表記化）
+      function drawAnnotatedPointPDF(ptX, ptY, ptZ, labelNoStr, colorRGB) {  
         if (!isPointInPage(ptX, ptY)) return;  
         const cvPt = toPdfCoord(ptX, ptY);  
-        const nameStr = String(rawName || 'Unnamed');  
         const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';  
-        const titleText = `${labelPrefix}${nameStr}`;  
   
         doc.setFillColor(colorRGB.r, colorRGB.g, colorRGB.b);  
         doc.setDrawColor(0, 0, 0);  
         doc.setLineWidth(0.3);  
         doc.circle(cvPt.x, cvPt.y, 1.2, 'FD');  
   
-        doc.setFontSize(8);  
-        const titleWidth = doc.getTextWidth(titleText);  
-        const boxWidth = Math.max(titleWidth, 25) + 4;  
-        const boxHeight = 14;  
+        doc.setFont('helvetica', 'bold');  
+        doc.setFontSize(9);  
+        const titleWidth = doc.getTextWidth(labelNoStr);  
+        const boxWidth = Math.max(titleWidth, 22) + 4;  
+        const boxHeight = 13;  
   
         let offsetX = cvPt.x > (marginLeft + drawWidth / 2) ? -boxWidth - 6 : 6;  
         let offsetY = cvPt.y > (marginTop + drawHeight / 2) ? -boxHeight - 3 : 3;  
@@ -924,24 +925,21 @@ function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
         doc.rect(textX, textY, boxWidth, boxHeight, 'FD');  
   
         doc.setTextColor(0, 0, 0);  
-        doc.setFontSize(7.5);  
-        doc.text(titleText, textX + 1.5, textY + 3.5);  
+        doc.text(labelNoStr, textX + 1.5, textY + 3.5);  
+        doc.setFont('helvetica', 'normal');  
         doc.setFontSize(6.5);  
         doc.setTextColor(31, 41, 55);  
-        doc.text(`X: ${ptX.toFixed(3)}`, textX + 1.5, textY + 6.8);  
-        doc.text(`Y: ${ptY.toFixed(3)}`, textX + 1.5, textY + 9.8);  
-        doc.text(`Z: ${zText}`, textX + 1.5, textY + 12.8);  
+        doc.text(`X: ${ptX.toFixed(3)}`, textX + 1.5, textY + 6.5);  
+        doc.text(`Y: ${ptY.toFixed(3)}`, textX + 1.5, textY + 9.2);  
+        doc.text(`Z: ${zText}`, textX + 1.5, textY + 11.8);  
       }  
   
-      const knownPrefix = "Ref: ";  
-      const recPrefix = "Rec: ";  
-  
-      validKnown.forEach(kp => {  
-        drawAnnotatedPointPDF(kp.targetX, kp.targetY, kp.targetZ, kp.name, { r: 37, g: 99, b: 235 }, knownPrefix);  
+      validKnown.forEach((kp, idx) => {  
+        drawAnnotatedPointPDF(kp.targetX, kp.targetY, kp.targetZ, `Ref.${idx + 1}`, { r: 37, g: 99, b: 235 });  
       });  
   
-      validRec.forEach(rp => {  
-        drawAnnotatedPointPDF(rp.x, rp.y, rp.z, rp.name, { r: 234, g: 179, b: 8 }, recPrefix);  
+      validRec.forEach((rp, idx) => {  
+        drawAnnotatedPointPDF(rp.x, rp.y, rp.z, `No.${idx + 1}`, { r: 234, g: 179, b: 8 });  
       });  
   
       resolve(doc);  
@@ -1009,7 +1007,8 @@ document.getElementById('add-kp-btn').addEventListener('click', () => {
   const zInput = document.getElementById('kp-z');  
   
   const userKpName = nameInput.value ? String(nameInput.value).trim() : "";  
-  const name = userKpName !== "" ? userKpName : `既知点_${knownPoints.length + 1}`;  
+  const kpIndex = knownPoints.length + 1;  
+  const name = userKpName !== "" ? userKpName : `基準点_${kpIndex}`;  
   const targetX = parseFloat(xInput.value);  
   const targetY = parseFloat(yInput.value);  
   const targetZ = parseFloat(zInput.value);  
@@ -1073,6 +1072,7 @@ document.getElementById('add-kp-btn').addEventListener('click', () => {
   
         const newPoint = {  
           id: Date.now(),  
+          num: kpIndex,  
           name: name,  
           lat: avgLat, lon: avgLon,  
           targetX: targetX, targetY: targetY, targetZ: !isNaN(targetZ) ? targetZ : null,  
@@ -1085,7 +1085,7 @@ document.getElementById('add-kp-btn').addEventListener('click', () => {
         nameInput.value = ""; xInput.value = ""; yInput.value = ""; zInput.value = "";  
         renderKnownPointsList();  
         updateGrowthUI();  
-        alert(`既知点「${name}」を学習登録しました!`);  
+        alert(`基準点 Ref.${kpIndex} (名称:${name}) を学習登録しました!`);  
       }  
     } catch (e) {  
       if (samplingTimer) {  
@@ -1116,7 +1116,8 @@ function renderKnownPointsList() {
     return;  
   }  
   
-  knownPoints.forEach((kp) => {  
+  knownPoints.forEach((kp, idx) => {  
+    kp.num = idx + 1; // 連番の同期  
     const zStr = kp.targetZ !== null && kp.targetZ !== undefined ? kp.targetZ.toFixed(2) : '---';  
     const div = document.createElement('div');  
     div.className = 'point-item';  
@@ -1127,7 +1128,7 @@ function renderKnownPointsList() {
     titleDiv.style.color = '#fff';  
     titleDiv.style.fontWeight = 'bold';  
     titleDiv.style.marginBottom = '2px';  
-    titleDiv.textContent = kp.name;  
+    titleDiv.textContent = `Ref.${kp.num} : ${kp.name}`;  
     const detailDiv = document.createElement('div');  
     detailDiv.style.color = '#888';  
     detailDiv.style.fontSize = '10px';  
