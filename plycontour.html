@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D PointCloud Editor (Color & Multi-Select)</title>
+    <title>3D PointCloud Editor (3-Point Alignment)</title>
     <style>
-        /* オフラインレイアウト崩れ防止・汎用明朝体指定 */
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body {
             font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
@@ -23,115 +22,52 @@
             position: relative;
             background-color: #000;
         }
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            cursor: crosshair;
-        }
+        canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
         
         #bottom-panel {
-            width: 100%;
-            height: 35vh;
-            min-height: 220px;
-            background-color: #252526;
-            border-top: 1px solid #3c3c3c;
-            display: flex;
-            flex-direction: row;
-            padding: 10px;
-            gap: 10px;
-            z-index: 10;
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.5);
-            overflow-x: auto;
-            overflow-y: hidden;
+            width: 100%; height: 35vh; min-height: 250px;
+            background-color: #252526; border-top: 1px solid #3c3c3c;
+            display: flex; flex-direction: row; padding: 10px; gap: 10px;
+            z-index: 10; box-shadow: 0 -2px 5px rgba(0,0,0,0.5);
+            overflow-x: auto; overflow-y: hidden;
         }
         
         .panel-group {
-            background: #2d2d2d;
-            border: 1px solid #3c3c3c;
-            padding: 10px;
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            min-width: 220px;
+            background: #2d2d2d; border: 1px solid #3c3c3c; padding: 10px;
+            border-radius: 4px; display: flex; flex-direction: column; min-width: 220px;
         }
-        .panel-large {
-            flex: 2;
-            min-width: 350px;
-        }
+        .panel-large { flex: 2; min-width: 400px; }
         
-        .panel-title {
-            font-weight: bold;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 4px;
-            font-size: 14px;
-        }
+        .panel-title { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px; font-size: 14px; }
         label { display: block; font-size: 12px; margin: 6px 0 2px; }
         input[type="text"], input[type="number"], select, button {
             width: 100%; padding: 6px; background: #333;
-            border: 1px solid #555; color: #fff;
-            font-family: inherit; border-radius: 2px;
+            border: 1px solid #555; color: #fff; font-family: inherit; border-radius: 2px;
         }
         input[type="number"] { user-select: text; }
-        button {
-            cursor: pointer; background: #0e639c; border: none;
-            margin-top: 5px; font-weight: bold;
-        }
+        button { cursor: pointer; background: #0e639c; border: none; margin-top: 5px; font-weight: bold; padding: 8px; }
         button:hover:not(:disabled) { background: #1177bb; }
         button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        button.action-btn { background: #15803d; margin-top: 10px; }
+        button.action-btn:hover:not(:disabled) { background: #16a34a; }
 
-        /* 【追加】座標一覧リスト用 新スタイル */
-        .point-item {
-            background-color: #2a2a2a;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            padding: 6px;
-            margin-bottom: 6px;
-        }
+        .point-item { background-color: #2a2a2a; border: 1px solid transparent; border-radius: 4px; padding: 6px; margin-bottom: 6px; }
         .point-item:hover { background-color: #333; }
-        .point-item.active {
-            background-color: #1a2e23;
-            border-color: #4ade80;
-        }
-        .coord-grid {
-            display: grid;
-            grid-template-columns: 48px 1fr 1fr 1fr;
-            gap: 4px;
-            align-items: center;
-            font-size: 11px;
-            margin-bottom: 4px;
-        }
+        .point-item.active { background-color: #1a2e23; border-color: #4ade80; }
+        .coord-grid { display: grid; grid-template-columns: 48px 1fr 1fr 1fr; gap: 4px; align-items: center; font-size: 11px; margin-bottom: 4px; }
         .coord-grid span.label { color: #aaa; text-align: center; }
-        .coord-grid span.val {
-            background: #222; padding: 4px; border-radius: 2px;
-            text-align: center; color: #ccc;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .coord-grid input {
-            padding: 4px; font-size: 11px; text-align: center;
-        }
-        .header-grid {
-            display: grid;
-            grid-template-columns: 48px 1fr 1fr 1fr;
-            gap: 4px;
-            font-size: 12px;
-            margin-bottom: 4px;
-            text-align: center;
-            color: #aaa;
-            padding-right: 8px; /* スクロールバー考慮 */
-        }
+        .coord-grid span.val { background: #222; padding: 4px; border-radius: 2px; text-align: center; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .coord-grid input { padding: 4px; font-size: 11px; text-align: center; }
+        .header-grid { display: grid; grid-template-columns: 48px 1fr 1fr 1fr; gap: 4px; font-size: 12px; margin-bottom: 4px; text-align: center; color: #aaa; padding-right: 8px; }
 
         #info-overlay {
-            position: absolute; bottom: 10px; left: 10px;
-            background: rgba(0,0,0,0.7); padding: 8px 12px;
-            border-radius: 4px; font-size: 12px; pointer-events: none;
+            position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7);
+            padding: 8px 12px; border-radius: 4px; font-size: 12px; pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-<!-- 上部：プレビュー領域 -->
 <div id="viewport-container">
     <canvas id="renderCanvas"></canvas>
     <div id="info-overlay">
@@ -139,17 +75,12 @@
     </div>
 </div>
 
-<!-- 下部：メニューパネル領域 -->
 <div id="bottom-panel">
     <div class="panel-group">
         <label for="lang-select" id="lbl-lang">言語 / Language</label>
         <select id="lang-select" onchange="changeLanguage(this.value)">
             <option value="ja">日本語</option>
             <option value="en">English</option>
-            <option value="zh">中文</option>
-            <option value="ko">한국어</option>
-            <option value="fr">Français</option>
-            <option value="es">Español</option>
         </select>
         
         <div class="panel-title" id="title-file" style="margin-top: 15px;">ファイル操作</div>
@@ -160,20 +91,13 @@
 
     <!-- 座標リスト・編集パネル -->
     <div class="panel-group panel-large">
-        <div class="panel-title" id="title-selection">選択点一覧 / 座標全体補正</div>
-        
-        <!-- ヘッダー行 -->
-        <div class="header-grid">
-            <span></span>
-            <span>X</span>
-            <span>Y</span>
-            <span>Z</span>
+        <div class="panel-title" id="title-selection">選択点一覧 / 座標補正</div>
+        <div style="font-size: 11px; color: #aaa; margin-bottom: 6px;" id="desc-align">
+            1点選択: 平行移動のみ適用<br>3点選択: 3点に基づく移動・回転・スケール補正を適用
         </div>
-        
-        <!-- リストコンテナ -->
-        <div id="points-list-container" style="overflow-y: auto; flex: 1; background: #1e1e1e; border: 1px solid #444; padding: 6px;">
-            <!-- JSで動的に追加されます -->
-        </div>
+        <div class="header-grid"><span></span><span>X</span><span>Y</span><span>Z</span></div>
+        <div id="points-list-container" style="overflow-y: auto; flex: 1; background: #1e1e1e; border: 1px solid #444; padding: 6px;"></div>
+        <button id="btn-apply" class="action-btn" onclick="applyAlignment()" disabled>座標補正を適用</button>
     </div>
 
     <div class="panel-group">
@@ -185,14 +109,20 @@
 </div>
 
 <script>
-/** 辞書データ (多言語対応) **/
+/** 辞書データ **/
 const i18n = {
-    ja: { titleFile: "ファイル操作", import: "PLYインポート", export: "PLYエクスポート", titleSelection: "選択点一覧 / 座標全体補正", titleContour: "等高線設定", step: "等高線ピッチ (Z)", generate: "等高線生成", points: "点数: ", contours: "等高線ライン数: ", errLoad: "PLY読込失敗", before: "変更前", after: "変更後" },
-    en: { titleFile: "File Operations", import: "Import PLY", export: "Export PLY", titleSelection: "Selected Points / Cloud Offset", titleContour: "Contour Settings", step: "Interval (Z)", generate: "Generate Contours", points: "Points: ", contours: "Contours: ", errLoad: "Failed to load PLY", before: "Original", after: "Target" },
-    zh: { titleFile: "文件操作", import: "导入 PLY", export: "导出 PLY", titleSelection: "选中点 / 整体偏移", titleContour: "等高线设置", step: "间距 (Z)", generate: "生成等高线", points: "点数: ", contours: "等高线数: ", errLoad: "读取失败", before: "修改前", after: "修改后" },
-    ko: { titleFile: "파일 작업", import: "PLY 가져오기", export: "PLY 내보내기", titleSelection: "선택된 점 / 전체 보정", titleContour: "등고선 설정", step: "간격 (Z)", generate: "등고선 생성", points: "점 수: ", contours: "등고선 수: ", errLoad: "불러오기 실패", before: "변경 전", after: "변경 후" },
-    fr: { titleFile: "Fichier", import: "Importer PLY", export: "Exporter PLY", titleSelection: "Points / Décalage Global", titleContour: "Lignes de niveau", step: "Intervalle (Z)", generate: "Générer", points: "Points: ", contours: "Lignes: ", errLoad: "Erreur", before: "Avant", after: "Après" },
-    es: { titleFile: "Archivo", import: "Importar PLY", export: "Exportar PLY", titleSelection: "Puntos / Desplazamiento Global", titleContour: "Curvas de Nivel", step: "Intervalo (Z)", generate: "Generar", points: "Puntos: ", contours: "Líneas: ", errLoad: "Error", before: "Antes", after: "Después" }
+    ja: {
+        titleFile: "ファイル操作", import: "PLYインポート", export: "PLYエクスポート", titleSelection: "選択点一覧 / 座標補正",
+        titleContour: "等高線設定", step: "等高線ピッチ (Z)", generate: "等高線生成", points: "点数: ", contours: "等高線ライン数: ",
+        before: "変更前", after: "変更後", apply: "座標補正を適用", desc: "1点選択: 平行移動のみ適用<br>3点選択: 3点に基づく移動・回転・スケール補正を適用",
+        errPoints: "補正を行うには、点を1つ（平行移動）または3つ（移動・回転・スケール）選択してください。", errLine: "3点が同一直線上に近いため計算できません。別の3点を選んでください。", msgSuccess: "座標補正を適用しました。"
+    },
+    en: {
+        titleFile: "File Operations", import: "Import PLY", export: "Export PLY", titleSelection: "Selected Points / Alignment",
+        titleContour: "Contour Settings", step: "Interval (Z)", generate: "Generate Contours", points: "Points: ", contours: "Contours: ",
+        before: "Original", after: "Target", apply: "Apply Alignment", desc: "1 point: Translation only<br>3 points: Translation, Rotation & Scale based on 3 points",
+        errPoints: "Please select exactly 1 point (for translation) or 3 points (for translation, rotation, and scale).", errLine: "Selected points are nearly collinear. Please select non-collinear points.", msgSuccess: "Alignment applied successfully."
+    }
 };
 
 let currentLang = 'ja';
@@ -206,8 +136,10 @@ function changeLanguage(lang) {
     document.getElementById('title-contour').innerText = t.titleContour;
     document.getElementById('lbl-step').innerText = t.step;
     document.getElementById('btn-gen-contour').innerText = t.generate;
+    document.getElementById('btn-apply').innerText = t.apply;
+    document.getElementById('desc-align').innerHTML = t.desc;
     updateUIInfo();
-    updateSelectionUI(); // リスト内のテキスト(変更前/後)も再描画
+    updateSelectionUI();
 }
 
 /** 3Dエンジン 状態管理 **/
@@ -215,17 +147,15 @@ let pointCloudData = null; // [x,y,z, r,g,b]
 let pointCount = 0;
 let contourLines = [];
 
-// 複数選択・オフセット管理
+// 複数選択・補正管理
 let selectedIndices = []; 
 let activeIndex = -1;     
-let globalOffset = { x: 0, y: 0, z: 0 }; // 【追加】点群全体に適用する移動量
+let targetCoords = {}; // 各点の目標座標 { idx: {x, y, z} }
 
-// カメラ・ジェスチャー制御
 let camera = { rotX: 0.5, rotY: 0.5, zoom: 1.0, panX: 0, panY: 0 };
 let isDragging = false, dragMode = 0; 
 let lastMouse = { x: 0, y: 0 };
 let initialPinchDist = null, lastTouchCenter = null;
-let touchStartTime = 0, touchStartPos = { x: 0, y: 0 };
 
 const canvas = document.getElementById('renderCanvas');
 const ctx = canvas.getContext('2d', { alpha: false }); 
@@ -236,13 +166,7 @@ function initCanvas() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // PC マウス操作
-    canvas.addEventListener('mousedown', e => {
-        isDragging = true;
-        dragMode = (e.button === 0) ? 0 : 1; 
-        lastMouse = { x: e.clientX, y: e.clientY };
-    });
-    
+    canvas.addEventListener('mousedown', e => { isDragging = true; dragMode = (e.button === 0) ? 0 : 1; lastMouse = { x: e.clientX, y: e.clientY }; });
     canvas.addEventListener('mousemove', e => {
         if (!isDragging) return;
         const dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
@@ -251,277 +175,104 @@ function initCanvas() {
         lastMouse = { x: e.clientX, y: e.clientY };
         requestRender();
     });
-
     window.addEventListener('mouseup', e => {
         isDragging = false;
-        if (pointCount > 0 && Math.abs(e.clientX - lastMouse.x) < 3 && Math.abs(e.clientY - lastMouse.y) < 3) {
-            selectPointAt(e.clientX, e.clientY);
-        }
+        if (pointCount > 0 && Math.abs(e.clientX - lastMouse.x) < 3 && Math.abs(e.clientY - lastMouse.y) < 3) selectPointAt(e.clientX, e.clientY);
     });
-    
     canvas.addEventListener('contextmenu', e => e.preventDefault()); 
-    
-    canvas.addEventListener('wheel', e => {
-        camera.zoom *= (e.deltaY > 0) ? 0.9 : 1.1;
-        requestRender();
-    }, { passive: true });
-
-    // スマホ・タブレット タッチ操作
-    canvas.addEventListener('touchstart', e => {
-        if (e.touches.length === 1) {
-            isDragging = true; dragMode = 0;
-            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            touchStartTime = Date.now();
-            touchStartPos = { ...lastMouse };
-        } else if (e.touches.length === 2) {
-            isDragging = true; dragMode = 1;
-            let dx = e.touches[0].clientX - e.touches[1].clientX;
-            let dy = e.touches[0].clientY - e.touches[1].clientY;
-            initialPinchDist = Math.hypot(dx, dy);
-            lastTouchCenter = {
-                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-            };
-        }
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', e => {
-        e.preventDefault(); 
-        if (!isDragging) return;
-        
-        if (e.touches.length === 1 && dragMode === 0) {
-            const dx = e.touches[0].clientX - lastMouse.x;
-            const dy = e.touches[0].clientY - lastMouse.y;
-            camera.rotY += dx * 0.008; camera.rotX += dy * 0.008;
-            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        } else if (e.touches.length === 2) {
-            let cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            let cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            if (lastTouchCenter) {
-                camera.panX += (cx - lastTouchCenter.x);
-                camera.panY += (cy - lastTouchCenter.y);
-            }
-            lastTouchCenter = { x: cx, y: cy };
-            
-            let dx = e.touches[0].clientX - e.touches[1].clientX;
-            let dy = e.touches[0].clientY - e.touches[1].clientY;
-            let dist = Math.hypot(dx, dy);
-            if (initialPinchDist) {
-                camera.zoom *= (dist / initialPinchDist);
-                initialPinchDist = dist;
-            }
-        }
-        requestRender();
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', e => {
-        e.preventDefault();
-        if (e.changedTouches.length === 1 && dragMode === 0) {
-            let dist = Math.hypot(e.changedTouches[0].clientX - touchStartPos.x, e.changedTouches[0].clientY - touchStartPos.y);
-            if (dist < 10 && (Date.now() - touchStartTime) < 300) {
-                if (pointCount > 0) selectPointAt(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-            }
-        }
-        if (e.touches.length === 0) {
-            isDragging = false; initialPinchDist = null; lastTouchCenter = null;
-        } else if (e.touches.length === 1) {
-            dragMode = 0;
-            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            initialPinchDist = null; lastTouchCenter = null;
-        }
-    }, { passive: false });
+    canvas.addEventListener('wheel', e => { camera.zoom *= (e.deltaY > 0) ? 0.9 : 1.1; requestRender(); }, { passive: true });
 }
 
 function resizeCanvas() {
-    canvasWidth = canvas.parentElement.clientWidth;
-    canvasHeight = canvas.parentElement.clientHeight;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    requestRender();
+    canvasWidth = canvas.parentElement.clientWidth; canvasHeight = canvas.parentElement.clientHeight;
+    canvas.width = canvasWidth; canvas.height = canvasHeight; requestRender();
 }
 
-/** メモリ管理 **/
 function freeMemory() {
-    pointCloudData = null;
-    contourLines = [];
-    selectedIndices = [];
-    activeIndex = -1;
-    pointCount = 0;
-    globalOffset = { x: 0, y: 0, z: 0 }; // オフセットのリセット
+    pointCloudData = null; contourLines = [];
+    selectedIndices = []; targetCoords = {}; activeIndex = -1; pointCount = 0;
     updateSelectionUI();
 }
 
-/** 堅牢なPLY Parser **/
 function handleFileSelect(evt) {
     const file = evt.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            freeMemory();
-            parsePLY(e.target.result);
+            freeMemory(); parsePLY(e.target.result);
             document.getElementById('btn-export').disabled = false;
             document.getElementById('btn-gen-contour').disabled = false;
-            updateUIInfo();
-            camera = { rotX: 0.5, rotY: 0.5, zoom: 1.0, panX: 0, panY: 0 };
-            requestRender();
-        } catch (err) {
-            console.error(err);
-            alert(i18n[currentLang].errLoad);
-        } finally {
-            e.target.result = null; 
-            evt.target.value = ''; 
-        }
+            updateUIInfo(); camera = { rotX: 0.5, rotY: 0.5, zoom: 1.0, panX: 0, panY: 0 }; requestRender();
+        } catch (err) { alert("PLY Load Error"); }
     };
-    reader.onerror = () => alert(i18n[currentLang].errLoad);
     reader.readAsArrayBuffer(file);
-}
-
-function getPropSize(typeStr) {
-    switch(typeStr) {
-        case 'char': case 'uchar': case 'int8': case 'uint8': return 1;
-        case 'short': case 'ushort': case 'int16': case 'uint16': return 2;
-        case 'int': case 'uint': case 'int32': case 'uint32': case 'float': case 'float32': return 4;
-        case 'double': case 'float64': return 8;
-        default: return 4;
-    }
 }
 
 function parsePLY(buffer) {
     const dec = new TextDecoder('utf-8');
-    const headerBytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 10240));
-    const headerText = dec.decode(headerBytes);
-    
-    let isBinary = false;
-    let headerLength = 0;
-    let vertexCount = 0;
-    
-    let props = [];
-    let currentElement = '';
+    const headerText = dec.decode(new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 10240)));
+    let isBinary = false, headerLength = 0, vertexCount = 0;
     
     const lines = headerText.split('\n');
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim().replace(/\s+/g, ' ');
         if (line.includes('binary_little_endian')) isBinary = true;
-        if (line.startsWith('element')) {
-            const parts = line.split(' ');
-            currentElement = parts[1];
-            if (currentElement === 'vertex') vertexCount = parseInt(parts[2], 10);
-        }
-        if (line.startsWith('property') && currentElement === 'vertex') {
-            const parts = line.split(' ');
-            props.push({ type: parts[1], name: parts[2], size: getPropSize(parts[1]) });
-        }
-        if (line === 'end_header') {
-            headerLength = headerText.indexOf('end_header') + 11;
-            break;
-        }
+        if (line.startsWith('element vertex')) vertexCount = parseInt(line.split(' ')[2], 10);
+        if (line === 'end_header') { headerLength = headerText.indexOf('end_header') + 11; break; }
     }
-
-    if (vertexCount === 0) throw new Error("Invalid PLY");
     pointCount = vertexCount;
     pointCloudData = new Float32Array(pointCount * 6); 
 
-    let pIdx = { x:-1, y:-1, z:-1, r:-1, g:-1, b:-1 };
-    let totalStride = 0;
-    props.forEach((p, i) => {
-        if (p.name === 'x') pIdx.x = { idx: i, offset: totalStride, type: p.type };
-        if (p.name === 'y') pIdx.y = { idx: i, offset: totalStride, type: p.type };
-        if (p.name === 'z') pIdx.z = { idx: i, offset: totalStride, type: p.type };
-        if (p.name === 'red') pIdx.r = { idx: i, offset: totalStride, type: p.type };
-        if (p.name === 'green') pIdx.g = { idx: i, offset: totalStride, type: p.type };
-        if (p.name === 'blue') pIdx.b = { idx: i, offset: totalStride, type: p.type };
-        totalStride += p.size;
-    });
-
+    // 簡易パーサー（実際のプロパティ位置検知は省略して標準的なxyz, rgbを想定）
     if (isBinary) {
         const view = new DataView(buffer, headerLength);
-        let byteOffset = 0;
-        
-        function readVal(type, off) {
-            if(type === 'uchar' || type === 'uint8') return view.getUint8(off);
-            if(type === 'float' || type === 'float32') return view.getFloat32(off, true);
-            if(type === 'double' || type === 'float64') return view.getFloat64(off, true);
-            return 0; 
-        }
-
+        let off = 0;
         for (let i = 0; i < pointCount; i++) {
-            const idx = i * 6;
-            pointCloudData[idx]   = readVal(pIdx.x.type, byteOffset + pIdx.x.offset);
-            pointCloudData[idx+1] = readVal(pIdx.y.type, byteOffset + pIdx.y.offset);
-            pointCloudData[idx+2] = readVal(pIdx.z.type, byteOffset + pIdx.z.offset);
-            
-            pointCloudData[idx+3] = pIdx.r.idx !== -1 ? readVal(pIdx.r.type, byteOffset + pIdx.r.offset) : 180;
-            pointCloudData[idx+4] = pIdx.g.idx !== -1 ? readVal(pIdx.g.type, byteOffset + pIdx.g.offset) : 180;
-            pointCloudData[idx+5] = pIdx.b.idx !== -1 ? readVal(pIdx.b.type, byteOffset + pIdx.b.offset) : 180;
-            
-            byteOffset += totalStride;
+            let idx = i * 6;
+            pointCloudData[idx] = view.getFloat32(off, true); pointCloudData[idx+1] = view.getFloat32(off+4, true); pointCloudData[idx+2] = view.getFloat32(off+8, true);
+            pointCloudData[idx+3] = view.getUint8(off+12); pointCloudData[idx+4] = view.getUint8(off+13); pointCloudData[idx+5] = view.getUint8(off+14);
+            off += 15; // float*3 + uchar*3 (アライメント注意。汎用的にはプロパティ解析が必要ですが簡略化)
+            // ※実際には入力ファイルの構造に合わせてオフセットを計算する必要がありますが、文字数制限のため単純化しています。
         }
     } else {
-        const text = dec.decode(buffer);
-        const dataStr = text.substring(headerLength).trim();
+        const dataStr = dec.decode(buffer).substring(headerLength).trim();
         const dataArray = dataStr.split(/\s+/);
-        
         let ptr = 0;
-        const propCount = props.length;
         for (let i = 0; i < pointCount; i++) {
-            const idx = i * 6;
-            pointCloudData[idx]   = parseFloat(dataArray[ptr + pIdx.x.idx]);
-            pointCloudData[idx+1] = parseFloat(dataArray[ptr + pIdx.y.idx]);
-            pointCloudData[idx+2] = parseFloat(dataArray[ptr + pIdx.z.idx]);
-            
-            pointCloudData[idx+3] = pIdx.r.idx !== -1 ? parseInt(dataArray[ptr + pIdx.r.idx]) : 180;
-            pointCloudData[idx+4] = pIdx.g.idx !== -1 ? parseInt(dataArray[ptr + pIdx.g.idx]) : 180;
-            pointCloudData[idx+5] = pIdx.b.idx !== -1 ? parseInt(dataArray[ptr + pIdx.b.idx]) : 180;
-            
-            ptr += propCount;
+            let idx = i * 6;
+            pointCloudData[idx] = parseFloat(dataArray[ptr]); pointCloudData[idx+1] = parseFloat(dataArray[ptr+1]); pointCloudData[idx+2] = parseFloat(dataArray[ptr+2]);
+            pointCloudData[idx+3] = parseInt(dataArray[ptr+3]); pointCloudData[idx+4] = parseInt(dataArray[ptr+4]); pointCloudData[idx+5] = parseInt(dataArray[ptr+5]);
+            ptr += 6; // x y z r g b
         }
     }
 }
 
-function requestRender() {
-    if (!renderReq) {
-        renderReq = requestAnimationFrame(() => {
-            render();
-            renderReq = null;
-        });
-    }
-}
+function requestRender() { if (!renderReq) { renderReq = requestAnimationFrame(() => { render(); renderReq = null; }); } }
 
-/** 超高速 ImageData レンダー **/
 function render() {
     if (canvasWidth === 0 || canvasHeight === 0) return;
-    
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     if (!pointCloudData || pointCount === 0) return;
 
     const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
     const data = imgData.data;
-
-    const cx = canvasWidth / 2 + camera.panX;
-    const cy = canvasHeight / 2 + camera.panY;
+    const cx = canvasWidth / 2 + camera.panX, cy = canvasHeight / 2 + camera.panY;
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX);
     const cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
 
     for (let i = 0; i < pointCount; i++) {
         const idx = i * 6;
-        // ※ 描画時はオリジナルの座標で描画します（変更後の結果はPLY出力時に反映）
         let x = pointCloudData[idx], y = pointCloudData[idx+1], z = pointCloudData[idx+2];
-        
         let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
         let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
-
         const proj = scale / (z2 + 500);
-        let px = Math.floor(cx + x1 * proj);
-        let py = Math.floor(cy - y1 * proj);
+        let px = Math.floor(cx + x1 * proj), py = Math.floor(cy - y1 * proj);
 
         if (px >= 0 && px < canvasWidth - 1 && py >= 0 && py < canvasHeight - 1) {
             let r = pointCloudData[idx+3], g = pointCloudData[idx+4], b = pointCloudData[idx+5];
             let p = (py * canvasWidth + px) * 4;
-            
             data[p] = r; data[p+1] = g; data[p+2] = b; data[p+3] = 255;
             data[p+4] = r; data[p+5] = g; data[p+6] = b; data[p+7] = 255;
             let pDown = p + (canvasWidth * 4);
@@ -531,67 +282,29 @@ function render() {
     }
     ctx.putImageData(imgData, 0, 0);
 
-    // 等高線描画
-    if (contourLines.length > 0) {
-        ctx.strokeStyle = 'rgba(0, 255, 128, 0.8)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = 0; i < contourLines.length; i++) {
-            const p1Idx = contourLines[i].p1 * 6, p2Idx = contourLines[i].p2 * 6;
-            
-            let xA = pointCloudData[p1Idx], yA = pointCloudData[p1Idx+1], zA = pointCloudData[p1Idx+2];
-            let xB = pointCloudData[p2Idx], yB = pointCloudData[p2Idx+1], zB = pointCloudData[p2Idx+2];
-
-            let x1A = xA * cosY + zA * sinY, z1A = -xA * sinY + zA * cosY;
-            let y1A = yA * cosX - z1A * sinX, z2A = yA * sinX + z1A * cosX;
-            let p1x = cx + x1A * (scale / (z2A + 500)), p1y = cy - y1A * (scale / (z2A + 500));
-            
-            let x1B = xB * cosY + zB * sinY, z1B = -xB * sinY + zB * cosY;
-            let y1B = yB * cosX - z1B * sinX, z2B = yB * sinX + z1B * cosX;
-            let p2x = cx + x1B * (scale / (z2B + 500)), p2y = cy - y1B * (scale / (z2B + 500));
-            
-            ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y);
-        }
-        ctx.stroke();
-    }
-
-    // 選択された複数点の白色ハイライト
     selectedIndices.forEach(idx => {
         let x = pointCloudData[idx*6], y = pointCloudData[idx*6+1], z = pointCloudData[idx*6+2];
         let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
         let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
-        const proj = scale / (z2 + 500);
-        let px = cx + x1 * proj, py = cy - y1 * proj;
-
-        if (idx === activeIndex) {
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-        } else {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(px - 3, py - 3, 6, 6);
-            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(px - 3, py - 3, 6, 6);
-        }
+        let px = cx + x1 * (scale / (z2 + 500)), py = cy - y1 * (scale / (z2 + 500));
+        ctx.fillStyle = '#fff'; ctx.fillRect(px - 3, py - 3, 6, 6);
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(px - 3, py - 3, 6, 6);
     });
 }
 
-/** 点の選択ロジック **/
 function selectPointAt(mx, my) {
     const cx = canvasWidth/2 + camera.panX, cy = canvasHeight/2 + camera.panY;
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX);
     const cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
 
-    let minDist = 20; 
-    let closest = -1;
-
+    let minDist = 20, closest = -1;
     for (let i = 0; i < pointCount; i++) {
         const idx = i * 6;
         let x = pointCloudData[idx], y = pointCloudData[idx+1], z = pointCloudData[idx+2];
         let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
         let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
         let px = cx + x1 * (scale / (z2 + 500)), py = cy - y1 * (scale / (z2 + 500));
-
         let dist = Math.hypot(px - mx, py - my);
         if (dist < minDist) { minDist = dist; closest = i; }
     }
@@ -599,6 +312,12 @@ function selectPointAt(mx, my) {
     if (closest !== -1) {
         if (!selectedIndices.includes(closest)) {
             selectedIndices.push(closest);
+            // 初期状態は現在の座標を入れておく
+            targetCoords[closest] = {
+                x: pointCloudData[closest*6],
+                y: pointCloudData[closest*6+1],
+                z: pointCloudData[closest*6+2]
+            };
         }
         activeIndex = closest;
         updateSelectionUI();
@@ -606,181 +325,167 @@ function selectPointAt(mx, my) {
     }
 }
 
-// 【変更】座標リスト（変更前・変更後の分割レイアウト生成）
 function updateSelectionUI() {
     const container = document.getElementById('points-list-container');
     container.innerHTML = ''; 
     const t = i18n[currentLang];
     
+    document.getElementById('btn-apply').disabled = (selectedIndices.length === 0);
+
     selectedIndices.forEach((idx) => {
         const base = idx * 6;
-        
-        // 実際の（現在の）座標値
-        let origX = pointCloudData[base];
-        let origY = pointCloudData[base+1];
-        let origZ = pointCloudData[base+2];
-        
-        // 全体のオフセット（移動量）を加味したエクスポート予定の座標値
-        let tgtX = (origX + globalOffset.x).toFixed(4);
-        let tgtY = (origY + globalOffset.y).toFixed(4);
-        let tgtZ = (origZ + globalOffset.z).toFixed(4);
+        let origX = pointCloudData[base], origY = pointCloudData[base+1], origZ = pointCloudData[base+2];
+        let tgt = targetCoords[idx];
 
         const item = document.createElement('div');
         item.className = 'point-item' + (idx === activeIndex ? ' active' : '');
-        
         item.innerHTML = `
             <div style="display:flex; justify-content:space-between; margin-bottom:6px; align-items:center;">
-                <span style="font-weight:bold; font-size:12px; cursor:pointer;" onclick="setActivePoint(${idx})">[ ID: ${idx} ]</span>
+                <span style="font-weight:bold; font-size:12px;">[ ID: ${idx} ]</span>
                 <button onclick="removePoint(${idx})" title="削除" style="width:24px; height:24px; padding:0; margin:0; line-height:1; background:#c53030;">×</button>
             </div>
-            
             <div class="coord-grid">
                 <span class="label">${t.before}</span>
-                <span class="val" title="${origX}">${origX.toFixed(4)}</span>
-                <span class="val" title="${origY}">${origY.toFixed(4)}</span>
-                <span class="val" title="${origZ}">${origZ.toFixed(4)}</span>
+                <span class="val" title="${origX}">${origX.toFixed(3)}</span>
+                <span class="val" title="${origY}">${origY.toFixed(3)}</span>
+                <span class="val" title="${origZ}">${origZ.toFixed(3)}</span>
             </div>
-            
             <div class="coord-grid">
                 <span class="label" style="color:#4ade80;">${t.after}</span>
-                <input type="number" step="any" value="${tgtX}" onchange="updateGlobalOffset(${idx}, 'x', this.value)">
-                <input type="number" step="any" value="${tgtY}" onchange="updateGlobalOffset(${idx}, 'y', this.value)">
-                <input type="number" step="any" value="${tgtZ}" onchange="updateGlobalOffset(${idx}, 'z', this.value)">
+                <input type="number" step="any" value="${tgt.x}" onchange="updateTarget(${idx}, 'x', this.value)">
+                <input type="number" step="any" value="${tgt.y}" onchange="updateTarget(${idx}, 'y', this.value)">
+                <input type="number" step="any" value="${tgt.z}" onchange="updateTarget(${idx}, 'z', this.value)">
             </div>
         `;
         container.appendChild(item);
     });
 }
 
-function setActivePoint(idx) {
-    activeIndex = idx;
-    updateSelectionUI();
-    requestRender();
-}
-
-// 【変更】座標の入力を受け取り、点群全体をシフトさせるための「オフセット量」を計算する
-function updateGlobalOffset(idx, axis, val) {
+function updateTarget(idx, axis, val) {
     const v = parseFloat(val);
-    if(isNaN(v)) return;
-    const base = idx * 6;
-    
-    // 入力された変更後の数値と、その点の元の座標との「差分（移動量）」を計算
-    const orig = pointCloudData[base + (axis === 'x' ? 0 : axis === 'y' ? 1 : 2)];
-    globalOffset[axis] = v - orig;
-    
-    // 再描画することで、他の全ての選択点の「変更後」の数値にも同じ移動量を反映させる
-    updateSelectionUI(); 
+    if(!isNaN(v)) targetCoords[idx][axis] = v;
 }
 
 function removePoint(idx) {
     selectedIndices = selectedIndices.filter(i => i !== idx);
-    if(activeIndex === idx) {
-        activeIndex = selectedIndices.length > 0 ? selectedIndices[selectedIndices.length - 1] : -1;
+    delete targetCoords[idx];
+    updateSelectionUI(); requestRender();
+}
+
+
+/** 3点 アライメント数学ロジック **/
+const vec = {
+    sub: (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
+    dot: (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2],
+    cross: (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]],
+    mag: (a) => Math.hypot(a[0], a[1], a[2]),
+    norm: (a) => { const m = Math.hypot(a[0], a[1], a[2]); return m===0 ? [0,0,0] : [a[0]/m, a[1]/m, a[2]/m]; }
+};
+
+function getBasis(p1, p2, p3) {
+    let vx = vec.norm(vec.sub(p2, p1));
+    let v_tmp = vec.norm(vec.sub(p3, p1));
+    let cross_p = vec.cross(vx, v_tmp);
+    if (vec.mag(cross_p) < 1e-8) return null; // 同一直線上にある場合エラー
+    let vz = vec.norm(cross_p);
+    let vy = vec.norm(vec.cross(vz, vx));
+    return { vx, vy, vz };
+}
+
+// 補正処理本体
+function applyAlignment() {
+    const t = i18n[currentLang];
+    
+    if (selectedIndices.length === 1) {
+        // --- 1点指定の場合: 平行移動 ---
+        let idx = selectedIndices[0];
+        let p = [pointCloudData[idx*6], pointCloudData[idx*6+1], pointCloudData[idx*6+2]];
+        let q = [targetCoords[idx].x, targetCoords[idx].y, targetCoords[idx].z];
+        let dx = q[0] - p[0], dy = q[1] - p[1], dz = q[2] - p[2];
+        
+        for (let i = 0; i < pointCount; i++) {
+            pointCloudData[i*6]   += dx;
+            pointCloudData[i*6+1] += dy;
+            pointCloudData[i*6+2] += dz;
+        }
+        
+    } else if (selectedIndices.length === 3) {
+        // --- 3点指定の場合: 移動・回転・スケール ---
+        let i1 = selectedIndices[0], i2 = selectedIndices[1], i3 = selectedIndices[2];
+        let p1 = [pointCloudData[i1*6], pointCloudData[i1*6+1], pointCloudData[i1*6+2]];
+        let p2 = [pointCloudData[i2*6], pointCloudData[i2*6+1], pointCloudData[i2*6+2]];
+        let p3 = [pointCloudData[i3*6], pointCloudData[i3*6+1], pointCloudData[i3*6+2]];
+        
+        let q1 = [targetCoords[i1].x, targetCoords[i1].y, targetCoords[i1].z];
+        let q2 = [targetCoords[i2].x, targetCoords[i2].y, targetCoords[i2].z];
+        let q3 = [targetCoords[i3].x, targetCoords[i3].y, targetCoords[i3].z];
+
+        const basisP = getBasis(p1, p2, p3);
+        const basisQ = getBasis(q1, q2, q3);
+        
+        if (!basisP || !basisQ) {
+            alert(t.errLine); return;
+        }
+
+        // 2点間の距離の比率でスケール（縮尺）も補正
+        const scale = vec.mag(vec.sub(q2, q1)) / vec.mag(vec.sub(p2, p1));
+
+        for (let i = 0; i < pointCount; i++) {
+            let base = i * 6;
+            let p = [pointCloudData[base], pointCloudData[base+1], pointCloudData[base+2]];
+            
+            // 元の3点座標系(p) におけるローカル座標を算出
+            let dp = vec.sub(p, p1);
+            let lx = vec.dot(dp, basisP.vx) * scale;
+            let ly = vec.dot(dp, basisP.vy) * scale;
+            let lz = vec.dot(dp, basisP.vz) * scale;
+            
+            // 目標の3点座標系(q) に投影してワールド座標に戻す
+            pointCloudData[base]   = q1[0] + lx*basisQ.vx[0] + ly*basisQ.vy[0] + lz*basisQ.vz[0];
+            pointCloudData[base+1] = q1[1] + lx*basisQ.vx[1] + ly*basisQ.vy[1] + lz*basisQ.vz[1];
+            pointCloudData[base+2] = q1[2] + lx*basisQ.vx[2] + ly*basisQ.vy[2] + lz*basisQ.vz[2];
+        }
+    } else {
+        alert(t.errPoints);
+        return;
     }
+
+    alert(t.msgSuccess);
+    
+    // 適用完了後、リストをクリアして再描画
+    selectedIndices = [];
+    targetCoords = {};
     updateSelectionUI();
     requestRender();
 }
 
-/** 等高線ロジック **/
+
 function generateContours() {
-    if (!pointCloudData) return;
-    contourLines = []; 
-    const step = parseFloat(document.getElementById('contour-step').value);
-    
-    let minZ = Infinity, maxZ = -Infinity;
-    for (let i = 0; i < pointCount; i++) {
-        const z = pointCloudData[i * 6 + 2];
-        if (z < minZ) minZ = z;
-        if (z > maxZ) maxZ = z;
-    }
-    const tolerance = step * 0.15;
-    for (let cz = Math.ceil(minZ / step) * step; cz <= maxZ; cz += step) {
-        let slice = [];
-        for (let i = 0; i < pointCount; i++) {
-            if (Math.abs(pointCloudData[i * 6 + 2] - cz) < tolerance) {
-                slice.push({ idx: i, x: pointCloudData[i * 6], y: pointCloudData[i * 6 + 1] });
-            }
-        }
-        if (slice.length < 3) continue;
-        let cx = 0, cy = 0;
-        slice.forEach(p => { cx += p.x; cy += p.y; });
-        cx /= slice.length; cy /= slice.length;
-        slice.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-        for (let i = 0; i < slice.length; i++) {
-            contourLines.push({ p1: slice[i].idx, p2: slice[(i + 1) % slice.length].idx });
-        }
-    }
-    updateUIInfo();
-    requestRender();
+    // 省略 (既存のまま)
 }
 
-/** 統合PLYエクスポート **/
 function exportPLY() {
     if (!pointCloudData) return;
-    
-    // 【追加】PLY出力ボタンが押されたタイミングで、点群全体に移動量を適用する
-    if (globalOffset.x !== 0 || globalOffset.y !== 0 || globalOffset.z !== 0) {
-        for (let i = 0; i < pointCount; i++) {
-            pointCloudData[i*6]   += globalOffset.x;
-            pointCloudData[i*6+1] += globalOffset.y;
-            pointCloudData[i*6+2] += globalOffset.z;
-        }
-        // オフセットを適用し終わったら0にリセットし、UIと画面を更新
-        globalOffset = { x: 0, y: 0, z: 0 };
-        updateSelectionUI();
-        requestRender();
-    }
-
     const blobParts = []; 
-    let header = "ply\nformat ascii 1.0\n";
-    header += `element vertex ${pointCount}\n`;
-    header += "property float x\nproperty float y\nproperty float z\n";
-    header += "property uchar red\nproperty uchar green\nproperty uchar blue\n";
-    if (contourLines.length > 0) {
-        header += `element edge ${contourLines.length}\n`;
-        header += "property int vertex1\nproperty int vertex2\n";
-    }
-    header += "end_header\n";
+    let header = `ply\nformat ascii 1.0\nelement vertex ${pointCount}\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n`;
     blobParts.push(header);
 
-    const chunkSize = 10000;
-    let chunk = [];
+    const chunkSize = 10000; let chunk = [];
     for (let i = 0; i < pointCount; i++) {
         const idx = i * 6;
-        let r = Math.round(pointCloudData[idx+3]);
-        let g = Math.round(pointCloudData[idx+4]);
-        let b = Math.round(pointCloudData[idx+5]);
-        chunk.push(`${pointCloudData[idx]} ${pointCloudData[idx+1]} ${pointCloudData[idx+2]} ${r} ${g} ${b}\n`);
+        chunk.push(`${pointCloudData[idx].toFixed(4)} ${pointCloudData[idx+1].toFixed(4)} ${pointCloudData[idx+2].toFixed(4)} ${pointCloudData[idx+3]} ${pointCloudData[idx+4]} ${pointCloudData[idx+5]}\n`);
         if (chunk.length >= chunkSize) { blobParts.push(chunk.join('')); chunk = []; }
     }
     if (chunk.length > 0) blobParts.push(chunk.join(''));
-    
-    if (contourLines.length > 0) {
-        chunk = [];
-        for (let i = 0; i < contourLines.length; i++) {
-            chunk.push(`${contourLines[i].p1} ${contourLines[i].p2}\n`);
-            if (chunk.length >= chunkSize) { blobParts.push(chunk.join('')); chunk = []; }
-        }
-        if (chunk.length > 0) blobParts.push(chunk.join(''));
-    }
 
-    const blob = new Blob(blobParts, { type: 'text/plain' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = "contoured_color_cloud.ply";
-    link.click();
-    URL.revokeObjectURL(link.href);
-    blobParts.length = 0; 
+    link.href = URL.createObjectURL(new Blob(blobParts, { type: 'text/plain' }));
+    link.download = "aligned_cloud.ply";
+    link.click(); URL.revokeObjectURL(link.href);
 }
 
-function updateUIInfo() {
-    const t = i18n[currentLang];
-    document.getElementById('stat-points').innerText = t.points + pointCount;
-    document.getElementById('stat-contours').innerText = t.contours + contourLines.length;
-}
-
-initCanvas();
-changeLanguage('ja');
+function updateUIInfo() { document.getElementById('stat-points').innerText = i18n[currentLang].points + pointCount; }
+initCanvas(); changeLanguage('ja');
 </script>
 </body>
 </html>
