@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D PointCloud Editor (Accurate Hit Testing)</title>
+    <title>3D PointCloud Editor (Precise Hit Testing)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body { font-family: sans-serif; background-color: #1e1e1e; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
@@ -86,7 +86,6 @@ const canvas = document.getElementById('renderCanvas');
 const ctx = canvas.getContext('2d', { alpha: false }); 
 let canvasWidth = 0, canvasHeight = 0; let renderReq = null;
 
-// キャンバス上の正確なクライアント座標を内部ピクセル座標に変換
 function getCanvasPos(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     return {
@@ -98,7 +97,6 @@ function getCanvasPos(clientX, clientY) {
 function initCanvas() {
     resizeCanvas(); window.addEventListener('resize', resizeCanvas);
     
-    // PC用マウスイベント
     canvas.addEventListener('mousedown', e => { 
         isDragging = true; 
         dragMode = (e.button === 2 || e.button === 1) ? 1 : 0; 
@@ -139,7 +137,6 @@ function initCanvas() {
         }
     });
     
-    // スマホ・タブレット タッチイベント
     canvas.addEventListener('touchstart', e => {
         if (e.touches.length === 1) {
             isDragging = true; dragMode = 0;
@@ -213,7 +210,6 @@ function initCanvas() {
 
 function resizeCanvas() {
     canvasWidth = canvas.parentElement.clientWidth; canvasHeight = canvas.parentElement.clientHeight;
-    // 高解像度ディスプレイ（Retina等）に対応しつつ正確な描画領域を確保
     canvas.width = canvasWidth; canvas.height = canvasHeight; 
     requestRender();
 }
@@ -348,7 +344,8 @@ function findPointAt(mx, my) {
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX), cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
 
-    let bestIdx = -1, minZ = Infinity;
+    let bestIdx = -1;
+    let minDist = 20; // タップ位置から20ピクセル以内の最も近い点を採用
     for (let i = 0; i < pointCount; i++) {
         const idx = i * 6;
         let vx = (pointCloudData[idx] - viewCenter.x) * viewScale, vy = (pointCloudData[idx+1] - viewCenter.y) * viewScale, vz = (pointCloudData[idx+2] - viewCenter.z) * viewScale;
@@ -357,8 +354,12 @@ function findPointAt(mx, my) {
         
         if (z2 + 500 < 10) continue;
         let px = cx + x1 * (scale / (z2 + 500)), py = cy - y1 * (scale / (z2 + 500));
-        // タップ判定の許容範囲（タッチしやすいように少し広めに設定）
-        if (Math.hypot(px - mx, py - my) <= 30 && z2 < minZ) { minZ = z2; bestIdx = i; }
+        
+        let dist = Math.hypot(px - mx, py - my);
+        if (dist <= minDist) {
+            minDist = dist;
+            bestIdx = i;
+        }
     }
     return bestIdx;
 }
