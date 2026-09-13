@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D PointCloud Editor (Touch & Mouse Support)</title>
+    <title>3D PointCloud Editor (Scrollable Panel & Touch Pan)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body { font-family: sans-serif; background-color: #1e1e1e; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
-        #viewport-container { flex: 1; position: relative; background-color: #000; }
+        #viewport-container { flex: 1; position: relative; background-color: #000; min-height: 150px; }
         canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
         
         #bottom-panel {
-            width: 100%; height: 35vh; min-height: 250px; background-color: #252526; border-top: 1px solid #3c3c3c;
-            display: flex; flex-direction: row; padding: 10px; gap: 10px; z-index: 10; box-shadow: 0 -2px 5px rgba(0,0,0,0.5); overflow-x: auto; overflow-y: hidden;
+            width: 100%; height: 45vh; min-height: 280px; background-color: #252526; border-top: 1px solid #3c3c3c;
+            display: flex; flex-direction: row; padding: 10px; gap: 10px; z-index: 10; box-shadow: 0 -2px 5px rgba(0,0,0,0.5); 
+            overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
         
-        .panel-group { background: #2d2d2d; border: 1px solid #3c3c3c; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; min-width: 220px; }
-        .panel-large { flex: 2; min-width: 400px; }
+        .panel-group { background: #2d2d2d; border: 1px solid #3c3c3c; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; min-width: 240px; flex-shrink: 0; }
+        .panel-large { flex: 2; min-width: 350px; }
         
         .panel-title { font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px; font-size: 14px; }
         label { display: block; font-size: 12px; margin: 6px 0 2px; }
@@ -65,7 +66,7 @@
             1点選択: 平行移動のみ適用<br>3点選択: 3点に基づく移動・回転・スケール補正を適用
         </div>
         <div class="header-grid"><span></span><span>X</span><span>Y</span><span>Z</span></div>
-        <div id="points-list-container" style="overflow-y: auto; flex: 1; background: #1e1e1e; border: 1px solid #444; padding: 6px;"></div>
+        <div id="points-list-container" style="overflow-y: auto; max-height: 120px; background: #1e1e1e; border: 1px solid #444; padding: 6px;"></div>
         <button id="btn-apply" class="action-btn" onclick="applyAlignment()" disabled>座標補正を適用</button>
     </div>
 </div>
@@ -78,7 +79,7 @@ let viewCenter = { x: 0, y: 0, z: 0 }; let viewScale = 1.0;
 
 let isDragging = false, dragMode = 0; 
 let lastMouse = { x: 0, y: 0 }; let touchStartPos = { x: 0, y: 0 };
-let initialPinchDist = null; // タッチ拡大縮小用
+let initialPinchDist = null; let lastTouchCenter = { x: 0, y: 0 };
 let hoverIndex = -1; let hoverTimeout = null;
 
 const canvas = document.getElementById('renderCanvas');
@@ -126,7 +127,7 @@ function initCanvas() {
         }
     });
     
-    // スマホ・タブレット等 タッチイベント（1本指：回転、2本指：ピンチイン・アウト拡大縮小）
+    // スマホ・タブレット タッチイベント
     canvas.addEventListener('touchstart', e => {
         if (e.touches.length === 1) {
             isDragging = true; dragMode = 0;
@@ -139,12 +140,16 @@ function initCanvas() {
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
             );
+            lastTouchCenter = {
+                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+            };
         }
     }, {passive: true});
 
     canvas.addEventListener('touchmove', e => {
         if (e.touches.length === 2 && initialPinchDist !== null) {
-            // 2本指ピンチによる拡大縮小
+            // 2本指：ピンチイン・アウト（拡大縮小） ＆ 平行移動（パン）
             let currentDist = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
@@ -152,9 +157,18 @@ function initCanvas() {
             let factor = currentDist / initialPinchDist;
             camera.zoom *= factor;
             initialPinchDist = currentDist;
+
+            let currentCenter = {
+                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+            };
+            camera.panX += currentCenter.x - lastTouchCenter.x;
+            camera.panY += currentCenter.y - lastTouchCenter.y;
+            lastTouchCenter = currentCenter;
+
             requestRender();
         } else if (e.touches.length === 1 && isDragging) {
-            // 1本指による回転
+            // 1本指：回転
             const dx = e.touches[0].clientX - lastMouse.x, dy = e.touches[0].clientY - lastMouse.y;
             camera.rotY += dx * 0.005; camera.rotX += dy * 0.005;
             lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -166,7 +180,6 @@ function initCanvas() {
         if (e.touches.length < 2) initialPinchDist = null;
         if (e.touches.length === 0 && isDragging) {
             isDragging = false;
-            // タップ（選択）判定
             if (pointCount > 0 && Math.abs(lastMouse.x - touchStartPos.x) < 5 && Math.abs(lastMouse.y - touchStartPos.y) < 5) {
                 let hit = findPointAt(touchStartPos.x, touchStartPos.y);
                 if (hit !== -1) {
