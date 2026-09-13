@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D PointCloud Editor (Scrollable Panel & Touch Pan)</title>
+    <title>3D PointCloud Editor (Accurate Hit Testing)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body { font-family: sans-serif; background-color: #1e1e1e; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
@@ -86,6 +86,15 @@ const canvas = document.getElementById('renderCanvas');
 const ctx = canvas.getContext('2d', { alpha: false }); 
 let canvasWidth = 0, canvasHeight = 0; let renderReq = null;
 
+// キャンバス上の正確なクライアント座標を内部ピクセル座標に変換
+function getCanvasPos(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+}
+
 function initCanvas() {
     resizeCanvas(); window.addEventListener('resize', resizeCanvas);
     
@@ -93,16 +102,18 @@ function initCanvas() {
     canvas.addEventListener('mousedown', e => { 
         isDragging = true; 
         dragMode = (e.button === 2 || e.button === 1) ? 1 : 0; 
-        lastMouse = { x: e.clientX, y: e.clientY }; touchStartPos = { x: e.clientX, y: e.clientY };
+        const pos = getCanvasPos(e.clientX, e.clientY);
+        lastMouse = pos; touchStartPos = pos;
     });
     canvas.addEventListener('mousemove', e => {
+        const pos = getCanvasPos(e.clientX, e.clientY);
         if (isDragging) {
-            const dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
+            const dx = pos.x - lastMouse.x, dy = pos.y - lastMouse.y;
             if (dragMode === 0) { camera.rotY += dx * 0.005; camera.rotX += dy * 0.005; }
             else { camera.panX += dx; camera.panY += dy; }
-            lastMouse = { x: e.clientX, y: e.clientY }; requestRender();
+            lastMouse = pos; requestRender();
         } else {
-            lastMouse = { x: e.clientX, y: e.clientY };
+            lastMouse = pos;
             if (hoverTimeout) clearTimeout(hoverTimeout);
             hoverTimeout = setTimeout(() => {
                 if (pointCount > 0) {
@@ -115,8 +126,9 @@ function initCanvas() {
     window.addEventListener('mouseup', e => {
         if (!isDragging) return;
         isDragging = false;
-        if (pointCount > 0 && Math.abs(e.clientX - touchStartPos.x) < 3 && Math.abs(e.clientY - touchStartPos.y) < 3) {
-            let hit = findPointAt(e.clientX, e.clientY);
+        const pos = getCanvasPos(e.clientX, e.clientY);
+        if (pointCount > 0 && Math.abs(pos.x - touchStartPos.x) < 5 && Math.abs(pos.y - touchStartPos.y) < 5) {
+            let hit = findPointAt(pos.x, pos.y);
             if (hit !== -1) {
                 if (!selectedIndices.includes(hit)) {
                     selectedIndices.push(hit);
@@ -131,8 +143,8 @@ function initCanvas() {
     canvas.addEventListener('touchstart', e => {
         if (e.touches.length === 1) {
             isDragging = true; dragMode = 0;
-            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            const pos = getCanvasPos(e.touches[0].clientX, e.touches[0].clientY);
+            lastMouse = pos; touchStartPos = pos;
             initialPinchDist = null;
         } else if (e.touches.length === 2) {
             isDragging = false;
@@ -149,7 +161,6 @@ function initCanvas() {
 
     canvas.addEventListener('touchmove', e => {
         if (e.touches.length === 2 && initialPinchDist !== null) {
-            // 2本指：ピンチイン・アウト（拡大縮小） ＆ 平行移動（パン）
             let currentDist = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
@@ -162,16 +173,19 @@ function initCanvas() {
                 x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
                 y: (e.touches[0].clientY + e.touches[1].clientY) / 2
             };
-            camera.panX += currentCenter.x - lastTouchCenter.x;
-            camera.panY += currentCenter.y - lastTouchCenter.y;
+            const rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let scaleY = canvas.height / rect.height;
+            camera.panX += (currentCenter.x - lastTouchCenter.x) * scaleX;
+            camera.panY += (currentCenter.y - lastTouchCenter.y) * scaleY;
             lastTouchCenter = currentCenter;
 
             requestRender();
         } else if (e.touches.length === 1 && isDragging) {
-            // 1本指：回転
-            const dx = e.touches[0].clientX - lastMouse.x, dy = e.touches[0].clientY - lastMouse.y;
+            const pos = getCanvasPos(e.touches[0].clientX, e.touches[0].clientY);
+            const dx = pos.x - lastMouse.x, dy = pos.y - lastMouse.y;
             camera.rotY += dx * 0.005; camera.rotX += dy * 0.005;
-            lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            lastMouse = pos;
             requestRender();
         }
     }, {passive: true});
@@ -180,8 +194,8 @@ function initCanvas() {
         if (e.touches.length < 2) initialPinchDist = null;
         if (e.touches.length === 0 && isDragging) {
             isDragging = false;
-            if (pointCount > 0 && Math.abs(lastMouse.x - touchStartPos.x) < 5 && Math.abs(lastMouse.y - touchStartPos.y) < 5) {
-                let hit = findPointAt(touchStartPos.x, touchStartPos.y);
+            if (pointCount > 0 && Math.abs(lastMouse.x - touchStartPos.x) < 8 && Math.abs(lastMouse.y - touchStartPos.y) < 8) {
+                let hit = findPointAt(lastMouse.x, lastMouse.y);
                 if (hit !== -1) {
                     if (!selectedIndices.includes(hit)) {
                         selectedIndices.push(hit);
@@ -199,7 +213,9 @@ function initCanvas() {
 
 function resizeCanvas() {
     canvasWidth = canvas.parentElement.clientWidth; canvasHeight = canvas.parentElement.clientHeight;
-    canvas.width = canvasWidth; canvas.height = canvasHeight; requestRender();
+    // 高解像度ディスプレイ（Retina等）に対応しつつ正確な描画領域を確保
+    canvas.width = canvasWidth; canvas.height = canvasHeight; 
+    requestRender();
 }
 
 function freeMemory() {
@@ -267,13 +283,13 @@ function parsePLY(buffer) {
 function requestRender() { if (!renderReq) { renderReq = requestAnimationFrame(() => { render(); renderReq = null; }); } }
 
 function render() {
-    if (canvasWidth === 0 || canvasHeight === 0) return;
-    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    if (canvas.width === 0 || canvas.height === 0) return;
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (!pointCloudData || pointCount === 0) return;
 
-    const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
-    const cx = canvasWidth / 2 + camera.panX, cy = canvasHeight / 2 + camera.panY;
+    const cx = canvas.width / 2 + camera.panX, cy = canvas.height / 2 + camera.panY;
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX);
     const cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
@@ -295,20 +311,20 @@ function render() {
         const proj = scale / (z2 + 500);
         let px = Math.floor(cx + x1 * proj), py = Math.floor(cy - y1 * proj);
 
-        if (px >= pSizeHalf && px < canvasWidth - pSize && py >= pSizeHalf && py < canvasHeight - pSize) {
+        if (px >= pSizeHalf && px < canvas.width - pSize && py >= pSizeHalf && py < canvas.height - pSize) {
             let r = pointCloudData[idx+3], g = pointCloudData[idx+4], b = pointCloudData[idx+5];
             if (pSize === 1) {
-                let p = (py * canvasWidth + px) * 4;
+                let p = (py * canvas.width + px) * 4;
                 data[p] = r; data[p+1] = g; data[p+2] = b; data[p+3] = 255;
             } else {
-                let rowStart = (py - pSizeHalf) * canvasWidth;
+                let rowStart = (py - pSizeHalf) * canvas.width;
                 for (let dy = 0; dy < pSize; dy++) {
                     let base = (rowStart + px - pSizeHalf) * 4;
                     for (let dx = 0; dx < pSize; dx++) {
                         data[base] = r; data[base+1] = g; data[base+2] = b; data[base+3] = 255;
                         base += 4;
                     }
-                    rowStart += canvasWidth;
+                    rowStart += canvas.width;
                 }
             }
         }
@@ -328,7 +344,7 @@ function render() {
 }
 
 function findPointAt(mx, my) {
-    const cx = canvasWidth/2 + camera.panX, cy = canvasHeight/2 + camera.panY;
+    const cx = canvas.width/2 + camera.panX, cy = canvas.height/2 + camera.panY;
     const scale = 100 * camera.zoom;
     const cosX = Math.cos(camera.rotX), sinX = Math.sin(camera.rotX), cosY = Math.cos(camera.rotY), sinY = Math.sin(camera.rotY);
 
@@ -341,7 +357,8 @@ function findPointAt(mx, my) {
         
         if (z2 + 500 < 10) continue;
         let px = cx + x1 * (scale / (z2 + 500)), py = cy - y1 * (scale / (z2 + 500));
-        if (Math.hypot(px - mx, py - my) <= 25 && z2 < minZ) { minZ = z2; bestIdx = i; }
+        // タップ判定の許容範囲（タッチしやすいように少し広めに設定）
+        if (Math.hypot(px - mx, py - my) <= 30 && z2 < minZ) { minZ = z2; bestIdx = i; }
     }
     return bestIdx;
 }
