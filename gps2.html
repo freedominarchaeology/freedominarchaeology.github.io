@@ -1,1555 +1,1528 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>高精度平面直角座標測位アプリ (考古学フィールドワーク対応版)</title>
-<!-- jsPDFライブラリの読み込み -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- JSZipライブラリの読み込み -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<style>
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #000;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
-  overflow: hidden;
-  position: fixed;
-  touch-action: none;
-}
-.glass {
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(4px);
-  border-bottom: 1px solid #333;
-  padding: 10px 12px;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 20;
-  max-height: 48vh;
-  overflow-y: auto;
-  touch-action: pan-y;
-}
-#preview-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 5;
-  pointer-events: none;
-}
-.crosshair { position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }
-.crosshair-h { width: 40px; height: 2px; background: red; position: absolute; left: -20px; top: -1px; }
-.crosshair-v { width: 2px; height: 40px; background: red; position: absolute; top: -20px; left: -1px; }
-#register-panel {
-  position: absolute;
-  bottom: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 95%;
-  max-width: 420px;
-  background: rgba(15, 15, 15, 0.95);
-  border: 1px solid #444;
-  border-radius: 8px;
-  padding: 10px 12px;
-  z-index: 15;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.7);
-  max-height: 42vh;
-  overflow-y: auto;
-  touch-action: pan-y;
-}
-#register-panel input { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; font-size: 13px; }
-.flex-row { display: flex; gap: 6px; margin-top: 6px; }
-.data-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-  font-size: 12px;
-  flex-wrap: wrap;
-  word-break: break-word;
-  gap: 4px;
-}
-button { background: #222; color: #fff; border: 1px solid #555; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-button:disabled { background: #555; color: #aaa; cursor: not-allowed; border-color: #666; }
-button.success { background: #16a34a; border-color: #22c55e; }
-button.primary { background: #2563eb; border-color: #3b82f6; }
-button.warning { background: #d97706; border-color: #f59e0b; }
-button.danger { background: #dc2626; border-color: #ef4444; }
-button.record { background: #ca8a04; border-color: #eab308; color: #fff; }
-#settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; touch-action: auto; }
-.modal-content { background: #111; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 380px; max-width: 95%; text-align: left; max-height: 90vh; overflow-y: auto; touch-action: pan-y; }
-.modal-content label { display: block; font-size: 12px; margin-top: 10px; color: #aaa; }
-.modal-content select { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 4px; margin-top: 4px; font-size: 13px; }
-.point-item { background: #1a1a1a; border: 1px solid #333; padding: 6px 8px; margin-top: 6px; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
-</style>
-</head>
-<body>
-<header class="glass">
-  <div class="data-row" style="align-items: center;">
-    <span id="gps-status" style="color: #fbbf24; font-weight: bold;">位置情報を取得中...</span>
-    <div style="display: flex; gap: 4px;">
-      <button id="pause-btn" class="warning">一時停止</button>
-      <button id="settings-btn">管理/設定</button>
-    </div>
-  </div>
-  <hr style="border:0; border-top:1px solid #333; margin: 4px 0;">
-  <div class="data-row"><span>緯度:</span> <span id="lat-display" style="color: #22d3ee;">---</span></div>
-  <div class="data-row"><span>経度:</span> <span id="lon-display" style="color: #22d3ee;">---</span></div>
-  <div class="data-row"><span>適用座標系:</span> <span id="zone-display" style="color: #38bdf8; font-weight: bold;">自動判定中...</span></div>
-  <div class="data-row"><span>平面X(北進):</span> <span id="grid-x" style="color: #4ade80; font-weight: bold; font-size: 14px;">---</span></div>
-  <div class="data-row"><span>平面Y(東進):</span> <span id="grid-y" style="color: #4ade80; font-weight: bold; font-size: 14px;">---</span></div>
-  <div class="data-row"><span>標高Z(補正後):</span> <span id="alt-display" style="color: #facc15; font-weight: bold; font-size: 14px;">---</span></div>
-  <hr style="border:0; border-top:1px solid #222; margin: 4px 0;">
-  <div class="data-row" style="font-size: 11px;">
-    <span>育成レベル: <span id="growth-level-display" style="color: #facc15; font-weight: bold;">Lv.0 (未学習)</span></span>
-    <span>補正状態: <span id="training-status" style="color: #fca5a5;">標準測位</span></span>
-  </div>
-  <div style="margin-top: 6px; display: flex; gap: 6px;">
-    <button id="log-toggle-btn" class="primary" style="flex: 1; padding: 8px; font-size: 13px;">ログ記録開始</button>
-    <button id="export-csv-btn" class="success" style="padding: 8px; font-size: 12px;">現状CSV出力</button>
-  </div>
-</header>
-
-<canvas id="preview-canvas"></canvas>
-<div class="crosshair">
-  <div class="crosshair-h"></div>
-  <div class="crosshair-v"></div>
-</div>
-
-<div id="register-panel">
-  <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom:4px;">遺物・遺構記録点(任意測位点)の登録</div>
-  <div class="flex-row">
-    <input type="text" id="rec-name" placeholder="点名/遺物名(例:須恵器片01)">
-    <button id="add-rec-btn" class="record" style="white-space: nowrap; padding: 6px 12px;">現在地を記録</button>
-  </div>
-  <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">
-  <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom:4px;">基準点(既知点)の学習登録</div>
-  <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">
-  <div class="flex-row">
-    <input type="number" id="kp-x" placeholder="X座標(m)" step="0.001">
-    <input type="number" id="kp-y" placeholder="Y座標(m)" step="0.001">
-    <input type="number" id="kp-z" placeholder="Z(任意)" step="0.001" style="width: 70px;">
-  </div>
-  <button id="add-kp-btn" class="primary" style="width: 100%; padding: 8px; margin-top: 6px; font-size: 12px;">基準点として学習・登録</button>
-</div>
-
-<div id="settings-modal">
-  <div class="modal-content">
-    <h3 style="font-size: 14px; margin-bottom: 10px; color: #fff; text-align: center;">設定 & データ管理</h3>
-    <label>平面直角座標系の選択</label>
-    <select id="zone-select">
-      <option value="auto">自動判定(推奨)</option>
-      <option value="1">第1系(沖縄県)</option>
-      <option value="2">第2系(鹿児島・熊本一部)</option>
-      <option value="3">第3系(九州中部)</option>
-      <option value="4">第4系(四国)</option>
-      <option value="5">第5系(中国地方)</option>
-      <option value="6">第6系(近畿地方)</option>
-      <option value="7">第7系(中部西側)</option>
-      <option value="8">第8系(中部東側・関東部)</option>
-      <option value="9">第9系(関東地方)</option>
-      <option value="10">第10系(東北南部)</option>
-      <option value="11">第11系(北海道道南)</option>
-      <option value="12">第12系(北海道道央)</option>
-      <option value="13">第13系(北海道道東)</option>
-      <option value="14">第14系以降(島嶼部)</option>
-    </select>
-    <label style="display: flex; align-items: center; color: #fca5a5; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;">
-      <input type="checkbox" id="in-invertalt" style="width: 16px; height: 16px; margin-right: 8px;">
-      標高の上下逆転現象を直す
-    </label>
-    <button id="sync-auto-btn" class="success" style="width: 100%; padding: 8px; margin-top: 10px;">5秒間スタティック平均化(ブレ除去)</button>
-    <hr style="border:0; border-top: 1px solid #333; margin: 12px 0;">
-    <div style="display: flex; justify-content: space-between; align-items: baseline;">
-      <label style="color: #eab308; font-weight: bold;">登録済み遺物・記録点</label>
-      <span id="rec-count" style="color: #eab308; font-size: 11px;">0箇所</span>
-    </div>
-    <div style="margin-top: 6px; max-height: 120px; overflow-y: auto; touch-action: pan-y;" id="rec-list-container"></div>
-    <hr style="border:0; border-top: 1px solid #333; margin: 12px 0;">
-    <div style="display: flex; justify-content: space-between; align-items: baseline;">
-      <label style="color: #38bdf8; font-weight: bold;">登録済み既知点(基準点)</label>
-      <span id="growth-count" style="color: #4ade80; font-size: 11px;">0箇所</span>
-    </div>
-    <div style="margin-top: 6px; max-height: 120px; overflow-y: auto; touch-action: pan-y;" id="kp-list-container"></div>
-    <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">
-    <button id="sensor-permission-btn" class="primary" style="width: 100%; padding: 8px; margin-bottom: 8px;">■ スマホセンサー (PDR) 有効化</button>
-    <button id="clear-all-data-btn" class="danger" style="width: 100%; padding: 8px; font-size: 12px;">全データを初期化・削除</button>
-    <div style="margin-top: 12px;">
-      <button id="close-settings" class="success" style="width: 100%; padding: 10px; font-size: 14px;">保存して閉じる</button>
-    </div>
-  </div>
-</div>
-
-<script>
-'use strict';
-const JAPANESE_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif';
-
-// インライン埋め込み用 Base64データ (IPAex Gothic標準日本語 TrueTypeフォント)
-const IPAEX_GOTHIC_BASE64 = "AAEAAAASAQACAAAgR1NVQgAAAAAAAAC8AAAAAEYOSVNPAAAAAAAAAVAAAAAUAEEAEgAAAAAAAAAAAAAAAAABAAAAAQEAAAEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-
-let isLogging = false;
-let logTimer = null;
-let currentSecondSamples = [];
-let currentChunkPoints = [];
-let allLoggedSessionPoints = [];
-let lastLoggedPoint = null;
-
-const STORAGE_CSV_PREFIX = 'log_csv_';
-const STORAGE_PDF_PREFIX = 'log_pdf_';
-
-const safeGetStorage = (key, defaultVal, isFloat = false) => {
-  try {
-    const val = localStorage.getItem(key);
-    if (val === null) return defaultVal;
-    return isFloat ? parseFloat(val) || defaultVal : val;
-  } catch (e) {
-    return defaultVal;
-  }
-};
-
-let config = {
-  selectedZone: safeGetStorage('conf_zone', 'auto'),
-  altOff: safeGetStorage('conf_altoff', 0, true),
-  invertAlt: localStorage.getItem('conf_invertalt') === 'true',
-  shiftX: safeGetStorage('conf_shiftx', 0, true),
-  shiftY: safeGetStorage('conf_shifty', 0, true),
-  hasCalibrated: localStorage.getItem('conf_hascalibrated') === 'true'
-};
-
-let knownPoints = [];
-try {
-  const savedKp = localStorage.getItem('conf_known_points');
-  if (savedKp) {
-    const parsed = JSON.parse(savedKp);
-    if (Array.isArray(parsed)) knownPoints = parsed;
-  }
-} catch (e) { knownPoints = []; }
-
-let recordedPoints = [];
-try {
-  const savedRec = localStorage.getItem('conf_recorded_points');
-  if (savedRec) {
-    const parsed = JSON.parse(savedRec);
-    if (Array.isArray(parsed)) recordedPoints = parsed;
-  }
-} catch (e) { recordedPoints = []; }
-
-const SMOOTHING_SIZE = 4;
-let latHistory = [];
-let lonHistory = [];
-let altHistory = [];
-let latestLat = 0;
-let latestLon = 0;
-let latestRawAlt = null;
-let watchId = null;
-let isPaused = false;
-let pdrX = 0;
-let pdrY = 0;
-let lastHeading = 0;
-let samplingTimer = null;
-let orientationHandler = null;
-let motionHandler = null;
-
-document.getElementById('zone-select').value = config.selectedZone;
-document.getElementById('in-invertalt').checked = config.invertAlt;
-renderKnownPointsList();
-renderRecordedPointsList();
-updateGrowthUI();
-
-const previewCanvas = document.getElementById('preview-canvas');
-const previewCtx = previewCanvas.getContext('2d');
-
-function resizePreviewCanvas() {
-  previewCanvas.width = window.innerWidth;
-  previewCanvas.height = window.innerHeight;
-  renderRealtimePreview();
-}
-window.addEventListener('resize', resizePreviewCanvas);
-resizePreviewCanvas();
-
-function getCurrentTransformedCoords() {
-  if (latestLat === 0 || latestLon === 0) return null;
-  const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
-  const rawPlane = calculatePlaneRectangular(latestLat, latestLon, activeZone);
-  const transformed = applyHelmertTransformation(rawPlane.x, rawPlane.y);
-  const safePdrX = isNaN(pdrX) ? 0 : pdrX;
-  const safePdrY = isNaN(pdrY) ? 0 : pdrY;
-  let finalX = transformed.x + safePdrX;
-  let finalY = transformed.y + safePdrY;
-  let finalZ = null;
-  if (latestRawAlt !== null && !isNaN(latestRawAlt)) {
-    let altProc = latestRawAlt;
-    if (config.invertAlt) altProc = -altProc;
-    finalZ = altProc + config.altOff;
-  }
-  return { x: finalX, y: finalY, z: finalZ };
-}
-
-function renderRealtimePreview() {
-  if (!previewCtx) return;
-  const w = previewCanvas.width;
-  const h = previewCanvas.height;
-  previewCtx.clearRect(0, 0, w, h);
-  const cx = w * 0.5;
-  const cy = h * 0.48;
-  const radius = 130;
-
-  previewCtx.save();
-  previewCtx.beginPath();
-  previewCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-  previewCtx.clip();
-
-  previewCtx.fillStyle = 'rgba(15, 23, 42, 0.4)';
-  previewCtx.fill();
-  previewCtx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
-  previewCtx.lineWidth = 1;
-  previewCtx.stroke();
-
-  const curCoords = getCurrentTransformedCoords();
-  if (allLoggedSessionPoints.length > 0 && curCoords) {
-    const scale = 12;
-    previewCtx.strokeStyle = '#ef4444';
-    previewCtx.lineWidth = 2.5;
-    previewCtx.beginPath();
-    allLoggedSessionPoints.forEach((pt, idx) => {
-      const px = cx + (pt.y - curCoords.y) * scale;
-      const py = cy - (pt.x - curCoords.x) * scale;
-      if (idx === 0) previewCtx.moveTo(px, py);
-      else previewCtx.lineTo(px, py);
-    });
-    previewCtx.stroke();
-
-    allLoggedSessionPoints.forEach((pt) => {
-      const px = cx + (pt.y - curCoords.y) * scale;
-      const py = cy - (pt.x - curCoords.x) * scale;
-      previewCtx.fillStyle = '#dc2626';
-      previewCtx.beginPath();
-      previewCtx.arc(px, py, 3, 0, Math.PI * 2);
-      previewCtx.fill();
-    });
-  }
-  previewCtx.restore();
-}
-
-document.getElementById('add-rec-btn').addEventListener('click', () => {
-  const nameInput = document.getElementById('rec-name');
-  const userEnteredName = nameInput.value ? String(nameInput.value).trim() : "";
-  const name = userEnteredName !== "" ? userEnteredName : `記録点_${recordedPoints.length + 1}`;
-  const coords = getCurrentTransformedCoords();
-  if (!coords) {
-    alert('現在地のGPS信号が取得できていません。');
-    return;
-  }
-  const newPoint = {
-    id: Date.now(),
-    name: name,
-    x: coords.x,
-    y: coords.y,
-    z: coords.z,
-    time: new Date().toLocaleString('ja-JP')
-  };
-  recordedPoints.push(newPoint);
-  saveRecordedPoints();
-  nameInput.value = "";
-  renderRecordedPointsList();
-  alert(`記録点「${name}」を記録しました!`);
-});
-
-function saveRecordedPoints() {
-  try {
-    localStorage.setItem('conf_recorded_points', JSON.stringify(recordedPoints));
-  } catch (e) {}
-}
-
-function renderRecordedPointsList() {
-  const container = document.getElementById('rec-list-container');
-  const countEl = document.getElementById('rec-count');
-  if (countEl) countEl.innerText = recordedPoints.length + '箇所';
-  if (!container) return;
-  container.innerHTML = '';
-  if (recordedPoints.length === 0) {
-    container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">記録された点はありません</div>';
-    return;
-  }
-  recordedPoints.forEach((pt) => {
-    const zStr = pt.z !== null && pt.z !== undefined ? pt.z.toFixed(2) : '---';
-    const div = document.createElement('div');
-    div.className = 'point-item';
-    const infoDiv = document.createElement('div');
-    infoDiv.style.flex = '1';
-    infoDiv.style.minWidth = '140px';
-    const titleDiv = document.createElement('div');
-    titleDiv.style.color = '#eab308';
-    titleDiv.style.fontWeight = 'bold';
-    titleDiv.style.marginBottom = '2px';
-    titleDiv.textContent = pt.name;
-    const detailDiv = document.createElement('div');
-    detailDiv.style.color = '#aaa';
-    detailDiv.style.fontSize = '10px';
-    detailDiv.textContent = `X: ${pt.x.toFixed(2)}, Y: ${pt.y.toFixed(2)}, Z: ${zStr}`;
-    infoDiv.appendChild(titleDiv);
-    infoDiv.appendChild(detailDiv);
-    const delBtn = document.createElement('button');
-    delBtn.className = 'danger';
-    delBtn.style.fontSize = '10px';
-    delBtn.style.padding = '3px 6px';
-    delBtn.textContent = '削除';
-    delBtn.onclick = () => deleteRecordedPoint(pt.id);
-    div.appendChild(infoDiv);
-    div.appendChild(delBtn);
-    container.appendChild(div);
-  });
-}
-
-window.deleteRecordedPoint = function(id) {
-  if (!confirm("この記録点を削除しますか?")) return;
-  recordedPoints = recordedPoints.filter(p => p.id !== id);
-  saveRecordedPoints();
-  renderRecordedPointsList();
-};
-
-document.getElementById('export-csv-btn').addEventListener('click', () => {
-  if (recordedPoints.length === 0 && knownPoints.length === 0) {
-    alert("出力する記録点・基準点データがありません。");
-    return;
-  }
-  let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
-  recordedPoints.forEach(p => {
-    const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";
-    csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
-  });
-  knownPoints.forEach(p => {
-    const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : "";
-    csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
-  });
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `測量登録点_${Date.now()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-function formatTimestamp(d = new Date()) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-}
-
-function saveCsvToStorage(points) {
-  if (!points || points.length === 0) return null;
-  const timeStr = formatTimestamp(new Date(points[0].time));
-  const fileName = `${timeStr}.csv`;
-  const storageKey = `${STORAGE_CSV_PREFIX}${fileName}`;
-  let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
-  points.forEach((p, idx) => {
-    const tStr = new Date(p.time).toLocaleString('ja-JP');
-    const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";
-    csvContent += `軌跡ログ,Track_${idx+1},${tStr},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
-  });
-  try {
-    localStorage.setItem(storageKey, csvContent);
-    return fileName;
-  } catch (e) {
-    console.error("ブラウザストレージの容量制限に達した可能性があります。", e);
-    return null;
-  }
-}
-
-function clearAllLogStorage() {
-  try {
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith(STORAGE_CSV_PREFIX) || key.startsWith(STORAGE_PDF_PREFIX))) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-  } catch (e) {}
-}
-
-document.getElementById('clear-all-data-btn').addEventListener('click', () => {
-  if (confirm("これまでに保存された全記録点・基準点・ログが完全に消去されます。\nデータを一括リセットしますか?")) {
-    localStorage.clear();
-    recordedPoints = [];
-    knownPoints = [];
-    currentChunkPoints = [];
-    allLoggedSessionPoints = [];
-    currentSecondSamples = [];
-    lastLoggedPoint = null;
-    config.shiftX = 0;
-    config.shiftY = 0;
-    config.hasCalibrated = false;
-    renderRecordedPointsList();
-    renderKnownPointsList();
-    updateGrowthUI();
-    renderRealtimePreview();
-    alert("全データを正常に初期化・消去しました。");
-  }
-});
-
-const logToggleBtn = document.getElementById('log-toggle-btn');
-logToggleBtn.addEventListener('click', async () => {
-  if (!isLogging) {
-    currentChunkPoints = [];
-    allLoggedSessionPoints = [];
-    currentSecondSamples = [];
-    lastLoggedPoint = null;
-    isLogging = true;
-    logToggleBtn.innerText = "ログ停止・出力 (Zip生成)";
-    logToggleBtn.className = "danger";
-
-    logTimer = setInterval(() => {
-      if (!isLogging) return;
-      let evalPoint = null;
-      if (currentSecondSamples.length > 0) {
-        const sumX = currentSecondSamples.reduce((a,b)=>a+b.x,0);
-        const sumY = currentSecondSamples.reduce((a,b)=>a+b.y,0);
-        let sumZ = 0, zCount = 0;
-        currentSecondSamples.forEach(p => {
-          if (p.z !== null && p.z !== undefined && !isNaN(p.z)) {
-            sumZ += p.z;
-            zCount++;
-          }
-        });
-        evalPoint = {
-          x: sumX / currentSecondSamples.length,
-          y: sumY / currentSecondSamples.length,
-          z: zCount > 0 ? sumZ / zCount : null,
-          time: currentSecondSamples[currentSecondSamples.length - 1].time
-        };
-        currentSecondSamples = [];
-      } else {
-        const coords = getCurrentTransformedCoords();
-        if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {
-          evalPoint = {
-            x: coords.x,
-            y: coords.y,
-            z: coords.z,
-            time: Date.now()
-          };
-        }
-      }
-
-      if (evalPoint) {
-        let shouldLog = false;
-        if (!lastLoggedPoint) {
-          shouldLog = true;
-        } else {
-          const dx = evalPoint.x - lastLoggedPoint.x;
-          const dy = evalPoint.y - lastLoggedPoint.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist >= 0.5) {
-            shouldLog = true;
-          }
-        }
-        if (shouldLog) {
-          currentChunkPoints.push(evalPoint);
-          allLoggedSessionPoints.push(evalPoint);
-          lastLoggedPoint = evalPoint;
-          if (currentChunkPoints.length >= 1000) {
-            saveCsvToStorage(currentChunkPoints);
-            currentChunkPoints = [];
-          }
-        }
-      }
-    }, 1000);
-  } else {
-    isLogging = false;
-    if (logTimer !== null) {
-      clearInterval(logTimer);
-      logTimer = null;
-    }
-    logToggleBtn.innerText = "処理中...";
-    logToggleBtn.disabled = true;
-
-    if (currentChunkPoints.length > 0) {
-      saveCsvToStorage(currentChunkPoints);
-      currentChunkPoints = [];
-    }
-
-    await processStorageLogsAndGeneratePDFs();
-    await packageAndDownloadZip();
-    clearAllLogStorage();
-    allLoggedSessionPoints = [];
-    renderRealtimePreview();
-    logToggleBtn.innerText = "ログ記録開始";
-    logToggleBtn.className = "primary";
-    logToggleBtn.disabled = false;
-  }
-});
-
-function parseCsvToLogPoints(csvText) {
-  const lines = csvText.split('\n');
-  const points = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const cols = line.split(',');
-    if (cols.length >= 5) {
-      const x = parseFloat(cols[3]);
-      const y = parseFloat(cols[4]);
-      const z = cols[5] ? parseFloat(cols[5]) : null;
-      if (!isNaN(x) && !isNaN(y)) {
-        points.push({ x, y, z });
-      }
-    }
-  }
-  return points;
-}
-
-async function processStorageLogsAndGeneratePDFs() {
-  const csvKeys = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith(STORAGE_CSV_PREFIX)) {
-      csvKeys.push(key);
-    }
-  }
-
-  for (const key of csvKeys) {
-    const csvContent = localStorage.getItem(key);
-    if (!csvContent) continue;
-    const baseFileName = key.replace(STORAGE_CSV_PREFIX, "").replace('.csv', "");
-    const logPoints = parseCsvToLogPoints(csvContent);
-    const doc = await generatePDFReportForLogAsync(logPoints, baseFileName);
-    if (doc) {
-      try {
-        const pdfDataUri = doc.output('datauristring');
-        const pdfKey = `${STORAGE_PDF_PREFIX}${baseFileName}.pdf`;
-        localStorage.setItem(pdfKey, pdfDataUri);
-      } catch (e) {
-        console.error("PDFのストレージ保存中にエラーが発生しました:", e);
-      }
-    }
-  }
-}
-
-async function packageAndDownloadZip() {
-  if (typeof window.JSZip === 'undefined') {
-    alert('JSZipライブラリがロードされていません。');
-    return;
-  }
-  const zip = new window.JSZip();
-  let fileCount = 0;
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-    if (key.startsWith(STORAGE_CSV_PREFIX)) {
-      const fileName = key.replace(STORAGE_CSV_PREFIX, "");
-      const content = localStorage.getItem(key);
-      zip.file(`csv/${fileName}`, content);
-      fileCount++;
-    } else if (key.startsWith(STORAGE_PDF_PREFIX)) {
-      const fileName = key.replace(STORAGE_PDF_PREFIX, "");
-      const dataUri = localStorage.getItem(key);
-      const base64Data = dataUri.split(',')[1];
-      zip.file(`pdf/${fileName}`, base64Data, { base64: true });
-      fileCount++;
-    }
-  }
-
-  if (fileCount === 0) {
-    alert("出力対象のログデータが存在しません。");
-    return;
-  }
-
-  if (recordedPoints.length > 0 || knownPoints.length > 0) {
-    let masterCsv = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";
-    recordedPoints.forEach(p => {
-      const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";
-      masterCsv += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;
-    });
-    knownPoints.forEach(p => {
-      const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : "";
-      masterCsv += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;
-    });
-    zip.file('registered_points_master.csv', masterCsv);
-  }
-
-  const content = await zip.generateAsync({ type: 'blob' });
-  const url = URL.createObjectURL(content);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `測量ログ成果物一式_${formatTimestamp()}.zip`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function applyJapaneseFontToPDF(doc) {
-  try {
-    if (typeof IPAEX_GOTHIC_BASE64 !== 'string' || IPAEX_GOTHIC_BASE64.length === 0) {
-      return false;
-    }
-    doc.addFileToVFS('JapaneseFont.ttf', IPAEX_GOTHIC_BASE64);
-    doc.addFont('JapaneseFont.ttf', 'JapaneseFont', 'normal');
-    doc.setFont('JapaneseFont');
-    return true;
-  } catch (e) {
-    console.error("フォントの設定に失敗しました:", e);
-    return false;
-  }
-}
-
-function generatePDFReportForLogAsync(logPoints, titleTimeStr) {
-  return new Promise((resolve) => {
-    try {
-      if (typeof window.jspdf === 'undefined') {
-        resolve(null);
-        return;
-      }
-      const validLog = logPoints.filter(p => !isNaN(p.x) && !isNaN(p.y));
-      const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));
-      const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));
-
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      const allPoints = [
-        ...validLog.map(p => ({ x: p.x, y: p.y })),
-        ...validKnown.map(p => ({ x: p.targetX, y: p.targetY })),
-        ...validRec.map(p => ({ x: p.x, y: p.y }))
-      ];
-
-      allPoints.forEach(p => {
-        if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
-        if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
-      });
-
-      if (minX === Infinity) { minX = 0; maxX = 10; minY = 0; maxY = 10; }
-
-      let spanX = maxX - minX;
-      let spanY = maxY - minY;
-      if (spanX < 1) spanX = 1;
-      if (spanY < 1) spanY = 1;
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
-      const hasJPFont = applyJapaneseFontToPDF(doc);
-
-      const marginLeft = 20;
-      const marginTop = 25;
-      const drawWidth = 380;
-      const drawHeight = 245;
-      const marginRatio = 0.1;
-
-      const totalMetersX = spanX * (1 + marginRatio * 2);
-      const totalMetersY = spanY * (1 + marginRatio * 2);
-
-      const scaleX = drawHeight / totalMetersX;
-      const scaleY = drawWidth / totalMetersY;
-      const scale = Math.min(scaleX, scaleY);
-
-      const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
-
-      const pageMinX = centerX - (drawHeight / scale) / 2;
-      const pageMaxX = centerX + (drawHeight / scale) / 2;
-      const pageMinY = centerY - (drawWidth / scale) / 2;
-      const pageMaxY = centerY + (drawWidth / scale) / 2;
-
-      const scaleDenominator = Math.round(1000 / scale);
-
-      let gridInterval = 10;
-      const maxSpan = Math.max(spanX, spanY);
-      if (maxSpan <= 10) gridInterval = 1;
-      else if (maxSpan <= 50) gridInterval = 5;
-      else if (maxSpan <= 200) gridInterval = 10;
-      else if (maxSpan <= 500) gridInterval = 50;
-      else if (maxSpan <= 2000) gridInterval = 100;
-      else if (maxSpan <= 5000) gridInterval = 500;
-      else gridInterval = 1000;
-
-      if (hasJPFont) {
-        doc.setFont('JapaneseFont');
-        doc.setFontSize(16);
-        doc.setTextColor(17, 24, 39);
-        doc.text(`考古学フィールドワーク 測位・軌跡描画レポート (${titleTimeStr})`, 15, 12);
-        doc.setFontSize(9);
-        doc.setTextColor(75, 85, 99);
-        doc.text(`縮尺: 1/${scaleDenominator.toLocaleString()} | 記録点: ${validRec.length}箇所 | 基準点: ${validKnown.length}箇所 | ログ点数: ${validLog.length}点`, 15, 18);
-      } else {
-        doc.setFont('helvetica');
-        doc.setFontSize(16);
-        doc.setTextColor(17, 24, 39);
-        doc.text(`Archaeological Survey Report (${titleTimeStr})`, 15, 12);
-        doc.setFontSize(9);
-        doc.setTextColor(75, 85, 99);
-        doc.text(`Scale: 1/${scaleDenominator.toLocaleString()} | Record Points: ${validRec.length} | Known Points: ${validKnown.length} | Log Points: ${validLog.length}`, 15, 18);
-      }
-
-      function toPdfCoord(x, y) {
-        const px = marginLeft + (y - pageMinY) * scale;
-        const py = marginTop + drawHeight - ((x - pageMinX) * scale);
-        return { x: px, y: py };
-      }
-
-      function isPointInPage(x, y) {
-        return x >= pageMinX && x <= pageMaxX && y >= pageMinY && y <= pageMaxY;
-      }
-
-      doc.setDrawColor(55, 65, 81);
-      doc.setLineWidth(0.4);
-      doc.rect(marginLeft, marginTop, drawWidth, drawHeight);
-
-      const startX = Math.floor(pageMinX / gridInterval) * gridInterval;
-      const endX = Math.ceil(pageMaxX / gridInterval) * gridInterval;
-      const startY = Math.floor(pageMinY / gridInterval) * gridInterval;
-      const endY = Math.ceil(pageMaxY / gridInterval) * gridInterval;
-
-      doc.setDrawColor(229, 231, 235);
-      doc.setLineWidth(0.15);
-      doc.setFontSize(7);
-      doc.setTextColor(107, 114, 128);
-
-      for (let yVal = startY; yVal <= endY; yVal += gridInterval) {
-        const p = toPdfCoord(pageMinX, yVal);
-        if (p.x >= marginLeft && p.x <= marginLeft + drawWidth) {
-          doc.line(p.x, marginTop, p.x, marginTop + drawHeight);
-          doc.text(`Y:${yVal}m`, p.x, marginTop + drawHeight + 4, { align: 'center' });
-        }
-      }
-
-      for (let xVal = startX; xVal <= endX; xVal += gridInterval) {
-        const p = toPdfCoord(xVal, pageMinY);
-        if (p.y >= marginTop && p.y <= marginTop + drawHeight) {
-          doc.line(marginLeft, p.y, marginLeft + drawWidth, p.y);
-          doc.text(`X:${xVal}m`, marginLeft - 1.5, p.y + 1, { align: 'right' });
-        }
-      }
-
-      if (validLog.length > 0) {
-        doc.setDrawColor(239, 68, 68);
-        doc.setLineWidth(0.5);
-        if (validLog.length === 1) {
-          if (isPointInPage(validLog[0].x, validLog[0].y)) {
-            const cv = toPdfCoord(validLog[0].x, validLog[0].y);
-            doc.setFillColor(239, 68, 68);
-            doc.circle(cv.x, cv.y, 0.6, 'F');
-          }
-        } else {
-          const firstValidIdx = validLog.findIndex(p => isPointInPage(p.x, p.y));
-          if (firstValidIdx !== -1) {
-            let pathCmds = [];
-            let drawing = false;
-
-            for (let i = firstValidIdx; i < validLog.length - 1; i++) {
-              const p0 = validLog[i];
-              const p1 = validLog[i + 1];
-              if (!isPointInPage(p1.x, p1.y)) {
-                drawing = false;
-                continue;
-              }
-              const cv0 = toPdfCoord(p0.x, p0.y);
-              const cv1 = toPdfCoord(p1.x, p1.y);
-
-              if (!drawing) {
-                pathCmds.push({ op: 'm', c: [cv0.x, cv0.y] });
-                drawing = true;
-              }
-
-              const midX = (cv0.x + cv1.x) / 2;
-              const midY = (cv0.y + cv1.y) / 2;
-              const pPrev = (pathCmds.length > 0 && pathCmds[pathCmds.length-1].c) ?
-                {x: pathCmds[pathCmds.length-1].c[pathCmds[pathCmds.length-1].c.length-2], y: pathCmds[pathCmds.length-1].c[pathCmds[pathCmds.length-1].c.length-1]} : cv0;
-
-              const c1x = pPrev.x + (2/3)*(cv0.x - pPrev.x);
-              const c1y = pPrev.y + (2/3)*(cv0.y - pPrev.y);
-              const c2x = midX + (2/3)*(cv0.x - midX);
-              const c2y = midY + (2/3)*(cv0.y - midY);
-
-              pathCmds.push({ op: 'c', c: [c1x, c1y, c2x, c2y, midX, midY] });
-            }
-
-            const lastP = validLog[validLog.length - 1];
-            if (isPointInPage(lastP.x, lastP.y) && drawing) {
-              const lastCv = toPdfCoord(lastP.x, lastP.y);
-              pathCmds.push({ op: 'l', c: [lastCv.x, lastCv.y] });
-            }
-
-            if (pathCmds.length > 0) {
-              doc.path(pathCmds);
-              doc.stroke();
-            }
-          }
-        }
-
-        doc.setFillColor(239, 68, 68);
-        validLog.forEach(p => {
-          if (isPointInPage(p.x, p.y)) {
-            const cv = toPdfCoord(p.x, p.y);
-            doc.circle(cv.x, cv.y, 0.5, 'F');
-          }
-        });
-      }
-
-      let scaleMeters = gridInterval;
-      let scalePx = scaleMeters * scale;
-      if (scalePx < 10) {
-        scaleMeters *= 2;
-        scalePx = scaleMeters * scale;
-      }
-      const sbX = marginLeft + 5;
-      const sbY = marginTop + drawHeight - 5;
-      doc.setDrawColor(17, 24, 39);
-      doc.setLineWidth(0.5);
-      doc.line(sbX, sbY, sbX + scalePx, sbY);
-      doc.line(sbX, sbY - 1.5, sbX, sbY + 1.5);
-      doc.line(sbX + scalePx, sbY - 1.5, sbX + scalePx, sbY + 1.5);
-      doc.setFontSize(8);
-      doc.setTextColor(17, 24, 39);
-      doc.text('0', sbX, sbY - 2, { align: 'center' });
-      doc.text(`${scaleMeters}m`, sbX + scalePx, sbY - 2, { align: 'center' });
-
-      function drawAnnotatedPointPDF(ptX, ptY, ptZ, rawName, colorRGB, labelPrefix) {
-        if (!isPointInPage(ptX, ptY)) return;
-        const cvPt = toPdfCoord(ptX, ptY);
-        const nameStr = String(rawName || (hasJPFont ? '名称未設定' : 'Unnamed'));
-        const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';
-        const titleText = `${labelPrefix}${nameStr}`;
-
-        doc.setFillColor(colorRGB.r, colorRGB.g, colorRGB.b);
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.3);
-        doc.circle(cvPt.x, cvPt.y, 1.2, 'FD');
-
-        doc.setFontSize(8);
-        const titleWidth = doc.getTextWidth(titleText);
-        const boxWidth = Math.max(titleWidth, 25) + 4;
-        const boxHeight = 14;
-
-        let offsetX = cvPt.x > (marginLeft + drawWidth / 2) ? -boxWidth - 6 : 6;
-        let offsetY = cvPt.y > (marginTop + drawHeight / 2) ? -boxHeight - 3 : 3;
-
-        let textX = cvPt.x + offsetX;
-        let textY = cvPt.y + offsetY;
-
-        const lineTargetX = textX < cvPt.x ? textX + boxWidth : textX;
-        const lineTargetY = textY + boxHeight / 2;
-
-        doc.setDrawColor(75, 85, 99);
-        doc.setLineWidth(0.25);
-        doc.line(cvPt.x, cvPt.y, lineTargetX, lineTargetY);
-
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(156, 163, 175);
-        doc.setLineWidth(0.2);
-        doc.rect(textX, textY, boxWidth, boxHeight, 'FD');
-
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(7.5);
-        doc.text(titleText, textX + 1.5, textY + 3.5);
-        doc.setFontSize(6.5);
-        doc.setTextColor(31, 41, 55);
-        doc.text(`X: ${ptX.toFixed(3)}`, textX + 1.5, textY + 6.8);
-        doc.text(`Y: ${ptY.toFixed(3)}`, textX + 1.5, textY + 9.8);
-        doc.text(`Z: ${zText}`, textX + 1.5, textY + 12.8);
-      }
-
-      const knownPrefix = hasJPFont ? "基準:" : "Ref: ";
-      const recPrefix = hasJPFont ? "記録:" : "Rec: ";
-
-      validKnown.forEach(kp => {
-        drawAnnotatedPointPDF(kp.targetX, kp.targetY, kp.targetZ, kp.name, { r: 37, g: 99, b: 235 }, knownPrefix);
-      });
-
-      validRec.forEach(rp => {
-        drawAnnotatedPointPDF(rp.x, rp.y, rp.z, rp.name, { r: 234, g: 179, b: 8 }, recPrefix);
-      });
-
-      resolve(doc);
-    } catch (err) {
-      console.error("PDF描画エラー:", err);
-      resolve(null);
-    }
-  });
-}
-
-document.getElementById('settings-btn').addEventListener('click', () => {
-  document.getElementById('settings-modal').style.display = 'flex';
-});
-
-document.getElementById('close-settings').addEventListener('click', () => {
-  try {
-    config.selectedZone = document.getElementById('zone-select').value;
-    config.invertAlt = document.getElementById('in-invertalt').checked;
-    localStorage.setItem('conf_zone', config.selectedZone);
-    localStorage.setItem('conf_invertalt', config.invertAlt);
-  } catch (e) {}
-  document.getElementById('settings-modal').style.display = 'none';
-});
-
-const pauseBtn = document.getElementById('pause-btn');
-pauseBtn.addEventListener('click', () => {
-  if (!isPaused) {
-    releaseResources();
-    isPaused = true;
-    pauseBtn.innerText = "測定再開";
-    pauseBtn.className = "success";
-    document.getElementById('gps-status').innerText = "測定一時停止中";
-    document.getElementById('gps-status').style.color = "#9ca3af";
-    latHistory = []; lonHistory = []; altHistory = [];
-  } else {
-    isPaused = false;
-    pauseBtn.innerText = "一時停止";
-    pauseBtn.className = "warning";
-    startGeolocation();
-  }
-});
-
-function releaseResources() {
-  if (watchId !== null && 'geolocation' in navigator) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
-  if (samplingTimer !== null) {
-    clearInterval(samplingTimer);
-    samplingTimer = null;
-  }
-}
-
-window.addEventListener('beforeunload', () => {
-  releaseResources();
-  if (logTimer !== null) clearInterval(logTimer);
-  if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
-  if (motionHandler) window.removeEventListener('devicemotion', motionHandler);
-});
-
-document.getElementById('add-kp-btn').addEventListener('click', () => {
-  const nameInput = document.getElementById('kp-name');
-  const xInput = document.getElementById('kp-x');
-  const yInput = document.getElementById('kp-y');
-  const zInput = document.getElementById('kp-z');
-
-  const userKpName = nameInput.value ? String(nameInput.value).trim() : "";
-  const name = userKpName !== "" ? userKpName : `既知点_${knownPoints.length + 1}`;
-  const targetX = parseFloat(xInput.value);
-  const targetY = parseFloat(yInput.value);
-  const targetZ = parseFloat(zInput.value);
-
-  if (isNaN(targetX) || isNaN(targetY)) {
-    alert('有効な既知のX座標およびY座標を入力してください。');
-    return;
-  }
-  if (latestLat === 0 || latestLon === 0) {
-    alert('現在地のGPS信号がまだ取得できていません。');
-    return;
-  }
-
-  const btn = document.getElementById('add-kp-btn');
-  btn.disabled = true;
-
-  let samplesLat = [];
-  let samplesLon = [];
-  let samplesAlt = [];
-  let secondsLeft = 5;
-
-  if (samplingTimer !== null) clearInterval(samplingTimer);
-  btn.innerText = `座標取得中... 残り${secondsLeft}秒`;
-
-  samplingTimer = setInterval(() => {
-    try {
-      if (latestLat !== 0) {
-        samplesLat.push(latestLat);
-        samplesLon.push(latestLon);
-        if (latestRawAlt !== null) samplesAlt.push(latestRawAlt);
-      }
-      secondsLeft--;
-      btn.innerText = `座標取得中... 残り${secondsLeft}秒`;
-
-      if (secondsLeft <= 0) {
-        clearInterval(samplingTimer);
-        samplingTimer = null;
-        btn.disabled = false;
-        btn.innerText = '基準点として学習・登録';
-
-        if (samplesLat.length === 0) {
-          alert('GPSデータの取得に失敗しました。');
-          return;
-        }
-
-        const avgLat = samplesLat.reduce((a,b)=>a+b,0) / samplesLat.length;
-        const avgLon = samplesLon.reduce((a,b)=>a+b,0) / samplesLon.length;
-        const avgAlt = samplesAlt.length > 0 ? samplesAlt.reduce((a,b)=>a+b,0) / samplesAlt.length : null;
-
-        const activeZone = config.selectedZone === 'auto' ? getAutoZone(avgLat, avgLon) : parseInt(config.selectedZone);
-        const rawPlane = calculatePlaneRectangular(avgLat, avgLon, activeZone);
-
-        const diffX = targetX - rawPlane.x;
-        const diffY = targetY - rawPlane.y;
-        let diffZ = 0;
-        if (!isNaN(targetZ) && avgAlt !== null) {
-          let rawProc = avgAlt;
-          if (config.invertAlt) rawProc = -rawProc;
-          diffZ = targetZ - rawProc;
-        }
-
-        const newPoint = {
-          id: Date.now(),
-          name: name,
-          lat: avgLat, lon: avgLon,
-          targetX: targetX, targetY: targetY, targetZ: !isNaN(targetZ) ? targetZ : null,
-          shiftX: diffX, shiftY: diffY, shiftZ: diffZ
-        };
-
-        knownPoints.push(newPoint);
-        saveKnownPoints();
-
-        nameInput.value = ""; xInput.value = ""; yInput.value = ""; zInput.value = "";
-        renderKnownPointsList();
-        updateGrowthUI();
-        alert(`既知点「${name}」を学習登録しました!`);
-      }
-    } catch (e) {
-      if (samplingTimer) {
-        clearInterval(samplingTimer);
-        samplingTimer = null;
-        btn.disabled = false;
-        btn.innerText = '基準点として学習・登録';
-      }
-    }
-  }, 1000);
-});
-
-function saveKnownPoints() {
-  try {
-    localStorage.setItem('conf_known_points', JSON.stringify(knownPoints));
-  } catch (e) {}
-}
-
-function renderKnownPointsList() {
-  const container = document.getElementById('kp-list-container');
-  const countEl = document.getElementById('growth-count');
-  if (countEl) countEl.innerText = knownPoints.length + '箇所';
-  if (!container) return;
-  container.innerHTML = '';
-
-  if (knownPoints.length === 0) {
-    container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">登録された既知点はありません</div>';
-    return;
-  }
-
-  knownPoints.forEach((kp) => {
-    const zStr = kp.targetZ !== null && kp.targetZ !== undefined ? kp.targetZ.toFixed(2) : '---';
-    const div = document.createElement('div');
-    div.className = 'point-item';
-    const infoDiv = document.createElement('div');
-    infoDiv.style.flex = '1';
-    infoDiv.style.minWidth = '140px';
-    const titleDiv = document.createElement('div');
-    titleDiv.style.color = '#fff';
-    titleDiv.style.fontWeight = 'bold';
-    titleDiv.style.marginBottom = '2px';
-    titleDiv.textContent = kp.name;
-    const detailDiv = document.createElement('div');
-    detailDiv.style.color = '#888';
-    detailDiv.style.fontSize = '10px';
-    detailDiv.textContent = `X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}, Z: ${zStr}`;
-    infoDiv.appendChild(titleDiv);
-    infoDiv.appendChild(detailDiv);
-
-    const btnGroup = document.createElement('div');
-    const editBtn = document.createElement('button');
-    editBtn.className = 'primary';
-    editBtn.style.fontSize = '10px';
-    editBtn.style.padding = '3px 6px';
-    editBtn.style.marginRight = '2px';
-    editBtn.textContent = '編集';
-    editBtn.onclick = () => editKnownPoint(kp.id);
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'danger';
-    delBtn.style.fontSize = '10px';
-    delBtn.style.padding = '3px 6px';
-    delBtn.textContent = '削除';
-    delBtn.onclick = () => deleteKnownPoint(kp.id);
-
-    btnGroup.appendChild(editBtn);
-    btnGroup.appendChild(delBtn);
-    div.appendChild(infoDiv);
-    div.appendChild(btnGroup);
-    container.appendChild(div);
-  });
-}
-
-window.editKnownPoint = function(id) {
-  const kp = knownPoints.find(p => p.id === id);
-  if (!kp) return;
-
-  const newName = prompt("既知点名を変更", kp.name);
-  if (newName === null) return;
-  const newXStr = prompt("X座標(北進)を変更", kp.targetX);
-  if (newXStr === null) return;
-  const newYStr = prompt("Y座標(東進)を変更", kp.targetY);
-  if (newYStr === null) return;
-
-  const newX = parseFloat(newXStr);
-  const newY = parseFloat(newYStr);
-
-  if (isNaN(newX) || isNaN(newY)) {
-    alert("有効な数値を入力してください。");
-    return;
-  }
-
-  const rawX = kp.targetX - kp.shiftX;
-  const rawY = kp.targetY - kp.shiftY;
-
-  kp.name = newName.trim() || kp.name;
-  kp.targetX = newX;
-  kp.targetY = newY;
-  kp.shiftX = newX - rawX;
-  kp.shiftY = newY - rawY;
-
-  saveKnownPoints();
-  renderKnownPointsList();
-  updateGrowthUI();
-};
-
-window.deleteKnownPoint = function(id) {
-  if (!confirm("この既知点を削除しますか?")) return;
-  knownPoints = knownPoints.filter(p => p.id !== id);
-  saveKnownPoints();
-  renderKnownPointsList();
-  updateGrowthUI();
-};
-
-function updateGrowthUI() {
-  const count = knownPoints.length;
-  const levelEl = document.getElementById('growth-level-display');
-  const statusEl = document.getElementById('training-status');
-
-  if (count >= 3) {
-    if (levelEl) { levelEl.innerText = "Lv.3 (面補正)"; levelEl.style.color = "#4ade80"; }
-    if (statusEl) { statusEl.innerText = "ヘルメルト変換"; statusEl.style.color = "#4ade80"; }
-  } else if (count === 2) {
-    if (levelEl) { levelEl.innerText = "Lv.2 (線補正)"; levelEl.style.color = "#38bdf8"; }
-    if (statusEl) { statusEl.innerText = "ヘルメルト変換"; statusEl.style.color = "#38bdf8"; }
-  } else if (count === 1) {
-    if (levelEl) { levelEl.innerText = "Lv.1 (点補正)"; levelEl.style.color = "#facc15"; }
-    if (statusEl) { statusEl.innerText = "単純平行移動"; statusEl.style.color = "#facc15"; }
-  } else {
-    if (levelEl) { levelEl.innerText = "Lv.0 (未学習)"; levelEl.style.color = "#9ca3af"; }
-    if (statusEl) { statusEl.innerText = "標準測位"; statusEl.style.color = "#fca5a5"; }
-  }
-}
-
-function applyHelmertTransformation(rawX, rawY) {
-  const n = knownPoints.length;
-  if (n === 0) return { x: rawX + config.shiftX, y: rawY + config.shiftY };
-  if (n === 1) return { x: rawX + knownPoints[0].shiftX, y: rawY + knownPoints[0].shiftY };
-
-  let sum_x = 0, sum_y = 0, sum_X = 0, sum_Y = 0;
-  const points = knownPoints.map(kp => {
-    const rX = kp.targetX - kp.shiftX;
-    const rY = kp.targetY - kp.shiftY;
-    sum_x += rX; sum_y += rY; sum_X += kp.targetX; sum_Y += kp.targetY;
-    return { x: rX, y: rY, X: kp.targetX, Y: kp.targetY };
-  });
-
-  const mean_x = sum_x / n, mean_y = sum_y / n, mean_X = sum_X / n, mean_Y = sum_Y / n;
-  let num_a = 0, num_b = 0, den = 0;
-
-  points.forEach(p => {
-    const u = p.x - mean_x, v = p.y - mean_y, U = p.X - mean_X, V = p.Y - mean_Y;
-    num_a += (u * U + v * V);
-    num_b += (u * V - v * U);
-    den += (u * u + v * v);
-  });
-
-  let a = den !== 0 ? num_a / den : 1, b = den !== 0 ? num_b / den : 0;
-  const c = mean_X - a * mean_x + b * mean_y;
-  const d = mean_Y - b * mean_x - a * mean_y;
-
-  return { x: a * rawX - b * rawY + c, y: b * rawX + a * rawY + d };
-}
-
-document.getElementById('sync-auto-btn').addEventListener('click', () => {
-  if (latestLat === 0 || latestLon === 0) {
-    alert('GPS信号をまだ取得できていません。');
-    return;
-  }
-  if (samplingTimer !== null) clearInterval(samplingTimer);
-
-  let samplesLat = [];
-  let samplesLon = [];
-  let secondsLeft = 5;
-
-  const btn = document.getElementById('sync-auto-btn');
-  btn.innerText = `測定中... 残り${secondsLeft}秒`;
-
-  samplingTimer = setInterval(() => {
-    try {
-      if (latestLat !== 0) {
-        samplesLat.push(latestLat);
-        samplesLon.push(latestLon);
-      }
-      secondsLeft--;
-      btn.innerText = `測定中... 残り${secondsLeft}秒`;
-
-      if (secondsLeft <= 0) {
-        clearInterval(samplingTimer);
-        samplingTimer = null;
-        btn.innerText = '5秒間スタティック平均化(ブレ除去)';
-
-        if (samplesLat.length === 0) return;
-
-        const avgLat = samplesLat.reduce((a,b)=>a+b,0) / samplesLat.length;
-        const avgLon = samplesLon.reduce((a,b)=>a+b,0) / samplesLon.length;
-
-        const zoneToUse = config.selectedZone === 'auto' ? getAutoZone(avgLat, avgLon) : parseInt(config.selectedZone);
-        const staticRes = calculatePlaneRectangular(avgLat, avgLon, zoneToUse);
-        const instantRes = calculatePlaneRectangular(latestLat, latestLon, zoneToUse);
-
-        config.shiftX = staticRes.x - instantRes.x;
-        config.shiftY = staticRes.y - instantRes.y;
-        config.hasCalibrated = true;
-
-        pdrX = 0; pdrY = 0;
-
-        localStorage.setItem('conf_shiftx', config.shiftX);
-        localStorage.setItem('conf_shifty', config.shiftY);
-        localStorage.setItem('conf_hascalibrated', 'true');
-
-        alert('平均化による補正が完了しました。(PDRの歩行誤差もリセットされました)');
-      }
-    } catch (e) {
-      if (samplingTimer) {
-        clearInterval(samplingTimer);
-        samplingTimer = null;
-        btn.innerText = '5秒間スタティック平均化(ブレ除去)';
-      }
-    }
-  }, 1000);
-});
-
-document.getElementById('sensor-permission-btn').addEventListener('click', async () => {
-  try {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      const response = await DeviceMotionEvent.requestPermission();
-      if (response === 'granted') initSensors();
-      else alert('センサー権限が拒否されました。');
-    } else {
-      initSensors();
-    }
-  } catch (e) {
-    initSensors();
-  }
-});
-
-function initSensors() {
-  const btn = document.getElementById('sensor-permission-btn');
-  if (btn) {
-    btn.style.background = '#16a34a';
-    btn.innerText = '■ センサー有効化済み';
-  }
-
-  orientationHandler = (e) => {
-    if (e && typeof e.alpha === 'number') {
-      lastHeading = e.alpha * (Math.PI / 180);
-    }
-  };
-  window.addEventListener('deviceorientation', orientationHandler);
-
-  let lastAccZ = 0;
-  motionHandler = (e) => {
-    try {
-      const acc = e && e.accelerationIncludingGravity;
-      if (!acc) return;
-      const curZ = typeof acc.z === 'number' ? acc.z : 0;
-      if (Math.abs(curZ - lastAccZ) > 2.5) {
-        const heading = isNaN(lastHeading) ? 0 : lastHeading;
-        pdrX += Math.cos(heading) * 0.65 * 0.05;
-        pdrY += Math.sin(heading) * 0.65 * 0.05;
-      }
-      lastAccZ = curZ;
-    } catch (err) {}
-  };
-  window.addEventListener('devicemotion', motionHandler);
-}
-
-function toDMS(deg) {
-  if (isNaN(deg)) return '---';
-  const abs = Math.abs(deg);
-  const d = Math.floor(abs);
-  const mNot = (abs - d) * 60;
-  const m = Math.floor(mNot);
-  const s = ((mNot - m) * 60).toFixed(5);
-  return `${d}°${String(m).padStart(2, '0')}'${String(s).padStart(5, '0')}"`;
-}
-
-function getAutoZone(lat, lon) {
-  let zone = 9;
-  if (lat < 28) {
-    if (lon < 125.5) zone = 16;
-    else if (lon < 129.0) zone = 15;
-    else if (lon < 133.0) zone = 17;
-    else zone = 14;
-  } else if (lat > 42) {
-    if (lon < 141.75) zone = 11;
-    else if (lon < 143.075) zone = 12;
-    else zone = 13;
-  } else {
-    if (lon < 130.25) zone = 1;
-    else if (lon < 131.75) zone = 2;
-    else if (lon < 132.85) zone = 3;
-    else if (lon < 133.85) zone = 4;
-    else if (lon < 135.2) zone = 5;
-    else if (lon < 136.6) zone = 6;
-    else if (lon < 137.8) zone = 7;
-    else if (lon < 138.5) zone = 8;
-    else if (lon < 140.175) zone = 9;
-    else zone = 10;
-  }
-  return zone;
-}
-
-function calculatePlaneRectangular(lat, lon, zone) {
-  const zones = {
-    1: { phi0: 33.166666667, lam0: 129.5 },
-    2: { phi0: 33.0, lam0: 131.0 },
-    3: { phi0: 36.0, lam0: 132.166666667 },
-    4: { phi0: 33.0, lam0: 133.5 },
-    5: { phi0: 36.0, lam0: 134.333333333 },
-    6: { phi0: 36.0, lam0: 136.0 },
-    7: { phi0: 36.0, lam0: 137.166666667 },
-    8: { phi0: 36.0, lam0: 138.5 },
-    9: { phi0: 36.0, lam0: 139.833333333 },
-    10: { phi0: 40.0, lam0: 140.75 },
-    11: { phi0: 44.0, lam0: 141.333333333 },
-    12: { phi0: 44.0, lam0: 142.25 },
-    13: { phi0: 44.0, lam0: 144.0 },
-    14: { phi0: 26.0, lam0: 142.0 },
-    15: { phi0: 26.0, lam0: 127.5 },
-    16: { phi0: 26.0, lam0: 124.0 },
-    17: { phi0: 26.0, lam0: 131.0 }
-  };
-  const zConfig = zones[zone] || zones[9];
-  const phi0 = zConfig.phi0 * Math.PI / 180;
-  const lam0 = zConfig.lam0 * Math.PI / 180;
-  const m0 = 0.9999;
-
-  const phi = lat * Math.PI / 180;
-  const lam = lon * Math.PI / 180;
-
-  const a = 6378137.0;
-  const f = 1 / 298.257222101;
-  const b = a * (1 - f);
-  const e2 = (a * a - b * b) / (a * a);
-  const e2_prime = (a * a - b * b) / (b * b);
-
-  function m(latRad) {
-    const n_val = f / (2 - f);
-    const A_val = (a / (1 + n_val)) * (1 + n_val * n_val / 4 + Math.pow(n_val, 4) / 64);
-    const b_val = (3 * n_val / 2) - (9 * Math.pow(n_val, 3) / 16);
-    const c_val = (15 * Math.pow(n_val, 2) / 16) - (15 * Math.pow(n_val, 4) / 32);
-    const d_val = (35 * Math.pow(n_val, 3) / 48);
-    const e_val = (315 * Math.pow(n_val, 4) / 512);
-    return A_val * (latRad - b_val * Math.sin(2 * latRad) + c_val * Math.sin(4 * latRad) - d_val * Math.sin(6 * latRad) + e_val * Math.sin(8 * latRad));
-  }
-
-  const S = m(phi);
-  const S0 = m(phi0);
-  const N = a / Math.sqrt(1 - e2 * Math.sin(phi) * Math.sin(phi));
-  const T = Math.tan(phi) * Math.tan(phi);
-  const C = e2_prime * Math.cos(phi) * Math.cos(phi);
-  const A_diff = (lam - lam0) * Math.cos(phi);
-
-  const xCalc = S - S0 + N * Math.tan(phi) * (A_diff * A_diff / 2 + (5 - T + 9 * C + 4 * C * C) * Math.pow(A_diff, 4) / 24);
-  const yCalc = N * (A_diff + (1 - T + C) * Math.pow(A_diff, 3) / 6);
-
-  return { x: xCalc * m0, y: yCalc * m0 };
-}
-
-function startGeolocation() {
-  if (!('geolocation' in navigator)) {
-    const statusEl = document.getElementById('gps-status');
-    if (statusEl) statusEl.innerText = "GPS非対応";
-    return;
-  }
-  watchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      if (isPaused || !pos || !pos.coords) return;
-      try {
-        const curLat = pos.coords.latitude;
-        const curLon = pos.coords.longitude;
-        const curAlt = pos.coords.altitude;
-
-        latHistory.push(curLat);
-        lonHistory.push(curLon);
-
-        if (latHistory.length > SMOOTHING_SIZE) latHistory.shift();
-        if (lonHistory.length > SMOOTHING_SIZE) lonHistory.shift();
-
-        latestLat = latHistory.reduce((a, b) => a + b, 0) / latHistory.length;
-        latestLon = lonHistory.reduce((a, b) => a + b, 0) / lonHistory.length;
-
-        if (curAlt !== null) {
-          altHistory.push(curAlt);
-          if (altHistory.length > SMOOTHING_SIZE) altHistory.shift();
-          latestRawAlt = altHistory.reduce((a, b) => a + b, 0) / altHistory.length;
-        } else {
-          latestRawAlt = null;
-        }
-
-        document.getElementById('lat-display').innerText = toDMS(latestLat);
-        document.getElementById('lon-display').innerText = toDMS(latestLon);
-
-        const coords = getCurrentTransformedCoords();
-        const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);
-
-        document.getElementById('zone-display').innerText = config.selectedZone === 'auto' ? `自動(第${activeZone}系)` : `手動(第${activeZone}系)`;
-
-        if (coords) {
-          document.getElementById('grid-x').innerText = coords.x.toFixed(3) + ' m';
-          document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';
-          document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';
-
-          if (isLogging) {
-            currentSecondSamples.push({
-              x: coords.x,
-              y: coords.y,
-              z: coords.z,
-              time: Date.now()
-            });
-          }
-        }
-
-        const statusEl = document.getElementById('gps-status');
-        if (statusEl) {
-          statusEl.innerText = isLogging ? "ログ記録中" : "測位中";
-          statusEl.style.color = isLogging ? "#ef4444" : "#4ade80";
-        }
-        renderRealtimePreview();
-      } catch (err) {}
-    },
-    (err) => {
-      if (!isPaused) {
-        const statusEl = document.getElementById('gps-status');
-        if (statusEl) {
-          statusEl.innerText = "GPS待機/エラー (" + (err.code) + ")";
-          statusEl.style.color = "#ef4444";
-        }
-      }
-    },
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-  );
-}
-
-startGeolocation();
-</script>
-</body>
-</html>
+<!DOCTYPE html>  
+<html lang="ja">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
+<title>高精度平面直角座標測位アプリ (考古学フィールドワーク対応版)</title>  
+<!-- jsPDFライブラリの読み込み -->  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>  
+<!-- JSZipライブラリの読み込み -->  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>  
+<style>  
+*, *::before, *::after {  
+  box-sizing: border-box;  
+}  
+html, body {  
+  width: 100%;  
+  height: 100%;  
+  margin: 0;  
+  padding: 0;  
+  background-color: #000;  
+  color: #fff;  
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;  
+  overflow: hidden;  
+  position: fixed;  
+  touch-action: none;  
+}  
+.glass {  
+  background: rgba(0, 0, 0, 0.95);  
+  backdrop-filter: blur(4px);  
+  border-bottom: 1px solid #333;  
+  padding: 10px 12px;  
+  position: absolute;  
+  top: 0;  
+  left: 0;  
+  width: 100%;  
+  z-index: 20;  
+  max-height: 48vh;  
+  overflow-y: auto;  
+  touch-action: pan-y;  
+}  
+#preview-canvas {  
+  position: absolute;  
+  top: 0;  
+  left: 0;  
+  width: 100%;  
+  height: 100%;  
+  z-index: 5;  
+  pointer-events: none;  
+}  
+.crosshair { position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }  
+.crosshair-h { width: 40px; height: 2px; background: red; position: absolute; left: -20px; top: -1px; }  
+.crosshair-v { width: 2px; height: 40px; background: red; position: absolute; top: -20px; left: -1px; }  
+#register-panel {  
+  position: absolute;  
+  bottom: 15px;  
+  left: 50%;  
+  transform: translateX(-50%);  
+  width: 95%;  
+  max-width: 420px;  
+  background: rgba(15, 15, 15, 0.95);  
+  border: 1px solid #444;  
+  border-radius: 8px;  
+  padding: 10px 12px;  
+  z-index: 15;  
+  box-shadow: 0 4px 15px rgba(0,0,0,0.7);  
+  max-height: 42vh;  
+  overflow-y: auto;  
+  touch-action: pan-y;  
+}  
+#register-panel input { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; font-size: 13px; }  
+.flex-row { display: flex; gap: 6px; margin-top: 6px; }  
+.data-row {  
+  display: flex;  
+  justify-content: space-between;  
+  align-items: center;  
+  margin-bottom: 4px;  
+  font-size: 12px;  
+  flex-wrap: wrap;  
+  word-break: break-word;  
+  gap: 4px;  
+}  
+button { background: #222; color: #fff; border: 1px solid #555; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }  
+button:disabled { background: #555; color: #aaa; cursor: not-allowed; border-color: #666; }  
+button.success { background: #16a34a; border-color: #22c55e; }  
+button.primary { background: #2563eb; border-color: #3b82f6; }  
+button.warning { background: #d97706; border-color: #f59e0b; }  
+button.danger { background: #dc2626; border-color: #ef4444; }  
+button.record { background: #ca8a04; border-color: #eab308; color: #fff; }  
+#settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; touch-action: auto; }  
+.modal-content { background: #111; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 380px; max-width: 95%; text-align: left; max-height: 90vh; overflow-y: auto; touch-action: pan-y; }  
+.modal-content label { display: block; font-size: 12px; margin-top: 10px; color: #aaa; }  
+.modal-content select { width: 100%; background: #222; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 4px; margin-top: 4px; font-size: 13px; }  
+.point-item { background: #1a1a1a; border: 1px solid #333; padding: 6px 8px; margin-top: 6px; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }  
+</style>  
+</head>  
+<body>  
+<header class="glass">  
+  <div class="data-row" style="align-items: center;">  
+    <span id="gps-status" style="color: #fbbf24; font-weight: bold;">位置情報を取得中...</span>  
+    <div style="display: flex; gap: 4px;">  
+      <button id="pause-btn" class="warning">一時停止</button>  
+      <button id="settings-btn">管理/設定</button>  
+    </div>  
+  </div>  
+  <hr style="border:0; border-top:1px solid #333; margin: 4px 0;">  
+  <div class="data-row"><span>緯度:</span> <span id="lat-display" style="color: #22d3ee;">---</span></div>  
+  <div class="data-row"><span>経度:</span> <span id="lon-display" style="color: #22d3ee;">---</span></div>  
+  <div class="data-row"><span>適用座標系:</span> <span id="zone-display" style="color: #38bdf8; font-weight: bold;">自動判定中...</span></div>  
+  <div class="data-row"><span>平面X(北進):</span> <span id="grid-x" style="color: #4ade80; font-weight: bold; font-size: 14px;">---</span></div>  
+  <div class="data-row"><span>平面Y(東進):</span> <span id="grid-y" style="color: #4ade80; font-weight: bold; font-size: 14px;">---</span></div>  
+  <div class="data-row"><span>標高Z(補正後):</span> <span id="alt-display" style="color: #facc15; font-weight: bold; font-size: 14px;">---</span></div>  
+  <hr style="border:0; border-top:1px solid #222; margin: 4px 0;">  
+  <div class="data-row" style="font-size: 11px;">  
+    <span>育成レベル: <span id="growth-level-display" style="color: #facc15; font-weight: bold;">Lv.0 (未学習)</span></span>  
+    <span>補正状態: <span id="training-status" style="color: #fca5a5;">標準測位</span></span>  
+  </div>  
+  <div style="margin-top: 6px; display: flex; gap: 6px;">  
+    <button id="log-toggle-btn" class="primary" style="flex: 1; padding: 8px; font-size: 13px;">ログ記録開始</button>  
+    <button id="export-csv-btn" class="success" style="padding: 8px; font-size: 12px;">現状CSV出力</button>  
+  </div>  
+</header>  
+  
+<canvas id="preview-canvas"></canvas>  
+<div class="crosshair">  
+  <div class="crosshair-h"></div>  
+  <div class="crosshair-v"></div>  
+</div>  
+  
+<div id="register-panel">  
+  <div style="color: #eab308; font-weight: bold; font-size: 12px; text-align: center; margin-bottom:4px;">遺物・遺構記録点(任意測位点)の登録</div>  
+  <div class="flex-row">  
+    <input type="text" id="rec-name" placeholder="点名/遺物名(例:須恵器片01)">  
+    <button id="add-rec-btn" class="record" style="white-space: nowrap; padding: 6px 12px;">現在地を記録</button>  
+  </div>  
+  <hr style="border:0; border-top:1px solid #333; margin: 8px 0;">  
+  <div style="color: #38bdf8; font-weight: bold; font-size: 12px; text-align: center; margin-bottom:4px;">基準点(既知点)の学習登録</div>  
+  <input type="text" id="kp-name" placeholder="既知点名 (例: トレンチ基準点A)">  
+  <div class="flex-row">  
+    <input type="number" id="kp-x" placeholder="X座標(m)" step="0.001">  
+    <input type="number" id="kp-y" placeholder="Y座標(m)" step="0.001">  
+    <input type="number" id="kp-z" placeholder="Z(任意)" step="0.001" style="width: 70px;">  
+  </div>  
+  <button id="add-kp-btn" class="primary" style="width: 100%; padding: 8px; margin-top: 6px; font-size: 12px;">基準点として学習・登録</button>  
+</div>  
+  
+<div id="settings-modal">  
+  <div class="modal-content">  
+    <h3 style="font-size: 14px; margin-bottom: 10px; color: #fff; text-align: center;">設定 & データ管理</h3>  
+    <label>平面直角座標系の選択</label>  
+    <select id="zone-select">  
+      <option value="auto">自動判定(推奨)</option>  
+      <option value="1">第1系(沖縄県)</option>  
+      <option value="2">第2系(鹿児島・熊本一部)</option>  
+      <option value="3">第3系(九州中部)</option>  
+      <option value="4">第4系(四国)</option>  
+      <option value="5">第5系(中国地方)</option>  
+      <option value="6">第6系(近畿地方)</option>  
+      <option value="7">第7系(中部西側)</option>  
+      <option value="8">第8系(中部東側・関東部)</option>  
+      <option value="9">第9系(関東地方)</option>  
+      <option value="10">第10系(東北南部)</option>  
+      <option value="11">第11系(北海道道南)</option>  
+      <option value="12">第12系(北海道道央)</option>  
+      <option value="13">第13系(北海道道東)</option>  
+      <option value="14">第14系以降(島嶼部)</option>  
+    </select>  
+    <label style="display: flex; align-items: center; color: #fca5a5; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;">  
+      <input type="checkbox" id="in-invertalt" style="width: 16px; height: 16px; margin-right: 8px;">  
+      標高の上下逆転現象を直す  
+    </label>  
+    <button id="sync-auto-btn" class="success" style="width: 100%; padding: 8px; margin-top: 10px;">5秒間スタティック平均化(ブレ除去)</button>  
+    <hr style="border:0; border-top: 1px solid #333; margin: 12px 0;">  
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">  
+      <label style="color: #eab308; font-weight: bold;">登録済み遺物・記録点</label>  
+      <span id="rec-count" style="color: #eab308; font-size: 11px;">0箇所</span>  
+    </div>  
+    <div style="margin-top: 6px; max-height: 120px; overflow-y: auto; touch-action: pan-y;" id="rec-list-container"></div>  
+    <hr style="border:0; border-top: 1px solid #333; margin: 12px 0;">  
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">  
+      <label style="color: #38bdf8; font-weight: bold;">登録済み既知点(基準点)</label>  
+      <span id="growth-count" style="color: #4ade80; font-size: 11px;">0箇所</span>  
+    </div>  
+    <div style="margin-top: 6px; max-height: 120px; overflow-y: auto; touch-action: pan-y;" id="kp-list-container"></div>  
+    <hr style="border:0; border-top:1px solid #333; margin: 12px 0;">  
+    <button id="sensor-permission-btn" class="primary" style="width: 100%; padding: 8px; margin-bottom: 8px;">■ スマホセンサー (PDR) 有効化</button>  
+    <button id="clear-all-data-btn" class="danger" style="width: 100%; padding: 8px; font-size: 12px;">全データを初期化・削除</button>  
+    <div style="margin-top: 12px;">  
+      <button id="close-settings" class="success" style="width: 100%; padding: 10px; font-size: 14px;">保存して閉じる</button>  
+    </div>  
+  </div>  
+</div>  
+  
+<script>  
+'use strict';  
+  
+let isLogging = false;  
+let logTimer = null;  
+let currentSecondSamples = [];  
+let currentChunkPoints = [];  
+let allLoggedSessionPoints = [];  
+let lastLoggedPoint = null;  
+  
+const STORAGE_CSV_PREFIX = 'log_csv_';  
+const STORAGE_PDF_PREFIX = 'log_pdf_';  
+  
+const safeGetStorage = (key, defaultVal, isFloat = false) => {  
+  try {  
+    const val = localStorage.getItem(key);  
+    if (val === null) return defaultVal;  
+    return isFloat ? parseFloat(val) || defaultVal : val;  
+  } catch (e) {  
+    return defaultVal;  
+  }  
+};  
+  
+let config = {  
+  selectedZone: safeGetStorage('conf_zone', 'auto'),  
+  altOff: safeGetStorage('conf_altoff', 0, true),  
+  invertAlt: localStorage.getItem('conf_invertalt') === 'true',  
+  shiftX: safeGetStorage('conf_shiftx', 0, true),  
+  shiftY: safeGetStorage('conf_shifty', 0, true),  
+  hasCalibrated: localStorage.getItem('conf_hascalibrated') === 'true'  
+};  
+  
+let knownPoints = [];  
+try {  
+  const savedKp = localStorage.getItem('conf_known_points');  
+  if (savedKp) {  
+    const parsed = JSON.parse(savedKp);  
+    if (Array.isArray(parsed)) knownPoints = parsed;  
+  }  
+} catch (e) { knownPoints = []; }  
+  
+let recordedPoints = [];  
+try {  
+  const savedRec = localStorage.getItem('conf_recorded_points');  
+  if (savedRec) {  
+    const parsed = JSON.parse(savedRec);  
+    if (Array.isArray(parsed)) recordedPoints = parsed;  
+  }  
+} catch (e) { recordedPoints = []; }  
+  
+const SMOOTHING_SIZE = 4;  
+let latHistory = [];  
+let lonHistory = [];  
+let altHistory = [];  
+let latestLat = 0;  
+let latestLon = 0;  
+let latestRawAlt = null;  
+let watchId = null;  
+let isPaused = false;  
+let pdrX = 0;  
+let pdrY = 0;  
+let lastHeading = 0;  
+let samplingTimer = null;  
+let orientationHandler = null;  
+let motionHandler = null;  
+  
+document.getElementById('zone-select').value = config.selectedZone;  
+document.getElementById('in-invertalt').checked = config.invertAlt;  
+renderKnownPointsList();  
+renderRecordedPointsList();  
+updateGrowthUI();  
+  
+const previewCanvas = document.getElementById('preview-canvas');  
+const previewCtx = previewCanvas.getContext('2d');  
+  
+function resizePreviewCanvas() {  
+  previewCanvas.width = window.innerWidth;  
+  previewCanvas.height = window.innerHeight;  
+  renderRealtimePreview();  
+}  
+window.addEventListener('resize', resizePreviewCanvas);  
+resizePreviewCanvas();  
+  
+function getCurrentTransformedCoords() {  
+  if (latestLat === 0 || latestLon === 0) return null;  
+  const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);  
+  const rawPlane = calculatePlaneRectangular(latestLat, latestLon, activeZone);  
+  const transformed = applyHelmertTransformation(rawPlane.x, rawPlane.y);  
+  const safePdrX = isNaN(pdrX) ? 0 : pdrX;  
+  const safePdrY = isNaN(pdrY) ? 0 : pdrY;  
+  let finalX = transformed.x + safePdrX;  
+  let finalY = transformed.y + safePdrY;  
+  let finalZ = null;  
+  if (latestRawAlt !== null && !isNaN(latestRawAlt)) {  
+    let altProc = latestRawAlt;  
+    if (config.invertAlt) altProc = -altProc;  
+    finalZ = altProc + config.altOff;  
+  }  
+  return { x: finalX, y: finalY, z: finalZ };  
+}  
+  
+function renderRealtimePreview() {  
+  if (!previewCtx) return;  
+  const w = previewCanvas.width;  
+  const h = previewCanvas.height;  
+  previewCtx.clearRect(0, 0, w, h);  
+  const cx = w * 0.5;  
+  const cy = h * 0.48;  
+  const radius = 130;  
+  
+  previewCtx.save();  
+  previewCtx.beginPath();  
+  previewCtx.arc(cx, cy, radius, 0, Math.PI * 2);  
+  previewCtx.clip();  
+  
+  previewCtx.fillStyle = 'rgba(15, 23, 42, 0.4)';  
+  previewCtx.fill();  
+  previewCtx.strokeStyle = 'rgba(239, 68, 68, 0.4)';  
+  previewCtx.lineWidth = 1;  
+  previewCtx.stroke();  
+  
+  const curCoords = getCurrentTransformedCoords();  
+  if (allLoggedSessionPoints.length > 0 && curCoords) {  
+    const scale = 12;  
+    previewCtx.strokeStyle = '#ef4444';  
+    previewCtx.lineWidth = 2.5;  
+    previewCtx.beginPath();  
+    allLoggedSessionPoints.forEach((pt, idx) => {  
+      const px = cx + (pt.y - curCoords.y) * scale;  
+      const py = cy - (pt.x - curCoords.x) * scale;  
+      if (idx === 0) previewCtx.moveTo(px, py);  
+      else previewCtx.lineTo(px, py);  
+    });  
+    previewCtx.stroke();  
+  
+    allLoggedSessionPoints.forEach((pt) => {  
+      const px = cx + (pt.y - curCoords.y) * scale;  
+      const py = cy - (pt.x - curCoords.x) * scale;  
+      previewCtx.fillStyle = '#dc2626';  
+      previewCtx.beginPath();  
+      previewCtx.arc(px, py, 3, 0, Math.PI * 2);  
+      previewCtx.fill();  
+    });  
+  }  
+  previewCtx.restore();  
+}  
+  
+document.getElementById('add-rec-btn').addEventListener('click', () => {  
+  const nameInput = document.getElementById('rec-name');  
+  const userEnteredName = nameInput.value ? String(nameInput.value).trim() : "";  
+  const name = userEnteredName !== "" ? userEnteredName : `記録点_${recordedPoints.length + 1}`;  
+  const coords = getCurrentTransformedCoords();  
+  if (!coords) {  
+    alert('現在地のGPS信号が取得できていません。');  
+    return;  
+  }  
+  const newPoint = {  
+    id: Date.now(),  
+    name: name,  
+    x: coords.x,  
+    y: coords.y,  
+    z: coords.z,  
+    time: new Date().toLocaleString('ja-JP')  
+  };  
+  recordedPoints.push(newPoint);  
+  saveRecordedPoints();  
+  nameInput.value = "";  
+  renderRecordedPointsList();  
+  alert(`記録点「${name}」を記録しました!`);  
+});  
+  
+function saveRecordedPoints() {  
+  try {  
+    localStorage.setItem('conf_recorded_points', JSON.stringify(recordedPoints));  
+  } catch (e) {}  
+}  
+  
+function renderRecordedPointsList() {  
+  const container = document.getElementById('rec-list-container');  
+  const countEl = document.getElementById('rec-count');  
+  if (countEl) countEl.innerText = recordedPoints.length + '箇所';  
+  if (!container) return;  
+  container.innerHTML = '';  
+  if (recordedPoints.length === 0) {  
+    container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">記録された点はありません</div>';  
+    return;  
+  }  
+  recordedPoints.forEach((pt) => {  
+    const zStr = pt.z !== null && pt.z !== undefined ? pt.z.toFixed(2) : '---';  
+    const div = document.createElement('div');  
+    div.className = 'point-item';  
+    const infoDiv = document.createElement('div');  
+    infoDiv.style.flex = '1';  
+    infoDiv.style.minWidth = '140px';  
+    const titleDiv = document.createElement('div');  
+    titleDiv.style.color = '#eab308';  
+    titleDiv.style.fontWeight = 'bold';  
+    titleDiv.style.marginBottom = '2px';  
+    titleDiv.textContent = pt.name;  
+    const detailDiv = document.createElement('div');  
+    detailDiv.style.color = '#aaa';  
+    detailDiv.style.fontSize = '10px';  
+    detailDiv.textContent = `X: ${pt.x.toFixed(2)}, Y: ${pt.y.toFixed(2)}, Z: ${zStr}`;  
+    infoDiv.appendChild(titleDiv);  
+    infoDiv.appendChild(detailDiv);  
+    const delBtn = document.createElement('button');  
+    delBtn.className = 'danger';  
+    delBtn.style.fontSize = '10px';  
+    delBtn.style.padding = '3px 6px';  
+    delBtn.textContent = '削除';  
+    delBtn.onclick = () => deleteRecordedPoint(pt.id);  
+    div.appendChild(infoDiv);  
+    div.appendChild(delBtn);  
+    container.appendChild(div);  
+  });  
+}  
+  
+window.deleteRecordedPoint = function(id) {  
+  if (!confirm("この記録点を削除しますか?")) return;  
+  recordedPoints = recordedPoints.filter(p => p.id !== id);  
+  saveRecordedPoints();  
+  renderRecordedPointsList();  
+};  
+  
+document.getElementById('export-csv-btn').addEventListener('click', () => {  
+  if (recordedPoints.length === 0 && knownPoints.length === 0) {  
+    alert("出力する記録点・基準点データがありません。");  
+    return;  
+  }  
+  let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
+  recordedPoints.forEach(p => {  
+    const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";  
+    csvContent += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
+  });  
+  knownPoints.forEach(p => {  
+    const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : "";  
+    csvContent += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;  
+  });  
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });  
+  const url = URL.createObjectURL(blob);  
+  const a = document.createElement('a');  
+  a.href = url;  
+  a.download = `測量登録点_${Date.now()}.csv`;  
+  document.body.appendChild(a);  
+  a.click();  
+  document.body.removeChild(a);  
+  URL.revokeObjectURL(url);  
+});  
+  
+function formatTimestamp(d = new Date()) {  
+  const pad = n => String(n).padStart(2, '0');  
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;  
+}  
+  
+function saveCsvToStorage(points) {  
+  if (!points || points.length === 0) return null;  
+  const timeStr = formatTimestamp(new Date(points[0].time));  
+  const fileName = `${timeStr}.csv`;  
+  const storageKey = `${STORAGE_CSV_PREFIX}${fileName}`;  
+  let csvContent = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
+  points.forEach((p, idx) => {  
+    const tStr = new Date(p.time).toLocaleString('ja-JP');  
+    const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";  
+    csvContent += `軌跡ログ,Track_${idx+1},${tStr},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
+  });  
+  try {  
+    localStorage.setItem(storageKey, csvContent);  
+    return fileName;  
+  } catch (e) {  
+    console.error("ブラウザストレージの容量制限に達した可能性があります。", e);  
+    return null;  
+  }  
+}  
+  
+function clearAllLogStorage() {  
+  try {  
+    const keysToRemove = [];  
+    for (let i = 0; i < localStorage.length; i++) {  
+      const key = localStorage.key(i);  
+      if (key && (key.startsWith(STORAGE_CSV_PREFIX) || key.startsWith(STORAGE_PDF_PREFIX))) {  
+        keysToRemove.push(key);  
+      }  
+    }  
+    keysToRemove.forEach(k => localStorage.removeItem(k));  
+  } catch (e) {}  
+}  
+  
+document.getElementById('clear-all-data-btn').addEventListener('click', () => {  
+  if (confirm("これまでに保存された全記録点・基準点・ログが完全に消去されます。\nデータを一括リセットしますか?")) {  
+    localStorage.clear();  
+    recordedPoints = [];  
+    knownPoints = [];  
+    currentChunkPoints = [];  
+    allLoggedSessionPoints = [];  
+    currentSecondSamples = [];  
+    lastLoggedPoint = null;  
+    config.shiftX = 0;  
+    config.shiftY = 0;  
+    config.hasCalibrated = false;  
+    renderRecordedPointsList();  
+    renderKnownPointsList();  
+    updateGrowthUI();  
+    renderRealtimePreview();  
+    alert("全データを正常に初期化・消去しました。");  
+  }  
+});  
+  
+const logToggleBtn = document.getElementById('log-toggle-btn');  
+logToggleBtn.addEventListener('click', async () => {  
+  if (!isLogging) {  
+    currentChunkPoints = [];  
+    allLoggedSessionPoints = [];  
+    currentSecondSamples = [];  
+    lastLoggedPoint = null;  
+    isLogging = true;  
+    logToggleBtn.innerText = "ログ停止・出力 (Zip生成)";  
+    logToggleBtn.className = "danger";  
+  
+    logTimer = setInterval(() => {  
+      if (!isLogging) return;  
+      let evalPoint = null;  
+      if (currentSecondSamples.length > 0) {  
+        const sumX = currentSecondSamples.reduce((a,b)=>a+b.x,0);  
+        const sumY = currentSecondSamples.reduce((a,b)=>a+b.y,0);  
+        let sumZ = 0, zCount = 0;  
+        currentSecondSamples.forEach(p => {  
+          if (p.z !== null && p.z !== undefined && !isNaN(p.z)) {  
+            sumZ += p.z;  
+            zCount++;  
+          }  
+        });  
+        evalPoint = {  
+          x: sumX / currentSecondSamples.length,  
+          y: sumY / currentSecondSamples.length,  
+          z: zCount > 0 ? sumZ / zCount : null,  
+          time: currentSecondSamples[currentSecondSamples.length - 1].time  
+        };  
+        currentSecondSamples = [];  
+      } else {  
+        const coords = getCurrentTransformedCoords();  
+        if (coords && !isNaN(coords.x) && !isNaN(coords.y)) {  
+          evalPoint = {  
+            x: coords.x,  
+            y: coords.y,  
+            z: coords.z,  
+            time: Date.now()  
+          };  
+        }  
+      }  
+  
+      if (evalPoint) {  
+        let shouldLog = false;  
+        if (!lastLoggedPoint) {  
+          shouldLog = true;  
+        } else {  
+          const dx = evalPoint.x - lastLoggedPoint.x;  
+          const dy = evalPoint.y - lastLoggedPoint.y;  
+          const dist = Math.sqrt(dx * dx + dy * dy);  
+          if (dist >= 0.5) {  
+            shouldLog = true;  
+          }  
+        }  
+        if (shouldLog) {  
+          currentChunkPoints.push(evalPoint);  
+          allLoggedSessionPoints.push(evalPoint);  
+          lastLoggedPoint = evalPoint;  
+          if (currentChunkPoints.length >= 1000) {  
+            saveCsvToStorage(currentChunkPoints);  
+            currentChunkPoints = [];  
+          }  
+        }  
+      }  
+    }, 1000);  
+  } else {  
+    isLogging = false;  
+    if (logTimer !== null) {  
+      clearInterval(logTimer);  
+      logTimer = null;  
+    }  
+    logToggleBtn.innerText = "処理中...";  
+    logToggleBtn.disabled = true;  
+  
+    if (currentChunkPoints.length > 0) {  
+      saveCsvToStorage(currentChunkPoints);  
+      currentChunkPoints = [];  
+    }  
+  
+    await processStorageLogsAndGeneratePDFs();  
+    await packageAndDownloadZip();  
+    clearAllLogStorage();  
+    allLoggedSessionPoints = [];  
+    renderRealtimePreview();  
+    logToggleBtn.innerText = "ログ記録開始";  
+    logToggleBtn.className = "primary";  
+    logToggleBtn.disabled = false;  
+  }  
+});  
+  
+function parseCsvToLogPoints(csvText) {  
+  const lines = csvText.split('\n');  
+  const points = [];  
+  for (let i = 1; i < lines.length; i++) {  
+    const line = lines[i].trim();  
+    if (!line) continue;  
+    const cols = line.split(',');  
+    if (cols.length >= 5) {  
+      const x = parseFloat(cols[3]);  
+      const y = parseFloat(cols[4]);  
+      const z = cols[5] ? parseFloat(cols[5]) : null;  
+      if (!isNaN(x) && !isNaN(y)) {  
+        points.push({ x, y, z });  
+      }  
+    }  
+  }  
+  return points;  
+}  
+  
+async function processStorageLogsAndGeneratePDFs() {  
+  const csvKeys = [];  
+  for (let i = 0; i < localStorage.length; i++) {  
+    const key = localStorage.key(i);  
+    if (key && key.startsWith(STORAGE_CSV_PREFIX)) {  
+      csvKeys.push(key);  
+    }  
+  }  
+  
+  for (const key of csvKeys) {  
+    const csvContent = localStorage.getItem(key);  
+    if (!csvContent) continue;  
+    const baseFileName = key.replace(STORAGE_CSV_PREFIX, "").replace('.csv', "");  
+    const logPoints = parseCsvToLogPoints(csvContent);  
+    const doc = await generatePDFReportForLogAsync(logPoints, baseFileName);  
+    if (doc) {  
+      try {  
+        const pdfDataUri = doc.output('datauristring');  
+        const pdfKey = `${STORAGE_PDF_PREFIX}${baseFileName}.pdf`;  
+        localStorage.setItem(pdfKey, pdfDataUri);  
+      } catch (e) {  
+        console.error("PDFのストレージ保存中にエラーが発生しました:", e);  
+      }  
+    }  
+  }  
+}  
+  
+async function packageAndDownloadZip() {  
+  if (typeof window.JSZip === 'undefined') {  
+    alert('JSZipライブラリがロードされていません。');  
+    return;  
+  }  
+  const zip = new window.JSZip();  
+  let fileCount = 0;  
+  for (let i = 0; i < localStorage.length; i++) {  
+    const key = localStorage.key(i);  
+    if (!key) continue;  
+    if (key.startsWith(STORAGE_CSV_PREFIX)) {  
+      const fileName = key.replace(STORAGE_CSV_PREFIX, "");  
+      const content = localStorage.getItem(key);  
+      zip.file(`csv/${fileName}`, content);  
+      fileCount++;  
+    } else if (key.startsWith(STORAGE_PDF_PREFIX)) {  
+      const fileName = key.replace(STORAGE_PDF_PREFIX, "");  
+      const dataUri = localStorage.getItem(key);  
+      const base64Data = dataUri.split(',')[1];  
+      zip.file(`pdf/${fileName}`, base64Data, { base64: true });  
+      fileCount++;  
+    }  
+  }  
+  
+  if (fileCount === 0) {  
+    alert("出力対象のログデータが存在しません。");  
+    return;  
+  }  
+  
+  if (recordedPoints.length > 0 || knownPoints.length > 0) {  
+    let masterCsv = "\uFEFF種別,名称/ID,日時,X座標(m),Y座標(m),Z標高(m)\n";  
+    recordedPoints.forEach(p => {  
+      const zVal = p.z !== null && p.z !== undefined ? p.z.toFixed(3) : "";  
+      masterCsv += `記録点,"${p.name.replace(/"/g, '""')}",${p.time || ""},${p.x.toFixed(3)},${p.y.toFixed(3)},${zVal}\n`;  
+    });  
+    knownPoints.forEach(p => {  
+      const zVal = p.targetZ !== null && p.targetZ !== undefined ? p.targetZ.toFixed(3) : "";  
+      masterCsv += `基準点,"${p.name.replace(/"/g, '""')}",,${p.targetX.toFixed(3)},${p.targetY.toFixed(3)},${zVal}\n`;  
+    });  
+    zip.file('registered_points_master.csv', masterCsv);  
+  }  
+  
+  const content = await zip.generateAsync({ type: 'blob' });  
+  const url = URL.createObjectURL(content);  
+  const a = document.createElement('a');  
+  a.href = url;  
+  a.download = `測量ログ成果物一式_${formatTimestamp()}.zip`;  
+  document.body.appendChild(a);  
+  a.click();  
+  document.body.removeChild(a);  
+  URL.revokeObjectURL(url);  
+}  
+  
+function generatePDFReportForLogAsync(logPoints, titleTimeStr) {  
+  return new Promise((resolve) => {  
+    try {  
+      if (typeof window.jspdf === 'undefined') {  
+        resolve(null);  
+        return;  
+      }  
+      const validLog = logPoints.filter(p => !isNaN(p.x) && !isNaN(p.y));  
+      const validKnown = knownPoints.filter(kp => !isNaN(kp.targetX) && !isNaN(kp.targetY));  
+      const validRec = recordedPoints.filter(rp => !isNaN(rp.x) && !isNaN(rp.y));  
+  
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;  
+      const allPoints = [  
+        ...validLog.map(p => ({ x: p.x, y: p.y })),  
+        ...validKnown.map(p => ({ x: p.targetX, y: p.targetY })),  
+        ...validRec.map(p => ({ x: p.x, y: p.y }))  
+      ];  
+  
+      allPoints.forEach(p => {  
+        if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;  
+        if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;  
+      });  
+  
+      if (minX === Infinity) { minX = 0; maxX = 10; minY = 0; maxY = 10; }  
+  
+      let spanX = maxX - minX;  
+      let spanY = maxY - minY;  
+      if (spanX < 1) spanX = 1;  
+      if (spanY < 1) spanY = 1;  
+  
+      const { jsPDF } = window.jspdf;  
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });  
+      
+      // フォント設定（標準Helveticaフォントを使用しエラー回避）
+      const hasJPFont = false;  
+      doc.setFont('helvetica');
+
+      const marginLeft = 20;  
+      const marginTop = 25;  
+      const drawWidth = 380;  
+      const drawHeight = 245;  
+      const marginRatio = 0.1;  
+  
+      const totalMetersX = spanX * (1 + marginRatio * 2);  
+      const totalMetersY = spanY * (1 + marginRatio * 2);  
+  
+      const scaleX = drawHeight / totalMetersX;  
+      const scaleY = drawWidth / totalMetersY;  
+      const scale = Math.min(scaleX, scaleY);  
+  
+      const centerX = (minX + maxX) / 2;  
+      const centerY = (minY + maxY) / 2;  
+  
+      const pageMinX = centerX - (drawHeight / scale) / 2;  
+      const pageMaxX = centerX + (drawHeight / scale) / 2;  
+      const pageMinY = centerY - (drawWidth / scale) / 2;  
+      const pageMaxY = centerY + (drawWidth / scale) / 2;  
+  
+      const scaleDenominator = Math.round(1000 / scale);  
+  
+      let gridInterval = 10;  
+      const maxSpan = Math.max(spanX, spanY);  
+      if (maxSpan <= 10) gridInterval = 1;  
+      else if (maxSpan <= 50) gridInterval = 5;  
+      else if (maxSpan <= 200) gridInterval = 10;  
+      else if (maxSpan <= 500) gridInterval = 50;  
+      else if (maxSpan <= 2000) gridInterval = 100;  
+      else if (maxSpan <= 5000) gridInterval = 500;  
+      else gridInterval = 1000;  
+  
+      doc.setFontSize(16);  
+      doc.setTextColor(17, 24, 39);  
+      doc.text(`Archaeological Survey Report (${titleTimeStr})`, 15, 12);  
+      doc.setFontSize(9);  
+      doc.setTextColor(75, 85, 99);  
+      doc.text(`Scale: 1/${scaleDenominator.toLocaleString()} | Record Points: ${validRec.length} | Known Points: ${validKnown.length} | Log Points: ${validLog.length}`, 15, 18);  
+  
+      function toPdfCoord(x, y) {  
+        const px = marginLeft + (y - pageMinY) * scale;  
+        const py = marginTop + drawHeight - ((x - pageMinX) * scale);  
+        return { x: px, y: py };  
+      }  
+  
+      function isPointInPage(x, y) {  
+        return x >= pageMinX && x <= pageMaxX && y >= pageMinY && y <= pageMaxY;  
+      }  
+  
+      doc.setDrawColor(55, 65, 81);  
+      doc.setLineWidth(0.4);  
+      doc.rect(marginLeft, marginTop, drawWidth, drawHeight);  
+  
+      const startX = Math.floor(pageMinX / gridInterval) * gridInterval;  
+      const endX = Math.ceil(pageMaxX / gridInterval) * gridInterval;  
+      const startY = Math.floor(pageMinY / gridInterval) * gridInterval;  
+      const endY = Math.ceil(pageMaxY / gridInterval) * gridInterval;  
+  
+      doc.setDrawColor(229, 231, 235);  
+      doc.setLineWidth(0.15);  
+      doc.setFontSize(7);  
+      doc.setTextColor(107, 114, 128);  
+  
+      for (let yVal = startY; yVal <= endY; yVal += gridInterval) {  
+        const p = toPdfCoord(pageMinX, yVal);  
+        if (p.x >= marginLeft && p.x <= marginLeft + drawWidth) {  
+          doc.line(p.x, marginTop, p.x, marginTop + drawHeight);  
+          doc.text(`Y:${yVal}m`, p.x, marginTop + drawHeight + 4, { align: 'center' });  
+        }  
+      }  
+  
+      for (let xVal = startX; xVal <= endX; xVal += gridInterval) {  
+        const p = toPdfCoord(xVal, pageMinY);  
+        if (p.y >= marginTop && p.y <= marginTop + drawHeight) {  
+          doc.line(marginLeft, p.y, marginLeft + drawWidth, p.y);  
+          doc.text(`X:${xVal}m`, marginLeft - 1.5, p.y + 1, { align: 'right' });  
+        }  
+      }  
+  
+      if (validLog.length > 0) {  
+        doc.setDrawColor(239, 68, 68);  
+        doc.setLineWidth(0.5);  
+        if (validLog.length === 1) {  
+          if (isPointInPage(validLog[0].x, validLog[0].y)) {  
+            const cv = toPdfCoord(validLog[0].x, validLog[0].y);  
+            doc.setFillColor(239, 68, 68);  
+            doc.circle(cv.x, cv.y, 0.6, 'F');  
+          }  
+        } else {  
+          const firstValidIdx = validLog.findIndex(p => isPointInPage(p.x, p.y));  
+          if (firstValidIdx !== -1) {  
+            let pathCmds = [];  
+            let drawing = false;  
+  
+            for (let i = firstValidIdx; i < validLog.length - 1; i++) {  
+              const p0 = validLog[i];  
+              const p1 = validLog[i + 1];  
+              if (!isPointInPage(p1.x, p1.y)) {  
+                drawing = false;  
+                continue;  
+              }  
+              const cv0 = toPdfCoord(p0.x, p0.y);  
+              const cv1 = toPdfCoord(p1.x, p1.y);  
+  
+              if (!drawing) {  
+                pathCmds.push({ op: 'm', c: [cv0.x, cv0.y] });  
+                drawing = true;  
+              }  
+  
+              const midX = (cv0.x + cv1.x) / 2;  
+              const midY = (cv0.y + cv1.y) / 2;  
+              const pPrev = (pathCmds.length > 0 && pathCmds[pathCmds.length-1].c) ?  
+                {x: pathCmds[pathCmds.length-1].c[pathCmds[pathCmds.length-1].c.length-2], y: pathCmds[pathCmds.length-1].c[pathCmds[pathCmds.length-1].c.length-1]} : cv0;  
+  
+              const c1x = pPrev.x + (2/3)*(cv0.x - pPrev.x);  
+              const c1y = pPrev.y + (2/3)*(cv0.y - pPrev.y);  
+              const c2x = midX + (2/3)*(cv0.x - midX);  
+              const c2y = midY + (2/3)*(cv0.y - midY);  
+  
+              pathCmds.push({ op: 'c', c: [c1x, c1y, c2x, c2y, midX, midY] });  
+            }  
+  
+            const lastP = validLog[validLog.length - 1];  
+            if (isPointInPage(lastP.x, lastP.y) && drawing) {  
+              const lastCv = toPdfCoord(lastP.x, lastP.y);  
+              pathCmds.push({ op: 'l', c: [lastCv.x, lastCv.y] });  
+            }  
+  
+            if (pathCmds.length > 0) {  
+              doc.path(pathCmds);  
+              doc.stroke();  
+            }  
+          }  
+        }  
+  
+        doc.setFillColor(239, 68, 68);  
+        validLog.forEach(p => {  
+          if (isPointInPage(p.x, p.y)) {  
+            const cv = toPdfCoord(p.x, p.y);  
+            doc.circle(cv.x, cv.y, 0.5, 'F');  
+          }  
+        });  
+      }  
+  
+      let scaleMeters = gridInterval;  
+      let scalePx = scaleMeters * scale;  
+      if (scalePx < 10) {  
+        scaleMeters *= 2;  
+        scalePx = scaleMeters * scale;  
+      }  
+      const sbX = marginLeft + 5;  
+      const sbY = marginTop + drawHeight - 5;  
+      doc.setDrawColor(17, 24, 39);  
+      doc.setLineWidth(0.5);  
+      doc.line(sbX, sbY, sbX + scalePx, sbY);  
+      doc.line(sbX, sbY - 1.5, sbX, sbY + 1.5);  
+      doc.line(sbX + scalePx, sbY - 1.5, sbX + scalePx, sbY + 1.5);  
+      doc.setFontSize(8);  
+      doc.setTextColor(17, 24, 39);  
+      doc.text('0', sbX, sbY - 2, { align: 'center' });  
+      doc.text(`${scaleMeters}m`, sbX + scalePx, sbY - 2, { align: 'center' });  
+  
+      function drawAnnotatedPointPDF(ptX, ptY, ptZ, rawName, colorRGB, labelPrefix) {  
+        if (!isPointInPage(ptX, ptY)) return;  
+        const cvPt = toPdfCoord(ptX, ptY);  
+        const nameStr = String(rawName || 'Unnamed');  
+        const zText = ptZ !== null && ptZ !== undefined ? ptZ.toFixed(3) : '---';  
+        const titleText = `${labelPrefix}${nameStr}`;  
+  
+        doc.setFillColor(colorRGB.r, colorRGB.g, colorRGB.b);  
+        doc.setDrawColor(0, 0, 0);  
+        doc.setLineWidth(0.3);  
+        doc.circle(cvPt.x, cvPt.y, 1.2, 'FD');  
+  
+        doc.setFontSize(8);  
+        const titleWidth = doc.getTextWidth(titleText);  
+        const boxWidth = Math.max(titleWidth, 25) + 4;  
+        const boxHeight = 14;  
+  
+        let offsetX = cvPt.x > (marginLeft + drawWidth / 2) ? -boxWidth - 6 : 6;  
+        let offsetY = cvPt.y > (marginTop + drawHeight / 2) ? -boxHeight - 3 : 3;  
+  
+        let textX = cvPt.x + offsetX;  
+        let textY = cvPt.y + offsetY;  
+  
+        const lineTargetX = textX < cvPt.x ? textX + boxWidth : textX;  
+        const lineTargetY = textY + boxHeight / 2;  
+  
+        doc.setDrawColor(75, 85, 99);  
+        doc.setLineWidth(0.25);  
+        doc.line(cvPt.x, cvPt.y, lineTargetX, lineTargetY);  
+  
+        doc.setFillColor(255, 255, 255);  
+        doc.setDrawColor(156, 163, 175);  
+        doc.setLineWidth(0.2);  
+        doc.rect(textX, textY, boxWidth, boxHeight, 'FD');  
+  
+        doc.setTextColor(0, 0, 0);  
+        doc.setFontSize(7.5);  
+        doc.text(titleText, textX + 1.5, textY + 3.5);  
+        doc.setFontSize(6.5);  
+        doc.setTextColor(31, 41, 55);  
+        doc.text(`X: ${ptX.toFixed(3)}`, textX + 1.5, textY + 6.8);  
+        doc.text(`Y: ${ptY.toFixed(3)}`, textX + 1.5, textY + 9.8);  
+        doc.text(`Z: ${zText}`, textX + 1.5, textY + 12.8);  
+      }  
+  
+      const knownPrefix = "Ref: ";  
+      const recPrefix = "Rec: ";  
+  
+      validKnown.forEach(kp => {  
+        drawAnnotatedPointPDF(kp.targetX, kp.targetY, kp.targetZ, kp.name, { r: 37, g: 99, b: 235 }, knownPrefix);  
+      });  
+  
+      validRec.forEach(rp => {  
+        drawAnnotatedPointPDF(rp.x, rp.y, rp.z, rp.name, { r: 234, g: 179, b: 8 }, recPrefix);  
+      });  
+  
+      resolve(doc);  
+    } catch (err) {  
+      console.error("PDF描画エラー:", err);  
+      resolve(null);  
+    }  
+  });  
+}  
+  
+document.getElementById('settings-btn').addEventListener('click', () => {  
+  document.getElementById('settings-modal').style.display = 'flex';  
+});  
+  
+document.getElementById('close-settings').addEventListener('click', () => {  
+  try {  
+    config.selectedZone = document.getElementById('zone-select').value;  
+    config.invertAlt = document.getElementById('in-invertalt').checked;  
+    localStorage.setItem('conf_zone', config.selectedZone);  
+    localStorage.setItem('conf_invertalt', config.invertAlt);  
+  } catch (e) {}  
+  document.getElementById('settings-modal').style.display = 'none';  
+});  
+  
+const pauseBtn = document.getElementById('pause-btn');  
+pauseBtn.addEventListener('click', () => {  
+  if (!isPaused) {  
+    releaseResources();  
+    isPaused = true;  
+    pauseBtn.innerText = "測定再開";  
+    pauseBtn.className = "success";  
+    document.getElementById('gps-status').innerText = "測定一時停止中";  
+    document.getElementById('gps-status').style.color = "#9ca3af";  
+    latHistory = []; lonHistory = []; altHistory = [];  
+  } else {  
+    isPaused = false;  
+    pauseBtn.innerText = "一時停止";  
+    pauseBtn.className = "warning";  
+    startGeolocation();  
+  }  
+});  
+  
+function releaseResources() {  
+  if (watchId !== null && 'geolocation' in navigator) {  
+    navigator.geolocation.clearWatch(watchId);  
+    watchId = null;  
+  }  
+  if (samplingTimer !== null) {  
+    clearInterval(samplingTimer);  
+    samplingTimer = null;  
+  }  
+}  
+  
+window.addEventListener('beforeunload', () => {  
+  releaseResources();  
+  if (logTimer !== null) clearInterval(logTimer);  
+  if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);  
+  if (motionHandler) window.removeEventListener('devicemotion', motionHandler);  
+});  
+  
+document.getElementById('add-kp-btn').addEventListener('click', () => {  
+  const nameInput = document.getElementById('kp-name');  
+  const xInput = document.getElementById('kp-x');  
+  const yInput = document.getElementById('kp-y');  
+  const zInput = document.getElementById('kp-z');  
+  
+  const userKpName = nameInput.value ? String(nameInput.value).trim() : "";  
+  const name = userKpName !== "" ? userKpName : `既知点_${knownPoints.length + 1}`;  
+  const targetX = parseFloat(xInput.value);  
+  const targetY = parseFloat(yInput.value);  
+  const targetZ = parseFloat(zInput.value);  
+  
+  if (isNaN(targetX) || isNaN(targetY)) {  
+    alert('有効な既知のX座標およびY座標を入力してください。');  
+    return;  
+  }  
+  if (latestLat === 0 || latestLon === 0) {  
+    alert('現在地のGPS信号がまだ取得できていません。');  
+    return;  
+  }  
+  
+  const btn = document.getElementById('add-kp-btn');  
+  btn.disabled = true;  
+  
+  let samplesLat = [];  
+  let samplesLon = [];  
+  let samplesAlt = [];  
+  let secondsLeft = 5;  
+  
+  if (samplingTimer !== null) clearInterval(samplingTimer);  
+  btn.innerText = `座標取得中... 残り${secondsLeft}秒`;  
+  
+  samplingTimer = setInterval(() => {  
+    try {  
+      if (latestLat !== 0) {  
+        samplesLat.push(latestLat);  
+        samplesLon.push(latestLon);  
+        if (latestRawAlt !== null) samplesAlt.push(latestRawAlt);  
+      }  
+      secondsLeft--;  
+      btn.innerText = `座標取得中... 残り${secondsLeft}秒`;  
+  
+      if (secondsLeft <= 0) {  
+        clearInterval(samplingTimer);  
+        samplingTimer = null;  
+        btn.disabled = false;  
+        btn.innerText = '基準点として学習・登録';  
+  
+        if (samplesLat.length === 0) {  
+          alert('GPSデータの取得に失敗しました。');  
+          return;  
+        }  
+  
+        const avgLat = samplesLat.reduce((a,b)=>a+b,0) / samplesLat.length;  
+        const avgLon = samplesLon.reduce((a,b)=>a+b,0) / samplesLon.length;  
+        const avgAlt = samplesAlt.length > 0 ? samplesAlt.reduce((a,b)=>a+b,0) / samplesAlt.length : null;  
+  
+        const activeZone = config.selectedZone === 'auto' ? getAutoZone(avgLat, avgLon) : parseInt(config.selectedZone);  
+        const rawPlane = calculatePlaneRectangular(avgLat, avgLon, activeZone);  
+  
+        const diffX = targetX - rawPlane.x;  
+        const diffY = targetY - rawPlane.y;  
+        let diffZ = 0;  
+        if (!isNaN(targetZ) && avgAlt !== null) {  
+          let rawProc = avgAlt;  
+          if (config.invertAlt) rawProc = -rawProc;  
+          diffZ = targetZ - rawProc;  
+        }  
+  
+        const newPoint = {  
+          id: Date.now(),  
+          name: name,  
+          lat: avgLat, lon: avgLon,  
+          targetX: targetX, targetY: targetY, targetZ: !isNaN(targetZ) ? targetZ : null,  
+          shiftX: diffX, shiftY: diffY, shiftZ: diffZ  
+        };  
+  
+        knownPoints.push(newPoint);  
+        saveKnownPoints();  
+  
+        nameInput.value = ""; xInput.value = ""; yInput.value = ""; zInput.value = "";  
+        renderKnownPointsList();  
+        updateGrowthUI();  
+        alert(`既知点「${name}」を学習登録しました!`);  
+      }  
+    } catch (e) {  
+      if (samplingTimer) {  
+        clearInterval(samplingTimer);  
+        samplingTimer = null;  
+        btn.disabled = false;  
+        btn.innerText = '基準点として学習・登録';  
+      }  
+    }  
+  }, 1000);  
+});  
+  
+function saveKnownPoints() {  
+  try {  
+    localStorage.setItem('conf_known_points', JSON.stringify(knownPoints));  
+  } catch (e) {}  
+}  
+  
+function renderKnownPointsList() {  
+  const container = document.getElementById('kp-list-container');  
+  const countEl = document.getElementById('growth-count');  
+  if (countEl) countEl.innerText = knownPoints.length + '箇所';  
+  if (!container) return;  
+  container.innerHTML = '';  
+  
+  if (knownPoints.length === 0) {  
+    container.innerHTML = '<div style="font-size:11px; color:#666; text-align:center; padding:6px;">登録された既知点はありません</div>';  
+    return;  
+  }  
+  
+  knownPoints.forEach((kp) => {  
+    const zStr = kp.targetZ !== null && kp.targetZ !== undefined ? kp.targetZ.toFixed(2) : '---';  
+    const div = document.createElement('div');  
+    div.className = 'point-item';  
+    const infoDiv = document.createElement('div');  
+    infoDiv.style.flex = '1';  
+    infoDiv.style.minWidth = '140px';  
+    const titleDiv = document.createElement('div');  
+    titleDiv.style.color = '#fff';  
+    titleDiv.style.fontWeight = 'bold';  
+    titleDiv.style.marginBottom = '2px';  
+    titleDiv.textContent = kp.name;  
+    const detailDiv = document.createElement('div');  
+    detailDiv.style.color = '#888';  
+    detailDiv.style.fontSize = '10px';  
+    detailDiv.textContent = `X: ${kp.targetX.toFixed(2)}, Y: ${kp.targetY.toFixed(2)}, Z: ${zStr}`;  
+    infoDiv.appendChild(titleDiv);  
+    infoDiv.appendChild(detailDiv);  
+  
+    const btnGroup = document.createElement('div');  
+    const editBtn = document.createElement('button');  
+    editBtn.className = 'primary';  
+    editBtn.style.fontSize = '10px';  
+    editBtn.style.padding = '3px 6px';  
+    editBtn.style.marginRight = '2px';  
+    editBtn.textContent = '編集';  
+    editBtn.onclick = () => editKnownPoint(kp.id);  
+  
+    const delBtn = document.createElement('button');  
+    delBtn.className = 'danger';  
+    delBtn.style.fontSize = '10px';  
+    delBtn.style.padding = '3px 6px';  
+    delBtn.textContent = '削除';  
+    delBtn.onclick = () => deleteKnownPoint(kp.id);  
+  
+    btnGroup.appendChild(editBtn);  
+    btnGroup.appendChild(delBtn);  
+    div.appendChild(infoDiv);  
+    div.appendChild(btnGroup);  
+    container.appendChild(div);  
+  });  
+}  
+  
+window.editKnownPoint = function(id) {  
+  const kp = knownPoints.find(p => p.id === id);  
+  if (!kp) return;  
+  
+  const newName = prompt("既知点名を変更", kp.name);  
+  if (newName === null) return;  
+  const newXStr = prompt("X座標(北進)を変更", kp.targetX);  
+  if (newXStr === null) return;  
+  const newYStr = prompt("Y座標(東進)を変更", kp.targetY);  
+  if (newYStr === null) return;  
+  
+  const newX = parseFloat(newXStr);  
+  const newY = parseFloat(newYStr);  
+  
+  if (isNaN(newX) || isNaN(newY)) {  
+    alert("有効な数値を入力してください。");  
+    return;  
+  }  
+  
+  const rawX = kp.targetX - kp.shiftX;  
+  const rawY = kp.targetY - kp.shiftY;  
+  
+  kp.name = newName.trim() || kp.name;  
+  kp.targetX = newX;  
+  kp.targetY = newY;  
+  kp.shiftX = newX - rawX;  
+  kp.shiftY = newY - rawY;  
+  
+  saveKnownPoints();  
+  renderKnownPointsList();  
+  updateGrowthUI();  
+};  
+  
+window.deleteKnownPoint = function(id) {  
+  if (!confirm("この既知点を削除しますか?")) return;  
+  knownPoints = knownPoints.filter(p => p.id !== id);  
+  saveKnownPoints();  
+  renderKnownPointsList();  
+  updateGrowthUI();  
+};  
+  
+function updateGrowthUI() {  
+  const count = knownPoints.length;  
+  const levelEl = document.getElementById('growth-level-display');  
+  const statusEl = document.getElementById('training-status');  
+  
+  if (count >= 3) {  
+    if (levelEl) { levelEl.innerText = "Lv.3 (面補正)"; levelEl.style.color = "#4ade80"; }  
+    if (statusEl) { statusEl.innerText = "ヘルメルト変換"; statusEl.style.color = "#4ade80"; }  
+  } else if (count === 2) {  
+    if (levelEl) { levelEl.innerText = "Lv.2 (線補正)"; levelEl.style.color = "#38bdf8"; }  
+    if (statusEl) { statusEl.innerText = "ヘルメルト変換"; statusEl.style.color = "#38bdf8"; }  
+  } else if (count === 1) {  
+    if (levelEl) { levelEl.innerText = "Lv.1 (点補正)"; levelEl.style.color = "#facc15"; }  
+    if (statusEl) { statusEl.innerText = "単純平行移動"; statusEl.style.color = "#facc15"; }  
+  } else {  
+    if (levelEl) { levelEl.innerText = "Lv.0 (未学習)"; levelEl.style.color = "#9ca3af"; }  
+    if (statusEl) { statusEl.innerText = "標準測位"; statusEl.style.color = "#fca5a5"; }  
+  }  
+}  
+  
+function applyHelmertTransformation(rawX, rawY) {  
+  const n = knownPoints.length;  
+  if (n === 0) return { x: rawX + config.shiftX, y: rawY + config.shiftY };  
+  if (n === 1) return { x: rawX + knownPoints[0].shiftX, y: rawY + knownPoints[0].shiftY };  
+  
+  let sum_x = 0, sum_y = 0, sum_X = 0, sum_Y = 0;  
+  const points = knownPoints.map(kp => {  
+    const rX = kp.targetX - kp.shiftX;  
+    const rY = kp.targetY - kp.shiftY;  
+    sum_x += rX; sum_y += rY; sum_X += kp.targetX; sum_Y += kp.targetY;  
+    return { x: rX, y: rY, X: kp.targetX, Y: kp.targetY };  
+  });  
+  
+  const mean_x = sum_x / n, mean_y = sum_y / n, mean_X = sum_X / n, mean_Y = sum_Y / n;  
+  let num_a = 0, num_b = 0, den = 0;  
+  
+  points.forEach(p => {  
+    const u = p.x - mean_x, v = p.y - mean_y, U = p.X - mean_X, V = p.Y - mean_Y;  
+    num_a += (u * U + v * V);  
+    num_b += (u * V - v * U);  
+    den += (u * u + v * v);  
+  });  
+  
+  let a = den !== 0 ? num_a / den : 1, b = den !== 0 ? num_b / den : 0;  
+  const c = mean_X - a * mean_x + b * mean_y;  
+  const d = mean_Y - b * mean_x - a * mean_y;  
+  
+  return { x: a * rawX - b * rawY + c, y: b * rawX + a * rawY + d };  
+}  
+  
+document.getElementById('sync-auto-btn').addEventListener('click', () => {  
+  if (latestLat === 0 || latestLon === 0) {  
+    alert('GPS信号をまだ取得できていません。');  
+    return;  
+  }  
+  if (samplingTimer !== null) clearInterval(samplingTimer);  
+  
+  let samplesLat = [];  
+  let samplesLon = [];  
+  let secondsLeft = 5;  
+  
+  const btn = document.getElementById('sync-auto-btn');  
+  btn.innerText = `測定中... 残り${secondsLeft}秒`;  
+  
+  samplingTimer = setInterval(() => {  
+    try {  
+      if (latestLat !== 0) {  
+        samplesLat.push(latestLat);  
+        samplesLon.push(latestLon);  
+      }  
+      secondsLeft--;  
+      btn.innerText = `測定中... 残り${secondsLeft}秒`;  
+  
+      if (secondsLeft <= 0) {  
+        clearInterval(samplingTimer);  
+        samplingTimer = null;  
+        btn.innerText = '5秒間スタティック平均化(ブレ除去)';  
+  
+        if (samplesLat.length === 0) return;  
+  
+        const avgLat = samplesLat.reduce((a,b)=>a+b,0) / samplesLat.length;  
+        const avgLon = samplesLon.reduce((a,b)=>a+b,0) / samplesLon.length;  
+  
+        const zoneToUse = config.selectedZone === 'auto' ? getAutoZone(avgLat, avgLon) : parseInt(config.selectedZone);  
+        const staticRes = calculatePlaneRectangular(avgLat, avgLon, zoneToUse);  
+        const instantRes = calculatePlaneRectangular(latestLat, latestLon, zoneToUse);  
+  
+        config.shiftX = staticRes.x - instantRes.x;  
+        config.shiftY = staticRes.y - instantRes.y;  
+        config.hasCalibrated = true;  
+  
+        pdrX = 0; pdrY = 0;  
+  
+        localStorage.setItem('conf_shiftx', config.shiftX);  
+        localStorage.setItem('conf_shifty', config.shiftY);  
+        localStorage.setItem('conf_hascalibrated', 'true');  
+  
+        alert('平均化による補正が完了しました。(PDRの歩行誤差もリセットされました)');  
+      }  
+    } catch (e) {  
+      if (samplingTimer) {  
+        clearInterval(samplingTimer);  
+        samplingTimer = null;  
+        btn.innerText = '5秒間スタティック平均化(ブレ除去)';  
+      }  
+    }  
+  }, 1000);  
+});  
+  
+document.getElementById('sensor-permission-btn').addEventListener('click', async () => {  
+  try {  
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {  
+      const response = await DeviceMotionEvent.requestPermission();  
+      if (response === 'granted') initSensors();  
+      else alert('センサー権限が拒否されました。');  
+    } else {  
+      initSensors();  
+    }  
+  } catch (e) {  
+    initSensors();  
+  }  
+});  
+  
+function initSensors() {  
+  const btn = document.getElementById('sensor-permission-btn');  
+  if (btn) {  
+    btn.style.background = '#16a34a';  
+    btn.innerText = '■ センサー有効化済み';  
+  }  
+  
+  orientationHandler = (e) => {  
+    if (e && typeof e.alpha === 'number') {  
+      lastHeading = e.alpha * (Math.PI / 180);  
+    }  
+  };  
+  window.addEventListener('deviceorientation', orientationHandler);  
+  
+  let lastAccZ = 0;  
+  motionHandler = (e) => {  
+    try {  
+      const acc = e && e.accelerationIncludingGravity;  
+      if (!acc) return;  
+      const curZ = typeof acc.z === 'number' ? acc.z : 0;  
+      if (Math.abs(curZ - lastAccZ) > 2.5) {  
+        const heading = isNaN(lastHeading) ? 0 : lastHeading;  
+        pdrX += Math.cos(heading) * 0.65 * 0.05;  
+        pdrY += Math.sin(heading) * 0.65 * 0.05;  
+      }  
+      lastAccZ = curZ;  
+    } catch (err) {}  
+  };  
+  window.addEventListener('devicemotion', motionHandler);  
+}  
+  
+function toDMS(deg) {  
+  if (isNaN(deg)) return '---';  
+  const abs = Math.abs(deg);  
+  const d = Math.floor(abs);  
+  const mNot = (abs - d) * 60;  
+  const m = Math.floor(mNot);  
+  const s = ((mNot - m) * 60).toFixed(5);  
+  return `${d}°${String(m).padStart(2, '0')}'${String(s).padStart(5, '0')}"`;  
+}  
+  
+function getAutoZone(lat, lon) {  
+  let zone = 9;  
+  if (lat < 28) {  
+    if (lon < 125.5) zone = 16;  
+    else if (lon < 129.0) zone = 15;  
+    else if (lon < 133.0) zone = 17;  
+    else zone = 14;  
+  } else if (lat > 42) {  
+    if (lon < 141.75) zone = 11;  
+    else if (lon < 143.075) zone = 12;  
+    else zone = 13;  
+  } else {  
+    if (lon < 130.25) zone = 1;  
+    else if (lon < 131.75) zone = 2;  
+    else if (lon < 132.85) zone = 3;  
+    else if (lon < 133.85) zone = 4;  
+    else if (lon < 135.2) zone = 5;  
+    else if (lon < 136.6) zone = 6;  
+    else if (lon < 137.8) zone = 7;  
+    else if (lon < 138.5) zone = 8;  
+    else if (lon < 140.175) zone = 9;  
+    else zone = 10;  
+  }  
+  return zone;  
+}  
+  
+function calculatePlaneRectangular(lat, lon, zone) {  
+  const zones = {  
+    1: { phi0: 33.166666667, lam0: 129.5 },  
+    2: { phi0: 33.0, lam0: 131.0 },  
+    3: { phi0: 36.0, lam0: 132.166666667 },  
+    4: { phi0: 33.0, lam0: 133.5 },  
+    5: { phi0: 36.0, lam0: 134.333333333 },  
+    6: { phi0: 36.0, lam0: 136.0 },  
+    7: { phi0: 36.0, lam0: 137.166666667 },  
+    8: { phi0: 36.0, lam0: 138.5 },  
+    9: { phi0: 36.0, lam0: 139.833333333 },  
+    10: { phi0: 40.0, lam0: 140.75 },  
+    11: { phi0: 44.0, lam0: 141.333333333 },  
+    12: { phi0: 44.0, lam0: 142.25 },  
+    13: { phi0: 44.0, lam0: 144.0 },  
+    14: { phi0: 26.0, lam0: 142.0 },  
+    15: { phi0: 26.0, lam0: 127.5 },  
+    16: { phi0: 26.0, lam0: 124.0 },  
+    17: { phi0: 26.0, lam0: 131.0 }  
+  };  
+  const zConfig = zones[zone] || zones[9];  
+  const phi0 = zConfig.phi0 * Math.PI / 180;  
+  const lam0 = zConfig.lam0 * Math.PI / 180;  
+  const m0 = 0.9999;  
+  
+  const phi = lat * Math.PI / 180;  
+  const lam = lon * Math.PI / 180;  
+  
+  const a = 6378137.0;  
+  const f = 1 / 298.257222101;  
+  const b = a * (1 - f);  
+  const e2 = (a * a - b * b) / (a * a);  
+  const e2_prime = (a * a - b * b) / (b * b);  
+  
+  function m(latRad) {  
+    const n_val = f / (2 - f);  
+    const A_val = (a / (1 + n_val)) * (1 + n_val * n_val / 4 + Math.pow(n_val, 4) / 64);  
+    const b_val = (3 * n_val / 2) - (9 * Math.pow(n_val, 3) / 16);  
+    const c_val = (15 * Math.pow(n_val, 2) / 16) - (15 * Math.pow(n_val, 4) / 32);  
+    const d_val = (35 * Math.pow(n_val, 3) / 48);  
+    const e_val = (315 * Math.pow(n_val, 4) / 512);  
+    return A_val * (latRad - b_val * Math.sin(2 * latRad) + c_val * Math.sin(4 * latRad) - d_val * Math.sin(6 * latRad) + e_val * Math.sin(8 * latRad));  
+  }  
+  
+  const S = m(phi);  
+  const S0 = m(phi0);  
+  const N = a / Math.sqrt(1 - e2 * Math.sin(phi) * Math.sin(phi));  
+  const T = Math.tan(phi) * Math.tan(phi);  
+  const C = e2_prime * Math.cos(phi) * Math.cos(phi);  
+  const A_diff = (lam - lam0) * Math.cos(phi);  
+  
+  const xCalc = S - S0 + N * Math.tan(phi) * (A_diff * A_diff / 2 + (5 - T + 9 * C + 4 * C * C) * Math.pow(A_diff, 4) / 24);  
+  const yCalc = N * (A_diff + (1 - T + C) * Math.pow(A_diff, 3) / 6);  
+  
+  return { x: xCalc * m0, y: yCalc * m0 };  
+}  
+  
+function startGeolocation() {  
+  if (!('geolocation' in navigator)) {  
+    const statusEl = document.getElementById('gps-status');  
+    if (statusEl) statusEl.innerText = "GPS非対応";  
+    return;  
+  }  
+  watchId = navigator.geolocation.watchPosition(  
+    (pos) => {  
+      if (isPaused || !pos || !pos.coords) return;  
+      try {  
+        const curLat = pos.coords.latitude;  
+        const curLon = pos.coords.longitude;  
+        const curAlt = pos.coords.altitude;  
+  
+        latHistory.push(curLat);  
+        lonHistory.push(curLon);  
+  
+        if (latHistory.length > SMOOTHING_SIZE) latHistory.shift();  
+        if (lonHistory.length > SMOOTHING_SIZE) lonHistory.shift();  
+  
+        latestLat = latHistory.reduce((a, b) => a + b, 0) / latHistory.length;  
+        latestLon = lonHistory.reduce((a, b) => a + b, 0) / lonHistory.length;  
+  
+        if (curAlt !== null) {  
+          altHistory.push(curAlt);  
+          if (altHistory.length > SMOOTHING_SIZE) altHistory.shift();  
+          latestRawAlt = altHistory.reduce((a, b) => a + b, 0) / altHistory.length;  
+        } else {  
+          latestRawAlt = null;  
+        }  
+  
+        document.getElementById('lat-display').innerText = toDMS(latestLat);  
+        document.getElementById('lon-display').innerText = toDMS(latestLon);  
+  
+        const coords = getCurrentTransformedCoords();  
+        const activeZone = config.selectedZone === 'auto' ? getAutoZone(latestLat, latestLon) : parseInt(config.selectedZone);  
+  
+        document.getElementById('zone-display').innerText = config.selectedZone === 'auto' ? `自動(第${activeZone}系)` : `手動(第${activeZone}系)`;  
+  
+        if (coords) {  
+          document.getElementById('grid-x').innerText = coords.x.toFixed(3) + ' m';  
+          document.getElementById('grid-y').innerText = coords.y.toFixed(3) + ' m';  
+          document.getElementById('alt-display').innerText = coords.z !== null ? coords.z.toFixed(3) + ' m' : '未取得';  
+  
+          if (isLogging) {  
+            currentSecondSamples.push({  
+              x: coords.x,  
+              y: coords.y,  
+              z: coords.z,  
+              time: Date.now()  
+            });  
+          }  
+        }  
+  
+        const statusEl = document.getElementById('gps-status');  
+        if (statusEl) {  
+          statusEl.innerText = isLogging ? "ログ記録中" : "測位中";  
+          statusEl.style.color = isLogging ? "#ef4444" : "#4ade80";  
+        }  
+        renderRealtimePreview();  
+      } catch (err) {}  
+    },  
+    (err) => {  
+      if (!isPaused) {  
+        const statusEl = document.getElementById('gps-status');  
+        if (statusEl) {  
+          statusEl.innerText = "GPS待機/エラー (" + (err.code) + ")";  
+          statusEl.style.color = "#ef4444";  
+        }  
+      }  
+    },  
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }  
+  );  
+}  
+  
+startGeolocation();  
+</script>  
+</body>  
+</html>  
