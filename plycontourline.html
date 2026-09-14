@@ -441,28 +441,32 @@ function exportPLY() {
     if (pointData.count === 0) return;
     document.getElementById('statusText').innerText = "ステータス: 保存処理中...";
     
-    // OOM（メモリ超過）防止のため、文字列をチャンク（塊）に分けて結合
     let header = `ply\nformat ascii 1.0\nelement vertex ${pointData.count}\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n`;
     let chunks = [header];
     let currentChunk = "";
     
     for (let i = 0; i < pointData.count; i++) {
         currentChunk += `${pointData.x[i]} ${pointData.y[i]} ${pointData.z[i]} ${pointData.r[i]} ${pointData.g[i]} ${pointData.b[i]}\n`;
-        if (i % 20000 === 0) { // 2万点ごとに配列へ格納
+        if (i % 20000 === 0) {
             chunks.push(currentChunk);
             currentChunk = "";
         }
     }
     if (currentChunk) chunks.push(currentChunk);
 
-    const blob = new Blob(chunks, { type: 'text/plain' });
+    // MIMEタイプを application/octet-stream に指定して .txt 化を防止
+    const blob = new Blob(chunks, { type: 'application/octet-stream' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'contour_output.ply';
+    
+    // 一部のブラウザで確実にダウンロードを発火させるため要素をDOMに一時追加
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    
     URL.revokeObjectURL(link.href);
     
-    // 不要になった配列の参照を解放
     chunks = null;
     document.getElementById('statusText').innerText = i18n[currentLang].statusExport;
 }
