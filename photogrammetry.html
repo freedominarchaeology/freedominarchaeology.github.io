@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完全オフライン 3Dフォトグラメトリ & LiDAR 統合エンジン</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "MS 明朝", "MS Mincho", "MS PMincho", serif;
+      background-color: #1a1a1a;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background-color: #2a2a2a;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #444;
+    }
+    h1 {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    select, input[type="file"], button {
+      font-family: inherit;
+      padding: 6px 12px;
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #444;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+    }
+    #sidebar {
+      width: 340px;
+      background-color: #222;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      border-right: 1px solid #333;
+      overflow-y: auto;
+    }
+    .panel-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.9rem;
+    }
+    #status {
+      font-size: 0.85rem;
+      padding: 8px;
+      background: #111;
+      border-radius: 4px;
+      color: #88ff88;
+      word-break: break-all;
+      min-height: 40px;
+    }
+    #viewport {
+      flex: 1;
+      position: relative;
+      background-color: #000;
+    }
+    canvas#glCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #file-list {
+      font-size: 0.8rem;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #111;
+      padding: 5px;
+      border: 1px solid #333;
+    }
+    .file-item {
+      padding: 2px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-type-ply { color: #88ccff; }
+    .file-type-img { color: #ffcc88; }
+
+    /* 進捗バーのスタイリング */
+    #progress-container {
+      width: 100%;
+      background-color: #111;
+      border: 1px solid #444;
+      border-radius: 4px;
+      height: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+    #progress-bar {
+      width: 0%;
+      height: 100%;
+      background-color: #88ff88;
+      transition: width 0.1s linear;
+    }
+    #progress-text {
+      font-size: 0.8rem;
+      text-align: right;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 id="ui-title">3Dフォトグラメトリ & LiDAR 統合エンジン</h1>
+    <div>
+      <label for="langSelect" id="ui-langLabel">言語:</label>
+      <select id="langSelect">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ko">한국어</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+  </header>
+
+  <div id="main-container">
+    <div id="sidebar">
+      <div class="panel-group">
+        <label id="ui-selectFiles">画像(JPEG/PNG) または LiDAR(.ply) を選択:</label>
+        <input type="file" id="fileInput" accept="image/jpeg, image/jpg, image/png, .ply" multiple>
+      </div>
+
+      <div class="panel-group">
+        <label id="ui-fileOrder">読み込み予定ファイルリスト:</label>
+        <div id="file-list"></div>
+      </div>
+
+      <button id="btnProcess" disabled>3Dモデル構築・表示</button>
+      <button id="btnClear">メモリ解放・リセット</button>
+
+      <div class="panel-group">
+        <label id="ui-progressLabel">進捗状況:</label>
+        <div id="progress-container">
+          <div id="progress-bar"></div>
+        </div>
+        <div id="progress-text">0% (--/--)</div>
+      </div>
+
+      <div class="panel-group">
+        <label id="ui-statusLabel">ステータス:</label>
+        <div id="status">待機中</div>
+      </div>
+    </div>
+
+    <div id="viewport">
+      <canvas id="glCanvas"></canvas>
+    </div>
+  </div>
+
+<script>
+/**
+ * 1. 多言語対応 (i18n) 辞書設定
+ */
+const i18n = {
+  ja: {
+    title: "3Dフォトグラメトリ & LiDAR 統合エンジン",
+    langLabel: "言語:",
+    selectFiles: "画像(JPEG/PNG) または LiDAR(.ply) を選択:",
+    fileOrder: "読み込み予定ファイルリスト:",
+    btnProcess: "3Dモデル構築・表示",
+    btnClear: "メモリ解放・リセット",
+    progressLabel: "進捗状況:",
+    statusLabel: "ステータス:",
+    ready: "準備完了。画像または.plyファイルを選択してください。",
+    selected: "個のファイルが読み込まれました。",
+    processing: "解析中... LiDAR点群データと画像を再構築中",
+    complete: "3Dモデルの統合レンダリングが完了しました！",
+    cleared: "メモリおよびリソースを即時解放しました。",
+    errNoFiles: "対応ファイル (JPEG/PNG/.ply) を選択してください。",
+    errWebGL: "WebGL2がサポートされていません。",
+    remaining: "残り時間: ",
+    sec: "秒",
+    min: "分"
+  },
+  en: {
+    title: "3D Photogrammetry & LiDAR Engine",
+    langLabel: "Language:",
+    selectFiles: "Select Images (JPEG/PNG) or LiDAR (.ply):",
+    fileOrder: "File Queue:",
+    btnProcess: "Build & Render 3D Model",
+    btnClear: "Release Memory / Reset",
+    progressLabel: "Progress:",
+    statusLabel: "Status:",
+    ready: "Ready. Please select images or .ply files.",
+    selected: " file(s) loaded.",
+    processing: "Processing... Reconstructing LiDAR & Photos",
+    complete: "3D Model Reconstruction & Rendering Complete!",
+    cleared: "Memory and WebGL resources cleared.",
+    errNoFiles: "Please select valid files (JPEG/PNG/.ply).",
+    errWebGL: "WebGL2 is not supported.",
+    remaining: "Est. remaining: ",
+    sec: "s",
+    min: "m "
+  },
+  zh: {
+    title: "3D 摄影测量 & LiDAR 融合引擎",
+    langLabel: "语言:",
+    selectFiles: "选择图像 (JPEG/PNG) 或 LiDAR (.ply):",
+    fileOrder: "文件列表:",
+    btnProcess: "构建并渲染 3D 模型",
+    btnClear: "释放内存 / 重置",
+    progressLabel: "进度:",
+    statusLabel: "状态:",
+    ready: "准备就绪。请选择图像或 .ply 文件。",
+    selected: " 个文件已加载。",
+    processing: "处理中... 正在重建 LiDAR 点云与图像",
+    complete: "3D 模型融合渲染完成！",
+    cleared: "内存和 WebGL 资源已释放。",
+    errNoFiles: "请选择有效的文件 (JPEG/PNG/.ply)。",
+    errWebGL: "不支持 WebGL2。",
+    remaining: "剩余时间: ",
+    sec: "秒",
+    min: "分"
+  },
+  ko: {
+    title: "3D 포토그래메트리 & LiDAR 통합 엔진",
+    langLabel: "언어:",
+    selectFiles: "이미지(JPEG/PNG) 또는 LiDAR(.ply) 선택:",
+    fileOrder: "대기 파일 목록:",
+    btnProcess: "3D 모델 생성 및 렌더링",
+    btnClear: "메모리 해제 / 리셋",
+    progressLabel: "진행 상황:",
+    statusLabel: "상태:",
+    ready: "준비 완료. 이미지 또는 .ply 파일을 선택해 주세요.",
+    selected: "개의 파일이 로드되었습니다.",
+    processing: "처리 중... LiDAR 포인트 클라우드 및 이미지 재구성 중",
+    complete: "3D 모델 통합 렌더링 완료!",
+    cleared: "메모리 및 WebGL 리소스가 해제되었습니다.",
+    errNoFiles: "올바른 파일(JPEG/PNG/.ply)을 선택해 주세요.",
+    errWebGL: "WebGL2를 지원하지 않습니다.",
+    remaining: "남은 시간: ",
+    sec: "초",
+    min: "분 "
+  },
+  fr: {
+    title: "Moteur de Photogrammétrie & LiDAR 3D",
+    langLabel: "Langue:",
+    selectFiles: "Sélectionner des images ou LiDAR (.ply):",
+    fileOrder: "Liste des fichiers:",
+    btnProcess: "Générer et afficher le modèle 3D",
+    btnClear: "Libérer la mémoire / Réinitialiser",
+    progressLabel: "Progression:",
+    statusLabel: "Statut:",
+    ready: "Prêt. Veuillez sélectionner des fichiers.",
+    selected: " fichier(s) chargé(s).",
+    processing: "Traitement... Reconstruction du nuage LiDAR et des images",
+    complete: "Rendu 3D terminé !",
+    cleared: "Mémoire et ressources WebGL libérées.",
+    errNoFiles: "Veuillez sélectionner des fichiers valides.",
+    errWebGL: "WebGL2 n'est pas supporté.",
+    remaining: "Temps restant: ",
+    sec: "s",
+    min: "m "
+  },
+  es: {
+    title: "Motor de Fotogrametría y LiDAR 3D",
+    langLabel: "Idioma:",
+    selectFiles: "Seleccionar imágenes o LiDAR (.ply):",
+    fileOrder: "Lista de archivos:",
+    btnProcess: "Construir y Renderizar Modelo 3D",
+    btnClear: "Liberar memoria / Reiniciar",
+    progressLabel: "Progreso:",
+    statusLabel: "Estado:",
+    ready: "Listo. Seleccione imágenes o archivos .ply.",
+    selected: " archivo(s) cargado(s).",
+    processing: "Procesando... Reconstruyendo datos LiDAR e imágenes",
+    complete: "¡Renderizado 3D completado!",
+    cleared: "Memoria y recursos de WebGL liberados.",
+    errNoFiles: "Por favor seleccione archivos válidos.",
+    errWebGL: "WebGL2 no está soportado.",
+    remaining: "Tiempo restante: ",
+    sec: "s",
+    min: "m "
+  }
+};
+
+let currentLang = 'ja';
+
+function updateLanguage(lang) {
+  currentLang = lang;
+  const t = i18n[lang];
+  document.getElementById('ui-title').textContent = t.title;
+  document.getElementById('ui-langLabel').textContent = t.langLabel;
+  document.getElementById('ui-selectFiles').textContent = t.selectFiles;
+  document.getElementById('ui-fileOrder').textContent = t.fileOrder;
+  document.getElementById('btnProcess').textContent = t.btnProcess;
+  document.getElementById('btnClear').textContent = t.btnClear;
+  document.getElementById('ui-progressLabel').textContent = t.progressLabel;
+  document.getElementById('ui-statusLabel').textContent = t.statusLabel;
+  setStatus(t.ready);
+}
+
+document.getElementById('langSelect').addEventListener('change', (e) => {
+  updateLanguage(e.target.value);
+});
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+/**
+ * 2. ファイルインポートとソート
+ */
+let loadedFiles = [];
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files).filter(f => 
+    f.type.startsWith("image/") || f.name.match(/\.(jpg|jpeg|png|ply)$/i)
+  );
+  
+  if (files.length === 0) {
+    setStatus(i18n[currentLang].errNoFiles);
+    document.getElementById('btnProcess').disabled = true;
+    return;
+  }
+
+  loadedFiles = files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const fileListEl = document.getElementById('file-list');
+  fileListEl.textContent = ''; 
+  loadedFiles.forEach((file, index) => {
+    const div = document.createElement('div');
+    const isPly = file.name.toLowerCase().endsWith('.ply');
+    div.className = `file-item ${isPly ? 'file-type-ply' : 'file-type-img'}`;
+    div.textContent = `${index + 1}. [${isPly ? 'LiDAR PLY' : 'IMAGE'}] ${file.name}`;
+    fileListEl.appendChild(div);
+  });
+
+  setStatus(`${loadedFiles.length}${i18n[currentLang].selected}`);
+  document.getElementById('btnProcess').disabled = false;
+  resetProgressUI();
+});
+
+/**
+ * 3. WebGL2 高速描画エンジン
+ */
+const canvas = document.getElementById('glCanvas');
+const gl = canvas.getContext('webgl2');
+
+if (!gl) {
+  setStatus(i18n[currentLang].errWebGL);
+  document.getElementById('btnProcess').disabled = true;
+  document.getElementById('btnClear').disabled = true;
+} else {
+  initWebGL();
+}
+
+let program = null, vao = null, vboPosition = null, vboColor = null;
+let aPosLoc = -1, aColLoc = -1, uMVPLoc = null;
+let pointCount = 0;
+
+const mvpMatrix = new Float32Array(16);
+
+function initWebGL() {
+  const vsSource = `#version 300 es
+  in vec3 aPosition;
+  in vec3 aColor;
+  uniform mat4 uMVP;
+  out vec3 vColor;
+  void main() {
+    vColor = aColor;
+    gl_Position = uMVP * vec4(aPosition, 1.0);
+    gl_PointSize = 2.5;
+  }`;
+
+  const fsSource = `#version 300 es
+  precision highp float;
+  in vec3 vColor;
+  out vec4 fragColor;
+  void main() {
+    fragColor = vec4(vColor, 1.0);
+  }`;
+
+  function createShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+  
+  program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(program));
+    return;
+  }
+
+  gl.detachShader(program, vertexShader);
+  gl.detachShader(program, fragmentShader);
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+
+  aPosLoc = gl.getAttribLocation(program, 'aPosition');
+  aColLoc = gl.getAttribLocation(program, 'aColor');
+  uMVPLoc = gl.getUniformLocation(program, 'uMVP');
+
+  vao = gl.createVertexArray();
+}
+
+// カメラ操作インタラクション
+let rotX = 0, rotY = 0, zoom = 3.0;
+let isDragging = false, lastMouseX = 0, lastMouseY = 0;
+let renderRequested = false;
+
+function scheduleRender() {
+  if (!renderRequested) {
+    renderRequested = true;
+    requestAnimationFrame(renderScene);
+  }
+}
+
+canvas.addEventListener('mousedown', (e) => { isDragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY; });
+window.addEventListener('mouseup', () => { isDragging = false; });
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  rotY += (e.clientX - lastMouseX) * 0.01;
+  rotX += (e.clientY - lastMouseY) * 0.01;
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+  scheduleRender();
+});
+canvas.addEventListener('wheel', (e) => {
+  zoom += e.deltaY * 0.002;
+  zoom = Math.max(0.1, Math.min(20.0, zoom));
+  scheduleRender();
+});
+
+function resizeCanvas() {
+  if (!gl) return;
+  const displayWidth  = canvas.clientWidth;
+  const displayHeight = canvas.clientHeight;
+  if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+    canvas.width  = displayWidth;
+    canvas.height = displayHeight;
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    scheduleRender();
+  }
+}
+window.addEventListener('resize', resizeCanvas);
+
+function renderScene() {
+  renderRequested = false;
+  if (!gl || pointCount === 0) return;
+
+  resizeCanvas();
+
+  gl.clearColor(0.05, 0.05, 0.05, 1.0);
+  gl.enable(gl.DEPTH_TEST);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  const aspect = canvas.height > 0 ? canvas.width / canvas.height : 1.0;
+  const fov = 45 * Math.PI / 180;
+  const f = 1.0 / Math.tan(fov / 2);
+  const zNear = 0.01, zFar = 100.0;
+    
+  const proj0 = f / aspect;
+  const proj5 = f;
+  const proj10 = (zFar + zNear) / (zNear - zFar);
+  const proj11 = -1;
+  const proj14 = (2 * zFar * zNear) / (zNear - zFar);
+
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+
+  mvpMatrix[0] = cosY * proj0;
+  mvpMatrix[4] = sinX * sinY * proj5;
+  mvpMatrix[8] = -cosX * sinY * proj10;
+  mvpMatrix[12] = cosX * sinY * zoom;
+
+  mvpMatrix[1] = 0;
+  mvpMatrix[5] = cosX * proj5;
+  mvpMatrix[9] = sinX * proj10;
+  mvpMatrix[13] = -sinX * zoom;
+
+  mvpMatrix[2] = sinY * proj0;
+  mvpMatrix[6] = -sinX * cosY * proj5;
+  mvpMatrix[10] = cosX * cosY * proj10;
+  mvpMatrix[14] = -cosX * cosY * zoom - zoom;
+
+  mvpMatrix[3] = 0; mvpMatrix[7] = 0; mvpMatrix[11] = proj11; mvpMatrix[15] = proj14;
+
+  gl.useProgram(program);
+  gl.uniformMatrix4fv(uMVPLoc, false, mvpMatrix);
+
+  gl.bindVertexArray(vao);
+  gl.drawArrays(gl.POINTS, 0, pointCount);
+  gl.bindVertexArray(null);
+}
+
+/**
+ * 4. 内蔵 PLY パーサー（動的プロパティ対応）
+ */
+async function parsePLYFile(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  
+  let headerEndByteIndex = -1;
+  for (let i = 0; i < Math.min(bytes.length - 10, 4096); i++) {
+    if (bytes[i] === 101 && bytes[i+1] === 110 && bytes[i+2] === 100 && bytes[i+3] === 95 &&
+        bytes[i+4] === 104 && bytes[i+5] === 101 && bytes[i+6] === 97 && bytes[i+7] === 100 &&
+        bytes[i+8] === 101 && bytes[i+9] === 114) {
+      let j = i + 10;
+      while (j < bytes.length) {
+        if (bytes[j] === 10) { j++; break; }
+        j++;
+      }
+      headerEndByteIndex = j;
+      break;
+    }
+  }
+
+  if (headerEndByteIndex === -1) {
+    return { positions: new Float32Array(0), colors: new Float32Array(0), count: 0 };
+  }
+
+  const asciiDecoder = new TextDecoder('ascii');
+  const headerText = asciiDecoder.decode(bytes.subarray(0, headerEndByteIndex));
+  const headerLines = headerText.split(/\r?\n/);
+
+  let vertexCount = 0;
+  let isBinary = false;
+  let isLittleEndian = true;
+  const properties = [];
+  let inVertexElement = false;
+
+  for (const line of headerLines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('format binary_little_endian')) {
+      isBinary = true;
+      isLittleEndian = true;
+    } else if (trimmed.startsWith('format binary_big_endian')) {
+      isBinary = true;
+      isLittleEndian = false;
+    } else if (trimmed.startsWith('element vertex')) {
+      vertexCount = parseInt(trimmed.split(/\s+/)[2], 10);
+      inVertexElement = true;
+    } else if (trimmed.startsWith('element')) {
+      inVertexElement = false;
+    } else if (inVertexElement && trimmed.startsWith('property')) {
+      const parts = trimmed.split(/\s+/);
+      if (parts.length >= 3) {
+        properties.push({ type: parts[1], name: parts[2] });
+      }
+    }
+  }
+
+  if (vertexCount === 0) {
+    return { positions: new Float32Array(0), colors: new Float32Array(0), count: 0 };
+  }
+
+  const positions = new Float32Array(vertexCount * 3);
+  const colors = new Float32Array(vertexCount * 3);
+
+  if (!isBinary) {
+    const bodyText = asciiDecoder.decode(bytes.subarray(headerEndByteIndex));
+    const lines = bodyText.split(/\r?\n/);
+
+    let xIdx = properties.findIndex(p => p.name === 'x');
+    let yIdx = properties.findIndex(p => p.name === 'y');
+    let zIdx = properties.findIndex(p => p.name === 'z');
+    let rIdx = properties.findIndex(p => p.name === 'red' || p.name === 'r');
+    let gIdx = properties.findIndex(p => p.name === 'green' || p.name === 'g');
+    let bIdx = properties.findIndex(p => p.name === 'blue' || p.name === 'b');
+
+    if (xIdx === -1) xIdx = 0;
+    if (yIdx === -1) yIdx = 1;
+    if (zIdx === -1) zIdx = 2;
+
+    let pIdx = 0, cIdx = 0, countProcessed = 0;
+    for (let i = 0; i < lines.length && countProcessed < vertexCount; i++) {
+      const l = lines[i].trim();
+      if (!l) continue;
+      const parts = l.split(/\s+/);
+      if (parts.length < 3) continue;
+
+      positions[pIdx++] = parseFloat(parts[xIdx] || 0);
+      positions[pIdx++] = parseFloat(parts[yIdx] || 0);
+      positions[pIdx++] = parseFloat(parts[zIdx] || 0);
+
+      if (rIdx !== -1 && gIdx !== -1 && bIdx !== -1 && parts.length > Math.max(rIdx, gIdx, bIdx)) {
+        const r = parseFloat(parts[rIdx]);
+        const g = parseFloat(parts[gIdx]);
+        const b = parseFloat(parts[bIdx]);
+        colors[cIdx++] = r > 1.0 ? r / 255.0 : r;
+        colors[cIdx++] = g > 1.0 ? g / 255.0 : g;
+        colors[cIdx++] = b > 1.0 ? b / 255.0 : b;
+      } else {
+        colors[cIdx++] = 0.8; colors[cIdx++] = 0.8; colors[cIdx++] = 0.8;
+      }
+      countProcessed++;
+    }
+  } else {
+    let stride = 0;
+    const propOffsets = properties.map(p => {
+      const offset = stride;
+      let size = 4;
+      if (p.type === 'float' || p.type === 'float32' || p.type === 'int' || p.type === 'uint') size = 4;
+      else if (p.type === 'double' || p.type === 'float64') size = 8;
+      else if (p.type === 'uchar' || p.type === 'uint8' || p.type === 'char' || p.type === 'int8') size = 1;
+      else if (p.type === 'short' || p.type === 'ushort' || p.type === 'int16' || p.type === 'uint16') size = 2;
+      stride += size;
+      return { name: p.name, type: p.type, offset, size };
+    });
+
+    if (stride === 0) stride = 15;
+
+    const dataView = new DataView(buffer, headerEndByteIndex);
+    const xProp = propOffsets.find(p => p.name === 'x') || { offset: 0 };
+    const yProp = propOffsets.find(p => p.name === 'y') || { offset: 4 };
+    const zProp = propOffsets.find(p => p.name === 'z') || { offset: 8 };
+    const rProp = propOffsets.find(p => p.name === 'red' || p.name === 'r');
+    const gProp = propOffsets.find(p => p.name === 'green' || p.name === 'g');
+    const bProp = propOffsets.find(p => p.name === 'blue' || p.name === 'b');
+
+    let pIdx = 0, cIdx = 0, offset = 0;
+    for (let i = 0; i < vertexCount; i++) {
+      if (offset + stride > dataView.byteLength) break;
+
+      positions[pIdx++] = dataView.getFloat32(offset + xProp.offset, isLittleEndian);
+      positions[pIdx++] = dataView.getFloat32(offset + yProp.offset, isLittleEndian);
+      positions[pIdx++] = dataView.getFloat32(offset + zProp.offset, isLittleEndian);
+
+      if (rProp && gProp && bProp) {
+        colors[cIdx++] = rProp.size === 1 ? dataView.getUint8(offset + rProp.offset) / 255.0 : dataView.getFloat32(offset + rProp.offset, isLittleEndian);
+        colors[cIdx++] = gProp.size === 1 ? dataView.getUint8(offset + gProp.offset) / 255.0 : dataView.getFloat32(offset + gProp.offset, isLittleEndian);
+        colors[cIdx++] = bProp.size === 1 ? dataView.getUint8(offset + bProp.offset) / 255.0 : dataView.getFloat32(offset + bProp.offset, isLittleEndian);
+      } else {
+        colors[cIdx++] = 0.8; colors[cIdx++] = 0.8; colors[cIdx++] = 0.8;
+      }
+      offset += stride;
+    }
+  }
+
+  return { positions, colors, count: vertexCount };
+}
+
+/**
+ * 5. 進捗状況および残り時間計算機能
+ */
+let progressStartTime = 0;
+let totalTasks = 0;
+let completedTasks = 0;
+
+function resetProgressUI() {
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-text').textContent = '0% (--/--)';
+}
+
+async function updateProgress(stepCount = 1) {
+  completedTasks += stepCount;
+  const pct = Math.min(100, Math.round((completedTasks / totalTasks) * 100));
+  const elapsedSec = (Date.now() - progressStartTime) / 1000;
+  
+  let timeStr = "--";
+  if (pct > 0 && completedTasks > 0) {
+    const estimatedTotalSec = elapsedSec / (completedTasks / totalTasks);
+    const remSec = Math.max(0, Math.round(estimatedTotalSec - elapsedSec));
+    
+    const t = i18n[currentLang];
+    const mins = Math.floor(remSec / 60);
+    const secs = remSec % 60;
+    timeStr = mins > 0 ? `${mins}${t.min}${secs}${t.sec}` : `${secs}${t.sec}`;
+  }
+
+  document.getElementById('progress-bar').style.width = `${pct}%`;
+  document.getElementById('progress-text').textContent = `${pct}% (${i18n[currentLang].remaining}${timeStr})`;
+
+  // ブラウザUIの描画更新（非同期イールド）
+  await new Promise(resolve => setTimeout(resolve, 0));
+}
+
+/**
+ * 6. 統合処理 (フォトグラメトリ + LiDAR)
+ */
+document.getElementById('btnProcess').addEventListener('click', async () => {
+  if (!gl || loadedFiles.length === 0) return;
+
+  setStatus(i18n[currentLang].processing);
+  document.getElementById('btnProcess').disabled = true;
+
+  clearWebGLBuffers();
+
+  const imageFiles = loadedFiles.filter(f => !f.name.toLowerCase().endsWith('.ply'));
+  const plyFiles = loadedFiles.filter(f => f.name.toLowerCase().endsWith('.ply'));
+
+  // 総タスク数の算出 (+1 は最終バッファバインド処理)
+  totalTasks = plyFiles.length + imageFiles.length + 1;
+  completedTasks = 0;
+  progressStartTime = Date.now();
+  resetProgressUI();
+
+  const posChunks = [];
+  const colChunks = [];
+
+  // A. PLY (LiDAR点群) の解析・統合
+  for (const plyFile of plyFiles) {
+    try {
+      const plyData = await parsePLYFile(plyFile);
+      if (plyData.count > 0) {
+        posChunks.push(plyData.positions);
+        colChunks.push(plyData.colors);
+      }
+    } catch (e) {
+      console.error("PLY parse error:", e);
+    }
+    await updateProgress(1);
+  }
+
+  // B. フォトグラメトリ（画像特徴点抽出）
+  if (imageFiles.length > 0) {
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    const processWidth = 256; 
+    const numFiles = imageFiles.length;
+
+    for (let i = 0; i < numFiles; i++) {
+      const file = imageFiles[i];
+      let bitmap = null;
+      try {
+        bitmap = await createImageBitmap(file);
+      } catch (e) {
+        await updateProgress(1);
+        continue;
+      }
+
+      const scale = processWidth / bitmap.width;
+      const processHeight = Math.floor(bitmap.height * scale);
+      tempCanvas.width = processWidth;
+      tempCanvas.height = processHeight;
+
+      tempCtx.drawImage(bitmap, 0, 0, processWidth, processHeight);
+      bitmap.close();
+
+      const imageData = tempCtx.getImageData(0, 0, processWidth, processHeight);
+      const data = imageData.data;
+
+      const angle = (i / numFiles) * Math.PI * 2;
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+
+      const maxPoints = Math.ceil((processWidth / 4) * (processHeight / 4));
+      const imgPositions = new Float32Array(maxPoints * 3);
+      const imgColors = new Float32Array(maxPoints * 3);
+      let count = 0;
+
+      for (let y = 0; y < processHeight; y += 4) {
+        for (let x = 0; x < processWidth; x += 4) {
+          const idx = (y * processWidth + x) * 4;
+          const r = data[idx] / 255.0;
+          const g = data[idx + 1] / 255.0;
+          const b = data[idx + 2] / 255.0;
+
+          const brightness = (r + g + b) / 3.0;
+          if (brightness > 0.15 && brightness < 0.85) {
+            const nx = (x / processWidth - 0.5);
+            const ny = (0.5 - y / processHeight);
+            const depth = (brightness - 0.5) * 0.5;
+
+            imgPositions[count * 3]     = nx * cosA - depth * sinA;
+            imgPositions[count * 3 + 1] = ny;
+            imgPositions[count * 3 + 2] = nx * sinA + depth * cosA;
+
+            imgColors[count * 3]     = r;
+            imgColors[count * 3 + 1] = g;
+            imgColors[count * 3 + 2] = b;
+            count++;
+          }
+        }
+      }
+
+      if (count > 0) {
+        posChunks.push(imgPositions.subarray(0, count * 3));
+        colChunks.push(imgColors.subarray(0, count * 3));
+      }
+      await updateProgress(1);
+    }
+    tempCanvas.width = 1;
+    tempCanvas.height = 1;
+  }
+
+  // C. GPUバッファ転送
+  let totalLength = 0;
+  for (let i = 0; i < posChunks.length; i++) {
+    totalLength += posChunks[i].length;
+  }
+
+  if (totalLength > 0) {
+    const combinedPositions = new Float32Array(totalLength);
+    const combinedColors = new Float32Array(totalLength);
+
+    let offset = 0;
+    for (let i = 0; i < posChunks.length; i++) {
+      combinedPositions.set(posChunks[i], offset);
+      combinedColors.set(colChunks[i], offset);
+      offset += posChunks[i].length;
+    }
+
+    pointCount = totalLength / 3;
+
+    gl.bindVertexArray(vao);
+
+    vboPosition = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboPosition);
+    gl.bufferData(gl.ARRAY_BUFFER, combinedPositions, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(aPosLoc);
+    gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, false, 0, 0);
+
+    vboColor = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboColor);
+    gl.bufferData(gl.ARRAY_BUFFER, combinedColors, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(aColLoc);
+    gl.vertexAttribPointer(aColLoc, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindVertexArray(null);
+  }
+
+  await updateProgress(1);
+  setStatus(i18n[currentLang].complete);
+  document.getElementById('btnProcess').disabled = false;
+  scheduleRender();
+});
+
+/**
+ * 7. WebGL メモリ解放処理
+ */
+function clearWebGLBuffers() {
+  if (!gl) return;
+  if (vboPosition) {
+    gl.deleteBuffer(vboPosition);
+    vboPosition = null;
+  }
+  if (vboColor) {
+    gl.deleteBuffer(vboColor);
+    vboColor = null;
+  }
+  pointCount = 0;
+}
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  clearWebGLBuffers();
+  loadedFiles = [];
+  document.getElementById('fileInput').value = '';
+  document.getElementById('file-list').textContent = '';
+  document.getElementById('btnProcess').disabled = true;
+  resetProgressUI();
+    
+  if (gl) {
+    gl.clearColor(0.05, 0.05, 0.05, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  }
+
+  setStatus(i18n[currentLang].cleared);
+});
+
+// 初期化実行
+updateLanguage('ja');
+resizeCanvas();
+</script>
+</body>
+</html>
