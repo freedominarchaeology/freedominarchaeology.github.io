@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLY Contour Generator</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --border-color: #444444;
+            --accent-color: #007acc;
+            --accent-hover: #005999;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'MS Mincho', 'MS 明朝', serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 上下二分割表示 */
+        .preview-pane {
+            flex: 1;
+            position: relative;
+            background-color: #000;
+            border-bottom: 2px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .menu-pane {
+            height: 280px;
+            background-color: var(--panel-bg);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .menu-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        label {
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        select, input[type="number"], input[type="range"], input[type="color"] {
+            font-family: 'MS Mincho', 'MS 明朝', serif;
+            background: #333;
+            color: #fff;
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        button {
+            font-family: 'MS Mincho', 'MS 明朝', serif;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-btn {
+            background-color: #333;
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .file-upload-btn:hover {
+            background-color: #444;
+        }
+
+        #statusText {
+            font-size: 13px;
+            color: #aaa;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 上部プレビュー画面 -->
+    <div class="preview-pane">
+        <canvas id="renderCanvas"></canvas>
+    </div>
+
+    <!-- 下部メニュー画面 -->
+    <div class="menu-pane">
+        <div class="menu-row">
+            <!-- 言語選択 -->
+            <div class="control-group">
+                <label id="lbl-lang">言語:</label>
+                <select id="langSelect" onchange="changeLanguage(this.value)">
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ko">한국어</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+
+            <!-- ファイルインポート -->
+            <div class="control-group">
+                <label class="file-upload-btn" id="lbl-import">PLYインポート</label>
+                <input type="file" id="fileInput" accept=".ply" onchange="importPLY(event)">
+            </div>
+
+            <!-- ファイル保存 -->
+            <div class="control-group">
+                <button id="btn-export" onclick="exportPLY()">PLY保存</button>
+            </div>
+
+            <span id="statusText">ステータス: 待機中</span>
+        </div>
+
+        <div class="menu-row">
+            <!-- 点の大きさ -->
+            <div class="control-group">
+                <label id="lbl-point-size">点サイズ:</label>
+                <input type="range" id="pointSizeRange" min="1" max="10" value="2" step="0.5" oninput="updatePointSize(this.value)">
+            </div>
+
+            <!-- 等高線インターバル -->
+            <div class="control-group">
+                <label id="lbl-interval">等高線間隔(m):</label>
+                <input type="number" id="contourInterval" value="10" min="0.1" step="0.1" style="width: 80px;">
+            </div>
+
+            <!-- 等高線カラー -->
+            <div class="control-group">
+                <label id="lbl-contour-color">等高線カラー:</label>
+                <input type="color" id="contourColor" value="#ff0000">
+            </div>
+
+            <!-- 実行ボタン -->
+            <button id="btn-generate" onclick="generateContours()">等高線生成</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 多言語辞書データ (変更なし)
+const i18n = {
+    ja: { lang: "言語:", import: "PLYインポート", export: "PLY保存", pointSize: "点サイズ:", interval: "等高線間隔(m):", color: "等高線カラー:", generate: "等高線生成", statusWait: "ステータス: 待機中", statusLoaded: "読込完了: 点数 = ", statusGen: "等高線を生成しました", statusExport: "保存しました" },
+    en: { lang: "Language:", import: "Import PLY", export: "Export PLY", pointSize: "Point Size:", interval: "Contour Interval (m):", color: "Contour Color:", generate: "Generate Contours", statusWait: "Status: Waiting", statusLoaded: "Loaded: Points = ", statusGen: "Contours generated", statusExport: "Exported successfully" },
+    zh: { lang: "语言:", import: "导入 PLY", export: "导出 PLY", pointSize: "点大小:", interval: "等高线间隔 (m):", color: "等高线颜色:", generate: "生成等高线", statusWait: "状态: 等待中", statusLoaded: "已加载: 点数 = ", statusGen: "已生成等高线", statusExport: "导出成功" },
+    ko: { lang: "언어:", import: "PLY 가져오기", export: "PLY 내보내기", pointSize: "점 크기:", interval: "등고선 간격 (m):", color: "등고선 색상:", generate: "등고선 생성", statusWait: "상태: 대기 중", statusLoaded: "불러오기 완료: 점 개수 = ", statusGen: "등고선이 생성되었습니다", statusExport: "내보내기 완료" },
+    fr: { lang: "Langue:", import: "Importer PLY", export: "Exporter PLY", pointSize: "Taille des points:", interval: "Intervalle (m):", color: "Couleur:", generate: "Générer courbes", statusWait: "Statut: En attente", statusLoaded: "Chargé: Points = ", statusGen: "Courbes générées", statusExport: "Exporté avec succès" },
+    es: { lang: "Idioma:", import: "Importar PLY", export: "Exportar PLY", pointSize: "Tamaño de punto:", interval: "Intervalo (m):", color: "Color:", generate: "Generar curvas", statusWait: "Estado: Esperando", statusLoaded: "Cargado: Puntos = ", statusGen: "Curvas generadas", statusExport: "Exportado con éxito" }
+};
+
+let currentLang = 'ja';
+function changeLanguage(lang) {
+    currentLang = lang;
+    const dict = i18n[lang];
+    document.getElementById('lbl-lang').innerText = dict.lang;
+    document.getElementById('lbl-import').innerText = dict.import;
+    document.getElementById('btn-export').innerText = dict.export;
+    document.getElementById('lbl-point-size').innerText = dict.pointSize;
+    document.getElementById('lbl-interval').innerText = dict.interval;
+    document.getElementById('lbl-contour-color').innerText = dict.color;
+    document.getElementById('btn-generate').innerText = dict.generate;
+}
+
+let pointData = { x: null, y: null, z: null, r: null, g: null, b: null, origR: null, origG: null, origB: null, count: 0 };
+let renderSettings = { pointSize: 2.0, rotX: 0.5, rotY: 0.5, scale: 1, centerX: 0, centerY: 0, centerZ: 0 };
+
+function clearMemory() {
+    pointData = { x: null, y: null, z: null, r: null, g: null, b: null, origR: null, origG: null, origB: null, count: 0 };
+}
+
+const canvas = document.getElementById('renderCanvas');
+const ctx = canvas.getContext('2d', { alpha: false }); // 最適化: alpha無効化
+
+function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    drawScene();
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', resizeCanvas);
+
+// 高速描画・省メモリレンダリング
+function drawScene() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (pointData.count === 0) return;
+
+    const width = canvas.width, height = canvas.height;
+    const fov = Math.min(width, height) * renderSettings.scale;
+    const cosX = Math.cos(renderSettings.rotX), sinX = Math.sin(renderSettings.rotX);
+    const cosY = Math.cos(renderSettings.rotY), sinY = Math.sin(renderSettings.rotY);
+    const cx = renderSettings.centerX, cy = renderSettings.centerY, cz = renderSettings.centerZ;
+    const pSize = Math.max(1, Math.round(renderSettings.pointSize));
+
+    // ImageDataを使用して直接ピクセル操作 (fillRectの呼び出しオーバーヘッドを排除)
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    for (let i = 0; i < pointData.count; i++) {
+        let x = pointData.x[i] - cx, y = pointData.y[i] - cy, z = pointData.z[i] - cz;
+        let x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY, y1 = y;
+        let y2 = y1 * cosX - z1 * sinX, z2 = y1 * sinX + z1 * cosX;
+        let distance = z2 + 500;
+        
+        if (distance <= 0) continue;
+
+        let px = Math.floor((x1 * (fov / distance)) + (width / 2));
+        let py = Math.floor((-y2 * (fov / distance)) + (height / 2));
+
+        if (px >= 0 && px < width && py >= 0 && py < height) {
+            for (let dy = 0; dy < pSize; dy++) {
+                for (let dx = 0; dx < pSize; dx++) {
+                    let pX = px + dx, pY = py + dy;
+                    if (pX < width && pY < height) {
+                        let idx = (pY * width + pX) * 4;
+                        data[idx] = pointData.r[i];
+                        data[idx+1] = pointData.g[i];
+                        data[idx+2] = pointData.b[i];
+                        data[idx+3] = 255;
+                    }
+                }
+            }
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
+}
+
+let isDragging = false, startX = 0, startY = 0;
+canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX; startY = e.clientY; });
+window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    renderSettings.rotY += (e.clientX - startX) * 0.01;
+    renderSettings.rotX += (e.clientY - startY) * 0.01;
+    startX = e.clientX; startY = e.clientY;
+    requestAnimationFrame(drawScene); // スムーズな描画
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+function updatePointSize(val) { renderSettings.pointSize = parseFloat(val); drawScene(); }
+
+function importPLY(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    document.getElementById('statusText').innerText = "ステータス: 読み込み中...";
+    clearMemory();
+    const reader = new FileReader();
+    reader.onload = (e) => { parsePLY(e.target.result); event.target.value = ''; };
+    reader.readAsArrayBuffer(file);
+}
+
+function parsePLY(buffer) {
+    const textDecoder = new TextDecoder("utf-8");
+    const u8 = new Uint8Array(buffer);
+    let headerEndIndex = 0;
+    
+    // ヘッダー終端探索
+    for (let i = 0; i < u8.length - 10; i++) {
+        if (u8[i]===101 && u8[i+1]===110 && u8[i+2]===100 && u8[i+3]===95 && u8[i+4]===104 && u8[i+5]===101 && u8[i+6]===97 && u8[i+7]===100 && u8[i+8]===101) {
+            headerEndIndex = i + 10;
+            while(headerEndIndex < u8.length && (u8[headerEndIndex] === 10 || u8[headerEndIndex] === 13)) headerEndIndex++;
+            break;
+        }
+    }
+    
+    const headerText = textDecoder.decode(u8.slice(0, headerEndIndex));
+    const vertexMatch = headerText.match(/element vertex (\d+)/);
+    if (!vertexMatch) { alert("頂点データが見つかりません"); return; }
+    
+    const vertexCount = parseInt(vertexMatch[1]);
+    const isBinary = headerText.includes("binary_little_endian");
+    
+    // ヘッダーからバイトストライド（1頂点あたりのデータ長）を計算
+    let vertexStride = 0;
+    let inVertex = false;
+    for (let line of headerText.split('\n')) {
+        if (line.startsWith("element vertex")) inVertex = true;
+        else if (line.startsWith("element face")) inVertex = false;
+        else if (inVertex && line.startsWith("property")) {
+            if (line.includes("float") || line.includes("int32") || line.includes("uint32")) vertexStride += 4;
+            else if (line.includes("double")) vertexStride += 8;
+            else if (line.includes("char") || line.includes("uchar") || line.includes("uint8") || line.includes("int8")) vertexStride += 1;
+            else if (line.includes("short") || line.includes("ushort") || line.includes("uint16") || line.includes("int16")) vertexStride += 2;
+        }
+    }
+    if (vertexStride === 0) vertexStride = 15; // fallback
+
+    pointData.x = new Float32Array(vertexCount);
+    pointData.y = new Float32Array(vertexCount);
+    pointData.z = new Float32Array(vertexCount);
+    pointData.r = new Uint8Array(vertexCount);
+    pointData.g = new Uint8Array(vertexCount);
+    pointData.b = new Uint8Array(vertexCount);
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+
+    if (isBinary) {
+        let dataView = new DataView(buffer, headerEndIndex);
+        let offset = 0;
+        for (let i = 0; i < vertexCount; i++) {
+            pointData.x[i] = dataView.getFloat32(offset, true);
+            pointData.y[i] = dataView.getFloat32(offset + 4, true);
+            pointData.z[i] = dataView.getFloat32(offset + 8, true);
+            // 色データが直後にあると仮定（汎用化するならヘッダー解析を詳細化）
+            pointData.r[i] = dataView.getUint8(offset + 12);
+            pointData.g[i] = dataView.getUint8(offset + 13);
+            pointData.b[i] = dataView.getUint8(offset + 14);
+            
+            offset += vertexStride; // 正確なストライド幅で進行
+            
+            if(pointData.x[i] < minX) minX = pointData.x[i]; if(pointData.x[i] > maxX) maxX = pointData.x[i];
+            if(pointData.y[i] < minY) minY = pointData.y[i]; if(pointData.y[i] > maxY) maxY = pointData.y[i];
+            if(pointData.z[i] < minZ) minZ = pointData.z[i]; if(pointData.z[i] > maxZ) maxZ = pointData.z[i];
+        }
+    } else {
+        const bodyText = textDecoder.decode(new Uint8Array(buffer, headerEndIndex));
+        let lineStart = 0;
+        // メモリクラッシュを防ぐため、文字列を1行ずつパース
+        for (let i = 0; i < vertexCount; i++) {
+            if (lineStart >= bodyText.length) break;
+            let lineEnd = bodyText.indexOf('\n', lineStart);
+            if (lineEnd === -1) lineEnd = bodyText.length;
+            let line = bodyText.substring(lineStart, lineEnd).trim();
+            lineStart = lineEnd + 1;
+            
+            if (!line) { i--; continue; }
+            const tokens = line.split(/\s+/);
+            if (tokens.length < 3) { i--; continue; }
+            
+            pointData.x[i] = parseFloat(tokens[0]);
+            pointData.y[i] = parseFloat(tokens[1]);
+            pointData.z[i] = parseFloat(tokens[2]);
+            pointData.r[i] = tokens.length > 5 ? parseInt(tokens[3]) : 200;
+            pointData.g[i] = tokens.length > 5 ? parseInt(tokens[4]) : 200;
+            pointData.b[i] = tokens.length > 5 ? parseInt(tokens[5]) : 200;
+
+            if(pointData.x[i] < minX) minX = pointData.x[i]; if(pointData.x[i] > maxX) maxX = pointData.x[i];
+            if(pointData.y[i] < minY) minY = pointData.y[i]; if(pointData.y[i] > maxY) maxY = pointData.y[i];
+            if(pointData.z[i] < minZ) minZ = pointData.z[i]; if(pointData.z[i] > maxZ) maxZ = pointData.z[i];
+        }
+    }
+
+    pointData.origR = new Uint8Array(pointData.r);
+    pointData.origG = new Uint8Array(pointData.g);
+    pointData.origB = new Uint8Array(pointData.b);
+    pointData.count = vertexCount;
+
+    renderSettings.centerX = (minX + maxX) / 2;
+    renderSettings.centerY = (minY + maxY) / 2;
+    renderSettings.centerZ = (minZ + maxZ) / 2;
+    let maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+    renderSettings.scale = maxDim > 0 ? 300 / maxDim : 1;
+
+    drawScene();
+    document.getElementById('statusText').innerText = i18n[currentLang].statusLoaded + vertexCount;
+}
+
+function generateContours() {
+    if (pointData.count === 0) return;
+    const interval = parseFloat(document.getElementById('contourInterval').value);
+    const hexColor = document.getElementById('contourColor').value;
+    const cR = parseInt(hexColor.substr(1,2), 16), cG = parseInt(hexColor.substr(3,2), 16), cB = parseInt(hexColor.substr(5,2), 16);
+    const tolerance = interval * 0.08;
+
+    for (let i = 0; i < pointData.count; i++) {
+        let z = pointData.z[i];
+        // 浮動小数点や負の数のバグを防ぐため、一番近い等高線基準値との差分を計算
+        let dist = Math.abs(z - Math.round(z / interval) * interval);
+        
+        if (dist < tolerance) {
+            pointData.r[i] = cR; pointData.g[i] = cG; pointData.b[i] = cB;
+        } else {
+            pointData.r[i] = pointData.origR[i]; pointData.g[i] = pointData.origG[i]; pointData.b[i] = pointData.origB[i];
+        }
+    }
+    drawScene();
+    document.getElementById('statusText').innerText = i18n[currentLang].statusGen;
+}
+
+function exportPLY() {
+    if (pointData.count === 0) return;
+    document.getElementById('statusText').innerText = "ステータス: 保存処理中...";
+    
+    // OOM（メモリ超過）防止のため、文字列をチャンク（塊）に分けて結合
+    let header = `ply\nformat ascii 1.0\nelement vertex ${pointData.count}\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n`;
+    let chunks = [header];
+    let currentChunk = "";
+    
+    for (let i = 0; i < pointData.count; i++) {
+        currentChunk += `${pointData.x[i]} ${pointData.y[i]} ${pointData.z[i]} ${pointData.r[i]} ${pointData.g[i]} ${pointData.b[i]}\n`;
+        if (i % 20000 === 0) { // 2万点ごとに配列へ格納
+            chunks.push(currentChunk);
+            currentChunk = "";
+        }
+    }
+    if (currentChunk) chunks.push(currentChunk);
+
+    const blob = new Blob(chunks, { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'contour_output.ply';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    // 不要になった配列の参照を解放
+    chunks = null;
+    document.getElementById('statusText').innerText = i18n[currentLang].statusExport;
+}
+</script>
+
+</body>
+</html>
