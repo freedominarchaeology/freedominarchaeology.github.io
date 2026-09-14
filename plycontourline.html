@@ -52,14 +52,17 @@
         }
 
         .menu-pane {
-            height: 280px;
+            max-height: 45vh; /* 画面高さの最大45%に制限 */
+            min-height: 120px; /* 最小高さを確保 */
+            flex-shrink: 0;   /* プレビュー画面に押されてメニューが潰れるのを防止 */
             background-color: var(--panel-bg);
             padding: 15px;
             display: flex;
             flex-direction: column;
             gap: 12px;
-            overflow-y: auto;
+            overflow-y: auto; /* 内容がはみ出た場合に縦スクロールバーを表示 */
         }
+
 
         .menu-row {
             display: flex;
