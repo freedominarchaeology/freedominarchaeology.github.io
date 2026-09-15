@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Contour Vector Map Generator</title>
 <style>
-  /* 共通スタイル・フォント設定 (MS 明朝指定) */
+  /* 共通スタイル・フォント設定 */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body, button, input, select {
     font-family: "MS Mincho", "MS 明朝", "Yu Mincho", "Hiragino Mincho ProN", serif;
@@ -13,23 +13,24 @@
   html, body {
     width: 100%;
     height: 100%;
+    height: 100dvh; /* 動的ビューポートでブラウザバー対策 */
     overflow: hidden;
     background-color: #1e1e1e;
     color: #e0e0e0;
   }
   
-  /* 上下分割構造（スクロール干渉の修正） */
+  /* 上下分割構造 */
   #main-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     width: 100vw;
   }
   
   /* 上段：プレビュー画面 */
   #preview-container {
-    flex: 1 1 50%;
-    min-height: 200px;
+    flex: 0 0 45%;
+    min-height: 180px;
     background-color: #000000;
     display: flex;
     justify-content: center;
@@ -38,15 +39,16 @@
     overflow: hidden;
   }
   
-  /* 下段：メニュー画面（独立スクロール処理を完全有効化） */
+  /* 下段：メニュー画面（スクロール＆下部余白確保） */
   #menu-container {
-    flex: 1 1 50%;
-    min-height: 200px;
+    flex: 1 1 55%;
     background-color: #2a2a2a;
     border-top: 2px solid #444;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     padding: 15px;
+    /* ブラウザ下部メニューバーに隠れないよう十分な余白を設定 */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 
   /* UIカード・フォーム設定 */
@@ -66,7 +68,7 @@
   }
   .grid-2 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 10px;
   }
   label { display: flex; flex-direction: column; font-size: 0.85rem; color: #ccc; }
@@ -93,7 +95,7 @@
     max-height: 100%;
   }
 
-  /* 等高線 線種スタイル (0.1mm / 0.25mm / 点線 / 破線) */
+  /* 等高線 線種スタイル */
   .line-main     { stroke-width: 0.1mm;  stroke-dasharray: none; }
   .line-index    { stroke-width: 0.25mm; stroke-dasharray: none; }
   .line-inter    { stroke-width: 0.1mm;  stroke-dasharray: 1, 2; }
@@ -107,9 +109,8 @@
   <div id="preview-container">
     <svg id="svg-export" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <!-- 蛍光・発光用ネオンフィルター -->
-        <filter id="glow-filter" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="2" result="blur" />
+        <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
           <feMerge>
             <feMergeNode in="blur"/>
             <feMergeNode in="SourceGraphic"/>
@@ -121,7 +122,7 @@
     </svg>
   </div>
 
-  <!-- 下段：メニュー画面 (スクロール対応) -->
+  <!-- 下段：メニュー画面 -->
   <div id="menu-container">
     
     <!-- 言語・ファイルインポート -->
@@ -154,7 +155,7 @@
       </div>
     </div>
 
-    <!-- カラー & 表示・カメラ設定 -->
+    <!-- カラー & カメラ設定 -->
     <div class="section">
       <div class="section-title" id="t-style-settings">カラー & カメラ視点設定</div>
       <div class="grid-2">
@@ -187,7 +188,6 @@
 </div>
 
 <script>
-// 多言語辞書
 const I18N = {
   ja: {
     lang: "言語選択", import: "PLYインポート", contourSettings: "等高線設定", styleSettings: "カラー & カメラ視点設定",
@@ -227,10 +227,9 @@ const I18N = {
   }
 };
 
-// メモリ最適化用グローバル配列
 let rawVertices = null; 
 
-// 言語切替
+// 言語切り替え
 document.getElementById('lang-select').addEventListener('change', (e) => {
   const dict = I18N[e.target.value] || I18N.ja;
   document.getElementById('t-lang').innerText = dict.lang;
@@ -252,7 +251,7 @@ document.getElementById('lang-select').addEventListener('change', (e) => {
   document.getElementById('btn-export-3dpdf').innerText = dict.exp3dPdf;
 });
 
-// ファイルインポート
+// ファイル読み込み
 document.getElementById('ply-file').addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -265,34 +264,31 @@ document.getElementById('ply-file').addEventListener('change', function(e) {
   reader.readAsArrayBuffer(file);
 });
 
-// PLYパース関数 (堅牢化処理)
+// 高速・軽量PLYパース
 function parsePLY(buffer) {
-  rawVertices = null; // メモリ即時解放
+  rawVertices = null; // 旧参照を解放
   
   const bytes = new Uint8Array(buffer);
-  let headerStr = "";
   let headerEndOffset = 0;
 
-  // ヘッダー終端 "end_header" を検索
   for (let i = 0; i < bytes.length - 10; i++) {
     if (bytes[i]===101 && bytes[i+1]===110 && bytes[i+2]===100 && bytes[i+3]===95 &&
         bytes[i+4]===104 && bytes[i+5]===101 && bytes[i+6]===97 && bytes[i+7]===100 && bytes[i+8]===101 && bytes[i+9]===114) {
-      while (i < bytes.length && bytes[i] !== 10) i++; // 改行まで進める
+      while (i < bytes.length && bytes[i] !== 10) i++;
       headerEndOffset = i + 1;
       break;
     }
   }
 
-  headerStr = new TextDecoder("utf-8").decode(bytes.subarray(0, headerEndOffset));
+  const headerStr = new TextDecoder("utf-8").decode(bytes.subarray(0, headerEndOffset));
   const vMatch = headerStr.match(/element\s+vertex\s+(\d+)/);
   if (!vMatch) {
-    alert("PLYファイルの解析に失敗しました。構造を確認してください。");
+    alert("PLYファイルのパースに失敗しました。ファイル形式を確認してください。");
     return;
   }
 
   const vCount = parseInt(vMatch[1], 10);
   const isBinaryLE = headerStr.includes("format binary_little_endian");
-  const isAscii = headerStr.includes("format ascii");
 
   rawVertices = new Float32Array(vCount * 3);
 
@@ -304,10 +300,9 @@ function parsePLY(buffer) {
       rawVertices[i * 3]     = dataView.getFloat32(p, true);
       rawVertices[i * 3 + 1] = dataView.getFloat32(p + 4, true);
       rawVertices[i * 3 + 2] = dataView.getFloat32(p + 8, true);
-      p += 12; // x,y,z (float32x3)
+      p += 12;
     }
   } else {
-    // ASCIIパース
     const text = new TextDecoder("utf-8").decode(bytes.subarray(headerEndOffset));
     const lines = text.split(/\r?\n/);
     let idx = 0;
@@ -325,7 +320,7 @@ function parsePLY(buffer) {
   }
 }
 
-// マーチングスクエア線分パターン表
+// マーチングスクエア線分パターンテーブル
 const MS_LOOKUP = {
   1:  [[0,0.5], [0.5,0]],   2:  [[0.5,0], [1,0.5]],   3:  [[0,0.5], [1,0.5]],
   4:  [[0.5,1], [1,0.5]],   5:  [[0,0.5], [0.5,1], [0.5,0], [1,0.5]],
@@ -335,10 +330,10 @@ const MS_LOOKUP = {
   14: [[0,0.5], [0.5,0]]
 };
 
-// 等高線生成・描画処理
+// 高速レンダリング処理（ループ保護機能付き）
 function renderContours() {
   if (!rawVertices || rawVertices.length === 0) {
-    alert("PLYファイルを先にインポートしてください。");
+    alert("PLYファイルを先に選択してください。");
     return;
   }
 
@@ -347,19 +342,19 @@ function renderContours() {
   const isGlow = document.getElementById('glow-effect').checked;
   const viewMode = document.getElementById('camera-view').value;
 
-  const intMain  = Math.max(0.001, parseFloat(document.getElementById('int-main').value));
-  const intIndex = Math.max(0.001, parseFloat(document.getElementById('int-index').value));
-  const intInter = Math.max(0.001, parseFloat(document.getElementById('int-inter').value));
-  const intSupp  = Math.max(0.001, parseFloat(document.getElementById('int-supp').value));
+  let intMain  = parseFloat(document.getElementById('int-main').value) || 1.0;
+  let intIndex = parseFloat(document.getElementById('int-index').value) || 5.0;
+  let intInter = parseFloat(document.getElementById('int-inter').value) || 0.5;
+  let intSupp  = parseFloat(document.getElementById('int-supp').value) || 0.25;
 
   document.getElementById('svg-bg').setAttribute('fill', bgCol);
 
-  // カメラ視点に応じた座標マッピング
+  // カメラ視点による軸切り替え
   let uIdx = 0, vIdx = 1, zIdx = 2;
   if (viewMode === 'front') { uIdx = 0; vIdx = 2; zIdx = 1; }
   else if (viewMode === 'right') { uIdx = 1; vIdx = 2; zIdx = 0; }
 
-  // 範囲算出
+  // バウンディングボックス取得
   let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
   let minZ = Infinity, maxZ = -Infinity;
   const count = rawVertices.length / 3;
@@ -373,8 +368,8 @@ function renderContours() {
     if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
   }
 
-  // 120x120 グリッドにリグリッド化
-  const cols = 120, rows = 120;
+  // 60x60 グリッドに最適化（クラッシュ防止）
+  const cols = 60, rows = 60;
   const grid = new Float32Array(cols * rows);
   const counts = new Uint16Array(cols * rows);
   const uSpan = (maxU - minU) || 1;
@@ -397,13 +392,13 @@ function renderContours() {
     grid[i] = counts[i] > 0 ? (grid[i] / counts[i]) : minZ;
   }
 
-  // 描画ターゲット初期化
   const group = document.getElementById('svg-contours');
   group.innerHTML = "";
 
-  // 等高線レベルの定義
+  // 無限ループ・メモリオーバーフロー防止（最大レベル数を150に制限）
+  let step = Math.max(intSupp, (maxZ - minZ) / 150);
   const levels = [];
-  for (let z = minZ; z <= maxZ; z += intSupp) {
+  for (let z = minZ; z <= maxZ; z += step) {
     let type = 'line-supp';
     if (Math.abs(z % intIndex) < 0.001 || Math.abs((z % intIndex) - intIndex) < 0.001) type = 'line-index';
     else if (Math.abs(z % intMain) < 0.001 || Math.abs((z % intMain) - intMain) < 0.001) type = 'line-main';
@@ -414,9 +409,10 @@ function renderContours() {
   const cellW = 800 / (cols - 1);
   const cellH = 600 / (rows - 1);
 
-  // レベルごとにベクター線を計算
+  // タイプ別にパスを結合して描画パフォーマンス向上
+  const pathGroup = { 'line-index': '', 'line-main': '', 'line-inter': '', 'line-supp': '' };
+
   levels.forEach(lvl => {
-    let pathData = "";
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols - 1; c++) {
         const v0 = grid[r * cols + c];
@@ -437,16 +433,19 @@ function renderContours() {
           for (let l = 0; l < lines.length; l += 2) {
             const p1 = lines[l];
             const p2 = lines[l+1];
-            pathData += `M ${x + p1[0]*cellW} ${y + p1[1]*cellH} L ${x + p2[0]*cellW} ${y + p2[1]*cellH} `;
+            pathGroup[lvl.type] += `M ${x + p1[0]*cellW} ${y + p1[1]*cellH} L ${x + p2[0]*cellW} ${y + p2[1]*cellH} `;
           }
         }
       }
     }
+  });
 
-    if (pathData) {
+  // SVG要素の追加
+  Object.keys(pathGroup).forEach(type => {
+    if (pathGroup[type]) {
       const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      pathEl.setAttribute("d", pathData);
-      pathEl.setAttribute("class", lvl.type);
+      pathEl.setAttribute("d", pathGroup[type]);
+      pathEl.setAttribute("class", type);
       pathEl.setAttribute("stroke", lineCol);
       pathEl.setAttribute("fill", "none");
       if (isGlow) pathEl.setAttribute("filter", "url(#glow-filter)");
@@ -455,19 +454,19 @@ function renderContours() {
   });
 }
 
-// ボタンイベント割り当て
+// イベント設定
 document.getElementById('btn-render').addEventListener('click', renderContours);
 
-// SVG保存
+// SVGダウンロード保存
 document.getElementById('btn-export-svg').addEventListener('click', () => {
   const svgData = document.getElementById('svg-export').outerHTML;
   downloadFile(svgData, "contour_map.svg", "image/svg+xml;charset=utf-8");
 });
 
-// PDFダイレクト保存（ベクターSVG形式を拡張したPDF互換データ出力）
+// PDF保存
 document.getElementById('btn-export-pdf').addEventListener('click', () => {
   const svgData = document.getElementById('svg-export').outerHTML;
-  const pdfWrapper = `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /Resources <<>> /MediaBox [0 0 800 600] >> endobj\nxbref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000062 00000 n\n0000000117 00000 n\ntrailer << /Size 4 /Root 1 0 R >>\nstartxref\n220\n%%EOF\n<!-- ${svgData} -->`;
+  const pdfWrapper = `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /Resources <<>> /MediaBox [0 0 800 600] >> endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000062 00000 n\n0000000117 00000 n\ntrailer << /Size 4 /Root 1 0 R >>\nstartxref\n220\n%%EOF\n<!-- ${svgData} -->`;
   downloadFile(pdfWrapper, "contour_map.pdf", "application/pdf");
 });
 
@@ -482,7 +481,7 @@ document.getElementById('btn-export-ply').addEventListener('click', () => {
   downloadFile(body, "export_data.ply", "text/plain");
 });
 
-// 3D PDF保存 (3Dメタデータタグ付与ファイル出力)
+// 3D PDF保存
 document.getElementById('btn-export-3dpdf').addEventListener('click', () => {
   const viewMode = document.getElementById('camera-view').value;
   const svgData = document.getElementById('svg-export').outerHTML;
@@ -490,7 +489,7 @@ document.getElementById('btn-export-3dpdf').addEventListener('click', () => {
   downloadFile(pdf3DData, "contour_map_3d.pdf", "application/pdf");
 });
 
-// 汎用ファイルダウンロードヘルパー
+// ファイル保存用関数
 function downloadFile(content, fileName, mimeType) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
