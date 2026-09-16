@@ -144,13 +144,14 @@
 let points = []; 
 let bounds = { minX:0, maxX:0, minY:0, maxY:0, minZ:0, maxZ:0 };
 
-// 色変換（Z軸に応じたカラー点群用）
+// Z軸に応じたカラーマップ計算 (レインボーカラーグラデーション)
 function getRainbowColor(t) {
-  const h = (1 - t) * 240;
-  return `hsl(${h}, 100%, 50%)`;
+  t = Math.max(0, Math.min(1, t));
+  const hue = (1 - t) * 240; // 赤(高) 〜 青(低)
+  return `hsl(${hue}, 100%, 50%)`;
 }
 
-// PLYパース
+// PLY読み込みイベント
 document.getElementById('ply-file').addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -163,61 +164,80 @@ document.getElementById('ply-file').addEventListener('change', function(e) {
   reader.readAsArrayBuffer(file);
 });
 
+// PLYパース（バイナリ/ASCII両対応・バイト長可変に対応）
 function parsePLY(buffer) {
   points = [];
   const bytes = new Uint8Array(buffer);
-  let headerStr = "";
+  let headerText = "";
   let headerEndOffset = 0;
 
+  // end_header の完全検出
   for (let i = 0; i < bytes.length - 10; i++) {
     if (bytes[i]===101 && bytes[i+1]===110 && bytes[i+2]===100 && bytes[i+3]===95 &&
         bytes[i+4]===104 && bytes[i+5]===101 && bytes[i+6]===97 && bytes[i+7]===100 && bytes[i+8]===101 && bytes[i+9]===114) {
-      while (i < bytes.length && bytes[i] !== 10) i++;
-      headerEndOffset = i + 1;
+      let offset = i + 10;
+      while (offset < bytes.length && bytes[offset] !== 10) offset++;
+      headerEndOffset = offset + 1;
       break;
     }
   }
 
-  headerStr = new TextDecoder("utf-8").decode(bytes.subarray(0, headerEndOffset));
-  const vMatch = headerStr.match(/element\s+vertex\s+(\d+)/);
-  if (!vMatch) return alert("PLYファイル構造を解析できませんでした。");
+  headerText = new TextDecoder("utf-8").decode(bytes.subarray(0, headerEndOffset));
+  const vMatch = headerText.match(/element\s+vertex\s+(\d+)/);
+  if (!vMatch) return alert("PLYファイルのパースに失敗しました。");
 
   const vCount = parseInt(vMatch[1], 10);
-  const isBinary = headerStr.includes("format binary_little_endian");
+  const isBinary = headerText.includes("format binary_little_endian");
+
+  // ヘッダー要素から1頂点あたりのプロパティ数を算出
+  const lines = headerText.split(/\r?\n/);
+  let stride = 0;
+  let inVertex = false;
+  lines.forEach(line => {
+    line = line.trim();
+    if (line.startsWith("element vertex")) inVertex = true;
+    else if (line.startsWith("element ")) inVertex = false;
+    else if (inVertex && line.startsWith("property")) stride += 4; // float/int(4bytes)想定
+  });
+  if (stride === 0) stride = 12; // デフォルト (x,y,z float32)
 
   bounds = { minX:Infinity, maxX:-Infinity, minY:Infinity, maxY:-Infinity, minZ:Infinity, maxZ:-Infinity };
 
   if (isBinary) {
     const dataView = new DataView(buffer, headerEndOffset);
-    let p = 0;
-    // ダウンサンプリングして描画パフォーマンス確保
-    const step = Math.max(1, Math.floor(vCount / 50000));
+    const step = Math.max(1, Math.floor(vCount / 80000)); // 高速化ダウンサンプリング
+
     for (let i = 0; i < vCount; i += step) {
-      const x = dataView.getFloat32(p + (i*12), true);
-      const y = dataView.getFloat32(p + (i*12) + 4, true);
-      const z = dataView.getFloat32(p + (i*12) + 8, true);
-      if(!isNaN(x) && !isNaN(y) && !isNaN(z)){
-        points.push({x, y, z});
-        if(x<bounds.minX) bounds.minX=x; if(x>bounds.maxX) bounds.maxX=x;
-        if(y<bounds.minY) bounds.minY=y; if(y>bounds.maxY) bounds.maxY=y;
-        if(z<bounds.minZ) bounds.minZ=z; if(z>bounds.maxZ) bounds.maxZ=z;
+      const byteOffset = i * stride;
+      if (byteOffset + 12 > dataView.byteLength) break;
+
+      const x = dataView.getFloat32(byteOffset, true);
+      const y = dataView.getFloat32(byteOffset + 4, true);
+      const z = dataView.getFloat32(byteOffset + 8, true);
+
+      if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
+        points.push({ x, y, z });
+        if (x < bounds.minX) bounds.minX = x; if (x > bounds.maxX) bounds.maxX = x;
+        if (y < bounds.minY) bounds.minY = y; if (y > bounds.maxY) bounds.maxY = y;
+        if (z < bounds.minZ) bounds.minZ = z; if (z > bounds.maxZ) bounds.maxZ = z;
       }
     }
   } else {
+    // ASCII形式
     const text = new TextDecoder("utf-8").decode(bytes.subarray(headerEndOffset));
-    const lines = text.split(/\r?\n/);
+    const asciiLines = text.split(/\r?\n/);
     let count = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+    for (let i = 0; i < asciiLines.length && count < vCount; i++) {
+      const line = asciiLines[i].trim();
       if (!line) continue;
       const parts = line.split(/\s+/);
       if (parts.length >= 3) {
         const x = parseFloat(parts[0]), y = parseFloat(parts[1]), z = parseFloat(parts[2]);
-        if(!isNaN(x) && !isNaN(y) && !isNaN(z)){
-          points.push({x, y, z});
-          if(x<bounds.minX) bounds.minX=x; if(x>bounds.maxX) bounds.maxX=x;
-          if(y<bounds.minY) bounds.minY=y; if(y>bounds.maxY) bounds.maxY=y;
-          if(z<bounds.minZ) bounds.minZ=z; if(z>bounds.maxZ) bounds.maxZ=z;
+        if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
+          points.push({ x, y, z });
+          if (x < bounds.minX) bounds.minX = x; if (x > bounds.maxX) bounds.maxX = x;
+          if (y < bounds.minY) bounds.minY = y; if (y > bounds.maxY) bounds.maxY = y;
+          if (z < bounds.minZ) bounds.minZ = z; if (z > bounds.maxZ) bounds.maxZ = z;
         }
         count++;
       }
@@ -225,7 +245,7 @@ function parsePLY(buffer) {
   }
 }
 
-// 1. インポート時のカラー点群プレビュー描画
+// 1. カラー点群描画 (Z軸でグラデーション付け)
 function drawPointCloud() {
   const canvas = document.getElementById('preview-canvas');
   const ctx = canvas.getContext('2d');
@@ -240,10 +260,10 @@ function drawPointCloud() {
   const margin = 40;
   const w = canvas.width - margin * 2;
   const h = canvas.height - margin * 2;
-  
+
   let uMin = bounds.minX, uMax = bounds.maxX, vMin = bounds.minY, vMax = bounds.maxY;
-  if(view === 'front') { vMin = bounds.minZ; vMax = bounds.maxZ; }
-  else if(view === 'right') { uMin = bounds.minY; uMax = bounds.maxY; vMin = bounds.minZ; vMax = bounds.maxZ; }
+  if (view === 'front') { vMin = bounds.minZ; vMax = bounds.maxZ; }
+  else if (view === 'right') { uMin = bounds.minY; uMax = bounds.maxY; vMin = bounds.minZ; vMax = bounds.maxZ; }
 
   const uSpan = (uMax - uMin) || 1;
   const vSpan = (vMax - vMin) || 1;
@@ -251,23 +271,25 @@ function drawPointCloud() {
 
   points.forEach(p => {
     let u = p.x, v = p.y;
-    if(view === 'front') { u = p.x; v = p.z; }
-    else if(view === 'right') { u = p.y; v = p.z; }
+    if (view === 'front') { u = p.x; v = p.z; }
+    else if (view === 'right') { u = p.y; v = p.z; }
 
     const cx = margin + ((u - uMin) / uSpan) * w;
     const cy = canvas.height - (margin + ((v - vMin) / vSpan) * h);
-    const colorNorm = (p.z - bounds.minZ) / zSpan;
+    
+    // Z軸座標によるカラーグラデーション計算
+    const normZ = (p.z - bounds.minZ) / zSpan;
 
-    ctx.fillStyle = getRainbowColor(colorNorm);
+    ctx.fillStyle = getRainbowColor(normZ);
     ctx.fillRect(cx, cy, 1.5, 1.5);
   });
 }
 
-// 2. PLY形状に正確に追従する等高線生成処理
+// 2. 等高線レンダリング処理
 function renderContours() {
-  if (points.length === 0) return alert("PLYファイルを先にインポートしてください。");
+  if (points.length === 0) return alert("PLYファイルを先に選択してください。");
 
-  drawPointCloud(); // 背景に点群プレビューを保持
+  drawPointCloud();
 
   const canvas = document.getElementById('preview-canvas');
   const ctx = canvas.getContext('2d');
@@ -282,22 +304,21 @@ function renderContours() {
   const h = canvas.height - margin * 2;
 
   let uMin = bounds.minX, uMax = bounds.maxX, vMin = bounds.minY, vMax = bounds.maxY;
-  if(view === 'front') { vMin = bounds.minZ; vMax = bounds.maxZ; }
-  else if(view === 'right') { uMin = bounds.minY; uMax = bounds.maxY; vMin = bounds.minZ; vMax = bounds.maxZ; }
+  if (view === 'front') { vMin = bounds.minZ; vMax = bounds.maxZ; }
+  else if (view === 'right') { uMin = bounds.minY; uMax = bounds.maxY; vMin = bounds.minZ; vMax = bounds.maxZ; }
 
   const uSpan = (uMax - uMin) || 1;
   const vSpan = (vMax - vMin) || 1;
 
   ctx.lineWidth = 1;
-  
-  // 形状追従型の幾何的接続処理
+
   for (let z = bounds.minZ; z <= bounds.maxZ; z += intMain) {
     ctx.strokeStyle = (Math.abs(z % intIndex) < 0.001) ? lineCol : lineCol + "88";
     ctx.beginPath();
-    
+
     for (let i = 0; i < points.length - 1; i += 2) {
       const p1 = points[i];
-      const p2 = points[i+1];
+      const p2 = points[i + 1];
 
       if ((p1.z <= z && p2.z >= z) || (p1.z >= z && p2.z <= z)) {
         const t = (p1.z === p2.z) ? 0 : (z - p1.z) / (p2.z - p1.z);
@@ -306,8 +327,8 @@ function renderContours() {
         const iz = p1.z + t * (p2.z - p1.z);
 
         let u = ix, v = iy;
-        if(view === 'front') { u = ix; v = iz; }
-        else if(view === 'right') { u = iy; v = iz; }
+        if (view === 'front') { u = ix; v = iz; }
+        else if (view === 'right') { u = iy; v = iz; }
 
         const cx = margin + ((u - uMin) / uSpan) * w;
         const cy = canvas.height - (margin + ((v - vMin) / vSpan) * h);
@@ -319,10 +340,12 @@ function renderContours() {
   }
 }
 
-// 3. 各種出力機能の正常化（PDF白紙回避・.txt化回避・3D PDF表示改善）
+// 各種操作イベント
 document.getElementById('btn-render').addEventListener('click', renderContours);
+document.getElementById('camera-view').addEventListener('change', drawPointCloud);
+document.getElementById('color-bg').addEventListener('input', drawPointCloud);
 
-// SVG保存
+// 保存機能
 document.getElementById('btn-export-svg').addEventListener('click', () => {
   const canvas = document.getElementById('preview-canvas');
   const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
@@ -333,33 +356,24 @@ document.getElementById('btn-export-svg').addEventListener('click', () => {
   downloadBlob(svgString, "contour_map.svg", "image/svg+xml");
 });
 
-// PDF保存 (白紙にならないバイナリ直接出力)
 document.getElementById('btn-export-pdf').addEventListener('click', () => {
   const canvas = document.getElementById('preview-canvas');
   const imgData = canvas.toDataURL('image/jpeg', 0.95);
-  
-  // 完全自己完結型PDF構造データ
   const pdfHeader = `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 800 600] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >> endobj\n4 0 obj << /Type /XObject /Subtype /Image /Width 800 /Height 600 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgData.length} >>\nstream\n${imgData}\nendstream\nendobj\n5 0 obj << /Length 44 >> stream\nq 800 0 0 600 0 0 cm /Im1 Do Q\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f\n0000000009 00000 n\n0000000062 00000 n\n0000000117 00000 n\n0000000250 00000 n\n0000000400 00000 n\ntrailer << /Size 6 /Root 1 0 R >>\nstartxref\n495\n%%EOF`;
-  
   downloadBlob(pdfHeader, "contour_map.pdf", "application/pdf");
 });
 
-// PLY保存 (.txt化を完全防止)
 document.getElementById('btn-export-ply').addEventListener('click', () => {
-  if (points.length === 0) return alert("保存する点群データがありません。");
+  if (points.length === 0) return alert("保存するデータがありません。");
   let body = `ply\nformat ascii 1.0\nelement vertex ${points.length}\nproperty float x\nproperty float y\nproperty float z\nend_header\n`;
   points.forEach(p => { body += `${p.x} ${p.y} ${p.z}\n`; });
-  
-  // MIMEタイプを「application/octet-stream」で明示指定して拡張子変更を防ぐ
   downloadBlob(body, "export_data.ply", "application/octet-stream");
 });
 
-// 3D PDF保存 (直接ダウンロード)
 document.getElementById('btn-export-3dpdf').addEventListener('click', () => {
   const canvas = document.getElementById('preview-canvas');
   const imgData = canvas.toDataURL('image/jpeg', 0.8);
   const pdf3DData = `%PDF-1.6\n% 3D PDF Container\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 800 600] >> endobj\n<!-- ${imgData} -->\ntrailer << /Root 1 0 R >>\n%%EOF`;
-  
   downloadBlob(pdf3DData, "contour_map_3d.pdf", "application/pdf");
 });
 
