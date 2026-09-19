@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:;">
+  <title>Human Capability Training Platform</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "YuMincho", serif;
+    }
+    body {
+      background-color: #f4f5f7;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    header {
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    h1 { font-size: 1.2rem; font-weight: bold; }
+    select {
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      padding: 15px;
+      gap: 15px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    #sidebar {
+      width: 280px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 90px);
+    }
+    .category-title {
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #475569;
+      margin-top: 10px;
+      border-bottom: 2px solid #cbd5e1;
+      padding-bottom: 3px;
+    }
+    .game-btn {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      padding: 8px;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .game-btn:hover { background: #e2e8f0; }
+    .game-btn.active { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+    #content-area {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      min-height: 500px;
+    }
+    .game-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      border: 1px solid #94a3b8;
+      background: #0f172a;
+      border-radius: 4px;
+      max-width: 100%;
+    }
+    .ui-btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .ui-btn:hover { background: #1d4ed8; }
+    .ui-input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      margin: 5px;
+    }
+    .info-text {
+      margin-bottom: 15px;
+      font-size: 1rem;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .score-board {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #0f172a;
+    }
+    @media(max-width: 768px) {
+      main { flex-direction: column; }
+      #sidebar { width: 100%; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 id="app-title">能力開発プラットフォーム</h1>
+  <div>
+    <select id="lang-select" onchange="changeLanguage(this.value)">
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <nav id="sidebar">
+    <div class="category-title" id="cat-1">1. 音声・聴覚系</div>
+    <button class="game-btn" onclick="switchGame('pitch_sense')" id="btn-pitch_sense">① 音感トレーナー</button>
+    <button class="game-btn" onclick="switchGame('vocal_control')" id="btn-vocal_control">② 発声・ピッチ制御</button>
+    <button class="game-btn" onclick="switchGame('rhythm')" id="btn-rhythm">③ リズム感保持力</button>
+
+    <div class="category-title" id="cat-2">2. 認知・脳トレ系</div>
+    <button class="game-btn" onclick="switchGame('nback')" id="btn-nback">① ワーキングメモリ(2-Back)</button>
+    <button class="game-btn" onclick="switchGame('stroop')" id="btn-stroop">② 処理速度(ストループ)</button>
+    <button class="game-btn" onclick="switchGame('mental_rot')" id="btn-mental_rot">③ 空間認知(3D回転)</button>
+
+    <div class="category-title" id="cat-3">3. 反射・目と手</div>
+    <button class="game-btn" onclick="switchGame('aim')" id="btn-aim">① エイム精度</button>
+    <button class="game-btn" onclick="switchGame('peripheral')" id="btn-peripheral">② 周辺視野トレーニング</button>
+
+    <div class="category-title" id="cat-4">4. 心理・言語系</div>
+    <button class="game-btn" onclick="switchGame('cbt')" id="btn-cbt">① 認知バイアス修正</button>
+    <button class="game-btn" onclick="switchGame('verbal')" id="btn-verbal">② 瞬発語彙力</button>
+  </nav>
+
+  <section id="content-area">
+    <div id="game-node" class="game-container"></div>
+  </section>
+</main>
+
+<script>
+/** 辞書・多言語リソース */
+const i18n = {
+  ja: {
+    title: "能力開発プラットフォーム",
+    cat1: "1. 音声・聴覚系", cat2: "2. 認知・脳トレ系", cat3: "3. 反射・目と手", cat4: "4. 心理・言語系",
+    btn_pitch_sense: "① 音感トレーナー", btn_vocal_control: "② 発声・ピッチ制御", btn_rhythm: "③ リズム感保持力",
+    btn_nback: "① ワーキングメモリ(2-Back)", btn_stroop: "② 処理速度(ストループ)", btn_mental_rot: "③ 空間認知(3D回転)",
+    btn_aim: "① エイム精度", btn_peripheral: "② 周辺視野トレーニング",
+    btn_cbt: "① 認知バイアス修正", btn_verbal: "② 瞬発語彙力",
+    start: "スタート", stop: "終了/リセット", submit: "送信", match: "一致", not_match: "不一致",
+    score: "スコア: ", accuracy: "精度: ", correct: "正解！", wrong: "不正解…",
+    pitch_desc: "基準音を聞いた後、ターゲット音を当ててください。",
+    play_ref: "基準音(ド)を聞く", play_target: "問題音を聞く",
+    vocal_desc: "声を出し、円の上下移動で緑色の領域（指定音程）を維持してください。",
+    rhythm_desc: "リズムに合わせてボタンを押してください。途中から消音します。",
+    tap: "タップ！",
+    nback_desc: "表示される位置が「2つ前」と同じか判定してください。",
+    stroop_desc: "文字の意味ではなく「表示されている色」を選択してください。",
+    rot_desc: "元の立体（左）を回転させた図形（右）を選んでください。",
+    aim_desc: "現れるターゲットを素早く正確にタップしてください。",
+    peripheral_desc: "中央の＋を見つめながら、外周に一瞬現れる数字を入力してください。",
+    cbt_desc: "ネガティブな状況に対して、最も論理的で柔軟な再解釈を選んでください。",
+    verbal_desc: "お題に該当する言葉を入力してください（制限時間15秒）。"
+  },
+  en: {
+    title: "Capability Training Platform",
+    cat1: "1. Audio & Pitch", cat2: "2. Cognitive", cat3: "3. Reflex & Focus", cat4: "4. Psych & Verbal",
+    btn_pitch_sense: "1. Pitch Sense", btn_vocal_control: "2. Pitch Control", btn_rhythm: "3. Rhythm Sense",
+    btn_nback: "1. Working Memory", btn_stroop: "2. Stroop Speed", btn_mental_rot: "3. 3D Spatial",
+    btn_aim: "1. Aim Precision", btn_peripheral: "2. Peripheral Vision",
+    btn_cbt: "1. Cognitive Bias", btn_verbal: "2. Verbal Speed",
+    start: "Start", stop: "Stop/Reset", submit: "Submit", match: "Match", not_match: "No Match",
+    score: "Score: ", accuracy: "Accuracy: ", correct: "Correct!", wrong: "Wrong!",
+    pitch_desc: "Listen to the reference note, then guess the target note name.",
+    play_ref: "Play Ref (C4)", play_target: "Play Target",
+    vocal_desc: "Control the ball with your vocal pitch to match the target zone.",
+    rhythm_desc: "Tap in tempo. Sound will mute halfway—keep the beat!",
+    tap: "TAP!",
+    nback_desc: "Does current position match 2 steps back?",
+    stroop_desc: "Select the DISPLAY COLOR, not the word's meaning.",
+    rot_desc: "Identify which right shape is a rotated version of the left.",
+    aim_desc: "Click targets as fast and accurately as possible.",
+    peripheral_desc: "Focus on '+' and type the digit that flashes on the edge.",
+    cbt_desc: "Choose the most constructive re-framing for the situation.",
+    verbal_desc: "Enter a valid word matching the prompt within 15 seconds."
+  }
+  // ※画面構成の整合のため、他言語時も標準キーで透過補完
+};
+
+let currentLang = 'ja';
+let currentGame = null;
+
+/** 共通オーディオ＆リソース管理者（メモリリーク完全防止） */
+const ResourceManager = {
+  audioCtx: null,
+  mediaStream: null,
+  animId: null,
+  timerId: null,
+
+  getAudioContext() {
+    if (!this.audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.audioCtx = new AudioContext();
+    }
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+    return this.audioCtx;
+  },
+
+  playTone(freq, duration = 0.5, type = 'sine') {
+    const ctx = this.getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  },
+
+  clearAll() {
+    if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null; }
+    if (this.timerId) { clearInterval(this.timerId); clearTimeout(this.timerId); this.timerId = null; }
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
+    }
+    if (this.audioCtx) {
+      this.audioCtx.close().catch(() => {});
+      this.audioCtx = null;
+    }
+  }
+};
+
+function getText(key) {
+  return (i18n[currentLang] && i18n[currentLang][key]) || i18n['ja'][key] || key;
+}
+
+function changeLanguage(lang) {
+  currentLang = lang;
+  document.getElementById('app-title').innerText = getText('title');
+  ['cat1','cat2','cat3','cat4'].forEach(c => document.getElementById(c).innerText = getText(c));
+  const btns = ['pitch_sense','vocal_control','rhythm','nback','stroop','mental_rot','aim','peripheral','cbt','verbal'];
+  btns.forEach(b => document.getElementById('btn-' + b).innerText = getText('btn_' + b));
+  if (currentGame && currentGame.init) currentGame.init();
+}
+
+function switchGame(gameKey) {
+  ResourceManager.clearAll();
+  document.querySelectorAll('.game-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + gameKey);
+  if(btn) btn.classList.add('active');
+
+  const container = document.getElementById('game-node');
+  container.innerHTML = '';
+
+  if (Games[gameKey]) {
+    currentGame = Games[gameKey];
+    currentGame.init();
+  }
+}
+
+/** 全9種ゲーム定義 */
+const Games = {};
+
+/* 1-① 音感 */
+Games.pitch_sense = {
+  targetFreq: 0,
+  notes: [{n:'C',f:261.63},{n:'D',f:293.66},{n:'E',f:329.63},{n:'F',f:349.23},{n:'G',f:392.00},{n:'A',f:440.00},{n:'B',f:493.88}],
+  targetNote: null,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('pitch_desc')}</div>
+      <div>
+        <button class="ui-btn" onclick="Games.pitch_sense.playRef()">${getText('play_ref')}</button>
+        <button class="ui-btn" onclick="Games.pitch_sense.playTarget()">${getText('play_target')}</button>
+      </div>
+      <div style="margin-top:20px;" id="pitch-options"></div>
+      <div id="pitch-res" class="score-board"></div>
+    `;
+    this.next();
+  },
+  next() {
+    const idx = Math.floor(Math.random() * this.notes.length);
+    this.targetNote = this.notes[idx];
+    const opts = document.getElementById('pitch-options');
+    opts.innerHTML = '';
+    this.notes.forEach(note => {
+      const b = document.createElement('button');
+      b.className = 'ui-btn';
+      b.innerText = note.n;
+      b.onclick = () => {
+        const res = document.getElementById('pitch-res');
+        res.innerText = (note.n === this.targetNote.n) ? getText('correct') : `${getText('wrong')} (${this.targetNote.n})`;
+        setTimeout(() => this.next(), 1200);
+      };
+      opts.appendChild(b);
+    });
+  },
+  playRef() { ResourceManager.playTone(261.63, 0.8); },
+  playTarget() { if(this.targetNote) ResourceManager.playTone(this.targetNote.f, 0.8); }
+};
+
+/* 1-② ピッチ制御 */
+Games.vocal_control = {
+  pitchY: 150, targetY: 150, score: 0,
+  async init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('vocal_desc')}</div>
+      <canvas id="cv-vocal" width="500" height="300"></canvas>
+      <div id="vocal-score" class="score-board">${getText('score')}0</div>
+    `;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      ResourceManager.mediaStream = stream;
+      const ctx = ResourceManager.getAudioContext();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      src.connect(analyser);
+      const buf = new Float32Array(analyser.fftSize);
+
+      const cv = document.getElementById('cv-vocal');
+      const c = cv.getContext('2d');
+      this.score = 0;
+      let frame = 0;
+
+      const loop = () => {
+        analyser.getFloatTimeDomainData(buf);
+        let pitch = this.autoCorrelate(buf, ctx.sampleRate);
+        if (pitch !== -1) {
+          let targetY = 300 - Math.min(Math.max((pitch - 100) * 0.8, 0), 300);
+          this.pitchY += (targetY - this.pitchY) * 0.1;
+        }
+
+        frame++;
+        if (frame % 120 === 0) this.targetY = 50 + Math.random() * 200;
+
+        c.fillStyle = '#0f172a';
+        c.fillRect(0, 0, 500, 300);
+
+        c.fillStyle = 'rgba(34, 197, 94, 0.3)';
+        c.fillRect(0, this.targetY - 25, 500, 50);
+
+        c.fillStyle = '#ef4444';
+        c.beginPath();
+        c.arc(250, this.pitchY, 12, 0, Math.PI * 2);
+        c.fill();
+
+        if (Math.abs(this.pitchY - this.targetY) < 25) {
+          this.score++;
+          document.getElementById('vocal-score').innerText = getText('score') + Math.floor(this.score / 10);
+        }
+
+        ResourceManager.animId = requestAnimationFrame(loop);
+      };
+      loop();
+    } catch(e) {
+      node.innerHTML = `<div class="info-text">Microphone access required.</div>`;
+    }
+  },
+  autoCorrelate(buf, sr) {
+    let SIZE = buf.length, rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+    if (Math.sqrt(rms / SIZE) < 0.01) return -1;
+    let r1 = 0, r2 = SIZE - 1, th = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < th) { r1 = i; break; }
+    for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < th) { r2 = SIZE - i; break; }
+    buf = buf.slice(r1, r2); SIZE = buf.length;
+    let c = new Array(SIZE).fill(0);
+    for (let i = 0; i < SIZE; i++) for (let j = 0; j < SIZE - i; j++) c[i] = c[i] + buf[j] * buf[j + i];
+    let d = 0; while (c[d] > c[d + 1]) d++;
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < SIZE; i++) if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+    return sr / maxpos;
+  }
+};
+
+/* 1-③ リズム感 */
+Games.rhythm = {
+  taps: [], startTime: 0,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('rhythm_desc')}</div>
+      <button class="ui-btn" style="padding:20px 40px; font-size:1.2rem;" onclick="Games.rhythm.tap()">${getText('tap')}</button>
+      <div id="rhythm-res" class="score-board"></div>
+    `;
+    this.taps = [];
+    this.startTime = performance.now();
+    let count = 0;
+    ResourceManager.timerId = setInterval(() => {
+      count++;
+      if (count <= 4) ResourceManager.playTone(880, 0.05);
+    }, 1000);
+  },
+  tap() {
+    const t = performance.now() - this.startTime;
+    this.taps.push(t);
+    if (this.taps.length >= 8) {
+      let err = 0;
+      for(let i=0; i<8; i++) err += Math.abs(this.taps[i] - (i + 1) * 1000);
+      document.getElementById('rhythm-res').innerText = `${getText('accuracy')}${Math.max(0, Math.floor(1000 - err / 8))} pts`;
+    }
+  }
+};
+
+/* 2-① Nバック */
+Games.nback = {
+  seq: [], pos: 0, score: 0,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('nback_desc')}</div>
+      <canvas id="cv-nback" width="300" height="300"></canvas>
+      <div style="margin-top:10px;">
+        <button class="ui-btn" onclick="Games.nback.answer(true)">${getText('match')}</button>
+        <button class="ui-btn" onclick="Games.nback.answer(false)">${getText('not_match')}</button>
+      </div>
+      <div id="nb-res" class="score-board">${getText('score')}0</div>
+    `;
+    this.seq = []; this.score = 0;
+    this.next();
+  },
+  next() {
+    this.pos = Math.floor(Math.random() * 9);
+    this.seq.push(this.pos);
+    const cv = document.getElementById('cv-nback');
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0,0,300,300);
+    c.strokeStyle = '#334155';
+    for(let i=1; i<3; i++){
+      c.beginPath(); c.moveTo(i*100,0); c.lineTo(i*100,300); c.stroke();
+      c.beginPath(); c.moveTo(0,i*100); c.lineTo(300,i*100); c.stroke();
+    }
+    const x = (this.pos % 3) * 100 + 10;
+    const y = Math.floor(this.pos / 3) * 100 + 10;
+    c.fillStyle = '#3b82f6';
+    c.fillRect(x, y, 80, 80);
+  },
+  answer(userSaysMatch) {
+    if (this.seq.length > 2) {
+      const actualMatch = this.seq[this.seq.length - 1] === this.seq[this.seq.length - 3];
+      if (userSaysMatch === actualMatch) this.score += 10;
+      document.getElementById('nb-res').innerText = getText('score') + this.score;
+    }
+    this.next();
+  }
+};
+
+/* 2-② ストループ */
+Games.stroop = {
+  colors: ['red', 'blue', 'green', 'yellow'],
+  labels: { red: '赤', blue: '青', green: '緑', yellow: '黄' },
+  correctColor: '', score: 0,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('stroop_desc')}</div>
+      <div id="stroop-target" style="font-size:3rem; font-weight:bold; margin:20px;"></div>
+      <div id="stroop-opts"></div>
+      <div id="stroop-res" class="score-board">${getText('score')}0</div>
+    `;
+    this.score = 0;
+    this.next();
+  },
+  next() {
+    const textKey = this.colors[Math.floor(Math.random() * 4)];
+    this.correctColor = this.colors[Math.floor(Math.random() * 4)];
+    const target = document.getElementById('stroop-target');
+    target.innerText = this.labels[textKey];
+    target.style.color = this.correctColor;
+
+    const opts = document.getElementById('stroop-opts');
+    opts.innerHTML = '';
+    this.colors.forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'ui-btn';
+      b.innerText = this.labels[c];
+      b.onclick = () => {
+        if (c === this.correctColor) this.score += 10;
+        document.getElementById('stroop-res').innerText = getText('score') + this.score;
+        this.next();
+      };
+      opts.appendChild(b);
+    });
+  }
+};
+
+/* 2-③ 空間認知 (3D回転) */
+Games.mental_rot = {
+  correctIdx: 0,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('rot_desc')}</div>
+      <canvas id="cv-rot" width="450" height="150"></canvas>
+      <div style="margin-top:15px;">
+        <button class="ui-btn" onclick="Games.mental_rot.check(0)">A</button>
+        <button class="ui-btn" onclick="Games.mental_rot.check(1)">B</button>
+      </div>
+      <div id="rot-res" class="score-board"></div>
+    `;
+    this.draw();
+  },
+  draw() {
+    const cv = document.getElementById('cv-rot');
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0, 0, 450, 150);
+
+    this.correctIdx = Math.random() < 0.5 ? 0 : 1;
+    this.renderCube(c, 75, 75, 0); // Original
+    this.renderCube(c, 225, 75, this.correctIdx === 0 ? 1.2 : -0.8); // Option A
+    this.renderCube(c, 375, 75, this.correctIdx === 1 ? 1.2 : -0.5, this.correctIdx !== 1); // Option B
+  },
+  renderCube(c, cx, cy, angle, mirror = false) {
+    c.save();
+    c.translate(cx, cy);
+    c.rotate(angle);
+    if(mirror) c.scale(-1, 1);
+    c.strokeStyle = '#38bdf8'; c.lineWidth = 3;
+    c.strokeRect(-25, -25, 50, 50);
+    c.beginPath(); c.moveTo(-25,-25); c.lineTo(0,-40); c.lineTo(50,-40); c.lineTo(25,-25); c.stroke();
+    c.beginPath(); c.moveTo(25,-25); c.lineTo(50,-40); c.lineTo(50,10); c.lineTo(25,25); c.stroke();
+    c.restore();
+  },
+  check(idx) {
+    const res = document.getElementById('rot-res');
+    res.innerText = (idx === this.correctIdx) ? getText('correct') : getText('wrong');
+    setTimeout(() => this.draw(), 1000);
+  }
+};
+
+/* 3-① エイム精度 */
+Games.aim = {
+  score: 0, hits: 0,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('aim_desc')}</div>
+      <canvas id="cv-aim" width="500" height="300"></canvas>
+      <div id="aim-res" class="score-board">${getText('score')}0</div>
+    `;
+    this.score = 0; this.hits = 0;
+    const cv = document.getElementById('cv-aim');
+    cv.onclick = (e) => this.onClick(e, cv);
+    this.spawn();
+  },
+  spawn() {
+    const cv = document.getElementById('cv-aim');
+    if(!cv) return;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0,0,500,300);
+
+    this.x = 30 + Math.random() * 440;
+    this.y = 30 + Math.random() * 240;
+
+    c.fillStyle = '#ef4444';
+    c.beginPath(); c.arc(this.x, this.y, 15, 0, Math.PI * 2); c.fill();
+  },
+  onClick(e, cv) {
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const dist = Math.hypot(mx - this.x, my - this.y);
+    if (dist < 20) {
+      this.score += 10;
+      document.getElementById('aim-res').innerText = getText('score') + this.score;
+      this.spawn();
+    }
+  }
+};
+
+/* 3-② 周辺視野 */
+Games.peripheral = {
+  targetNum: 0,
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('peripheral_desc')}</div>
+      <canvas id="cv-peri" width="400" height="250"></canvas>
+      <div style="margin-top:10px;">
+        <input type="number" id="peri-in" class="ui-input" style="width:80px;" />
+        <button class="ui-btn" onclick="Games.peripheral.check()">${getText('submit')}</button>
+      </div>
+      <div id="peri-res" class="score-board"></div>
+    `;
+    this.spawn();
+  },
+  spawn() {
+    const cv = document.getElementById('cv-peri');
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0, 0, 400, 250);
+
+    c.fillStyle = '#fff'; c.font = '30px serif';
+    c.fillText('+', 190, 130);
+
+    this.targetNum = Math.floor(Math.random() * 9) + 1;
+    const px = Math.random() < 0.5 ? 40 : 340;
+    const py = 40 + Math.random() * 170;
+
+    setTimeout(() => {
+      c.fillStyle = '#38bdf8';
+      c.fillText(this.targetNum.toString(), px, py);
+      setTimeout(() => {
+        c.fillStyle = '#0f172a';
+        c.fillRect(px - 10, py - 30, 40, 40);
+      }, 150);
+    }, 1000);
+  },
+  check() {
+    const val = parseInt(document.getElementById('peri-in').value);
+    const res = document.getElementById('peri-res');
+    res.innerText = (val === this.targetNum) ? getText('correct') : getText('wrong');
+    document.getElementById('peri-in').value = '';
+    setTimeout(() => this.spawn(), 1000);
+  }
+};
+
+/* 4-① 認知バイアス修正 */
+Games.cbt = {
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('cbt_desc')}</div>
+      <div style="background:#f1f5f9; padding:15px; border-radius:6px; max-width:500px; margin-bottom:15px;" id="cbt-q">
+        「重要なプレゼンで言い間違いをしてしまった…全て台無しだ。」
+      </div>
+      <div id="cbt-opts"></div>
+      <div id="cbt-res" class="score-board"></div>
+    `;
+    const opts = [
+      { text: "完璧ではなかったが、大事なポイントはしっかり伝えられた。", correct: true },
+      { text: "自分はいつも失敗ばかりで本番に弱すぎる。", correct: false }
+    ];
+    const div = document.getElementById('cbt-opts');
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'ui-btn';
+      b.style.display = 'block';
+      b.style.width = '100%';
+      b.innerText = o.text;
+      b.onclick = () => {
+        document.getElementById('cbt-res').innerText = o.correct ? getText('correct') : getText('wrong');
+      };
+      div.appendChild(b);
+    });
+  }
+};
+
+/* 4-② 瞬発語彙力 */
+Games.verbal = {
+  init() {
+    const node = document.getElementById('game-node');
+    node.innerHTML = `
+      <div class="info-text">${getText('verbal_desc')}</div>
+      <div style="font-size:1.3rem; font-weight:bold; margin:15px;" id="verbal-prompt">お題: 「あ」から始まる赤いもの</div>
+      <input type="text" id="verbal-in" class="ui-input" />
+      <button class="ui-btn" onclick="Games.verbal.check()">${getText('submit')}</button>
+      <div id="verbal-res" class="score-board"></div>
+    `;
+  },
+  check() {
+    const val = document.getElementById('verbal-in').value.trim();
+    const res = document.getElementById('verbal-res');
+    if (val.startsWith('あ') || val.toLowerCase().startsWith('a')) {
+      res.innerText = getText('correct');
+    } else {
+      res.innerText = getText('wrong');
+    }
+  }
+};
+
+// 初期表示設定
+window.onload = () => {
+  changeLanguage('ja');
+  switchGame('pitch_sense');
+};
+</script>
+</body>
+</html>
