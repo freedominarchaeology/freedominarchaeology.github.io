@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <title>Time-Dilemma Simulation</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #4a7c59;
+            --accent-hover: #5c9c6f;
+            --border-color: #333333;
+            --font-family: "MS 明朝", "MS Mincho", "Hiragino Mincho ProN", serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 800px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: normal;
+            letter-spacing: 1px;
+        }
+
+        select {
+            background-color: #2a2a2a;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            font-family: var(--font-family);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            background-color: #181818;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #2a2a2a;
+            text-align: center;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-label {
+            font-size: 0.85rem;
+            color: #888888;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            color: #aaaaaa;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 8px;
+        }
+
+        .story-text {
+            white-space: pre-line;
+            background-color: #181818;
+            padding: 16px;
+            border-radius: 4px;
+            border: 1px solid #282828;
+            min-height: 100px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #2a2a2a;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            font-family: var(--font-family);
+            font-size: 0.95rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #383838;
+            border-color: var(--accent-color);
+        }
+
+        .btn-action {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .btn-action:hover {
+            background-color: var(--accent-hover);
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666666;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 16px;
+            }
+            .status-panel {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            h1 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 id="app-title">Scenario Simulation</h1>
+        <select id="lang-select" aria-label="Language Select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文(简体)</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </header>
+
+    <div class="status-panel">
+        <div class="status-item">
+            <span class="status-label" id="label-power">Power</span>
+            <span class="status-value" id="val-power">100</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label" id="label-funds">Funds</span>
+            <span class="status-value" id="val-funds">100</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label" id="label-trust">Trust</span>
+            <span class="status-value" id="val-trust">100</span>
+        </div>
+    </div>
+
+    <main class="content-area">
+        <div class="section-title" id="phase-title">Phase</div>
+        <div class="story-text" id="story-display"></div>
+        <div class="options-container" id="options-display"></div>
+    </main>
+
+    <footer>
+        <span id="footer-text">Offline Simulation System Engine</span>
+    </footer>
+</div>
+
+<script>
+(function() {
+    "use strict";
+
+    // 1. 多言語辞書構造 (i18n)
+    const I18N = {
+        ja: {
+            title: "シナリオシミュレーター",
+            power: "国力",
+            funds: "資金",
+            trust: "信頼",
+            footer: "完全オフラインシミュレーションシステム",
+            phasePast: "過去：歴史的状況",
+            phaseFuture: "未来：予測の選択",
+            phasePresent: "現在：リソース配分の決断",
+            phaseResult: "結果：シナリオ帰結",
+            restart: "最初からやり直す",
+            scenarios: [
+                {
+                    past: "1980年代、エネルギー資源の危機に直面した国家が存在した。急速な都市化に伴い電力需要が倍増している。",
+                    futureOptions: [
+                        { text: "未来予測 A: 化石燃料への一時依存が経済成長を加速させる。", flag: "fossil" },
+                        { text: "未来予測 B: 新規代替エネルギー研究が長期的な独立をもたらす。", flag: "tech" }
+                    ],
+                    presentOptions: {
+                        fossil: [
+                            { text: "現在資源投入: 短期的な火力発電所に投資 (国力+20, 資金-10, 信頼-10)", p: 20, f: -10, t: -10 },
+                            { text: "現在資源投入: 環境規制と省エネ施策を実行 (国力-10, 資金+10, 信頼+20)", p: -10, f: 10, t: 20 }
+                        ],
+                        tech: [
+                            { text: "現在資源投入: 国家研究機関へ全額資金投入 (国力-10, 資金-30, 信頼+30)", p: -10, f: -30, t: 30 },
+                            { text: "現在資源投入: 民間企業と共同で段階的開発 (国力+10, 資金-10, 信頼+10)", p: 10, f: -10, t: 10 }
+                        ]
+                    },
+                    results: {
+                        p_high: "エネルギー問題は解決され、国家は新時代の主導権を握った。",
+                        p_low: "エネルギー供給が追いつかず、経済は低迷期へと突入した。"
+                    }
+                }
+            ]
+        },
+        en: {
+            title: "Scenario Simulator",
+            power: "Power",
+            funds: "Funds",
+            trust: "Trust",
+            footer: "Fully Offline Simulation System",
+            phasePast: "Past: Historical Situation",
+            phaseFuture: "Future: Predicted Path",
+            phasePresent: "Present: Resource Allocation",
+            phaseResult: "Result: Scenario Outcome",
+            restart: "Restart Game",
+            scenarios: [
+                {
+                    past: "In the 1980s, a nation faced a severe energy resource crisis. Electricity demand doubled due to rapid urbanization.",
+                    futureOptions: [
+                        { text: "Prediction A: Temporary reliance on fossil fuels will accelerate economic growth.", flag: "fossil" },
+                        { text: "Prediction B: Researching new alternative energy will bring long-term independence.", flag: "tech" }
+                    ],
+                    presentOptions: {
+                        fossil: [
+                            { text: "Allocate Now: Invest in short-term thermal power plants (Power+20, Funds-10, Trust-10)", p: 20, f: -10, t: -10 },
+                            { text: "Allocate Now: Implement environmental regulations and energy saving (Power-10, Funds+10, Trust+20)", p: -10, f: 10, t: 20 }
+                        ],
+                        tech: [
+                            { text: "Allocate Now: Fully fund national research institutes (Power-10, Funds-30, Trust+30)", p: -10, f: -30, t: 30 },
+                            { text: "Allocate Now: Joint phased development with private sector (Power+10, Funds-10, Trust+10)", p: 10, f: -10, t: 10 }
+                        ]
+                    },
+                    results: {
+                        p_high: "The energy crisis was resolved, and the nation took leadership in a new era.",
+                        p_low: "Energy supply failed to keep up, sending the economy into a prolonged stagnation."
+                    }
+                }
+            ]
+        },
+        zh: {
+            title: "情景模拟器",
+            power: "国力",
+            funds: "资金",
+            trust: "信任",
+            footer: "完全离线模拟系统 Engine",
+            phasePast: "过去：历史背景",
+            phaseFuture: "未来：预测选择",
+            phasePresent: "现在：资源分配决策",
+            phaseResult: "结果：最终结局",
+            restart: "重新开始",
+            scenarios: [
+                {
+                    past: "20世纪80年代，某国面临严重的能源资源危机。随着迅速城市化，电力需求翻倍。",
+                    futureOptions: [
+                        { text: "预测 A：暂时依赖化石燃料将加速经济增长。", flag: "fossil" },
+                        { text: "预测 B：研究新型替代能源将带来长期独立。", flag: "tech" }
+                    ],
+                    presentOptions: {
+                        fossil: [
+                            { text: "投入资源：投资短期火力发电厂 (国力+20, 资金-10, 信任-10)", p: 20, f: -10, t: -10 },
+                            { text: "投入资源：实施环保法规与节能措施 (国力-10, 资金+10, 信任+20)", p: -10, f: 10, t: 20 }
+                        ],
+                        tech: [
+                            { text: "投入资源：全额资助国家科研机构 (国力-10, 资金-30, 信任+30)", p: -10, f: -30, t: 30 },
+                            { text: "投入资源：与私营企业联合分阶段开发 (国力+10, 资金-10, 信任+10)", p: 10, f: -10, t: 10 }
+                        ]
+                    },
+                    results: {
+                        p_high: "能源问题得到解决，国家掌握了新时代的导向权。",
+                        p_low: "能源供应跟不上需求，经济陷入长期停滞。"
+                    }
+                }
+            ]
+        },
+        ko: {
+            title: "시나리오 시뮬레이터",
+            power: "국력",
+            funds: "자금",
+            trust: "신뢰",
+            footer: "완전 오프라인 시뮬레이션 시스템",
+            phasePast: "과거: 역사적 상황",
+            phaseFuture: "미래: 예측 선택",
+            phasePresent: "현재: 자원 배분 결단",
+            phaseResult: "결과: 시나리오 결말",
+            restart: "처음부터 다시 시작",
+            scenarios: [
+                {
+                    past: "1980년대, 에너지 자원 위기에 직면한 국가가 있었다. 급격한 도시화로 전력 수요가 두 배로 증가했다.",
+                    futureOptions: [
+                        { text: "미래 예측 A: 화석 연료에 대한 일시적 의존이 경제 성장을 가속화한다.", flag: "fossil" },
+                        { text: "미래 예측 B: 신대체 에너지 연구가 장기적 독립을 가져온다.", flag: "tech" }
+                    ],
+                    presentOptions: {
+                        fossil: [
+                            { text: "현재 자원 투입: 단기 화력 발전소에 투자 (국력+20, 자금-10, 신뢰-10)", p: 20, f: -10, t: -10 },
+                            { text: "현재 자원 투입: 환경 규제 및 에너지 절약 정책 시행 (국력-10, 자금+10, 신뢰+20)", p: -10, f: 10, t: 20 }
+                        ],
+                        tech: [
+                            { text: "현재 자원 투입: 국가 연구 기관에 전액 자금 투입 (국력-10, 자금-30, 신뢰+30)", p: -10, f: -30, t: 30 },
+                            { text: "현재 자원 투입: 민간 기업과 공동 단계적 개발 (국력+10, 자금-10, 신뢰+10)", p: 10, f: -10, t: 10 }
+                        ]
+                    },
+                    results: {
+                        p_high: "에너지 문제가 해결되고 국가가 새 시대의 주도권을 잡았습니다.",
+                        p_low: "에너지 공급이 미치지 못해 경제가 침체기에 빠졌습니다."
+                    }
+                }
+            ]
+        },
+        fr: {
+            title: "Simulateur de Scénario",
+            power: "Puissance",
+            funds: "Fonds",
+            trust: "Confiance",
+            footer: "Système de Simulation Entièrement Hors Ligne",
+            phasePast: "Passé : Situation Historique",
+            phaseFuture: "Futur : Choix de Prédiction",
+            phasePresent: "Présent : Allocation des Ressources",
+            phaseResult: "Résultat : Conclusion",
+            restart: "Recommencer",
+            scenarios: [
+                {
+                    past: "Dans les années 1980, une nation a fait face à une crise énergétique. La demande en électricité a doublé avec l'urbanisation rapide.",
+                    futureOptions: [
+                        { text: "Prédiction A: La dépendance temporaire aux énergies fossiles accélérera la croissance.", flag: "fossil" },
+                        { text: "Prédiction B: La recherche de nouvelles énergies apportera l'indépendance à long terme.", flag: "tech" }
+                    ],
+                    presentOptions: {
+                        fossil: [
+                            { text: "Allouer ressources: Investir dans des centrales thermiques (Puissance+20, Fonds-10, Confiance-10)", p: 20, f: -10, t: -10 },
+                            { text: "Allouer ressources: Appliquer des normes écologiques (Puissance-10, Fonds+10, Confiance+20)", p: -10, f: 10, t: 20 }
+                        ],
+                        tech: [
+                            { text: "Allouer ressources: Financer les instituts de recherche (Puissance-10, Fonds-30, Confiance+30)", p: -10, f: -30, t: 30 },
+                            { text: "Allouer ressources: Développement conjoint avec le secteur privé (Puissance+10, Fonds-10, Confiance+10)", p: 10, f: -10, t: 10 }
+                        ]
+                    },
+                    results: {
+                        p_high: "La crise énergétique a été résolue et la nation a pris le contrôle d'une nouvelle ère.",
+                        p_low: "L'approvisionnement n'a pas suivi, plongeant l'économie dans la stagnation."
+                    }
+                }
+            ]
+        },
+        es: {
+            title: "Simulador de Escenarios",
+            power: "Poder",
+            funds: "Fondos",
+            trust: "Confianza",
+            footer: "Sistema de Simulación Completamente Fuera de Línea",
+            phasePast: "Pasado: Situación Histórica",
+            phaseFuture: "Futuro: Elección de Predicción",
+            phasePresent: "Presente: Asignación de Recursos",
+            phaseResult: "Resultado: Conclusión del Escenario",
+            restart: "Reiniciar",
+            scenarios: [
+                {
+                    past: "En la década de 1980, una nación enfrentó una grave crisis de recursos energéticos. La demanda eléctrica se duplicó debido a la rápida urbanización.",
+                    futureOptions: [
+                        { text: "Predicción A: La dependencia temporal de fósiles acelerará el crecimiento.", flag: "fossil" },
+                        { text: "Predicción B: Investigar nuevas energías alternativas traerá independencia a largo plazo.", flag: "tech" }
+                    ],
+                    presentOptions: {
+                        fossil: [
+                            { text: "Asignar recursos: Invertir en plantas térmicas (Poder+20, Fondos-10, Confianza-10)", p: 20, f: -10, t: -10 },
+                            { text: "Asignar recursos: Implementar regulaciones ambientales (Poder-10, Fondos+10, Confianza+20)", p: -10, f: 10, t: 20 }
+                        ],
+                        tech: [
+                            { text: "Asignar recursos: Financiar institutos de investigación (Poder-10, Fondos-30, Confianza+30)", p: -10, f: -30, t: 30 },
+                            { text: "Asignar recursos: Desarrollo conjunto con sector privado (Poder+10, Fondos-10, Confianza+10)", p: 10, f: -10, t: 10 }
+                        ]
+                    },
+                    results: {
+                        p_high: "La crisis energética se resolvió y la nación lideró una nueva era.",
+                        p_low: "El suministro de energía falló y la economía cayó en un estancamiento prolongado."
+                    }
+                }
+            ]
+        }
+    };
+
+    // 2. 状態管理（軽量化のため最小構成）
+    let state = {
+        lang: "ja",
+        phase: 0, // 0: Past/Future, 1: Present, 2: Result
+        power: 100,
+        funds: 100,
+        trust: 100,
+        selectedPrediction: null
+    };
+
+    // 3. Cache DOM Elements
+    const dom = {
+        langSelect: document.getElementById("lang-select"),
+        appTitle: document.getElementById("app-title"),
+        labelPower: document.getElementById("label-power"),
+        labelFunds: document.getElementById("label-funds"),
+        labelTrust: document.getElementById("label-trust"),
+        valPower: document.getElementById("val-power"),
+        valFunds: document.getElementById("val-funds"),
+        valTrust: document.getElementById("val-trust"),
+        phaseTitle: document.getElementById("phase-title"),
+        storyDisplay: document.getElementById("story-display"),
+        optionsDisplay: document.getElementById("options-display"),
+        footerText: document.getElementById("footer-text")
+    };
+
+    // Safe text setter (Prevent XSS)
+    function setText(elem, text) {
+        if (elem) elem.textContent = text;
+    }
+
+    // Clear element children safely to release memory
+    function clearChildren(elem) {
+        while (elem.firstChild) {
+            elem.removeChild(elem.firstChild);
+        }
+    }
+
+    // Render UI based on current language and state
+    function renderUI() {
+        const dict = I18N[state.lang] || I18N.ja;
+        
+        setText(dom.appTitle, dict.title);
+        setText(dom.labelPower, dict.power);
+        setText(dom.labelFunds, dict.funds);
+        setText(dom.labelTrust, dict.trust);
+        setText(dom.footerText, dict.footer);
+
+        setText(dom.valPower, state.power);
+        setText(dom.valFunds, state.funds);
+        setText(dom.valTrust, state.trust);
+
+        const currentScenario = dict.scenarios[0];
+
+        // Clear previous dynamic elements
+        clearChildren(dom.optionsDisplay);
+
+        if (state.phase === 0) {
+            setText(dom.phaseTitle, dict.phasePast + " -> " + dict.phaseFuture);
+            setText(dom.storyDisplay, currentScenario.past);
+
+            currentScenario.futureOptions.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "btn";
+                setText(btn, opt.text);
+                btn.dataset.flag = opt.flag;
+                dom.optionsDisplay.appendChild(btn);
+            });
+        } else if (state.phase === 1) {
+            setText(dom.phaseTitle, dict.phasePresent);
+            setText(dom.storyDisplay, currentScenario.past);
+
+            const presentOpts = currentScenario.presentOptions[state.selectedPrediction];
+            presentOpts.forEach((opt, index) => {
+                const btn = document.createElement("button");
+                btn.className = "btn";
+                setText(btn, opt.text);
+                btn.dataset.index = index;
+                dom.optionsDisplay.appendChild(btn);
+            });
+        } else if (state.phase === 2) {
+            setText(dom.phaseTitle, dict.phaseResult);
+            
+            const resultText = (state.power >= 100) 
+                ? currentScenario.results.p_high 
+                : currentScenario.results.p_low;
+            
+            setText(dom.storyDisplay, resultText);
+
+            const btn = document.createElement("button");
+            btn.className = "btn btn-action";
+            setText(btn, dict.restart);
+            btn.dataset.action = "restart";
+            dom.optionsDisplay.appendChild(btn);
+        }
+    }
+
+    // Event Delegation for Memory Optimization (Single Event Listener)
+    dom.optionsDisplay.addEventListener("click", function(e) {
+        const target = e.target;
+        if (target.tagName !== "BUTTON") return;
+
+        if (state.phase === 0) {
+            state.selectedPrediction = target.dataset.flag;
+            state.phase = 1;
+            renderUI();
+        } else if (state.phase === 1) {
+            const index = parseInt(target.dataset.index, 10);
+            const dict = I18N[state.lang] || I18N.ja;
+            const option = dict.scenarios[0].presentOptions[state.selectedPrediction][index];
+
+            state.power += option.p;
+            state.funds += option.f;
+            state.trust += option.t;
+
+            state.phase = 2;
+            renderUI();
+        } else if (state.phase === 2) {
+            if (target.dataset.action === "restart") {
+                state.phase = 0;
+                state.power = 100;
+                state.funds = 100;
+                state.trust = 100;
+                state.selectedPrediction = null;
+                renderUI();
+            }
+        }
+    });
+
+    // Language Change Listener
+    dom.langSelect.addEventListener("change", function(e) {
+        state.lang = e.target.value;
+        renderUI();
+    });
+
+    // Initial render
+    renderUI();
+})();
+</script>
+</body>
+</html>
