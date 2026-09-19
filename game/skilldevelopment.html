@@ -104,17 +104,25 @@
       border-radius: 4px;
       max-width: 100%;
     }
+    .control-panel {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
     .ui-btn {
       background: #2563eb;
       color: #fff;
       border: none;
-      padding: 10px 20px;
-      margin: 5px;
+      padding: 8px 18px;
       border-radius: 4px;
       cursor: pointer;
       font-size: 0.9rem;
+      transition: background 0.2s;
     }
     .ui-btn:hover { background: #1d4ed8; }
+    .ui-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .ui-btn-reset { background: #dc2626; }
+    .ui-btn-reset:hover { background: #b91c1c; }
     .ui-input {
       padding: 8px;
       border: 1px solid #ccc;
@@ -131,7 +139,7 @@
     .score-board {
       font-size: 1.1rem;
       font-weight: bold;
-      margin-top: 10px;
+      margin-top: 15px;
       color: #0f172a;
     }
     @media(max-width: 768px) {
@@ -192,12 +200,12 @@ const i18n = {
     btn_nback: "① ワーキングメモリ(2-Back)", btn_stroop: "② 処理速度(ストループ)", btn_mental_rot: "③ 空間認知(3D回転)",
     btn_aim: "① エイム精度", btn_peripheral: "② 周辺視野トレーニング",
     btn_cbt: "① 認知バイアス修正", btn_verbal: "② 瞬発語彙力",
-    start: "スタート", stop: "終了/リセット", submit: "送信", match: "一致", not_match: "不一致",
-    score: "スコア: ", accuracy: "精度: ", correct: "正解！", wrong: "不正解…",
+    start: "スタート", reset: "リセット", submit: "送信", match: "一致", not_match: "不一致",
+    score: "スコア: ", accuracy: "精度: ", correct: "正解！", wrong: "不正解…", ready: "「スタート」ボタンを押してください",
     pitch_desc: "基準音を聞いた後、ターゲット音を当ててください。",
     play_ref: "基準音(ド)を聞く", play_target: "問題音を聞く",
     vocal_desc: "声を出し、円の上下移動で緑色の領域（指定音程）を維持してください。",
-    rhythm_desc: "リズムに合わせてボタンを押してください。途中から消音します。",
+    rhythm_desc: "「タップ！」ボタンをリズムに合わせて押してください。途中から消音します。",
     tap: "タップ！",
     nback_desc: "表示される位置が「2つ前」と同じか判定してください。",
     stroop_desc: "文字の意味ではなく「表示されている色」を選択してください。",
@@ -205,7 +213,7 @@ const i18n = {
     aim_desc: "現れるターゲットを素早く正確にタップしてください。",
     peripheral_desc: "中央の＋を見つめながら、外周に一瞬現れる数字を入力してください。",
     cbt_desc: "ネガティブな状況に対して、最も論理的で柔軟な再解釈を選んでください。",
-    verbal_desc: "お題に該当する言葉を入力してください（制限時間15秒）。"
+    verbal_desc: "お題に該当する言葉を入力してください（「あ」から始まる言葉）。"
   },
   en: {
     title: "Capability Training Platform",
@@ -214,12 +222,12 @@ const i18n = {
     btn_nback: "1. Working Memory", btn_stroop: "2. Stroop Speed", btn_mental_rot: "3. 3D Spatial",
     btn_aim: "1. Aim Precision", btn_peripheral: "2. Peripheral Vision",
     btn_cbt: "1. Cognitive Bias", btn_verbal: "2. Verbal Speed",
-    start: "Start", stop: "Stop/Reset", submit: "Submit", match: "Match", not_match: "No Match",
-    score: "Score: ", accuracy: "Accuracy: ", correct: "Correct!", wrong: "Wrong!",
+    start: "Start", reset: "Reset", submit: "Submit", match: "Match", not_match: "No Match",
+    score: "Score: ", accuracy: "Accuracy: ", correct: "Correct!", wrong: "Wrong!", ready: "Press 'Start' to begin.",
     pitch_desc: "Listen to the reference note, then guess the target note name.",
     play_ref: "Play Ref (C4)", play_target: "Play Target",
     vocal_desc: "Control the ball with your vocal pitch to match the target zone.",
-    rhythm_desc: "Tap in tempo. Sound will mute halfway—keep the beat!",
+    rhythm_desc: "Tap 'TAP!' in tempo. Sound will mute halfway—keep the beat!",
     tap: "TAP!",
     nback_desc: "Does current position match 2 steps back?",
     stroop_desc: "Select the DISPLAY COLOR, not the word's meaning.",
@@ -227,9 +235,8 @@ const i18n = {
     aim_desc: "Click targets as fast and accurately as possible.",
     peripheral_desc: "Focus on '+' and type the digit that flashes on the edge.",
     cbt_desc: "Choose the most constructive re-framing for the situation.",
-    verbal_desc: "Enter a valid word matching the prompt within 15 seconds."
+    verbal_desc: "Enter a valid word matching the prompt."
   }
-  // ※画面構成の整合のため、他言語時も標準キーで透過補完
 };
 
 let currentLang = 'ja';
@@ -309,28 +316,44 @@ function switchGame(gameKey) {
   }
 }
 
-/** 全9種ゲーム定義 */
+/** 全9種ゲーム定義（スタート・リセット拡張） */
 const Games = {};
 
 /* 1-① 音感 */
 Games.pitch_sense = {
-  targetFreq: 0,
+  isRunning: false,
   notes: [{n:'C',f:261.63},{n:'D',f:293.66},{n:'E',f:329.63},{n:'F',f:349.23},{n:'G',f:392.00},{n:'A',f:440.00},{n:'B',f:493.88}],
   targetNote: null,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('pitch_desc')}</div>
-      <div>
+      <div class="control-panel">
+        <button class="ui-btn" id="ps-start" onclick="Games.pitch_sense.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.pitch_sense.reset()">${getText('reset')}</button>
+      </div>
+      <div id="ps-action" style="display:none;">
         <button class="ui-btn" onclick="Games.pitch_sense.playRef()">${getText('play_ref')}</button>
         <button class="ui-btn" onclick="Games.pitch_sense.playTarget()">${getText('play_target')}</button>
       </div>
       <div style="margin-top:20px;" id="pitch-options"></div>
-      <div id="pitch-res" class="score-board"></div>
+      <div id="pitch-res" class="score-board">${getText('ready')}</div>
     `;
+  },
+  start() {
+    this.isRunning = true;
+    document.getElementById('ps-start').disabled = true;
+    document.getElementById('ps-action').style.display = 'block';
+    document.getElementById('pitch-res').innerText = '';
     this.next();
   },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
   next() {
+    if(!this.isRunning) return;
     const idx = Math.floor(Math.random() * this.notes.length);
     this.targetNote = this.notes[idx];
     const opts = document.getElementById('pitch-options');
@@ -340,6 +363,7 @@ Games.pitch_sense = {
       b.className = 'ui-btn';
       b.innerText = note.n;
       b.onclick = () => {
+        if(!this.isRunning) return;
         const res = document.getElementById('pitch-res');
         res.innerText = (note.n === this.targetNote.n) ? getText('correct') : `${getText('wrong')} (${this.targetNote.n})`;
         setTimeout(() => this.next(), 1200);
@@ -347,20 +371,35 @@ Games.pitch_sense = {
       opts.appendChild(b);
     });
   },
-  playRef() { ResourceManager.playTone(261.63, 0.8); },
-  playTarget() { if(this.targetNote) ResourceManager.playTone(this.targetNote.f, 0.8); }
+  playRef() { if(this.isRunning) ResourceManager.playTone(261.63, 0.8); },
+  playTarget() { if(this.isRunning && this.targetNote) ResourceManager.playTone(this.targetNote.f, 0.8); }
 };
 
 /* 1-② ピッチ制御 */
 Games.vocal_control = {
-  pitchY: 150, targetY: 150, score: 0,
-  async init() {
+  isRunning: false, pitchY: 150, targetY: 150, score: 0,
+  init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('vocal_desc')}</div>
+      <div class="control-panel">
+        <button class="ui-btn" id="vc-start" onclick="Games.vocal_control.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.vocal_control.reset()">${getText('reset')}</button>
+      </div>
       <canvas id="cv-vocal" width="500" height="300"></canvas>
-      <div id="vocal-score" class="score-board">${getText('score')}0</div>
+      <div id="vocal-score" class="score-board">${getText('ready')}</div>
     `;
+    const cv = document.getElementById('cv-vocal');
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0,0,500,300);
+  },
+  async start() {
+    if(this.isRunning) return;
+    this.isRunning = true;
+    document.getElementById('vc-start').disabled = true;
+    document.getElementById('vocal-score').innerText = getText('score') + '0';
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       ResourceManager.mediaStream = stream;
@@ -377,6 +416,7 @@ Games.vocal_control = {
       let frame = 0;
 
       const loop = () => {
+        if(!this.isRunning) return;
         analyser.getFloatTimeDomainData(buf);
         let pitch = this.autoCorrelate(buf, ctx.sampleRate);
         if (pitch !== -1) {
@@ -407,8 +447,12 @@ Games.vocal_control = {
       };
       loop();
     } catch(e) {
-      node.innerHTML = `<div class="info-text">Microphone access required.</div>`;
+      document.getElementById('vocal-score').innerText = "Microphone access required.";
     }
+  },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
   },
   autoCorrelate(buf, sr) {
     let SIZE = buf.length, rms = 0;
@@ -429,14 +473,25 @@ Games.vocal_control = {
 
 /* 1-③ リズム感 */
 Games.rhythm = {
-  taps: [], startTime: 0,
+  isRunning: false, taps: [], startTime: 0,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('rhythm_desc')}</div>
+      <div class="control-panel">
+        <button class="ui-btn" id="rh-start" onclick="Games.rhythm.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.rhythm.reset()">${getText('reset')}</button>
+      </div>
       <button class="ui-btn" style="padding:20px 40px; font-size:1.2rem;" onclick="Games.rhythm.tap()">${getText('tap')}</button>
-      <div id="rhythm-res" class="score-board"></div>
+      <div id="rhythm-res" class="score-board">${getText('ready')}</div>
     `;
+  },
+  start() {
+    if(this.isRunning) return;
+    this.isRunning = true;
+    document.getElementById('rh-start').disabled = true;
+    document.getElementById('rhythm-res').innerText = '';
     this.taps = [];
     this.startTime = performance.now();
     let count = 0;
@@ -445,37 +500,45 @@ Games.rhythm = {
       if (count <= 4) ResourceManager.playTone(880, 0.05);
     }, 1000);
   },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
   tap() {
+    if(!this.isRunning) return;
     const t = performance.now() - this.startTime;
     this.taps.push(t);
     if (this.taps.length >= 8) {
       let err = 0;
       for(let i=0; i<8; i++) err += Math.abs(this.taps[i] - (i + 1) * 1000);
       document.getElementById('rhythm-res').innerText = `${getText('accuracy')}${Math.max(0, Math.floor(1000 - err / 8))} pts`;
+      this.isRunning = false;
     }
   }
 };
 
 /* 2-① Nバック */
 Games.nback = {
-  seq: [], pos: 0, score: 0,
+  isRunning: false, seq: [], pos: 0, score: 0,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('nback_desc')}</div>
+      <div class="control-panel">
+        <button class="ui-btn" id="nb-start" onclick="Games.nback.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.nback.reset()">${getText('reset')}</button>
+      </div>
       <canvas id="cv-nback" width="300" height="300"></canvas>
       <div style="margin-top:10px;">
         <button class="ui-btn" onclick="Games.nback.answer(true)">${getText('match')}</button>
         <button class="ui-btn" onclick="Games.nback.answer(false)">${getText('not_match')}</button>
       </div>
-      <div id="nb-res" class="score-board">${getText('score')}0</div>
+      <div id="nb-res" class="score-board">${getText('ready')}</div>
     `;
-    this.seq = []; this.score = 0;
-    this.next();
+    this.drawBoard();
   },
-  next() {
-    this.pos = Math.floor(Math.random() * 9);
-    this.seq.push(this.pos);
+  drawBoard() {
     const cv = document.getElementById('cv-nback');
     const c = cv.getContext('2d');
     c.fillStyle = '#0f172a'; c.fillRect(0,0,300,300);
@@ -484,12 +547,32 @@ Games.nback = {
       c.beginPath(); c.moveTo(i*100,0); c.lineTo(i*100,300); c.stroke();
       c.beginPath(); c.moveTo(0,i*100); c.lineTo(300,i*100); c.stroke();
     }
+  },
+  start() {
+    this.isRunning = true;
+    document.getElementById('nb-start').disabled = true;
+    this.seq = []; this.score = 0;
+    document.getElementById('nb-res').innerText = getText('score') + '0';
+    this.next();
+  },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
+  next() {
+    if(!this.isRunning) return;
+    this.pos = Math.floor(Math.random() * 9);
+    this.seq.push(this.pos);
+    this.drawBoard();
+    const cv = document.getElementById('cv-nback');
+    const c = cv.getContext('2d');
     const x = (this.pos % 3) * 100 + 10;
     const y = Math.floor(this.pos / 3) * 100 + 10;
     c.fillStyle = '#3b82f6';
     c.fillRect(x, y, 80, 80);
   },
   answer(userSaysMatch) {
+    if(!this.isRunning) return;
     if (this.seq.length > 2) {
       const actualMatch = this.seq[this.seq.length - 1] === this.seq[this.seq.length - 3];
       if (userSaysMatch === actualMatch) this.score += 10;
@@ -501,21 +584,36 @@ Games.nback = {
 
 /* 2-② ストループ */
 Games.stroop = {
-  colors: ['red', 'blue', 'green', 'yellow'],
+  isRunning: false, colors: ['red', 'blue', 'green', 'yellow'],
   labels: { red: '赤', blue: '青', green: '緑', yellow: '黄' },
   correctColor: '', score: 0,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('stroop_desc')}</div>
-      <div id="stroop-target" style="font-size:3rem; font-weight:bold; margin:20px;"></div>
+      <div class="control-panel">
+        <button class="ui-btn" id="st-start" onclick="Games.stroop.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.stroop.reset()">${getText('reset')}</button>
+      </div>
+      <div id="stroop-target" style="font-size:3rem; font-weight:bold; margin:20px; min-height:60px;"></div>
       <div id="stroop-opts"></div>
-      <div id="stroop-res" class="score-board">${getText('score')}0</div>
+      <div id="stroop-res" class="score-board">${getText('ready')}</div>
     `;
+  },
+  start() {
+    this.isRunning = true;
+    document.getElementById('st-start').disabled = true;
     this.score = 0;
+    document.getElementById('stroop-res').innerText = getText('score') + '0';
     this.next();
   },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
   next() {
+    if(!this.isRunning) return;
     const textKey = this.colors[Math.floor(Math.random() * 4)];
     this.correctColor = this.colors[Math.floor(Math.random() * 4)];
     const target = document.getElementById('stroop-target');
@@ -529,6 +627,7 @@ Games.stroop = {
       b.className = 'ui-btn';
       b.innerText = this.labels[c];
       b.onclick = () => {
+        if(!this.isRunning) return;
         if (c === this.correctColor) this.score += 10;
         document.getElementById('stroop-res').innerText = getText('score') + this.score;
         this.next();
@@ -835,23 +934,39 @@ Games.mental_rot = {
   }
 };
 
-
 /* 3-① エイム精度 */
 Games.aim = {
-  score: 0, hits: 0,
+  isRunning: false, score: 0,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('aim_desc')}</div>
+      <div class="control-panel">
+        <button class="ui-btn" id="aim-start" onclick="Games.aim.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.aim.reset()">${getText('reset')}</button>
+      </div>
       <canvas id="cv-aim" width="500" height="300"></canvas>
-      <div id="aim-res" class="score-board">${getText('score')}0</div>
+      <div id="aim-res" class="score-board">${getText('ready')}</div>
     `;
-    this.score = 0; this.hits = 0;
     const cv = document.getElementById('cv-aim');
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0,0,500,300);
     cv.onclick = (e) => this.onClick(e, cv);
+  },
+  start() {
+    this.isRunning = true;
+    document.getElementById('aim-start').disabled = true;
+    this.score = 0;
+    document.getElementById('aim-res').innerText = getText('score') + '0';
     this.spawn();
   },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
   spawn() {
+    if(!this.isRunning) return;
     const cv = document.getElementById('cv-aim');
     if(!cv) return;
     const c = cv.getContext('2d');
@@ -864,6 +979,7 @@ Games.aim = {
     c.beginPath(); c.arc(this.x, this.y, 15, 0, Math.PI * 2); c.fill();
   },
   onClick(e, cv) {
+    if(!this.isRunning) return;
     const rect = cv.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -878,21 +994,39 @@ Games.aim = {
 
 /* 3-② 周辺視野 */
 Games.peripheral = {
-  targetNum: 0,
+  isRunning: false, targetNum: 0,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('peripheral_desc')}</div>
+      <div class="control-panel">
+        <button class="ui-btn" id="pr-start" onclick="Games.peripheral.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.peripheral.reset()">${getText('reset')}</button>
+      </div>
       <canvas id="cv-peri" width="400" height="250"></canvas>
       <div style="margin-top:10px;">
         <input type="number" id="peri-in" class="ui-input" style="width:80px;" />
         <button class="ui-btn" onclick="Games.peripheral.check()">${getText('submit')}</button>
       </div>
-      <div id="peri-res" class="score-board"></div>
+      <div id="peri-res" class="score-board">${getText('ready')}</div>
     `;
+    const cv = document.getElementById('cv-peri');
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a'; c.fillRect(0, 0, 400, 250);
+  },
+  start() {
+    this.isRunning = true;
+    document.getElementById('pr-start').disabled = true;
+    document.getElementById('peri-res').innerText = '';
     this.spawn();
   },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
   spawn() {
+    if(!this.isRunning) return;
     const cv = document.getElementById('cv-peri');
     const c = cv.getContext('2d');
     c.fillStyle = '#0f172a'; c.fillRect(0, 0, 400, 250);
@@ -904,16 +1038,19 @@ Games.peripheral = {
     const px = Math.random() < 0.5 ? 40 : 340;
     const py = 40 + Math.random() * 170;
 
-    setTimeout(() => {
+    ResourceManager.timerId = setTimeout(() => {
+      if(!this.isRunning) return;
       c.fillStyle = '#38bdf8';
       c.fillText(this.targetNum.toString(), px, py);
-      setTimeout(() => {
+      ResourceManager.timerId = setTimeout(() => {
+        if(!this.isRunning) return;
         c.fillStyle = '#0f172a';
         c.fillRect(px - 10, py - 30, 40, 40);
       }, 150);
     }, 1000);
   },
   check() {
+    if(!this.isRunning) return;
     const val = parseInt(document.getElementById('peri-in').value);
     const res = document.getElementById('peri-res');
     res.innerText = (val === this.targetNum) ? getText('correct') : getText('wrong');
@@ -924,48 +1061,89 @@ Games.peripheral = {
 
 /* 4-① 認知バイアス修正 */
 Games.cbt = {
+  isRunning: false,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('cbt_desc')}</div>
-      <div style="background:#f1f5f9; padding:15px; border-radius:6px; max-width:500px; margin-bottom:15px;" id="cbt-q">
-        「重要なプレゼンで言い間違いをしてしまった…全て台無しだ。」
+      <div class="control-panel">
+        <button class="ui-btn" id="cbt-start" onclick="Games.cbt.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.cbt.reset()">${getText('reset')}</button>
       </div>
-      <div id="cbt-opts"></div>
-      <div id="cbt-res" class="score-board"></div>
+      <div id="cbt-content" style="display:none; width:100%; max-width:500px;">
+        <div style="background:#f1f5f9; padding:15px; border-radius:6px; margin-bottom:15px;" id="cbt-q">
+          「重要なプレゼンで言い間違いをしてしまった…全て台無しだ。」
+        </div>
+        <div id="cbt-opts"></div>
+      </div>
+      <div id="cbt-res" class="score-board">${getText('ready')}</div>
     `;
+  },
+  start() {
+    this.isRunning = true;
+    document.getElementById('cbt-start').disabled = true;
+    document.getElementById('cbt-content').style.display = 'block';
+    document.getElementById('cbt-res').innerText = '';
+
     const opts = [
       { text: "完璧ではなかったが、大事なポイントはしっかり伝えられた。", correct: true },
       { text: "自分はいつも失敗ばかりで本番に弱すぎる。", correct: false }
     ];
     const div = document.getElementById('cbt-opts');
+    div.innerHTML = '';
     opts.forEach(o => {
       const b = document.createElement('button');
       b.className = 'ui-btn';
       b.style.display = 'block';
       b.style.width = '100%';
+      b.style.margin = '5px 0';
       b.innerText = o.text;
       b.onclick = () => {
+        if(!this.isRunning) return;
         document.getElementById('cbt-res').innerText = o.correct ? getText('correct') : getText('wrong');
       };
       div.appendChild(b);
     });
+  },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
   }
 };
 
 /* 4-② 瞬発語彙力 */
 Games.verbal = {
+  isRunning: false,
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
       <div class="info-text">${getText('verbal_desc')}</div>
-      <div style="font-size:1.3rem; font-weight:bold; margin:15px;" id="verbal-prompt">お題: 「あ」から始まる赤いもの</div>
-      <input type="text" id="verbal-in" class="ui-input" />
-      <button class="ui-btn" onclick="Games.verbal.check()">${getText('submit')}</button>
-      <div id="verbal-res" class="score-board"></div>
+      <div class="control-panel">
+        <button class="ui-btn" id="vb-start" onclick="Games.verbal.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.verbal.reset()">${getText('reset')}</button>
+      </div>
+      <div id="vb-content" style="display:none;">
+        <div style="font-size:1.2rem; font-weight:bold; margin:15px;" id="verbal-prompt">お題: 「あ」から始まる言葉</div>
+        <input type="text" id="verbal-in" class="ui-input" />
+        <button class="ui-btn" onclick="Games.verbal.check()">${getText('submit')}</button>
+      </div>
+      <div id="verbal-res" class="score-board">${getText('ready')}</div>
     `;
   },
+  start() {
+    this.isRunning = true;
+    document.getElementById('vb-start').disabled = true;
+    document.getElementById('vb-content').style.display = 'block';
+    document.getElementById('verbal-res').innerText = '';
+  },
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
   check() {
+    if(!this.isRunning) return;
     const val = document.getElementById('verbal-in').value.trim();
     const res = document.getElementById('verbal-res');
     if (val.startsWith('あ') || val.toLowerCase().startsWith('a')) {
