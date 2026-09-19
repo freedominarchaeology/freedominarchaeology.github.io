@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitch Runner - Pitch Pitch Training Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'MS Mincho', 'ＭＳ 明朝', 'MS PMincho', 'ＭＳ Ｐ明朝', serif;
+      background-color: #121216;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    #game-container {
+      position: relative;
+      width: 800px;
+      max-width: 98vw;
+      background: #1e1e24;
+      border: 3px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+    .title-text {
+      font-size: 20px;
+      font-weight: bold;
+      color: #00e5ff;
+      letter-spacing: 2px;
+    }
+    select, button {
+      font-family: 'MS Mincho', 'ＭＳ 明朝', 'MS PMincho', 'ＭＳ Ｐ明朝', serif;
+      background: #2a2a35;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.2s;
+    }
+    select:hover, button:hover {
+      background: #3a3a48;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: #08080c;
+      border: 2px solid #222;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #flash-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0);
+      pointer-events: none;
+      transition: background-color 0.05s ease-out;
+    }
+    .info-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #16161c;
+      padding: 10px 15px;
+      border-radius: 4px;
+      border: 1px solid #2a2a35;
+      font-size: 14px;
+    }
+    .pitch-info {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .val-highlight {
+      color: #00ffcc;
+      font-weight: bold;
+    }
+    .controls-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: #007acc;
+      border-color: #0099ff;
+    }
+    .btn-primary:hover {
+      background: #0099ff;
+    }
+    .btn-success {
+      background: #28a745;
+      border-color: #34ce57;
+    }
+    .btn-success:hover {
+      background: #34ce57;
+    }
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+    .modal-overlay.hidden {
+      display: none;
+    }
+    .modal-title {
+      font-size: 28px;
+      color: #ffd700;
+      margin-bottom: 15px;
+    }
+    .modal-body {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      max-width: 80%;
+    }
+    .stars {
+      font-size: 40px;
+      color: #ffd700;
+      margin: 10px 0;
+      letter-spacing: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <div class="header-bar">
+    <div class="title-text" id="ui-title">音感トレーニング - Pitch Runner</div>
+    <div>
+      <label for="lang-select" id="ui-lang-label">Language:</label>
+      <select id="lang-select">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ko">한국어</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="canvas-wrapper">
+    <canvas id="game-canvas" width="770" height="380"></canvas>
+    <div id="flash-overlay"></div>
+
+    <!-- UI Overlay for Screens -->
+    <div id="start-screen" class="modal-overlay">
+      <div class="modal-title" id="ui-start-title">Pitch Runner</div>
+      <div class="modal-body" id="ui-start-desc">
+        声や音の高さ（ピッチ）でキャラクターをジャンプさせ、障害物を避ける強制スクロールゲームです。<br>
+        低音(C3-E3) = 低ジャンプ | 中音(F3-B3) = 中ジャンプ | 高音(C4以上) = 高ジャンプ
+      </div>
+      <button id="btn-mic-init" class="btn-primary" style="font-size:18px; padding:10px 24px;">
+        <span id="ui-btn-mic">マイクを許可して開始</span>
+      </button>
+    </div>
+
+    <div id="result-screen" class="modal-overlay hidden">
+      <div class="modal-title" id="ui-result-title">RESULT</div>
+      <div id="result-stars" class="stars">★★★</div>
+      <div class="modal-body" id="result-details">
+        <!-- Dynamic Result Content -->
+      </div>
+      <button id="btn-restart" class="btn-success" style="font-size:18px; padding:10px 24px;">
+        <span id="ui-btn-restart">もう一度プレイ</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <div class="pitch-info">
+      <span><span id="ui-lbl-pitch">検出ピッチ</span>: <span id="val-freq" class="val-highlight">---</span> Hz</span>
+      <span><span id="ui-lbl-note">音階</span>: <span id="val-note-alpha" class="val-highlight">--</span> (<span id="val-note-solfege" class="val-highlight">--</span>)</span>
+    </div>
+    <div>
+      <span><span id="ui-lbl-score">スコア</span>: <span id="val-score" class="val-highlight">0</span></span>
+      &nbsp;|&nbsp;
+      <span><span id="ui-lbl-highscore">ハイスコア</span>: <span id="val-highscore" class="val-highlight">0</span></span>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <div class="btn-group">
+      <label for="tempo-select" style="align-self:center;" id="ui-lbl-tempo">Tempo:</label>
+      <select id="tempo-select">
+        <option value="90">Slow (90 BPM)</option>
+        <option value="120" selected>Normal (120 BPM)</option>
+        <option value="150">Fast (150 BPM)</option>
+      </select>
+    </div>
+
+    <div class="btn-group">
+      <button id="btn-test-low" id="ui-btn-low">テスト発声: 低音(C3)</button>
+      <button id="btn-test-mid" id="ui-btn-mid">テスト発声: 中音(G3)</button>
+      <button id="btn-test-high" id="ui-btn-high">テスト発声: 高音(E4)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// --- 多言語辞書 (i18n) ---
+const I18N = {
+  ja: {
+    title: "音感トレーニング - Pitch Runner",
+    langLabel: "言語:",
+    startTitle: "Pitch Runner",
+    startDesc: "声や音の高さ（ピッチ）でキャラクターをジャンプさせ、障害物を避けるゲームです。<br>低音(C3-E3) = 低ジャンプ | 中音(F3-B3) = 中ジャンプ | 高音(C4以上) = 高ジャンプ<br>(キーボード [1]=低 [2]=中 [3]=高 でも操作可能)",
+    btnMic: "マイクを許可して開始",
+    resultTitle: "ゲーム結果",
+    btnRestart: "もう一度プレイ",
+    lblPitch: "周波数",
+    lblNote: "音階",
+    lblScore: "スコア",
+    lblHighscore: "ハイスコア",
+    lblTempo: "テンポ:",
+    btnLow: "テスト: 低音(C3)",
+    btnMid: "テスト: 中音(G3)",
+    btnHigh: "テスト: 高音(E4)",
+    clearRate: "障害物回避率",
+    eval3: "素晴らしい音感です！完璧なコントロール！",
+    eval2: "グッドショット！もう少しでパーフェクト！",
+    eval1: "ナイスファイト！ピッチコントロールを意識してみましょう！",
+    judgements: { perfect: "PERFECT!", great: "GREAT!", good: "GOOD!", miss: "MISS..." }
+  },
+  en: {
+    title: "Pitch Training - Pitch Runner",
+    langLabel: "Language:",
+    startTitle: "Pitch Runner",
+    startDesc: "Control character jump height using your vocal pitch to dodge obstacles!<br>Low (C3-E3) = Low Jump | Mid (F3-B3) = Mid Jump | High (C4+) = High Jump<br>(Keys [1]=Low [2]=Mid [3]=High as fallback)",
+    btnMic: "Allow Mic & Start",
+    resultTitle: "GAME RESULT",
+    btnRestart: "Play Again",
+    lblPitch: "Freq",
+    lblNote: "Note",
+    lblScore: "Score",
+    lblHighscore: "High Score",
+    lblTempo: "Tempo:",
+    btnLow: "Test: Low (C3)",
+    btnMid: "Test: Mid (G3)",
+    btnHigh: "Test: High (E4)",
+    clearRate: "Clear Rate",
+    eval3: "Outstanding pitch accuracy! Perfect control!",
+    eval2: "Great job! Almost reached perfection!",
+    eval1: "Nice effort! Practice matching exact pitches!",
+    judgements: { perfect: "PERFECT!", great: "GREAT!", good: "GOOD!", miss: "MISS..." }
+  },
+  zh: {
+    title: "音感训练 - Pitch Runner",
+    langLabel: "语言:",
+    startTitle: "Pitch Runner",
+    startDesc: "用声音的音高控制角色跳跃高度，躲避障碍物！<br>低音(C3-E3) = 低跳 | 中音(F3-B3) = 中跳 | 高音(C4以上) = 高跳<br>(可使用按键 [1]=低 [2]=中 [3]=高)",
+    btnMic: "允许麦克风并开始",
+    resultTitle: "游戏结果",
+    btnRestart: "再玩一次",
+    lblPitch: "频率",
+    lblNote: "音符",
+    lblScore: "得分",
+    lblHighscore: "最高分",
+    lblTempo: "速度:",
+    btnLow: "测试: 低音(C3)",
+    btnMid: "测试: 中音(G3)",
+    btnHigh: "测试: 高音(E4)",
+    clearRate: "避障成功率",
+    eval3: "太棒了！完美的音高控制！",
+    eval2: "做得好！离完美仅一步之遥！",
+    eval1: "继续加油！多练习音高精准度！",
+    judgements: { perfect: "PERFECT!", great: "GREAT!", good: "GOOD!", miss: "MISS..." }
+  },
+  ko: {
+    title: "음감 훈련 - Pitch Runner",
+    langLabel: "언어:",
+    startTitle: "Pitch Runner",
+    startDesc: "목소리의 높낮이(피치)로 캐릭터의 점프 높이를 조절해 장애물을 피하세요!<br>저음(C3-E3) = 낮은 점프 | 中음(F3-B3) = 중간 점프 | 고음(C4이상) = 높은 점프<br>(키보드 [1]=저 [2]=중 [3]=고 가능)",
+    btnMic: "마이크 허용 및 시작",
+    resultTitle: "게임 결과",
+    btnRestart: "다시 플레이",
+    lblPitch: "주파수",
+    lblNote: "음계",
+    lblScore: "점수",
+    lblHighscore: "최고 점수",
+    lblTempo: "템포:",
+    btnLow: "테스트: 저음(C3)",
+    btnMid: "테스트: 중음(G3)",
+    btnHigh: "테스트: 고음(E4)",
+    clearRate: "장애물 회피율",
+    eval3: "훌륭한 음감입니다! 완벽한 컨트롤!",
+    eval2: "잘했습니다! 조금만 더하면 완벽해요!",
+    eval1: "수고하셨습니다! 정확한 피치를 의식해보세요!",
+    judgements: { perfect: "PERFECT!", great: "GREAT!", good: "GOOD!", miss: "MISS..." }
+  },
+  fr: {
+    title: "Entraînement Pitch - Pitch Runner",
+    langLabel: "Langue:",
+    startTitle: "Pitch Runner",
+    startDesc: "Contrôlez la hauteur de saut avec la hauteur de votre voix !<br>Grave (C3-E3) = Saut Bas | Moyen (F3-B3) = Saut Moyen | Aigu (C4+) = Saut Haut<br>(Touches [1]=Bas [2]=Moyen [3]=Haut)",
+    btnMic: "Autoriser le Micro & Jouer",
+    resultTitle: "RÉSULTAT",
+    btnRestart: "Rejouer",
+    lblPitch: "Fréq",
+    lblNote: "Note",
+    lblScore: "Score",
+    lblHighscore: "Meilleur Score",
+    lblTempo: "Tempo:",
+    btnLow: "Test: Grave (C3)",
+    btnMid: "Test: Moyen (G3)",
+    btnHigh: "Test: Aigu (E4)",
+    clearRate: "Taux de Réussite",
+    eval3: "Excellente oreille musicale ! Contrôle parfait !",
+    eval2: "Très bien ! Presque parfait !",
+    eval1: "Bon effort ! Entraînez-vous à viser la bonne note !",
+    judgements: { perfect: "PARFAIT!", great: "SUPER!", good: "BIEN!", miss: "RATÉ..." }
+  },
+  es: {
+    title: "Entrenamiento Musical - Pitch Runner",
+    langLabel: "Idioma:",
+    startTitle: "Pitch Runner",
+    startDesc: "¡Controla la altura del salto según el tono de tu voz!<br>Grave (C3-E3) = Salto Bajo | Medio (F3-B3) = Salto Medio | Agudo (C4+) = Salto Alto<br>(Teclas [1]=Bajo [2]=Medio [3]=Alto)",
+    btnMic: "Permitir Micrófono y Empezar",
+    resultTitle: "RESULTADO",
+    btnRestart: "Jugar de nuevo",
+    lblPitch: "Frec",
+    lblNote: "Nota",
+    lblScore: "Puntuación",
+    lblHighscore: "RRecord",
+    lblTempo: "Tempo:",
+    btnLow: "Prueba: Grave (C3)",
+    btnMid: "Prueba: Medio (G3)",
+    btnHigh: "Prueba: Agudo (E4)",
+    clearRate: "Tasa de Esquive",
+    eval3: "¡Increíble afinación! ¡Control perfecto!",
+    eval2: "¡Buen trabajo! ¡Casi perfecto!",
+    eval1: "¡Buen intento! ¡Sigue practicando el tono!",
+    judgements: { perfect: "¡PERFECTO!", great: "¡GENIAL!", good: "¡BIEN!", miss: "¡FALLO..." }
+  }
+};
+
+const NOTE_STRINGS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const SOLFEGE_STRINGS = ["ド", "ド#", "レ", "レ#", "ミ", "ファ", "ファ#", "ソ", "ソ#", "ラ", "ラ#", "シ"];
+
+let currentLang = 'ja';
+
+function updateI18nUI() {
+  const t = I18N[currentLang] || I18N.ja;
+  document.getElementById('ui-title').textContent = t.title;
+  document.getElementById('ui-lang-label').textContent = t.langLabel;
+  document.getElementById('ui-start-title').textContent = t.startTitle;
+  document.getElementById('ui-start-desc').innerHTML = t.startDesc;
+  document.getElementById('ui-btn-mic').textContent = t.btnMic;
+  document.getElementById('ui-result-title').textContent = t.resultTitle;
+  document.getElementById('ui-btn-restart').textContent = t.btnRestart;
+  document.getElementById('ui-lbl-pitch').textContent = t.lblPitch;
+  document.getElementById('ui-lbl-note').textContent = t.lblNote;
+  document.getElementById('ui-lbl-score').textContent = t.lblScore;
+  document.getElementById('ui-lbl-highscore').textContent = t.lblHighscore;
+  document.getElementById('ui-lbl-tempo').textContent = t.lblTempo;
+  document.getElementById('btn-test-low').textContent = t.btnLow;
+  document.getElementById('btn-test-mid').textContent = t.btnMid;
+  document.getElementById('btn-test-high').textContent = t.btnHigh;
+}
+
+// --- 音声解析・ピッチ検出 ---
+let audioCtx = null;
+let analyserNode = null;
+let micStream = null;
+let pitchBuffer = null;
+
+function initAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+async function setupMic() {
+  initAudioContext();
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const source = audioCtx.createMediaStreamSource(micStream);
+    analyserNode = audioCtx.createAnalyser();
+    analyserNode.fftSize = 2048;
+    source.connect(analyserNode);
+    pitchBuffer = new Float32Array(analyserNode.fftSize);
+    return true;
+  } catch (err) {
+    console.warn("Microphone access denied or error:", err);
+    return false;
+  }
+}
+
+// 自己相関によるピッチ検出
+function detectPitch() {
+  if (!analyserNode || !pitchBuffer) return -1;
+  analyserNode.getFloatTimeDomainData(pitchBuffer);
+  
+  let size = pitchBuffer.length;
+  let rms = 0;
+  for (let i = 0; i < size; i++) {
+    rms += pitchBuffer[i] * pitchBuffer[i];
+  }
+  rms = Math.sqrt(rms / size);
+  if (rms < 0.015) return -1; // ノイズフロア閾値
+
+  let r1 = 0, r2 = size - 1, thres = 0.2;
+  for (let i = 0; i < size / 2; i++) {
+    if (Math.abs(pitchBuffer[i]) < thres) { r1 = i; break; }
+  }
+  for (let i = 1; i < size / 2; i++) {
+    if (Math.abs(pitchBuffer[size - i]) < thres) { r2 = size - i; break; }
+  }
+
+  let buf = pitchBuffer.slice(r1, r2);
+  let c = new Float32Array(buf.length);
+  for (let i = 0; i < buf.length; i++) {
+    for (let j = 0; j < buf.length - i; j++) {
+      c[i] += buf[j] * buf[j + i];
+    }
+  }
+
+  let d = 0;
+  while (c[d] > c[d + 1]) d++;
+  let maxval = -1, maxpos = -1;
+  for (let i = d; i < buf.length; i++) {
+    if (c[i] > maxval) {
+      maxval = c[i];
+      maxpos = i;
+    }
+  }
+  if (maxpos === -1 || maxpos === 0) return -1;
+  
+  return audioCtx.sampleRate / maxpos;
+}
+
+function freqToNoteInfo(freq) {
+  if (freq <= 0) return null;
+  const noteNum = Math.round(12 * (Math.log2(freq / 440)) + 69);
+  const noteIndex = (noteNum % 12 + 12) % 12;
+  const octave = Math.floor(noteNum / 12) - 1;
+  return {
+    midi: noteNum,
+    name: NOTE_STRINGS[noteIndex] + octave,
+    solfege: SOLFEGE_STRINGS[noteIndex] + octave,
+    pureName: NOTE_STRINGS[noteIndex],
+    octave: octave
+  };
+}
+
+// --- テクノBGM生成エンジン (Web Audio API) ---
+let bgmTimerId = null;
+let bgmStep = 0;
+let currentBpm = 120;
+
+function playSynthTone(freq, type, duration, gainVal, delayTime = 0) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delayTime);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2000, audioCtx.currentTime + delayTime);
+
+  gain.gain.setValueAtTime(gainVal, audioCtx.currentTime + delayTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + delayTime + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(audioCtx.currentTime + delayTime);
+  osc.stop(audioCtx.currentTime + delayTime + duration + 0.05);
+
+  // 即時ノード解放
+  osc.onended = () => {
+    osc.disconnect();
+    filter.disconnect();
+    gain.disconnect();
+  };
+}
+
+function playNoiseDrum(duration, gainVal) {
+  if (!audioCtx) return;
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 5000;
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  noise.start();
+  noise.stop(audioCtx.currentTime + duration + 0.05);
+
+  noise.onended = () => {
+    noise.disconnect();
+    filter.disconnect();
+    gain.disconnect();
+  };
+}
+
+function startBGM() {
+  stopBGM();
+  bgmStep = 0;
+  const interval = (60 / currentBpm / 4) * 1000; // 16分音符
+  
+  const bassSeq = [130.81, 0, 130.81, 0, 155.56, 0, 174.61, 0]; // C3, Eb3, F3 ベースライン
+  const synthSeq = [261.63, 0, 311.13, 349.23, 0, 392.00, 0, 311.13];
+
+  bgmTimerId = setInterval(() => {
+    if (!audioCtx) return;
+    
+    // Kick (バスドラム)
+    if (bgmStep % 4 === 0) {
+      playSynthTone(120, 'sine', 0.15, 0.3);
+    }
+    // Hi-Hat
+    if (bgmStep % 2 === 0) {
+      playNoiseDrum(0.04, 0.08);
+    }
+    // Synth Bass
+    const bassFreq = bassSeq[bgmStep % 8];
+    if (bassFreq > 0) {
+      playSynthTone(bassFreq, 'sawtooth', 0.12, 0.1);
+    }
+    // Lead Synth
+    const leadFreq = synthSeq[bgmStep % 8];
+    if (leadFreq > 0 && bgmStep % 4 === 2) {
+      playSynthTone(leadFreq, 'square', 0.1, 0.04);
+    }
+
+    bgmStep++;
+  }, interval);
+}
+
+function stopBGM() {
+  if (bgmTimerId) {
+    clearInterval(bgmTimerId);
+    bgmTimerId = null;
+  }
+}
+
+// --- ゲーム本体ロジック ---
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const flashOverlay = document.getElementById('flash-overlay');
+
+let gameState = 'START'; // START, PLAYING, RESULT
+let animFrameId = null;
+let score = 0;
+let highScore = parseInt(localStorage.getItem('pitch_runner_highscore') || '0', 10);
+let totalObstacles = 0;
+let avoidedObstacles = 0;
+
+// キャラクター
+const player = {
+  x: 100,
+  y: 280,
+  width: 32,
+  height: 40,
+  baseY: 280,
+  targetY: 280,
+  vy: 0,
+  isJumping: false,
+  jumpHeightType: 0, // 0: None, 1: Low, 2: Mid, 3: High
+  currentPitchInfo: null
+};
+
+// 障害物
+let obstacles = [];
+let obstacleSpawnTimer = 0;
+
+// 効果音・明滅制御
+function triggerJumpFlash(pitchInfo) {
+  player.currentPitchInfo = pitchInfo;
+  
+  // 低刺激な明滅演出（Opacity 0.15程度の薄いグラデーション発光）
+  flashOverlay.style.backgroundColor = 'rgba(0, 229, 255, 0.15)';
+  setTimeout(() => {
+    flashOverlay.style.backgroundColor = 'rgba(0, 229, 255, 0)';
+  }, 100);
+}
+
+// ジャンプ実行
+function executeJump(type, pitchInfo) {
+  if (gameState !== 'PLAYING') return;
+  
+  player.jumpHeightType = type;
+  let targetJumpHeight = 0;
+  if (type === 1) targetJumpHeight = 70;      // 低ジャンプ
+  else if (type === 2) targetJumpHeight = 130; // 中ジャンプ
+  else if (type === 3) targetJumpHeight = 200; // 高ジャンプ
+
+  if (targetJumpHeight > 0) {
+    player.vy = -Math.sqrt(2 * 0.6 * targetJumpHeight);
+    player.isJumping = true;
+    triggerJumpFlash(pitchInfo);
+  }
+}
+
+// 音高によるジャンプ高度判定
+function handlePitchInput(freq) {
+  if (freq < 100 || freq > 1000) return;
+  const info = freqToNoteInfo(freq);
+  if (!info) return;
+
+  // 五線譜・音階UI表示更新
+  document.getElementById('val-freq').textContent = freq.toFixed(1);
+  document.getElementById('val-note-alpha').textContent = info.name;
+  document.getElementById('val-note-solfege').textContent = info.solfege;
+
+  if (player.isJumping) return; // 空中での二段ジャンプ防止
+
+  // 低音(C3-E3 / MIDI 48-52): 低ジャンプ
+  // 中音(F3-B3 / MIDI 53-59): 中ジャンプ
+  // 高音(C4以上 / MIDI 60+): 高ジャンプ
+  if (info.midi >= 48 && info.midi <= 52) {
+    executeJump(1, info);
+  } else if (info.midi >= 53 && info.midi <= 59) {
+    executeJump(2, info);
+  } else if (info.midi >= 60) {
+    executeJump(3, info);
+  }
+}
+
+// 障害物生成
+function spawnObstacle() {
+  // 要求ジャンプタイプ: 1(低), 2(中), 3(高)
+  const requiredType = Math.floor(Math.random() * 3) + 1;
+  let obsHeight = 40;
+  if (requiredType === 2) obsHeight = 90;
+  if (requiredType === 3) obsHeight = 150;
+
+  obstacles.push({
+    x: canvas.width + 50,
+    y: player.baseY + player.height - obsHeight,
+    width: 30,
+    height: obsHeight,
+    requiredType: requiredType,
+    passed: false,
+    judged: false
+  });
+  totalObstacles++;
+}
+
+// 五線譜描画関数
+function drawStaff(ctx, x, y, pitchInfo) {
+  ctx.save();
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 1;
+
+  // 5本線を描画
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + i * 6);
+    ctx.lineTo(x + 60, y + i * 6);
+    ctx.stroke();
+  }
+
+  // 音符の描画 (ピッチ情報がある場合)
+  if (pitchInfo) {
+    ctx.fillStyle = '#00ffcc';
+    ctx.strokeStyle = '#00ffcc';
+    
+    // 簡易オクターブ・音高に基づくY位置計算
+    const noteOffset = (pitchInfo.midi - 60) * 3; // C4基準
+    const noteY = y + 24 - noteOffset;
+
+    ctx.beginPath();
+    ctx.ellipse(x + 30, noteY, 4, 3, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(x + 34, noteY);
+    ctx.lineTo(x + 34, noteY - 14);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ポップアップ評価文字
+let floatingTexts = [];
+function addFloatingText(text, x, y, color) {
+  floatingTexts.push({ text, x, y, color, opacity: 1.0, life: 30 });
+}
+
+// メイン更新・描画ループ
+function gameLoop() {
+  if (gameState !== 'PLAYING') return;
+
+  // クリア処理
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // マイクからのピッチ更新
+  const detectedFreq = detectPitch();
+  if (detectedFreq > 0) {
+    handlePitchInput(detectedFreq);
+  }
+
+  // 背景格子描画
+  ctx.strokeStyle = '#181822';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < canvas.width; i += 40) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+  }
+
+  // 地面描画
+  ctx.fillStyle = '#222230';
+  ctx.fillRect(0, player.baseY + player.height, canvas.width, canvas.height - (player.baseY + player.height));
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, player.baseY + player.height);
+  ctx.lineTo(canvas.width, player.baseY + player.height);
+  ctx.stroke();
+
+  // プレイヤー物理計算
+  if (player.isJumping) {
+    player.y += player.vy;
+    player.vy += 0.6; // 重力
+
+    if (player.y >= player.baseY) {
+      player.y = player.baseY;
+      player.vy = 0;
+      player.isJumping = false;
+      player.jumpHeightType = 0;
+    }
+  }
+
+  // プレイヤー描画
+  ctx.fillStyle = '#00e5ff';
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 10;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  ctx.shadowBlur = 0;
+
+  // 五線譜 ＆ リアルタイム音階情報の頭上表示
+  drawStaff(ctx, player.x - 14, player.y - 45, player.currentPitchInfo);
+
+  // 障害物スポーン管理
+  obstacleSpawnTimer++;
+  if (obstacleSpawnTimer > (180 - (currentBpm - 90))) { // テンポに応じたインターバル
+    spawnObstacle();
+    obstacleSpawnTimer = 0;
+  }
+
+  // 障害物更新・描画
+  const scrollSpeed = 3 + (currentBpm / 30);
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    let obs = obstacles[i];
+    obs.x -= scrollSpeed;
+
+    // 障害物描画
+    ctx.fillStyle = '#ff0055';
+    ctx.shadowColor = '#ff0055';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    ctx.shadowBlur = 0;
+
+    // AABB 衝突判定
+    const isColliding = (
+      player.x < obs.x + obs.width &&
+      player.x + player.width > obs.x &&
+      player.y < obs.y + obs.height &&
+      player.y + player.height > obs.y
+    );
+
+    // 回避・通過・判定
+    if (!obs.judged && obs.x + obs.width < player.x) {
+      obs.judged = true;
+      if (!isColliding) {
+        avoidedObstacles++;
+        // ジャンプ高度が最適であったか判定
+        const t = I18N[currentLang].judgements;
+        if (player.jumpHeightType === obs.requiredType) {
+          score += 100;
+          addFloatingText(t.perfect, player.x, player.y - 10, '#00ffcc');
+        } else {
+          score += 50;
+          addFloatingText(t.good, player.x, player.y - 10, '#ffff00');
+        }
+      } else {
+        const t = I18N[currentLang].judgements;
+        addFloatingText(t.miss, player.x, player.y - 10, '#ff0055');
+      }
+      document.getElementById('val-score').textContent = score;
+    }
+
+    // 画面外削除
+    if (obs.x + obs.width < 0) {
+      obstacles.splice(i, 1);
+    }
+  }
+
+  // フローティングテキスト描画・更新
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    let ft = floatingTexts[i];
+    ctx.save();
+    ctx.globalAlpha = ft.opacity;
+    ctx.fillStyle = ft.color;
+    ctx.font = "bold 16px 'MS Mincho', serif";
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+
+    ft.y -= 1;
+    ft.life--;
+    ft.opacity = ft.life / 30;
+    if (ft.life <= 0) floatingTexts.splice(i, 1);
+  }
+
+  // 規定数（20個）クリアでゲーム終了判定
+  if (totalObstacles >= 20 && obstacles.length === 0) {
+    endGame();
+    return;
+  }
+
+  animFrameId = requestAnimationFrame(gameLoop);
+}
+
+// ゲーム開始
+function startGame() {
+  gameState = 'PLAYING';
+  score = 0;
+  totalObstacles = 0;
+  avoidedObstacles = 0;
+  obstacles = [];
+  floatingTexts = [];
+  document.getElementById('val-score').textContent = score;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('result-screen').classList.add('hidden');
+
+  startBGM();
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  animFrameId = requestAnimationFrame(gameLoop);
+}
+
+// ゲーム終了・リザルト演出
+function endGame() {
+  gameState = 'RESULT';
+  stopBGM();
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+
+  // ハイスコア更新
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('pitch_runner_highscore', highScore.toString());
+    document.getElementById('val-highscore').textContent = highScore;
+  }
+
+  const clearRate = totalObstacles > 0 ? Math.round((avoidedObstacles / totalObstacles) * 100) : 0;
+  const t = I18N[currentLang];
+
+  let stars = "★☆☆";
+  let evalText = t.eval1;
+  let starColor = "#ff5555";
+
+  if (clearRate >= 85) {
+    stars = "★★★";
+    evalText = t.eval3;
+    starColor = "#ffd700";
+  } else if (clearRate >= 60) {
+    stars = "★★☆";
+    evalText = t.eval2;
+    starColor = "#00e5ff";
+  }
+
+  const starsEl = document.getElementById('result-stars');
+  starsEl.textContent = stars;
+  starsEl.style.color = starColor;
+
+  document.getElementById('result-details').innerHTML = `
+    <div>${t.lblScore}: <strong>${score}</strong></div>
+    <div>${t.clearRate}: <strong>${clearRate}%</strong> (${avoidedObstacles}/${totalObstacles})</div>
+    <div style="margin-top:15px; color:${starColor}; font-weight:bold;">${evalText}</div>
+  `;
+
+  document.getElementById('result-screen').classList.remove('hidden');
+}
+
+// --- イベントリスナー・初期化 ---
+document.getElementById('lang-select').addEventListener('change', (e) => {
+  currentLang = e.target.value;
+  updateI18nUI();
+});
+
+document.getElementById('tempo-select').addEventListener('change', (e) => {
+  currentBpm = parseInt(e.target.value, 10);
+  if (gameState === 'PLAYING') {
+    startBGM(); // テンポ動的更新
+  }
+});
+
+document.getElementById('btn-mic-init').addEventListener('click', async () => {
+  await setupMic();
+  startGame();
+});
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  startGame();
+});
+
+// フォールバックテスト発声ボタン
+document.getElementById('btn-test-low').addEventListener('click', () => {
+  initAudioContext();
+  playSynthTone(130.81, 'sine', 0.3, 0.2); // C3
+  handlePitchInput(130.81);
+});
+
+document.getElementById('btn-test-mid').addEventListener('click', () => {
+  initAudioContext();
+  playSynthTone(196.00, 'sine', 0.3, 0.2); // G3
+  handlePitchInput(196.00);
+});
+
+document.getElementById('btn-test-high').addEventListener('click', () => {
+  initAudioContext();
+  playSynthTone(329.63, 'sine', 0.3, 0.2); // E4
+  handlePitchInput(329.63);
+});
+
+// キーボード操作対応 (フォールバック)
+window.addEventListener('keydown', (e) => {
+  if (gameState !== 'PLAYING') return;
+  if (e.key === '1') handlePitchInput(130.81); // C3
+  if (e.key === '2') handlePitchInput(196.00); // G3
+  if (e.key === '3') handlePitchInput(329.63); // E4
+});
+
+// 初期ロード時処理
+document.getElementById('val-highscore').textContent = highScore;
+updateI18nUI();
+
+</script>
+</body>
+</html>
