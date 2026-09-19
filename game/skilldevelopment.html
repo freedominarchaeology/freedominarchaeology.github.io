@@ -538,49 +538,303 @@ Games.stroop = {
   }
 };
 
-/* 2-③ 空間認知 (3D回転) */
+/* 2-③ 空間認知 (3Dブロック・メンタルローテーション) */
 Games.mental_rot = {
-  correctIdx: 0,
+  isRunning: false,
+  correctIdx: -1,
+  angleX: 0.4,
+  angleY: 0.6,
+  isDragging: false,
+  lastMouseX: 0,
+  lastMouseY: 0,
+  currentProblem: null,
+
+  // 立体ブロックの基本形状データ（3Dグリッド座標）
+  shapes: [
+    // L字型ブロック
+    [{x:0,y:0,z:0}, {x:1,y:0,z:0}, {x:2,y:0,z:0}, {x:0,y:1,z:0}, {x:0,y:2,z:0}],
+    // Z字型ブロック
+    [{x:0,y:0,z:0}, {x:1,y:0,z:0}, {x:1,y:1,z:0}, {x:2,y:1,z:0}, {x:1,y:1,z:1}],
+    // T字・立体分岐型
+    [{x:0,y:0,z:0}, {x:1,y:0,z:0}, {x:2,y:0,z:0}, {x:1,y:1,z:0}, {x:1,y:0,z:1}],
+    // 3Dクランク型
+    [{x:0,y:0,z:0}, {x:1,y:0,z:0}, {x:1,y:1,z:0}, {x:1,y:1,z:1}, {x:2,y:1,z:1}]
+  ],
+
   init() {
+    this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
-      <div class="info-text">${getText('rot_desc')}</div>
-      <canvas id="cv-rot" width="450" height="150"></canvas>
-      <div style="margin-top:15px;">
-        <button class="ui-btn" onclick="Games.mental_rot.check(0)">A</button>
-        <button class="ui-btn" onclick="Games.mental_rot.check(1)">B</button>
+      <div class="info-text">${getText('rot_desc')}<br><small style="color:#64748b;">※ターゲット立体（左端）はドラッグ操作で全方向に回転・観察できます</small></div>
+      <div class="control-panel">
+        <button class="ui-btn" id="mr-start" onclick="Games.mental_rot.start()">${getText('start')}</button>
+        <button class="ui-btn ui-btn-reset" onclick="Games.mental_rot.reset()">${getText('reset')}</button>
       </div>
-      <div id="rot-res" class="score-board"></div>
+      <canvas id="cv-rot" width="700" height="240" style="cursor:grab; background:#0f172a; border-radius:6px; max-width:100%;"></canvas>
+      <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+        <button class="ui-btn" onclick="Games.mental_rot.check(0)">選択 A</button>
+        <button class="ui-btn" onclick="Games.mental_rot.check(1)">選択 B</button>
+        <button class="ui-btn" onclick="Games.mental_rot.check(2)">選択 C</button>
+        <button class="ui-btn" onclick="Games.mental_rot.check(3)">選択 D</button>
+      </div>
+      <div id="rot-res" class="score-board">${getText('ready')}</div>
+      <div id="rot-explanation" style="margin-top:10px; padding:12px; background:#e2e8f0; border-radius:6px; font-size:0.9rem; max-width:680px; text-align:left; display:none; color:#1e293b; line-height:1.5;"></div>
     `;
-    this.draw();
+
+    const cv = document.getElementById('cv-rot');
+    
+    // ドラッグによる回転操作イベント設定
+    cv.onmousedown = (e) => {
+      this.isDragging = true;
+      this.lastMouseX = e.clientX;
+      this.lastMouseY = e.clientY;
+      cv.style.cursor = 'grabbing';
+    };
+    window.onmousemove = (e) => {
+      if (!this.isDragging || !this.isRunning) return;
+      const dx = e.clientX - this.lastMouseX;
+      const dy = e.clientY - this.lastMouseY;
+      this.angleY += dx * 0.01;
+      this.angleX += dy * 0.01;
+      this.lastMouseX = e.clientX;
+      this.lastMouseY = e.clientY;
+      this.renderAll();
+    };
+    window.onmouseup = () => {
+      this.isDragging = false;
+      if(cv) cv.style.cursor = 'grab';
+    };
+
+    this.drawInitialCanvas();
   },
-  draw() {
+
+  drawInitialCanvas() {
+    const cv = document.getElementById('cv-rot');
+    if (!cv) return;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0f172a';
+    c.fillRect(0, 0, cv.width, cv.height);
+  },
+
+  start() {
+    this.isRunning = true;
+    document.getElementById('mr-start').disabled = true;
+    document.getElementById('rot-res').innerText = '';
+    document.getElementById('rot-explanation').style.display = 'none';
+    this.generateProblem();
+    this.renderAll();
+  },
+
+  reset() {
+    ResourceManager.clearAll();
+    this.init();
+  },
+
+  // 3D回転行列の計算処理
+  rotate3D(point, rotX, rotY, rotZ = 0) {
+    let { x, y, z } = point;
+
+    // X軸回転
+    let cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+    let y1 = y * cosX - z * sinX;
+    let z1 = y * sinX + z * cosX;
+
+    // Y軸回転
+    let cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    let x2 = x * cosY + z1 * sinY;
+    let z2 = -x * sinY + z1 * cosY;
+
+    // Z軸回転
+    let cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
+    let x3 = x2 * cosZ - y1 * sinZ;
+    let y3 = x2 * sinZ + y1 * cosZ;
+
+    return { x: x3, y: y3, z: z2 };
+  },
+
+  generateProblem() {
+    const shapeIdx = Math.floor(Math.random() * this.shapes.length);
+    const baseShape = this.shapes[shapeIdx];
+    
+    // センタリング処理（中心点を原点に置く）
+    let cx = 0, cy = 0, cz = 0;
+    baseShape.forEach(p => { cx += p.x; cy += p.y; cz += p.z; });
+    cx /= baseShape.length; cy /= baseShape.length; cz /= baseShape.length;
+    
+    const centeredShape = baseShape.map(p => ({ x: p.x - cx, y: p.y - cy, z: p.z - cz }));
+
+    this.correctIdx = Math.floor(Math.random() * 4);
+    
+    // 正解用ランダム回転角度（直角回転：90度単位）
+    const correctRot = {
+      rx: (Math.floor(Math.random() * 3) + 1) * (Math.PI / 2),
+      ry: (Math.floor(Math.random() * 3) + 1) * (Math.PI / 2),
+      rz: Math.random() < 0.5 ? Math.PI / 2 : 0
+    };
+
+    const options = [];
+    for (let i = 0; i < 4; i++) {
+      if (i === this.correctIdx) {
+        options.push({
+          shape: centeredShape,
+          rot: correctRot,
+          isMirrored: false
+        });
+      } else {
+        // 誤答用（鏡像/反転させて整合しない立体を作成）
+        options.push({
+          shape: centeredShape.map(p => ({ x: -p.x, y: p.y, z: p.z })), // X軸鏡像
+          rot: {
+            rx: Math.floor(Math.random() * 4) * (Math.PI / 2),
+            ry: Math.floor(Math.random() * 4) * (Math.PI / 2),
+            rz: 0
+          },
+          isMirrored: true
+        });
+      }
+    }
+
+    this.currentProblem = {
+      target: centeredShape,
+      options: options,
+      correctRot: correctRot
+    };
+  },
+
+  renderAll() {
+    if (!this.isRunning || !this.currentProblem) return;
     const cv = document.getElementById('cv-rot');
     const c = cv.getContext('2d');
-    c.fillStyle = '#0f172a'; c.fillRect(0, 0, 450, 150);
+    c.fillStyle = '#0f172a';
+    c.fillRect(0, 0, cv.width, cv.height);
 
-    this.correctIdx = Math.random() < 0.5 ? 0 : 1;
-    this.renderCube(c, 75, 75, 0); // Original
-    this.renderCube(c, 225, 75, this.correctIdx === 0 ? 1.2 : -0.8); // Option A
-    this.renderCube(c, 375, 75, this.correctIdx === 1 ? 1.2 : -0.5, this.correctIdx !== 1); // Option B
+    // 1. ターゲット形状の描画 (左端, ユーザー操作可能)
+    this.renderBlockGroup(c, this.currentProblem.target, 70, 120, { rx: this.angleX, ry: this.angleY, rz: 0 }, '#38bdf8', 'ターゲット');
+
+    // 境界線
+    c.strokeStyle = '#334155';
+    c.beginPath();
+    c.moveTo(140, 20);
+    c.lineTo(140, 220);
+    c.stroke();
+
+    // 2. 選択肢 A〜D の描画
+    const labels = ['A', 'B', 'C', 'D'];
+    const posXs = [210, 330, 450, 570];
+    for (let i = 0; i < 4; i++) {
+      const opt = this.currentProblem.options[i];
+      this.renderBlockGroup(c, opt.shape, posXs[i], 120, opt.rot, '#f59e0b', labels[i]);
+    }
   },
-  renderCube(c, cx, cy, angle, mirror = false) {
+
+  renderBlockGroup(c, shape, centerX, centerY, rot, color, label) {
+    const cubeSize = 18;
+    const transformedCubes = shape.map(p => {
+      const rotated = this.rotate3D(p, rot.rx, rot.ry, rot.rz);
+      return {
+        x: centerX + rotated.x * cubeSize,
+        y: centerY + rotated.y * cubeSize,
+        z: rotated.z * cubeSize,
+        raw: rotated
+      };
+    });
+
+    // Z-indexソート（奥の立方体から順に描画）
+    transformedCubes.sort((a, b) => a.z - b.z);
+
+    transformedCubes.forEach(cb => {
+      this.drawCube(c, cb.x, cb.y, cubeSize, color);
+    });
+
+    // ラベルの描画
+    c.fillStyle = '#94a3b8';
+    c.font = 'bold 14px sans-serif';
+    c.textAlign = 'center';
+    c.fillText(label, centerX, 215);
+  },
+
+  // アイソメトリック風3Dキューブ描画
+  drawCube(c, x, y, size, color) {
+    const h = size / 2;
     c.save();
-    c.translate(cx, cy);
-    c.rotate(angle);
-    if(mirror) c.scale(-1, 1);
-    c.strokeStyle = '#38bdf8'; c.lineWidth = 3;
-    c.strokeRect(-25, -25, 50, 50);
-    c.beginPath(); c.moveTo(-25,-25); c.lineTo(0,-40); c.lineTo(50,-40); c.lineTo(25,-25); c.stroke();
-    c.beginPath(); c.moveTo(25,-25); c.lineTo(50,-40); c.lineTo(50,10); c.lineTo(25,25); c.stroke();
+    c.translate(x, y);
+
+    // 上面
+    c.fillStyle = color;
+    c.beginPath();
+    c.moveTo(0, -h);
+    c.lineTo(h, -h / 2);
+    c.lineTo(0, 0);
+    c.lineTo(-h, -h / 2);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = '#0f172a';
+    c.stroke();
+
+    // 左側面
+    c.fillStyle = 'rgba(0,0,0,0.2)';
+    c.beginPath();
+    c.moveTo(-h, -h / 2);
+    c.lineTo(0, 0);
+    c.lineTo(0, h);
+    c.lineTo(-h, h / 2);
+    c.closePath();
+    c.fill();
+    c.stroke();
+
+    // 右側面
+    c.fillStyle = 'rgba(0,0,0,0.4)';
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.lineTo(h, -h / 2);
+    c.lineTo(h, h / 2);
+    c.lineTo(0, h);
+    c.closePath();
+    c.fill();
+    c.stroke();
+
     c.restore();
   },
+
   check(idx) {
+    if (!this.isRunning) return;
     const res = document.getElementById('rot-res');
-    res.innerText = (idx === this.correctIdx) ? getText('correct') : getText('wrong');
-    setTimeout(() => this.draw(), 1000);
+    const exp = document.getElementById('rot-explanation');
+    const labels = ['A', 'B', 'C', 'D'];
+    const correctLabel = labels[this.correctIdx];
+
+    if (idx === this.correctIdx) {
+      res.innerText = getText('correct');
+      res.style.color = '#22c55e';
+    } else {
+      res.innerText = `${getText('wrong')}（正解は ${correctLabel} ）`;
+      res.style.color = '#ef4444';
+    }
+
+    // 正解の理由・角度解説の生成表示
+    const rot = this.currentProblem.correctRot;
+    const degX = Math.round((rot.rx * 180) / Math.PI) % 360;
+    const degY = Math.round((rot.ry * 180) / Math.PI) % 360;
+    const degZ = Math.round((rot.rz * 180) / Math.PI) % 360;
+
+    exp.style.display = 'block';
+    exp.innerHTML = `
+      <strong>【解説・正解の理由】</strong><br>
+      ・正解は <strong>選択肢 ${correctLabel}</strong> です。<br>
+      ・ターゲットの立体を <strong>X軸方向に ${degX}°、Y軸方向に ${degY}°${degZ > 0 ? `、Z軸方向に ${degZ}°` : ''}</strong> 回転させると、選択肢 ${correctLabel} と完全に一致します。<br>
+      ・その他の選択肢は、立体を裏返した「鏡像（左右反転）」または一部の組み合わせが異なる立体であるため、脳内でどのように回転させても一致しません。
+    `;
+
+    // 次の問題へ移行
+    setTimeout(() => {
+      if (this.isRunning) {
+        this.generateProblem();
+        this.renderAll();
+      }
+    }, 4000);
   }
 };
+
 
 /* 3-① エイム精度 */
 Games.aim = {
