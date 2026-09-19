@@ -664,7 +664,7 @@ Games.mental_rot = {
     this.isRunning = false;
     const node = document.getElementById('game-node');
     node.innerHTML = `
-      <div class="info-text">${getText('rot_desc')}<br><small style="color:#2563eb; font-weight:bold;">※「スタート」後、左端のターゲット枠内をドラッグすると3D回転できます</small></div>
+      <div class="info-text">${getText('rot_desc')}<br><small style="color:#2563eb; font-weight:bold;">※「スタート」後、左端のターゲット枠内をドラッグ/スワイプすると3D回転できます</small></div>
       <div class="control-panel">
         <button class="ui-btn" id="mr-start" onclick="Games.mental_rot.start()">${getText('start')}</button>
         <button class="ui-btn ui-btn-reset" onclick="Games.mental_rot.reset()">${getText('reset')}</button>
@@ -688,61 +688,82 @@ Games.mental_rot = {
   setupEvents(cv) {
     if (!cv) return;
 
-    // キャンバス内でのマウス座標計算ヘルパー
-    const getPos = (e) => {
+    // キャンバス内座標取得（マウス/タッチ共通）
+    const getPos = (clientX, clientY) => {
       const rect = cv.getBoundingClientRect();
       const scaleX = cv.width / rect.width;
       const scaleY = cv.height / rect.height;
       return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
       };
     };
 
-    // マウスダウン（ドラッグ開始）
-    cv.onmousedown = (e) => {
-      const pos = getPos(e);
-      // 左端のターゲット領域（X: 0〜140px）の中をクリックした場合のみドラッグ有効化
+    // --- ドラッグ/スワイプ開始判定 ---
+    const handleStart = (clientX, clientY, e) => {
+      const pos = getPos(clientX, clientY);
+      // ターゲット領域（左端 140px 以内）のみ操作可能
       if (pos.x <= 140) {
         this.isDragging = true;
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
+        this.lastMouseX = clientX;
+        this.lastMouseY = clientY;
         cv.style.cursor = 'grabbing';
+        if (e && e.cancelable) e.preventDefault(); // タッチ時のスクロール防止
       }
     };
 
-    // マウス移動（ドラッグ回転処理）
-    const onMove = (e) => {
+    // --- ドラッグ/スワイプ移動処理 ---
+    const handleMove = (clientX, clientY, e) => {
       if (!this.isDragging || !this.isRunning) return;
-      const dx = e.clientX - this.lastMouseX;
-      const dy = e.clientY - this.lastMouseY;
-      
+      const dx = clientX - this.lastMouseX;
+      const dy = clientY - this.lastMouseY;
+
       this.angleY += dx * 0.015;
       this.angleX += dy * 0.015;
-      
-      this.lastMouseX = e.clientX;
-      this.lastMouseY = e.clientY;
+
+      this.lastMouseX = clientX;
+      this.lastMouseY = clientY;
       this.renderAll();
+      if (e && e.cancelable) e.preventDefault(); // 操作中の画面スクロール防止
     };
 
-    // ドラッグ解除
-    const onUp = () => {
+    // --- ドラッグ/スワイプ終了処理 ---
+    const handleEnd = () => {
       if (this.isDragging) {
         this.isDragging = false;
         if (cv) cv.style.cursor = 'default';
       }
     };
 
-    // カーソルホバー時のアイコン変更（ターゲットエリア上では grabbed / pointer 風に表示）
+    // Mouse イベント（PC用）
+    cv.onmousedown = (e) => handleStart(e.clientX, e.clientY, e);
     cv.onmousemove = (e) => {
-      const pos = getPos(e);
+      const pos = getPos(e.clientX, e.clientY);
       if (!this.isDragging) {
         cv.style.cursor = (pos.x <= 140 && this.isRunning) ? 'grab' : 'default';
       }
-      onMove(e);
+      handleMove(e.clientX, e.clientY, e);
     };
 
-    window.addEventListener('mouseup', onUp);
+    // Touch イベント（スマホ・タブレット用）
+    cv.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        handleStart(touch.clientX, touch.clientY, e);
+      }
+    }, { passive: false });
+
+    cv.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        handleMove(touch.clientX, touch.clientY, e);
+      }
+    }, { passive: false });
+
+    cv.addEventListener('touchend', handleEnd, { passive: true });
+    cv.addEventListener('touchcancel', handleEnd, { passive: true });
+
+    window.addEventListener('mouseup', handleEnd);
   },
 
   drawInitialCanvas() {
@@ -838,14 +859,14 @@ Games.mental_rot = {
     c.fillStyle = '#f8fafc';
     c.fillRect(0, 0, cv.width, cv.height);
 
-    // ターゲット枠の背景表示（操作領域を分かりやすく明示）
+    // ターゲット枠の背景表示
     c.fillStyle = '#eff6ff';
     c.fillRect(5, 5, 130, 230);
     c.strokeStyle = '#93c5fd';
     c.lineWidth = 1;
     c.strokeRect(5, 5, 130, 230);
 
-    // 1. ターゲット形状の描画 (左端, ドラッグ操作可能)
+    // 1. ターゲット形状の描画 (左端, 操作可能)
     this.renderBlockGroup(c, this.currentProblem.target, 70, 120, { rx: this.angleX, ry: this.angleY, rz: 0 }, '#2563eb', 'ターゲット');
 
     // 2. 選択肢 A〜D の描画
