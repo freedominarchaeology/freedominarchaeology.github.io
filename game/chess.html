@@ -96,12 +96,12 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 36px;
+      font-size: 38px;
       cursor: pointer;
       position: relative;
     }
-    .cell.light { background-color: #eadeca; color: #111; }
-    .cell.dark { background-color: #8c6d58; color: #111; }
+    .cell.light { background-color: #eadeca; }
+    .cell.dark { background-color: #8c6d58; }
     .cell.selected { background-color: #d4b255 !important; }
     .cell.valid-target::after {
       content: "";
@@ -115,14 +115,22 @@
       line-height: 1;
       display: inline-block;
       transform: translateZ(0);
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
     }
+    /* 先手（白）：白塗りに黒いフチ取り */
     .piece.white {
       color: #ffffff;
-      text-shadow: 0 0 2px #000, 0 0 1px #000;
+      text-shadow: 
+        1px 1px 0 #000, -1px 1px 0 #000, 
+        1px -1px 0 #000, -1px -1px 0 #000,
+        0 2px 4px rgba(0,0,0,0.4);
     }
+    /* 後手（黒）：黒塗り */
     .piece.black {
       color: #111111;
-      text-shadow: 0 0 1px #fff;
+      text-shadow: 
+        0 0 1px #ffffff,
+        0 2px 4px rgba(0,0,0,0.5);
     }
   </style>
 </head>
@@ -213,16 +221,15 @@
     }
   };
 
-  // Unicode 駒定義
-  const SYMBOLS = {
-    wP: '♙', wR: '♖', wN: '♘', wB: '♗', wQ: '♕', wK: '♔',
-    bP: '♟', bR: '♜', bN: '➞', bB: '♝', bQ: '♛', bK: '♚'
+  // 統一デザインUnicode記号（全て同一形状の塗りつぶし記号を使用）
+  const PIECE_SYMBOLS = {
+    P: '♟', R: '♜', N: '♞', B: '♝', Q: '♛', K: '♚'
   };
 
   // 駒の価値定義
   const PIECE_VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };
 
-  // 初期盤面定義 (w:白, b:黒, P,R,N,B,Q,K)
+  // 初期盤面定義 (w:白, b:黒)
   const INIT_BOARD = [
     ['bR','bN','bB','bQ','bK','bB','bN','bR'],
     ['bP','bP','bP','bP','bP','bP','bP','bP'],
@@ -234,9 +241,9 @@
     ['wR','wN','wB','wQ','wK','wB','wN','wR']
   ];
 
-  // 状態変数 (メモリ即時再利用の設計)
+  // 状態変数
   let board = null;
-  let turn = 'w'; // 'w' or 'b'
+  let turn = 'w';
   let lang = 'ja';
   let mode = 'cpu';
   let cpuLevel = 4;
@@ -252,7 +259,6 @@
   const domSelectLevel = document.getElementById('select-level');
   const domBtnRestart = document.getElementById('btn-restart');
 
-  // ゲーム初期化
   function initGame() {
     board = JSON.parse(JSON.stringify(INIT_BOARD));
     turn = 'w';
@@ -262,7 +268,6 @@
     renderAll();
   }
 
-  // 多言語テキスト更新
   function updateTextUI() {
     const dict = I18N[lang];
     document.getElementById('lbl-mode').textContent = dict.mode;
@@ -280,7 +285,6 @@
     }
   }
 
-  // 盤面描画
   function renderAll() {
     updateTextUI();
     domBoard.textContent = '';
@@ -303,11 +307,11 @@
         const p = board[r][c];
         if (p) {
           const pieceEl = document.createElement('div');
-          const color = p[0] === 'w' ? 'white' : 'black';
-          pieceEl.className = `piece ${color}`;
-          // 代替として標準Unicode駒を表示
-          const charKey = p[0] + p[1];
-          pieceEl.textContent = SYMBOLS[charKey] || p[1];
+          const colorClass = p[0] === 'w' ? 'white' : 'black';
+          const pieceType = p[1];
+          
+          pieceEl.className = `piece ${colorClass}`;
+          pieceEl.textContent = PIECE_SYMBOLS[pieceType] || pieceType;
           cell.appendChild(pieceEl);
         }
 
@@ -317,10 +321,9 @@
     }
   }
 
-  // セルクリックイベント
   function handleSquareClick(r, c) {
     if (isGameOver) return;
-    if (mode === 'cpu' && turn === 'b') return; // CPU処理中
+    if (mode === 'cpu' && turn === 'b') return;
 
     if (selectedSquare) {
       const move = validMoves.find(m => m.r === r && m.c === c);
@@ -343,23 +346,19 @@
     renderAll();
   }
 
-  // 手を実行
   function executeMove(from, to) {
     const p = board[from.r][from.c];
     const target = board[to.r][to.c];
 
-    // 移動実行
     board[to.r][to.c] = p;
     board[from.r][from.c] = null;
 
-    // ポーンプロモーション（自動クイーン化）
     if (p[1] === 'P') {
       if ((p[0] === 'w' && to.r === 0) || (p[0] === 'b' && to.r === 7)) {
         board[to.r][to.c] = p[0] + 'Q';
       }
     }
 
-    // キング捕獲による勝利チェック
     if (target && target[1] === 'K') {
       endGame(p[0]);
       return;
@@ -368,7 +367,6 @@
     turn = turn === 'w' ? 'b' : 'w';
     renderAll();
 
-    // CPU思考開始
     if (!isGameOver && mode === 'cpu' && turn === 'b') {
       setTimeout(makeCpuMove, 300);
     }
@@ -381,7 +379,6 @@
     renderAll();
   }
 
-  // 特定コマの有効移動先取得
   function getValidMovesForSquare(b, r, c) {
     const p = b[r][c];
     if (!p) return [];
@@ -412,16 +409,13 @@
 
     if (type === 'P') {
       const dir = color === 'w' ? -1 : 1;
-      // 1歩前進
       if (r + dir >= 0 && r + dir <= 7 && !b[r + dir][c]) {
         moves.push({ r: r + dir, c });
-        // 2歩前進
         const startRow = color === 'w' ? 6 : 1;
         if (r === startRow && !b[r + dir * 2][c]) {
           moves.push({ r: r + dir * 2, c });
         }
       }
-      // 斜め取手
       [-1, 1].forEach(dc => {
         if (c + dc >= 0 && c + dc <= 7) {
           const t = b[r + dir][c + dc];
@@ -449,7 +443,6 @@
     return moves;
   }
 
-  // 全有効移動取得
   function getAllMoves(b, color) {
     const all = [];
     for (let r = 0; r < 8; r++) {
@@ -465,7 +458,6 @@
     return all;
   }
 
-  // CPU 思考処理
   function makeCpuMove() {
     if (isGameOver) return;
     const allMoves = getAllMoves(board, 'b');
@@ -474,11 +466,8 @@
     let chosen = null;
 
     if (cpuLevel === 1) {
-      // 初級: 完全ランダム
       chosen = allMoves[Math.floor(Math.random() * allMoves.length)];
-
     } else if (cpuLevel === 2) {
-      // 低級: 取れる駒最優先＋ランダム
       let bestScore = -Infinity;
       for (const m of allMoves) {
         const target = board[m.to.r][m.to.c];
@@ -488,21 +477,13 @@
           chosen = m;
         }
       }
-
     } else if (cpuLevel === 3) {
-      // 中級: 駒価値＋位置評価（浅い評価）
       chosen = getBestMoveEval(allMoves);
-
     } else if (cpuLevel === 4) {
-      // 上級: ミニマックス (深さ2)
       chosen = minimaxSearch(2);
-
     } else if (cpuLevel === 5) {
-      // 特級: αβ枝刈り (深さ3)
       chosen = alphaBetaSearch(3);
-
     } else if (cpuLevel === 6) {
-      // 異常: αβ枝刈り (深さ4＋高度評価)
       chosen = alphaBetaSearch(4, true);
     }
 
@@ -511,7 +492,6 @@
     }
   }
 
-  // 中級用簡易評価
   function getBestMoveEval(moves) {
     let bestMove = moves[0];
     let bestScore = -Infinity;
@@ -528,7 +508,6 @@
     return bestMove;
   }
 
-  // ミニマックス法
   function minimaxSearch(depth) {
     const moves = getAllMoves(board, 'b');
     let bestMove = moves[0];
@@ -562,7 +541,6 @@
     return best;
   }
 
-  // アルファ・ベータ探索
   function alphaBetaSearch(depth, advanced = false) {
     const moves = getAllMoves(board, 'b');
     let bestMove = moves[0];
@@ -594,7 +572,7 @@
         applyVirtualMove(nextB, m);
         v = Math.max(v, alphaBeta(nextB, depth - 1, alpha, beta, false, advanced));
         alpha = Math.max(alpha, v);
-        if (beta <= alpha) break; // βカット
+        if (beta <= alpha) break;
       }
       return v;
     } else {
@@ -604,13 +582,12 @@
         applyVirtualMove(nextB, m);
         v = Math.min(v, alphaBeta(nextB, depth - 1, alpha, beta, true, advanced));
         beta = Math.min(beta, v);
-        if (beta <= alpha) break; // αカット
+        if (beta <= alpha) break;
       }
       return v;
     }
   }
 
-  // 盤面評価関数
   function evaluateBoard(b, myColor, advanced = false) {
     let score = 0;
     const oppColor = myColor === 'w' ? 'b' : 'w';
@@ -627,7 +604,6 @@
     }
 
     if (advanced) {
-      // 高度評価（移動可能手の多さを加算）
       const myMoves = getAllMoves(b, myColor).length;
       const oppMoves = getAllMoves(b, oppColor).length;
       score += (myMoves - oppMoves) * 5;
@@ -636,7 +612,6 @@
     return score;
   }
 
-  // 盤面の浅いコピー (メモリ節約)
   function cloneBoard(b) {
     const copy = Array(8);
     for (let i = 0; i < 8; i++) copy[i] = b[i].slice();
@@ -648,7 +623,6 @@
     b[m.from.r][m.from.c] = null;
   }
 
-  // イベント登録
   domSelectLang.addEventListener('change', (e) => {
     lang = e.target.value;
     renderAll();
@@ -669,7 +643,6 @@
     initGame();
   });
 
-  // 初期化実行
   initGame();
 })();
 </script>
