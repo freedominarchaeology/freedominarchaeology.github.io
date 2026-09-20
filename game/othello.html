@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Othello / オフラインオセロ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #2b3a2a;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #1c261b;
+      border: 1px solid #4a6b48;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label {
+      font-size: 13px;
+    }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #4a6b48;
+      border-radius: 4px;
+      background: #2b3a2a;
+      color: #fff;
+      cursor: pointer;
+    }
+    select:focus, button:focus {
+      outline: 2px solid #85c280;
+    }
+    button:hover {
+      background: #3a4e38;
+    }
+    .status-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 12px;
+      padding: 8px 16px;
+      background: #1c261b;
+      border-radius: 6px;
+      border: 1px solid #4a6b48;
+    }
+    .player-score {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .disc-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: inset 0 0 2px rgba(0,0,0,0.5);
+    }
+    .disc-icon.black { background-color: #111; border: 1px solid #555; }
+    .disc-icon.white { background-color: #fff; border: 1px solid #ccc; }
+    
+    .status-message {
+      font-size: 14px;
+      font-weight: bold;
+      color: #85c280;
+    }
+
+    .board-container {
+      position: relative;
+      padding: 8px;
+      background: #0f160e;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 52px);
+      grid-template-rows: repeat(8, 52px);
+      gap: 2px;
+      background-color: #0f160e;
+    }
+    @media (max-width: 480px) {
+      .board {
+        grid-template-columns: repeat(8, 11vw);
+        grid-template-rows: repeat(8, 11vw);
+      }
+    }
+    .cell {
+      background-color: #2e7d32;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+    }
+    .cell.valid-target::after {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.35);
+    }
+    .disc {
+      width: 82%;
+      height: 82%;
+      border-radius: 50%;
+      box-shadow: 1px 2px 4px rgba(0,0,0,0.4);
+      transition: transform 0.25s ease, background-color 0.25s ease;
+    }
+    .disc.black {
+      background: radial-gradient(circle at 30% 30%, #444, #111);
+    }
+    .disc.white {
+      background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-mode" for="select-mode">対戦:</label>
+    <select id="select-mode">
+      <option value="2p">2 Players</option>
+      <option value="cpu" selected>VS CPU</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="status-panel">
+  <div class="player-score">
+    <span class="disc-icon black"></span>
+    <span id="score-black">2</span>
+  </div>
+  <div class="status-message" id="status-text">黒の番です</div>
+  <div class="player-score">
+    <span class="disc-icon white"></span>
+    <span id="score-white">2</span>
+  </div>
+</div>
+
+<div class="board-container">
+  <div class="board" id="board"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 多言語辞書
+  const I18N = {
+    ja: {
+      mode: "対戦:", level: "難易度:", lang: "言語:", restart: "リセット",
+      turnBlack: "黒の番です", turnWhite: "白の番です",
+      passBlack: "黒パスです", passWhite: "白パスです",
+      winBlack: "黒の勝利！", winWhite: "白の勝利！", draw: "引き分け！",
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"]
+    },
+    en: {
+      mode: "Mode:", level: "Level:", lang: "Lang:", restart: "Reset",
+      turnBlack: "Black's Turn", turnWhite: "White's Turn",
+      passBlack: "Black Passed", passWhite: "White Passed",
+      winBlack: "Black Wins!", winWhite: "White Wins!", draw: "Draw!",
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"]
+    },
+    zh: {
+      mode: "模式:", level: "难度:", lang: "语言:", restart: "重置",
+      turnBlack: "黑方回合", turnWhite: "白方回合",
+      passBlack: "黑方跳过", passWhite: "白方跳过",
+      winBlack: "黑方获胜！", winWhite: "白方获胜！", draw: "平局！",
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"]
+    },
+    ko: {
+      mode: "모드:", level: "난이도:", lang: "언어:", restart: "리셋",
+      turnBlack: "흑의 차례", turnWhite: "백의 차례",
+      passBlack: "흑 패스", passWhite: "백 패스",
+      winBlack: "흑 승리!", winWhite: "백 승리!", draw: "무승부!",
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"]
+    },
+    fr: {
+      mode: "Mode:", level: "Niveau:", lang: "Langue:", restart: "Réinit.",
+      turnBlack: "Tour aux Noirs", turnWhite: "Tour aux Blancs",
+      passBlack: "Passer Noirs", passWhite: "Passer Blancs",
+      winBlack: "Noirs Gagnent !", winWhite: "Blancs Gagnent !", draw: "Égalité !",
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"]
+    },
+    es: {
+      mode: "Modo:", level: "Nivel:", lang: "Idioma:", restart: "Reiniciar",
+      turnBlack: "Turno de Negras", turnWhite: "Turno de Blancas",
+      passBlack: "Negras Pasan", passWhite: "Blancas Pasan",
+      winBlack: "¡Ganan Negras!", winWhite: "¡Ganan Blancas!", draw: "¡Empate!",
+      levels: ["Principiante", "Fácil", "Medio", "Difícil", "Experto", "Demencial"]
+    }
+  };
+
+  // 方向ベクトル (8方向)
+  const DIRS = [
+    [-1,-1], [-1,0], [-1,1],
+    [ 0,-1],         [ 0,1],
+    [ 1,-1], [ 1,0], [ 1,1]
+  ];
+
+  // 評価重み盤面 (CPU用)
+  const WEIGHTS = [
+    [ 120, -20,  20,   5,   5,  20, -20, 120],
+    [-20,  -40,  -5,  -5,  -5,  -5, -40, -20],
+    [  20,  -5,  15,   3,   3,  15,  -5,  20],
+    [   5,  -5,   3,   3,   3,   3,  -5,   5],
+    [   5,  -5,   3,   3,   3,   3,  -5,   5],
+    [  20,  -5,  15,   3,   3,  15,  -5,  20],
+    [-20,  -40,  -5,  -5,  -5,  -5, -40, -20],
+    [ 120, -20,  20,   5,   5,  20, -20, 120]
+  ];
+
+  // 状態変数 (メモリ効率のため単一オブジェクト/配列を再利用)
+  let board = Array(8).fill(null).map(() => Array(8).fill(0)); // 0:空, 1:黒, 2:白
+  let turn = 1; // 1:黒, 2:白
+  let lang = 'ja';
+  let mode = 'cpu';
+  let cpuLevel = 4;
+  let isGameOver = false;
+  let validMoves = [];
+
+  // DOM キャッシュ
+  const domBoard = document.getElementById('board');
+  const domScoreBlack = document.getElementById('score-black');
+  const domScoreWhite = document.getElementById('score-white');
+  const domStatus = document.getElementById('status-text');
+  const domSelectLang = document.getElementById('select-lang');
+  const domSelectMode = document.getElementById('select-mode');
+  const domSelectLevel = document.getElementById('select-level');
+  const domBtnRestart = document.getElementById('btn-restart');
+
+  // 初期化関数
+  function initGame() {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        board[r][c] = 0;
+      }
+    }
+    // 初期配置
+    board[3][3] = 2; board[3][4] = 1;
+    board[4][3] = 1; board[4][4] = 2;
+
+    turn = 1;
+    isGameOver = false;
+    updateValidMoves();
+    renderAll();
+  }
+
+  // 多言語UIテキスト更新
+  function updateTextUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-mode').textContent = dict.mode;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    domBtnRestart.textContent = dict.restart;
+
+    // 難易度ドロップダウンの表示名更新
+    const opts = domSelectLevel.options;
+    for (let i = 0; i < opts.length; i++) {
+      opts[i].textContent = dict.levels[i];
+    }
+
+    if (!isGameOver) {
+      domStatus.textContent = turn === 1 ? dict.turnBlack : dict.turnWhite;
+    }
+  }
+
+  // 盤面描画（DOMの再作成を避けプロパティ更新のみでメモリを節約）
+  function renderAll() {
+    updateTextUI();
+    
+    let bCount = 0;
+    let wCount = 0;
+
+    // 盤面描画
+    domBoard.textContent = '';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const val = board[r][c];
+        if (val === 1) bCount++;
+        if (val === 2) wCount++;
+
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+
+        const isValid = validMoves.some(m => m.r === r && m.c === c);
+        if (isValid && !isGameOver && !(mode === 'cpu' && turn === 2)) {
+          cell.classList.add('valid-target');
+        }
+
+        if (val !== 0) {
+          const disc = document.createElement('div');
+          disc.className = `disc ${val === 1 ? 'black' : 'white'}`;
+          cell.appendChild(disc);
+        }
+
+        cell.addEventListener('click', () => handleCellClick(r, c));
+        domBoard.appendChild(cell);
+      }
+    }
+
+    domScoreBlack.textContent = bCount;
+    domScoreWhite.textContent = wCount;
+  }
+
+  // 挟める石を取得
+  function getFlips(b, r, c, player) {
+    if (b[r][c] !== 0) return [];
+    const opp = player === 1 ? 2 : 1;
+    const flips = [];
+
+    for (const [dr, dc] of DIRS) {
+      let tr = r + dr;
+      let tc = c + dc;
+      const currentDirFlips = [];
+
+      while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && b[tr][tc] === opp) {
+        currentDirFlips.push({ r: tr, c: tc });
+        tr += dr;
+        tc += dc;
+      }
+
+      if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && b[tr][tc] === player && currentDirFlips.length > 0) {
+        flips.push(...currentDirFlips);
+      }
+    }
+    return flips;
+  }
+
+  // 着手可能リスト更新
+  function updateValidMoves() {
+    validMoves = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const flips = getFlips(board, r, c, turn);
+        if (flips.length > 0) {
+          validMoves.push({ r, c, flips });
+        }
+      }
+    }
+  }
+
+  // セルクリック時の処理
+  function handleCellClick(r, c) {
+    if (isGameOver) return;
+    if (mode === 'cpu' && turn === 2) return; // CPU処理中
+
+    const move = validMoves.find(m => m.r === r && m.c === c);
+    if (!move) return;
+
+    executeMove(move);
+  }
+
+  // 手の実行
+  function executeMove(move) {
+    board[move.r][move.c] = turn;
+    for (const f of move.flips) {
+      board[f.r][f.c] = turn;
+    }
+
+    turn = turn === 1 ? 2 : 1;
+    updateValidMoves();
+
+    // パス判定
+    if (validMoves.length === 0) {
+      turn = turn === 1 ? 2 : 1;
+      updateValidMoves();
+
+      // 双方がパスの場合はゲーム終了
+      if (validMoves.length === 0) {
+        isGameOver = true;
+        renderAll();
+        checkWinner();
+        return;
+      } else {
+        const dict = I18N[lang];
+        domStatus.textContent = turn === 2 ? dict.passBlack : dict.passWhite;
+      }
+    }
+
+    renderAll();
+
+    // CPUの手番発動
+    if (!isGameOver && mode === 'cpu' && turn === 2) {
+      setTimeout(makeCpuMove, 350);
+    }
+  }
+
+  // 勝敗判定
+  function checkWinner() {
+    let b = 0, w = 0;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c] === 1) b++;
+        if (board[r][c] === 2) w++;
+      }
+    }
+    const dict = I18N[lang];
+    if (b > w) domStatus.textContent = dict.winBlack;
+    else if (w > b) domStatus.textContent = dict.winWhite;
+    else domStatus.textContent = dict.draw;
+  }
+
+  // --- CPU アルゴリズム (難易度1〜6) ---
+  function makeCpuMove() {
+    if (isGameOver || validMoves.length === 0) return;
+
+    let chosenMove = null;
+
+    if (cpuLevel === 1) {
+      // 初級: 完全ランダム
+      chosenMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+
+    } else if (cpuLevel === 2) {
+      // 低級: 角を極力避けつつランダム
+      const safeMoves = validMoves.filter(m => !isCSpot(m.r, m.c));
+      const pool = safeMoves.length > 0 ? safeMoves : validMoves;
+      chosenMove = pool[Math.floor(Math.random() * pool.length)];
+
+    } else if (cpuLevel === 3) {
+      // 中級: 評価値優先（一歩先読み）
+      let bestScore = -Infinity;
+      for (const m of validMoves) {
+        const score = WEIGHTS[m.r][m.c] + m.flips.length;
+        if (score > bestScore) {
+          bestScore = score;
+          chosenMove = m;
+        }
+      }
+
+    } else if (cpuLevel === 4) {
+      // 上級: ミニマックス法 (深さ2)
+      chosenMove = minimaxSearch(2);
+
+    } else if (cpuLevel === 5) {
+      // 特級: αβ法 (深さ4)
+      chosenMove = alphaBetaSearch(4);
+
+    } else if (cpuLevel === 6) {
+      // 異常: 高度αβ法 (深さ5＋着手可能数・確定石評価)
+      chosenMove = alphaBetaSearch(5, true);
+    }
+
+    if (chosenMove) {
+      executeMove(chosenMove);
+    }
+  }
+
+  function isCSpot(r, c) {
+    return (r === 0 && (c === 1 || c === 6)) || (r === 7 && (c === 1 || c === 6)) ||
+           (c === 0 && (r === 1 || r === 6)) || (c === 7 && (r === 1 || r === 6)) ||
+           (r === 1 && c === 1) || (r === 1 && c === 6) || (r === 6 && c === 1) || (r === 6 && c === 6);
+  }
+
+  // ミニマックス法 (深さ固定)
+  function minimaxSearch(depth) {
+    let bestMove = validMoves[0];
+    let bestVal = -Infinity;
+
+    for (const m of validMoves) {
+      const nextB = cloneBoard(board);
+      applyVirtualMove(nextB, m, 2);
+      const val = minimax(nextB, depth - 1, false);
+      if (val > bestVal) {
+        bestVal = val;
+        bestMove = m;
+      }
+    }
+    return bestMove;
+  }
+
+  function minimax(b, depth, isMax) {
+    if (depth === 0) return evaluateBoard(b, 2);
+    const p = isMax ? 2 : 1;
+    const moves = getValidMovesForBoard(b, p);
+
+    if (moves.length === 0) return evaluateBoard(b, 2);
+
+    let best = isMax ? -Infinity : Infinity;
+    for (const m of moves) {
+      const nextB = cloneBoard(b);
+      applyVirtualMove(nextB, m, p);
+      const val = minimax(nextB, depth - 1, !isMax);
+      best = isMax ? Math.max(best, val) : Math.min(best, val);
+    }
+    return best;
+  }
+
+  // アルファ・ベータ法
+  function alphaBetaSearch(depth, advanced = false) {
+    let bestMove = validMoves[0];
+    let alpha = -Infinity;
+    let beta = Infinity;
+
+    for (const m of validMoves) {
+      const nextB = cloneBoard(board);
+      applyVirtualMove(nextB, m, 2);
+      const val = alphaBeta(nextB, depth - 1, alpha, beta, false, advanced);
+      if (val > alpha) {
+        alpha = val;
+        bestMove = m;
+      }
+    }
+    return bestMove;
+  }
+
+  function alphaBeta(b, depth, alpha, beta, isMax, advanced) {
+    if (depth === 0) return evaluateBoard(b, 2, advanced);
+    const p = isMax ? 2 : 1;
+    const moves = getValidMovesForBoard(b, p);
+
+    if (moves.length === 0) return evaluateBoard(b, 2, advanced);
+
+    if (isMax) {
+      let v = -Infinity;
+      for (const m of moves) {
+        const nextB = cloneBoard(b);
+        applyVirtualMove(nextB, m, p);
+        v = Math.max(v, alphaBeta(nextB, depth - 1, alpha, beta, false, advanced));
+        alpha = Math.max(alpha, v);
+        if (beta <= alpha) break; // βカット
+      }
+      return v;
+    } else {
+      let v = Infinity;
+      for (const m of moves) {
+        const nextB = cloneBoard(b);
+        applyVirtualMove(nextB, m, p);
+        v = Math.min(v, alphaBeta(nextB, depth - 1, alpha, beta, true, advanced));
+        beta = Math.min(beta, v);
+        if (beta <= alpha) break; // αカット
+      }
+      return v;
+    }
+  }
+
+  // 評価関数
+  function evaluateBoard(b, player, advanced = false) {
+    let score = 0;
+    const opp = player === 1 ? 2 : 1;
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (b[r][c] === player) score += WEIGHTS[r][c];
+        else if (b[r][c] === opp) score -= WEIGHTS[r][c];
+      }
+    }
+
+    if (advanced) {
+      // 異常レベル用: 着手可能数の多さを評価値に加算
+      const myMoves = getValidMovesForBoard(b, player).length;
+      const oppMoves = getValidMovesForBoard(b, opp).length;
+      score += (myMoves - oppMoves) * 15;
+    }
+
+    return score;
+  }
+
+  // 仮想計算用ヘルパー（非非破壊配列コピー）
+  function cloneBoard(b) {
+    const newB = Array(8);
+    for (let i = 0; i < 8; i++) newB[i] = b[i].slice();
+    return newB;
+  }
+
+  function getValidMovesForBoard(b, p) {
+    const list = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const flips = getFlips(b, r, c, p);
+        if (flips.length > 0) list.push({ r, c, flips });
+      }
+    }
+    return list;
+  }
+
+  function applyVirtualMove(b, move, p) {
+    b[move.r][move.c] = p;
+    for (const f of move.flips) b[f.r][f.c] = p;
+  }
+
+  // イベント設定
+  domSelectLang.addEventListener('change', (e) => {
+    lang = e.target.value;
+    renderAll();
+  });
+
+  domSelectMode.addEventListener('change', (e) => {
+    mode = e.target.value;
+    domSelectLevel.style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    document.getElementById('lbl-level').style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    initGame();
+  });
+
+  domSelectLevel.addEventListener('change', (e) => {
+    cpuLevel = parseInt(e.target.value, 10);
+  });
+
+  domBtnRestart.addEventListener('click', () => {
+    initGame();
+  });
+
+  // 初期開始
+  initGame();
+})();
+</script>
+</body>
+</html>
