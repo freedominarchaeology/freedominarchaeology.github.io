@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>かんじ れんしゅう / Kanji Practice</title>
+    <style>
+        /* オフラインで確実に適用されるよう組み込みCSSのみで使用 */
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Yu Mincho", "游明朝", serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px 0;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #2c3e50;
+        }
+
+        select {
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            padding: 5px 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .controls select {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px;
+            font-size: 1rem;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 600px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-panel {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .kanji-info {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #34495e;
+            min-height: 1.5em;
+        }
+
+        /* 漢字手書き領域の外枠 */
+        .canvas-wrapper {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border: 4px solid #34495e;
+            border-radius: 8px;
+            background-color: #fff;
+            /* 十字の補助線（田の字枠）をCSSグラデーションで軽量描画 */
+            background-image: 
+                linear-gradient(to right, transparent 49.5%, #e0e0e0 49.5%, #e0e0e0 50.5%, transparent 50.5%),
+                linear-gradient(to bottom, transparent 49.5%, #e0e0e0 49.5%, #e0e0e0 50.5%, transparent 50.5%);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* スマホスクロール防止 */
+        }
+
+        /* 花丸エフェクト用オーバーレイ */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.show {
+            opacity: 1;
+        }
+
+        .flower-mark {
+            width: 220px;
+            height: 220px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        button {
+            font-family: sans-serif;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        .btn-clear { background-color: #e74c3c; color: white; }
+        .btn-check { background-color: #2ecc71; color: white; }
+        .btn-next  { background-color: #3498db; color: white; }
+
+        @media (max-height: 600px) {
+            .canvas-wrapper { width: 220px; height: 220px; }
+            .flower-mark { width: 180px; height: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="title-text">漢字練習</h1>
+        <!-- 多言語選択ドロップダウン -->
+        <select id="lang-select" aria-label="Language Select">
+            <option value="ja" selected>日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </header>
+
+    <div class="controls">
+        <!-- 学年選択 -->
+        <select id="grade-select" aria-label="Grade Select"></select>
+        <!-- 漢字選択 -->
+        <select id="kanji-select" aria-label="Kanji Select"></select>
+    </div>
+
+    <div class="app-container">
+        <div class="info-panel">
+            <div class="kanji-info" id="kanji-info">読み: -</div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <!-- なぞり書き用ガイドキャンバス -->
+            <canvas id="bgCanvas" width="280" height="280"></canvas>
+            <!-- ユーザー手書き用キャンバス -->
+            <canvas id="drawCanvas" width="280" height="280"></canvas>
+            
+            <!-- 花丸SVG描画領域 -->
+            <div class="overlay" id="overlay">
+                <svg class="flower-mark" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#ff4757" stroke-width="8" fill="none" stroke-dasharray="251" stroke-dashoffset="0"/>
+                    <circle cx="50" cy="50" r="28" stroke="#ff4757" stroke-width="5" fill="none"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-clear" id="btn-clear">けす</button>
+            <button class="btn-check" id="btn-check">できた！</button>
+            <button class="btn-next"  id="btn-next">つぎへ</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * 堅牢性・軽量化・メモリ効率に配慮した漢字練習モジュール
+ */
+(function() {
+    'use strict';
+
+    // UIテキスト定義 (多言語対応)
+    const i18n = {
+        ja: {
+            title: "かんじ れんしゅう",
+            grades: ["小1", "小2", "小3", "小4", "小5", "小6"],
+            clear: "けす",
+            check: "できた！",
+            next: "つぎへ",
+            read: "よみ"
+        },
+        en: {
+            title: "Kanji Practice",
+            grades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"],
+            clear: "Clear",
+            check: "Check",
+            next: "Next",
+            read: "Reading"
+        },
+        zh: {
+            title: "汉字练习",
+            grades: ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级"],
+            clear: "清除",
+            check: "完成！",
+            next: "下一个",
+            read: "读音"
+        },
+        ko: {
+            title: "한자 연습",
+            grades: ["1학년", "2학년", "3학년", "4학년", "5학년", "6학년"],
+            clear: "지우기",
+            check: "확인!",
+            next: "다음",
+            read: "음と훈"
+        },
+        fr: {
+            title: "Pratique Kanji",
+            grades: ["CP (N1)", "CE1 (N2)", "CE2 (N3)", "CM1 (N4)", "CM2 (N5)", "6ème (N6)"],
+            clear: "Effacer",
+            check: "Vérifier",
+            next: "Suivant",
+            read: "Lecture"
+        },
+        es: {
+            title: "Práctica Kanji",
+            grades: ["1º Grado", "2º Grado", "3º Grado", "4º Grado", "5º Grado", "6º Grado"],
+            clear: "Borrar",
+            check: "Comprobar",
+            next: "Siguiente",
+            read: "Lectura"
+        }
+    };
+
+    // 学年別 常用漢字データサンプル (データ拡張が容易な構造)
+    const kanjiData = {
+        0: [
+            { char: "一", read: "いち / いと" }, { char: "二", read: "に / ふた" },
+            { char: "三", read: "さん / み" }, { char: "山", read: "さん / やま" },
+            { char: "川", read: "せん / かわ" }, { char: "日", read: "にち / ひ" }
+        ],
+        1: [
+            { char: "数", read: "すう / かず" }, { char: "多", read: "た / おおい" },
+            { char: "少", read: "しょう / すく ない" }
+        ],
+        2: [
+            { char: "運", read: "うん / はこぶ" }, { char: "界", read: "かい" }
+        ],
+        3: [
+            { char: "愛", read: "あい" }, { char: "塩", read: "えん / しお" }
+        ],
+        4: [
+            { char: "圧", read: "あつ" }, { char: "易", read: "えき / やさしい" }
+        ],
+        5: [
+            { char: "異", read: "い / ことなる" }, { char: "遺", read: "い" }
+        ]
+    };
+
+    // アプリケーション状態管理 (最小限のメモリ保持)
+    let currentLang = 'ja';
+    let currentGrade = 0;
+    let currentKanjiIndex = 0;
+    let isDrawing = false;
+    let hasDrawn = false;
+
+    // DOM要素の保持（定数化）
+    const langSelect = document.getElementById('lang-select');
+    const gradeSelect = document.getElementById('grade-select');
+    const kanjiSelect = document.getElementById('kanji-select');
+    const titleText = document.getElementById('title-text');
+    const kanjiInfo = document.getElementById('kanji-info');
+    
+    const bgCanvas = document.getElementById('bgCanvas');
+    const bgCtx = bgCanvas.getContext('2d', { alpha: false }); // メモリ・パフォーマンス最適化
+    const drawCanvas = document.getElementById('drawCanvas');
+    const drawCtx = drawCanvas.getContext('2d');
+
+    const btnClear = document.getElementById('btn-clear');
+    const btnCheck = document.getElementById('btn-check');
+    const btnNext = document.getElementById('btn-next');
+    const overlay = document.getElementById('overlay');
+
+    // Web Audio API による効果音再生（外部音声ファイル非依存・軽量化）
+    let audioCtx = null;
+
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    // 正解音 (ピンポン) の合成
+    function playSuccessSound() {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+
+        // ミ (E5) -> ソ# (G#5)
+        osc1.frequency.setValueAtTime(659.25, now);
+        osc2.frequency.setValueAtTime(830.61, now + 0.15);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.8);
+    }
+
+    // UIの多言語更新
+    function updateLanguage() {
+        const texts = i18n[currentLang];
+        titleText.textContent = texts.title;
+        btnClear.textContent = texts.clear;
+        btnCheck.textContent = texts.check;
+        btnNext.textContent = texts.next;
+
+        // 学年ドロップダウンの更新
+        const prevGrade = gradeSelect.value;
+        gradeSelect.innerHTML = '';
+        texts.grades.forEach((g, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = g;
+            gradeSelect.appendChild(opt);
+        });
+        gradeSelect.value = prevGrade !== "" ? prevGrade : 0;
+
+        updateKanjiInfo();
+    }
+
+    // 学年・漢字リストの更新
+    function updateKanjiList() {
+        currentGrade = parseInt(gradeSelect.value, 10) || 0;
+        const list = kanjiData[currentGrade] || [];
+        
+        kanjiSelect.innerHTML = '';
+        list.forEach((k, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = k.char;
+            kanjiSelect.appendChild(opt);
+        });
+
+        currentKanjiIndex = 0;
+        kanjiSelect.value = 0;
+        loadCurrentKanji();
+    }
+
+    // 漢字情報の反映とガイド描画
+    function loadCurrentKanji() {
+        clearCanvas();
+        hideOverlay();
+        updateKanjiInfo();
+        drawBackgroundKanji();
+    }
+
+    function updateKanjiInfo() {
+        const list = kanjiData[currentGrade] || [];
+        const item = list[currentKanjiIndex];
+        const label = i18n[currentLang].read;
+        if (item) {
+            kanjiInfo.textContent = `${label}: ${item.read}`;
+        } else {
+            kanjiInfo.textContent = '';
+        }
+    }
+
+    // 灰色ガイド（MS明朝指定）の背景描画
+    function drawBackgroundKanji() {
+        const list = kanjiData[currentGrade] || [];
+        const item = list[currentKanjiIndex];
+        if (!item) return;
+
+        bgCtx.fillStyle = '#ffffff';
+        bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+        // MS明朝による漢字テンプレート描画
+        bgCtx.font = '200px "MS Mincho", "MS 明朝", "Yu Mincho", "游明朝", serif';
+        bgCtx.textAlign = 'center';
+        bgCtx.textBaseline = 'middle';
+        bgCtx.fillStyle = '#e0e0e0'; // 薄い灰色なぞりガイド
+        bgCtx.fillText(item.char, bgCanvas.width / 2, bgCanvas.height / 2 + 15);
+    }
+
+    // 手書き線の開始・移動・終了処理
+    function getPos(e) {
+        const rect = drawCanvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (drawCanvas.width / rect.width),
+            y: (clientY - rect.top) * (drawCanvas.height / rect.height)
+        };
+    }
+
+    function startDrawing(e) {
+        e.preventDefault();
+        getAudioContext(); // タッチ操作時にAudioContextを開始
+        isDrawing = true;
+        hasDrawn = true;
+        const pos = getPos(e);
+        drawCtx.beginPath();
+        drawCtx.moveTo(pos.x, pos.y);
+        drawCtx.strokeStyle = '#2c3e50';
+        drawCtx.lineWidth = 14;
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        drawCtx.lineTo(pos.x, pos.y);
+        drawCtx.stroke();
+    }
+
+    function stopDrawing(e) {
+        if (!isDrawing) return;
+        isDrawing = false;
+        drawCtx.closePath();
+    }
+
+    // キャンバスクリア（メモリ解放を意識し最小処理）
+    function clearCanvas() {
+        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        hasDrawn = false;
+        hideOverlay();
+    }
+
+    // チェック機能（書かれているか検知して丸と音を出す）
+    function checkDrawing() {
+        if (!hasDrawn) return;
+        showOverlay();
+        playSuccessSound();
+    }
+
+    function showOverlay() {
+        overlay.classList.add('show');
+    }
+
+    function hideOverlay() {
+        overlay.classList.remove('show');
+    }
+
+    function nextKanji() {
+        const list = kanjiData[currentGrade] || [];
+        if (list.length === 0) return;
+        currentKanjiIndex = (currentKanjiIndex + 1) % list.length;
+        kanjiSelect.value = currentKanjiIndex;
+        loadCurrentKanji();
+    }
+
+    // イベントリスナー設定
+    function initEvents() {
+        // 多言語・学年・漢字選択
+        langSelect.addEventListener('change', (e) => {
+            currentLang = e.target.value;
+            updateLanguage();
+        });
+
+        gradeSelect.addEventListener('change', () => {
+            updateKanjiList();
+        });
+
+        kanjiSelect.addEventListener('change', (e) => {
+            currentKanjiIndex = parseInt(e.target.value, 10) || 0;
+            loadCurrentKanji();
+        });
+
+        // ボタン操作
+        btnClear.addEventListener('click', clearCanvas);
+        btnCheck.addEventListener('click', checkDrawing);
+        btnNext.addEventListener('click', nextKanji);
+
+        // ポインター/タッチ描画イベント (レスポンシブ・各種デバイス対応)
+        drawCanvas.addEventListener('mousedown', startDrawing);
+        drawCanvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDrawing);
+
+        drawCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+        drawCanvas.addEventListener('touchmove', draw, { passive: false });
+        drawCanvas.addEventListener('touchend', stopDrawing);
+    }
+
+    // 初期化処理
+    function init() {
+        initEvents();
+        updateLanguage();
+        updateKanjiList();
+    }
+
+    // 画面読み込み完了時に実行
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+</body>
+</html>
