@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Go Game / オフライン囲碁</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #2b2622;
+      color: #f0e6d2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #3d352e;
+      border: 1px solid #5c5045;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 13px; }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #736456;
+      border-radius: 4px;
+      background: #2b2622;
+      color: #f0e6d2;
+      cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid #c2a680; }
+    button:hover { background: #4a4037; }
+
+    .status-panel {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 12px;
+      padding: 10px 16px;
+      background: #3d352e;
+      border-radius: 6px;
+      border: 1px solid #5c5045;
+      text-align: center;
+    }
+    .status-message {
+      font-size: 15px;
+      font-weight: bold;
+      color: #c2a680;
+    }
+    .sub-status {
+      font-size: 12px;
+      color: #a89888;
+      margin-top: 4px;
+    }
+
+    .board-container {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      background: #dcb35c;
+      border: 8px solid #8f6d28;
+      border-radius: 6px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+    }
+    svg.board-svg {
+      width: 100%;
+      height: 100%;
+    }
+    .board-line {
+      stroke: #332211;
+      stroke-width: 1.5;
+    }
+    .star-point {
+      fill: #332211;
+    }
+    .intersection {
+      cursor: pointer;
+    }
+    .intersection:hover circle.hover-preview {
+      opacity: 0.4;
+    }
+    .stone-black {
+      fill: url(#black-stone-grad);
+      stroke: #000;
+      stroke-width: 0.5;
+    }
+    .stone-white {
+      fill: url(#white-stone-grad);
+      stroke: #999;
+      stroke-width: 0.5;
+    }
+    .last-move-marker {
+      fill: none;
+      stroke: #ff3333;
+      stroke-width: 2;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-mode" for="select-mode">対戦:</label>
+    <select id="select-mode">
+      <option value="2p">2 Players</option>
+      <option value="cpu" selected>VS CPU</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-pass">パス</button>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="status-panel">
+  <div class="status-message" id="status-text">黒の番です</div>
+  <div class="sub-status" id="sub-status-text">アゲハ - 黒: 0 / 白: 0 (コミ: 6.5)</div>
+</div>
+
+<div class="board-container">
+  <svg class="board-svg" viewBox="0 0 450 450" id="board-svg">
+    <defs>
+      <radialGradient id="black-stone-grad" cx="30%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="#666"/>
+        <stop offset="100%" stop-color="#000"/>
+      </radialGradient>
+      <radialGradient id="white-stone-grad" cx="30%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="#fff"/>
+        <stop offset="100%" stop-color="#ddd"/>
+      </radialGradient>
+    </defs>
+  </svg>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const SIZE = 9;
+  const TOTAL_CELLS = SIZE * SIZE;
+  const MARGIN = 25;
+  const CELL_SIZE = 50;
+
+  const I18N = {
+    ja: {
+      mode: "対戦:", level: "難易度:", lang: "言語:", pass: "パス", restart: "リセット",
+      turnBlack: "黒の番です", turnWhite: "白の番です", turnCPU: "CPU思考中...",
+      prisoners: "アゲハ - 黒: ", whiteLabel: " / 白: ", komi: " (コミ: 6.5)",
+      passed: "がパスしました", gameOver: "終局 - ",
+      winBlack: "黒の勝ち！", winWhite: "白の勝ち！", draw: "引き分け",
+      scoreDetail: " (黒: {b}目 / 白: {w}目 [コミ含む])",
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"]
+    },
+    en: {
+      mode: "Mode:", level: "Level:", lang: "Lang:", pass: "Pass", restart: "Reset",
+      turnBlack: "Black's Turn", turnWhite: "White's Turn", turnCPU: "CPU Thinking...",
+      prisoners: "Captures - B: ", whiteLabel: " / W: ", komi: " (Komi: 6.5)",
+      passed: " passed", gameOver: "Game Over - ",
+      winBlack: "Black Wins!", winWhite: "White Wins!", draw: "Draw",
+      scoreDetail: " (B: {b} / W: {w} incl. komi)",
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"]
+    },
+    zh: {
+      mode: "模式:", level: "难度:", lang: "语言:", pass: "虚一手", restart: "重置",
+      turnBlack: "黑方回合", turnWhite: "白方回合", turnCPU: "CPU思考中...",
+      prisoners: "提子 - 黑: ", whiteLabel: " / 白: ", komi: " (贴目: 6.5)",
+      passed: " 选择了虚一手", gameOver: "终局 - ",
+      winBlack: "黑方胜！", winWhite: "白方胜！", draw: "平局",
+      scoreDetail: " (黑: {b}目 / 白: {w}目 [含贴目])",
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"]
+    },
+    ko: {
+      mode: "모드:", level: "난이도:", lang: "언어:", pass: "패스", restart: "리셋",
+      turnBlack: "흑의 차례", turnWhite: "백의 차례", turnCPU: "CPU 생각 중...",
+      prisoners: "사석 - 흑: ", whiteLabel: " / 백: ", komi: " (덤: 6.5)",
+      passed: "님이 패스しました", gameOver: "종국 - ",
+      winBlack: "흑 승리!", winWhite: "백 승리!", draw: "무승부",
+      scoreDetail: " (흑: {b}집 / 백: {w}집 [덤 포함])",
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"]
+    },
+    fr: {
+      mode: "Mode:", level: "Niveau:", lang: "Langue:", pass: "Passe", restart: "Réinit.",
+      turnBlack: "Tour aux Noirs", turnWhite: "Tour aux Blancs", turnCPU: "CPU réfléchit...",
+      prisoners: "Prises - N: ", whiteLabel: " / B: ", komi: " (Komi: 6.5)",
+      passed: " a passé", gameOver: "Fin de partie - ",
+      winBlack: "Les Noirs Gagnent !", winWhite: "Les Blancs Gagnent !", draw: "Égalité",
+      scoreDetail: " (N: {b} pts / B: {w} pts avec komi)",
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"]
+    },
+    es: {
+      mode: "Modo:", level: "Nivel:", lang: "Idioma:", pass: "Pasar", restart: "Reiniciar",
+      turnBlack: "Turno de Negras", turnWhite: "Turno de Blancas", turnCPU: "CPU Pensando...",
+      prisoners: "Capturas - N: ", whiteLabel: " / B: ", komi: " (Komi: 6.5)",
+      passed: " ha pasado", gameOver: "Fin del juego - ",
+      winBlack: "¡Ganan Negras!", winWhite: "¡Ganan Blancas!", draw: "Empate",
+      scoreDetail: " (N: {b} pts / B: {w} pts con komi)",
+      levels: ["Principiante", "Fácil", "Medio", "Difícil", "Experto", "Demencial"]
+    }
+  };
+
+  // 状態変数 (メモリの再利用を意識し固定配列)
+  let board = new Int8Array(TOTAL_CELLS); // 0:空, 1:黒, 2:白
+  let prisoners = { 1: 0, 2: 0 }; // 1:黒が取った数, 2:白が取った数
+  let turn = 1; // 1:黒, 2:白
+  let consecutivePasses = 0;
+  let koIndex = -1; // コウ（着手禁止）の位置
+  let lastMove = -1;
+  let isGameOver = false;
+
+  let mode = 'cpu';
+  let cpuLevel = 4;
+  let lang = 'ja';
+
+  const domSvg = document.getElementById('board-svg');
+  const domStatus = document.getElementById('status-text');
+  const domSubStatus = document.getElementById('sub-status-text');
+  const domBtnPass = document.getElementById('btn-pass');
+  const domBtnRestart = document.getElementById('btn-restart');
+  const domSelectLang = document.getElementById('select-lang');
+  const domSelectMode = document.getElementById('select-mode');
+  const domSelectLevel = document.getElementById('select-level');
+
+  function initGame() {
+    board.fill(0);
+    prisoners[1] = 0;
+    prisoners[2] = 0;
+    turn = 1;
+    consecutivePasses = 0;
+    koIndex = -1;
+    lastMove = -1;
+    isGameOver = false;
+
+    drawStaticBoard();
+    renderAll();
+  }
+
+  function getCoord(idx) {
+    return {
+      x: MARGIN + (idx % SIZE) * CELL_SIZE,
+      y: MARGIN + Math.floor(idx / SIZE) * CELL_SIZE
+    };
+  }
+
+  function getAdjacentIndices(idx) {
+    const adj = [];
+    const r = Math.floor(idx / SIZE);
+    const c = idx % SIZE;
+    if (r > 0) adj.push(idx - SIZE);
+    if (r < SIZE - 1) adj.push(idx + SIZE);
+    if (c > 0) adj.push(idx - 1);
+    if (c < SIZE - 1) adj.push(idx + 1);
+    return adj;
+  }
+
+  function drawStaticBoard() {
+    // defs要素以外の描画をクリア
+    const defs = domSvg.querySelector('defs');
+    domSvg.textContent = '';
+    if (defs) domSvg.appendChild(defs);
+
+    // 罫線
+    for (let i = 0; i < SIZE; i++) {
+      const lineH = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      lineH.setAttribute('x1', MARGIN);
+      lineH.setAttribute('y1', MARGIN + i * CELL_SIZE);
+      lineH.setAttribute('x2', MARGIN + (SIZE - 1) * CELL_SIZE);
+      lineH.setAttribute('y2', MARGIN + i * CELL_SIZE);
+      lineH.setAttribute('class', 'board-line');
+      domSvg.appendChild(lineH);
+
+      const lineV = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      lineV.setAttribute('x1', MARGIN + i * CELL_SIZE);
+      lineV.setAttribute('y1', MARGIN);
+      lineV.setAttribute('x2', MARGIN + i * CELL_SIZE);
+      lineV.setAttribute('y2', MARGIN + (SIZE - 1) * CELL_SIZE);
+      lineV.setAttribute('class', 'board-line');
+      domSvg.appendChild(lineV);
+    }
+
+    // 星（天元および四隅の星）
+    const stars = [20, 24, 28, 40, 52, 56, 60]; // 9路盤の標準的な星の位置
+    stars.forEach(idx => {
+      const p = getCoord(idx);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', p.x);
+      circle.setAttribute('cy', p.y);
+      circle.setAttribute('r', 3.5);
+      circle.setAttribute('class', 'star-point');
+      domSvg.appendChild(circle);
+    });
+
+    // 各交点のノード・グループ作成
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      const p = getCoord(i);
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'intersection');
+      g.setAttribute('data-idx', i);
+
+      // 透明なヒットエリア
+      const hitCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      hitCircle.setAttribute('cx', p.x);
+      hitCircle.setAttribute('cy', p.y);
+      hitCircle.setAttribute('r', CELL_SIZE / 2);
+      hitCircle.setAttribute('fill', 'transparent');
+
+      // プレビュー表示用
+      const hoverCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      hoverCircle.setAttribute('cx', p.x);
+      hoverCircle.setAttribute('cy', p.y);
+      hoverCircle.setAttribute('r', 20);
+      hoverCircle.setAttribute('class', 'hover-preview');
+      hoverCircle.setAttribute('fill', 'transparent');
+
+      g.appendChild(hitCircle);
+      g.appendChild(hoverCircle);
+      g.addEventListener('click', () => handleCellClick(i));
+      domSvg.appendChild(g);
+    }
+  }
+
+  function updateUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-mode').textContent = dict.mode;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    domBtnPass.textContent = dict.pass;
+    domBtnRestart.textContent = dict.restart;
+
+    const opts = domSelectLevel.options;
+    for (let i = 0; i < opts.length; i++) opts[i].textContent = dict.levels[i];
+
+    if (!isGameOver) {
+      domStatus.textContent = turn === 1 ? dict.turnBlack : (mode === 'cpu' ? dict.turnCPU : dict.turnWhite);
+      domSubStatus.textContent = dict.prisoners + prisoners[1] + dict.whiteLabel + prisoners[2] + dict.komi;
+    }
+  }
+
+  function renderAll() {
+    updateUI();
+
+    // 既存の石および着手マーカーのクリア
+    const existingStones = domSvg.querySelectorAll('.stone-group');
+    existingStones.forEach(el => el.remove());
+
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      const val = board[i];
+      const gNode = domSvg.querySelector(`g[data-idx="${i}"]`);
+      if (!gNode) continue;
+
+      const hoverCircle = gNode.querySelector('.hover-preview');
+      if (hoverCircle && !isGameOver) {
+        hoverCircle.setAttribute('fill', turn === 1 ? '#000' : '#fff');
+      }
+
+      if (val !== 0) {
+        const p = getCoord(i);
+        const stoneGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        stoneGroup.setAttribute('class', 'stone-group');
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', p.x);
+        circle.setAttribute('cy', p.y);
+        circle.setAttribute('r', 21);
+        circle.setAttribute('class', val === 1 ? 'stone-black' : 'stone-white');
+
+        stoneGroup.appendChild(circle);
+
+        if (i === lastMove) {
+          const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          marker.setAttribute('cx', p.x);
+          marker.setAttribute('cy', p.y);
+          marker.setAttribute('r', 8);
+          marker.setAttribute('class', 'last-move-marker');
+          stoneGroup.appendChild(marker);
+        }
+
+        domSvg.appendChild(stoneGroup);
+      }
+    }
+  }
+
+  function handleCellClick(idx) {
+    if (isGameOver || (mode === 'cpu' && turn === 2)) return;
+    if (playMove(idx, turn)) {
+      consecutivePasses = 0;
+      endTurn();
+    }
+  }
+
+  function playMove(idx, player) {
+    if (board[idx] !== 0 || idx === koIndex) return false;
+
+    // 仮着手
+    board[idx] = player;
+    const opponent = player === 1 ? 2 : 1;
+    const captured = [];
+
+    // 隣接する相手の石グループの呼吸点確認・奪取
+    const adj = getAdjacentIndices(idx);
+    adj.forEach(aIdx => {
+      if (board[aIdx] === opponent) {
+        const group = getGroup(aIdx);
+        if (group.liberties === 0) {
+          group.stones.forEach(s => captured.push(s));
+        }
+      }
+    });
+
+    // 捕獲処理
+    if (captured.length > 0) {
+      captured.forEach(s => { board[s] = 0; });
+      prisoners[player] += captured.length;
+    } else {
+      // 自殺手の禁止チェック
+      const myGroup = getGroup(idx);
+      if (myGroup.liberties === 0) {
+        board[idx] = 0; // 打ち直し（元に戻す）
+        return false;
+      }
+    }
+
+    // コウ（同型再起）の判定設定
+    if (captured.length === 1 && getGroup(idx).stones.length === 1 && getGroup(idx).liberties === 1) {
+      koIndex = captured[0];
+    } else {
+      koIndex = -1;
+    }
+
+    lastMove = idx;
+    return true;
+  }
+
+  // 呼吸点と石グループを取得
+  function getGroup(startIdx) {
+    const targetColor = board[startIdx];
+    const stones = [];
+    const libertiesSet = new Set();
+    const visited = new Uint8Array(TOTAL_CELLS);
+    const stack = [startIdx];
+
+    visited[startIdx] = 1;
+
+    while (stack.length > 0) {
+      const curr = stack.pop();
+      stones.push(curr);
+
+      const adj = getAdjacentIndices(curr);
+      adj.forEach(aIdx => {
+        if (board[aIdx] === 0) {
+          libertiesSet.add(aIdx);
+        } else if (board[aIdx] === targetColor && !visited[aIdx]) {
+          visited[aIdx] = 1;
+          stack.push(aIdx);
+        }
+      });
+    }
+
+    return { stones: stones, liberties: libertiesSet.size };
+  }
+
+  function handlePass() {
+    if (isGameOver || (mode === 'cpu' && turn === 2)) return;
+    executePass();
+  }
+
+  function executePass() {
+    consecutivePasses++;
+    koIndex = -1;
+    lastMove = -1;
+
+    const dict = I18N[lang];
+    const pName = turn === 1 ? (lang === 'ja' ? '黒' : 'Black') : (lang === 'ja' ? '白' : 'White');
+
+    if (consecutivePasses >= 2) {
+      endGame();
+    } else {
+      domStatus.textContent = pName + dict.passed;
+      endTurn();
+    }
+  }
+
+  function endTurn() {
+    turn = turn === 1 ? 2 : 1;
+    renderAll();
+
+    if (!isGameOver && mode === 'cpu' && turn === 2) {
+      setTimeout(cpuPlay, 400);
+    }
+  }
+
+  function endGame() {
+    isGameOver = true;
+    const scores = calculateTerritory();
+    const blackScore = scores.black + prisoners[1];
+    const whiteScore = scores.white + prisoners[2] + 6.5; // コミ 6.5目
+
+    const dict = I18N[lang];
+    let resultText = dict.gameOver;
+
+    if (blackScore > whiteScore) resultText += dict.winBlack;
+    else if (whiteScore > blackScore) resultText += dict.winWhite;
+    else resultText += dict.draw;
+
+    let detail = dict.scoreDetail.replace('{b}', blackScore).replace('{w}', whiteScore);
+    domStatus.textContent = resultText;
+    domSubStatus.textContent = detail;
+  }
+
+  // 簡易地計算（終局時）
+  function calculateTerritory() {
+    const visited = new Uint8Array(TOTAL_CELLS);
+    let blackTerritory = 0;
+    let whiteTerritory = 0;
+
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      if (board[i] !== 0 || visited[i]) continue;
+
+      const emptyArea = [];
+      const borders = new Set();
+      const queue = [i];
+      visited[i] = 1;
+
+      while (queue.length > 0) {
+        const curr = queue.shift();
+        emptyArea.push(curr);
+
+        const adj = getAdjacentIndices(curr);
+        adj.forEach(aIdx => {
+          if (board[aIdx] === 0) {
+            if (!visited[aIdx]) {
+              visited[aIdx] = 1;
+              queue.push(aIdx);
+            }
+          } else {
+            borders.add(board[aIdx]);
+          }
+        });
+      }
+
+      if (borders.size === 1) {
+        if (borders.has(1)) blackTerritory += emptyArea.length;
+        if (borders.has(2)) whiteTerritory += emptyArea.length;
+      }
+    }
+
+    return { black: blackTerritory, white: whiteTerritory };
+  }
+
+  // --- CPU 思考アルゴリズム ---
+  function cpuPlay() {
+    if (isGameOver || turn !== 2) return;
+
+    const validMoves = [];
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      if (board[i] === 0 && i !== koIndex) {
+        // 仮評価で有効手か判定
+        board[i] = 2;
+        const myGroup = getGroup(i);
+        let isValid = true;
+        if (myGroup.liberties === 0) {
+          // 相手を取れるか検証
+          const oppCaptured = getAdjacentIndices(i).some(aIdx => board[aIdx] === 1 && getGroup(aIdx).liberties === 0);
+          if (!oppCaptured) isValid = false;
+        }
+        board[i] = 0;
+
+        if (isValid) validMoves.push(i);
+      }
+    }
+
+    if (validMoves.length === 0) {
+      executePass();
+      return;
+    }
+
+    let selectedMove = -1;
+
+    if (cpuLevel === 1) {
+      // 初級: ランダム
+      selectedMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+    } else {
+      let maxScore = -Infinity;
+
+      validMoves.forEach(m => {
+        let score = 0;
+        // 簡易評価計算
+        board[m] = 2;
+        const group = getGroup(m);
+        score += group.liberties * 3; // 呼吸点の多さ
+
+        // 相手の石を取れる手への評価加算
+        getAdjacentIndices(m).forEach(aIdx => {
+          if (board[aIdx] === 1) {
+            const oppGroup = getGroup(aIdx);
+            if (oppGroup.liberties === 0) score += 50; // 取れる石
+            if (oppGroup.liberties === 1) score += 15; // アタリにかける
+          }
+        });
+
+        // 盤面中央寄り・星の位置に加点（難易度上級以上）
+        if (cpuLevel >= 4) {
+          const r = Math.floor(m / SIZE);
+          const c = m % SIZE;
+          const distFromCenter = Math.abs(r - 4) + Math.abs(c - 4);
+          score += (8 - distFromCenter);
+        }
+
+        board[m] = 0;
+
+        if (score > maxScore) {
+          maxScore = score;
+          selectedMove = m;
+        }
+      });
+
+      // 有効なスコアの手が見つからない場合はパス
+      if (maxScore < 0 || selectedMove === -1) {
+        executePass();
+        return;
+      }
+    }
+
+    if (playMove(selectedMove, 2)) {
+      consecutivePasses = 0;
+      endTurn();
+    } else {
+      executePass();
+    }
+  }
+
+  // イベントリスナー
+  domBtnPass.addEventListener('click', handlePass);
+  domBtnRestart.addEventListener('click', initGame);
+  domSelectLang.addEventListener('change', (e) => { lang = e.target.value; renderAll(); });
+  domSelectMode.addEventListener('change', (e) => {
+    mode = e.target.value;
+    domSelectLevel.style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    document.getElementById('lbl-level').style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    initGame();
+  });
+  domSelectLevel.addEventListener('change', (e) => { cpuLevel = parseInt(e.target.value, 10); });
+
+  initGame();
+})();
+</script>
+</body>
+</html>
