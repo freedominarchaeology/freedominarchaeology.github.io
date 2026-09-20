@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Nine Men's Morris / オフライン ナイン・メンズ・モリス</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #2b2622;
+      color: #f0e6d2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #3d352e;
+      border: 1px solid #5c5045;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 13px; }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #736456;
+      border-radius: 4px;
+      background: #2b2622;
+      color: #f0e6d2;
+      cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid #c2a680; }
+    button:hover { background: #4a4037; }
+
+    .status-panel {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 12px;
+      padding: 10px 16px;
+      background: #3d352e;
+      border-radius: 6px;
+      border: 1px solid #5c5045;
+      text-align: center;
+    }
+    .status-message {
+      font-size: 15px;
+      font-weight: bold;
+      color: #c2a680;
+    }
+    .sub-status {
+      font-size: 12px;
+      color: #a89888;
+      margin-top: 4px;
+    }
+
+    /* 盤面エリア (SVG) */
+    .board-container {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      background: #4a3c31;
+      border: 8px solid #2e241d;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+    }
+    svg.board-svg {
+      width: 100%;
+      height: 100%;
+    }
+    .board-line {
+      stroke: #d4c3b3;
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+    .point-node {
+      cursor: pointer;
+      transition: r 0.2s, fill 0.2s;
+    }
+    .point-node:hover {
+      r: 16;
+    }
+    .point-node.selected {
+      stroke: #ffeb3b;
+      stroke-width: 4;
+    }
+    .point-node.highlight {
+      stroke: #4caf50;
+      stroke-width: 4;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-mode" for="select-mode">対戦:</label>
+    <select id="select-mode">
+      <option value="2p">2 Players</option>
+      <option value="cpu" selected>VS CPU</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="status-panel">
+  <div class="status-message" id="status-text">白の番です（配置）</div>
+  <div class="sub-status" id="sub-status-text">残り配置駒: 白 9 / 黒 9</div>
+</div>
+
+<div class="board-container">
+  <svg class="board-svg" viewBox="0 0 500 500" id="board-svg">
+    <!-- 外枠・中枠・内枠・連結線は動的SVG生成 -->
+  </svg>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const I18N = {
+    ja: {
+      mode: "対戦:", level: "難易度:", lang: "言語:", restart: "リセット",
+      phasePlace: "（配置フェーズ）", phaseMove: "（移動フェーズ）", phaseFly: "（飛躍フェーズ）",
+      turnWhite: "白の番です", turnBlack: "黒の番です", turnCPU: "CPU思考中...",
+      removePiece: "ミリ完成！相手の駒を除外してください",
+      remPieces: "残り手元駒: 白 ", blackLabel: " / 黒 ",
+      winWhite: "白の勝利！", winBlack: "黒の勝利！",
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"]
+    },
+    en: {
+      mode: "Mode:", level: "Level:", lang: "Lang:", restart: "Reset",
+      phasePlace: " (Placing)", phaseMove: " (Moving)", phaseFly: " (Flying)",
+      turnWhite: "White's Turn", turnBlack: "Black's Turn", turnCPU: "CPU Thinking...",
+      removePiece: "Mill! Remove an opponent's piece.",
+      remPieces: "Unplaced: W ", blackLabel: " / B ",
+      winWhite: "White Wins!", winBlack: "Black Wins!",
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"]
+    },
+    zh: {
+      mode: "模式:", level: "难度:", lang: "语言:", restart: "重置",
+      phasePlace: " (放置阶段)", phaseMove: " (移动阶段)", phaseFly: " (飞跃阶段)",
+      turnWhite: "白方回合", turnBlack: "黑方回合", turnCPU: "CPU思考中...",
+      removePiece: "成三！请移除对方一枚棋子",
+      remPieces: "未放置: 白 ", blackLabel: " / 黑 ",
+      winWhite: "白方获胜！", winBlack: "黑方获胜！",
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"]
+    },
+    ko: {
+      mode: "모드:", level: "난이도:", lang: "언어:", restart: "리셋",
+      phasePlace: " (배치)", phaseMove: " (이동)", phaseFly: " (도약)",
+      turnWhite: "백의 차례", turnBlack: "흑의 차례", turnCPU: "CPU 생각 중...",
+      removePiece: "밀(Mill) 완성! 상대 림을 제거하세요",
+      remPieces: "남은 배치: 백 ", blackLabel: " / 흑 ",
+      winWhite: "백 승리!", winBlack: "흑 승리!",
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"]
+    },
+    fr: {
+      mode: "Mode:", level: "Niveau:", lang: "Langue:", restart: "Réinit.",
+      phasePlace: " (Placement)", phaseMove: " (Déplacement)", phaseFly: " (Saut)",
+      turnWhite: "Tour aux Blancs", turnBlack: "Tour aux Noirs", turnCPU: "CPU réfléchit...",
+      removePiece: "Moulin ! Retirez una pièce adverse.",
+      remPieces: "Reste: B ", blackLabel: " / N ",
+      winWhite: "Blancs Gagnent !", winBlack: "Noirs Gagnent !",
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"]
+    },
+    es: {
+      mode: "Modo:", level: "Nivel:", lang: "Idioma:", restart: "Reiniciar",
+      phasePlace: " (Colocación)", phaseMove: " (Movimiento)", phaseFly: " (Vuelo)",
+      turnWhite: "Turno de Blancas", turnBlack: "Turno de Negras", turnCPU: "CPU Pensando...",
+      removePiece: "¡Molino! Retira una pieza enemiga.",
+      remPieces: "Restantes: B ", blackLabel: " / N ",
+      winWhite: "¡Ganan Blancas!", winBlack: "¡Ganan Negras!",
+      levels: ["Principiante", "Fácil", "Medio", "Diffícil", "Experto", "Demencial"]
+    }
+  };
+
+  // 24箇所の標準座標 (0 ~ 23)
+  const COORDS = [
+    {x:50,y:50},{x:250,y:50},{x:450,y:50},
+    {x:116,y:116},{x:250,y:116},{x:384,y:116},
+    {x:183,y:183},{x:250,y:183},{x:317,y:183},
+    {x:50,y:250},{x:116,y:250},{x:183,y:250},{x:317,y:250},{x:384,y:250},{x:450,y:250},
+    {x:183,y:317},{x:250,y:317},{x:317,y:317},
+    {x:116,y:384},{x:250,y:384},{x:384,y:384},
+    {x:50,y:450},{x:250,y:450},{x:450,y:450}
+  ];
+
+  // 隣接接続テーブル
+  const ADJ = [
+    [1,9],[0,2,4],[1,14],
+    [4,10],[1,3,5,7],[4,13],
+    [7,11],[4,6,8],[7,12],
+    [0,10,21],[3,9,11,18],[6,10,15],[8,13,17],[5,12,14,20],[2,13,23],
+    [11,16],[15,17,19],[12,16],
+    [10,19],[16,18,20,22],[13,19],
+    [9,22],[19,21,23],[14,22]
+  ];
+
+  // 全16行のミリ（直線）組み合わせ
+  const MILLS = [
+    [0,1,2],[3,4,5],[6,7,8],[9,10,11],[12,13,14],[15,16,17],[18,19,20],[21,22,23],
+    [0,9,21],[3,10,18],[6,11,15],[1,4,7],[16,19,22],[8,12,17],[5,13,20],[2,14,23]
+  ];
+
+  // 状態変数
+  let board = new Array(24).fill(0); // 0:空, 1:白, 2:黒
+  let unplaced = { 1: 9, 2: 9 };
+  let turn = 1; // 1:白, 2:黒
+  let isRemoving = false;
+  let selectedIdx = null;
+  let mode = 'cpu';
+  let cpuLevel = 4;
+  let lang = 'ja';
+  let isGameOver = false;
+
+  const domSvg = document.getElementById('board-svg');
+  const domStatus = document.getElementById('status-text');
+  const domSubStatus = document.getElementById('sub-status-text');
+  const domBtnRestart = document.getElementById('btn-restart');
+  const domSelectLang = document.getElementById('select-lang');
+  const domSelectMode = document.getElementById('select-mode');
+  const domSelectLevel = document.getElementById('select-level');
+
+  function initGame() {
+    board.fill(0);
+    unplaced[1] = 9;
+    unplaced[2] = 9;
+    turn = 1;
+    isRemoving = false;
+    selectedIdx = null;
+    isGameOver = false;
+
+    drawStaticBoard();
+    renderAll();
+  }
+
+  // 盤面描画（固定背景線）
+  function drawStaticBoard() {
+    domSvg.textContent = ''; // SVG要素全クリア
+
+    const lines = [
+      [0,2],[2,23],[23,21],[21,0],
+      [3,5],[5,20],[20,18],[18,3],
+      [6,8],[8,17],[17,15],[15,6],
+      [1,7],[9,11],[12,14],[16,22]
+    ];
+
+    lines.forEach(l => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', COORDS[l[0]].x);
+      line.setAttribute('y1', COORDS[l[0]].y);
+      line.setAttribute('x2', COORDS[l[1]].x);
+      line.setAttribute('y2', COORDS[l[1]].y);
+      line.setAttribute('class', 'board-line');
+      domSvg.appendChild(line);
+    });
+
+    // 24個のノード（交点）生成
+    COORDS.forEach((c, idx) => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', c.x);
+      circle.setAttribute('cy', c.y);
+      circle.setAttribute('r', 12);
+      circle.setAttribute('class', 'point-node');
+      circle.setAttribute('data-idx', idx);
+      circle.addEventListener('click', () => handlePointClick(idx));
+      domSvg.appendChild(circle);
+    });
+  }
+
+  function updateUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-mode').textContent = dict.mode;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    domBtnRestart.textContent = dict.restart;
+
+    const opts = domSelectLevel.options;
+    for (let i = 0; i < opts.length; i++) opts[i].textContent = dict.levels[i];
+
+    if (!isGameOver) {
+      if (isRemoving) {
+        domStatus.textContent = dict.removePiece;
+      } else {
+        const count = countPiecesOnBoard(turn);
+        let phaseStr = unplaced[turn] > 0 ? dict.phasePlace : (count === 3 ? dict.phaseFly : dict.phaseMove);
+        if (turn === 1) domStatus.textContent = dict.turnWhite + phaseStr;
+        else domStatus.textContent = (mode === 'cpu' ? dict.turnCPU : dict.turnBlack) + phaseStr;
+      }
+      domSubStatus.textContent = dict.remPieces + unplaced[1] + dict.blackLabel + unplaced[2];
+    }
+  }
+
+  function renderAll() {
+    updateUI();
+
+    const nodes = domSvg.querySelectorAll('.point-node');
+    nodes.forEach(node => {
+      const idx = parseInt(node.getAttribute('data-idx'), 10);
+      const val = board[idx];
+
+      node.classList.remove('selected', 'highlight');
+
+      if (val === 1) {
+        node.setAttribute('fill', '#ffffff');
+        node.setAttribute('stroke', '#000000');
+        node.setAttribute('stroke-width', '2');
+      } else if (val === 2) {
+        node.setAttribute('fill', '#222222');
+        node.setAttribute('stroke', '#ffffff');
+        node.setAttribute('stroke-width', '2');
+      } else {
+        node.setAttribute('fill', '#c2a680');
+        node.setAttribute('stroke', 'none');
+      }
+
+      if (selectedIdx === idx) {
+        node.classList.add('selected');
+      }
+    });
+  }
+
+  // 交点クリック処理
+  function handlePointClick(idx) {
+    if (isGameOver || (mode === 'cpu' && turn === 2)) return;
+
+    // 相手の駒除外フェーズ
+    if (isRemoving) {
+      const opp = turn === 1 ? 2 : 1;
+      if (board[idx] === opp && canRemovePiece(idx, opp)) {
+        board[idx] = 0;
+        isRemoving = false;
+        checkWinCondition();
+        if (!isGameOver) endTurn();
+      }
+      return;
+    }
+
+    // フェーズ1: 配置
+    if (unplaced[turn] > 0) {
+      if (board[idx] === 0) {
+        board[idx] = turn;
+        unplaced[turn]--;
+        if (checkMillCreated(idx, turn)) {
+          isRemoving = true;
+          renderAll();
+        } else {
+          endTurn();
+        }
+      }
+      return;
+    }
+
+    // フェーズ2 & 3: 移動 / 飛躍
+    if (selectedIdx === null) {
+      if (board[idx] === turn) {
+        selectedIdx = idx;
+        renderAll();
+      }
+    } else {
+      if (idx === selectedIdx) {
+        selectedIdx = null;
+        renderAll();
+      } else if (board[idx] === 0 && isValidMove(selectedIdx, idx, turn)) {
+        board[idx] = turn;
+        board[selectedIdx] = 0;
+        const movedFrom = selectedIdx;
+        selectedIdx = null;
+
+        if (checkMillCreated(idx, turn)) {
+          isRemoving = true;
+          renderAll();
+        } else {
+          endTurn();
+        }
+      } else if (board[idx] === turn) {
+        selectedIdx = idx;
+        renderAll();
+      }
+    }
+  }
+
+  function isValidMove(from, to, p) {
+    if (board[to] !== 0) return false;
+    const count = countPiecesOnBoard(p);
+    if (count === 3 && unplaced[p] === 0) return true; // 飛躍（Jump）
+    return ADJ[from].includes(to); // 通常移動
+  }
+
+  function checkMillCreated(idx, p) {
+    return MILLS.some(m => m.includes(idx) && m.every(i => board[i] === p));
+  }
+
+  function canRemovePiece(idx, opp) {
+    // 全てがミリを形成している場合はどれでも除外可能
+    const allInMill = board.every((val, i) => val !== opp || checkMillCreated(i, opp));
+    if (allInMill) return true;
+    return !checkMillCreated(idx, opp);
+  }
+
+  function countPiecesOnBoard(p) {
+    return board.reduce((acc, val) => acc + (val === p ? 1 : 0), 0);
+  }
+
+  function endTurn() {
+    turn = turn === 1 ? 2 : 1;
+    selectedIdx = null;
+    renderAll();
+    checkWinCondition();
+
+    if (!isGameOver && mode === 'cpu' && turn === 2) {
+      setTimeout(cpuPlay, 500);
+    }
+  }
+
+  function checkWinCondition() {
+    const opp = turn;
+    if (unplaced[opp] === 0) {
+      const count = countPiecesOnBoard(opp);
+      if (count < 3) {
+        triggerWin(turn === 1 ? 2 : 1);
+        return;
+      }
+      // 移動可能手チェック
+      if (!isRemoving && count > 3) {
+        const canMove = board.some((val, i) => val === opp && ADJ[i].some(adjIdx => board[adjIdx] === 0));
+        if (!canMove) {
+          triggerWin(turn === 1 ? 2 : 1);
+        }
+      }
+    }
+  }
+
+  function triggerWin(winner) {
+    isGameOver = true;
+    const dict = I18N[lang];
+    domStatus.textContent = winner === 1 ? dict.winWhite : dict.winBlack;
+    renderAll();
+  }
+
+  // --- CPU 思考ロジック ---
+  function cpuPlay() {
+    if (isGameOver || turn !== 2) return;
+
+    if (isRemoving) {
+      // 除外駒の選択
+      const oppPieces = [];
+      for (let i = 0; i < 24; i++) {
+        if (board[i] === 1 && canRemovePiece(i, 1)) oppPieces.push(i);
+      }
+      if (oppPieces.length > 0) {
+        const target = oppPieces[Math.floor(Math.random() * oppPieces.length)];
+        board[target] = 0;
+        isRemoving = false;
+        checkWinCondition();
+        if (!isGameOver) endTurn();
+      }
+      return;
+    }
+
+    // 配置または移動手の探索
+    let bestMove = null;
+
+    if (unplaced[2] > 0) {
+      // 配置フェーズ
+      const emptyIndices = board.map((v, i) => v === 0 ? i : null).filter(v => v !== null);
+
+      if (cpuLevel === 1) {
+        bestMove = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      } else {
+        // ミリ完成手、あるいは相手ミリ阻止手を探す
+        bestMove = findMillOrBlockMove(2) ?? findMillOrBlockMove(1) ?? emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      }
+
+      board[bestMove] = 2;
+      unplaced[2]--;
+      if (checkMillCreated(bestMove, 2)) {
+        isRemoving = true;
+        renderAll();
+        setTimeout(cpuPlay, 400); // 連続除外処理
+      } else {
+        endTurn();
+      }
+    } else {
+      // 移動・飛躍フェーズ
+      const validMoves = [];
+      const isFlying = countPiecesOnBoard(2) === 3;
+
+      for (let i = 0; i < 24; i++) {
+        if (board[i] === 2) {
+          const targets = isFlying ? board.map((v, idx) => v === 0 ? idx : null).filter(v => v !== null) : ADJ[i].filter(adj => board[adj] === 0);
+          targets.forEach(t => validMoves.push({ from: i, to: t }));
+        }
+      }
+
+      if (validMoves.length === 0) {
+        triggerWin(1);
+        return;
+      }
+
+      if (cpuLevel === 1) {
+        bestMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+      } else {
+        bestMove = validMoves[0];
+        let maxScore = -Infinity;
+
+        validMoves.forEach(m => {
+          board[m.to] = 2;
+          board[m.from] = 0;
+          let score = 0;
+          if (checkMillCreated(m.to, 2)) score += 50;
+          if (score > maxScore) {
+            maxScore = score;
+            bestMove = m;
+          }
+          board[m.from] = 2;
+          board[m.to] = 0;
+        });
+      }
+
+      board[bestMove.to] = 2;
+      board[bestMove.from] = 0;
+
+      if (checkMillCreated(bestMove.to, 2)) {
+        isRemoving = true;
+        renderAll();
+        setTimeout(cpuPlay, 400);
+      } else {
+        endTurn();
+      }
+    }
+  }
+
+  function findMillOrBlockMove(player) {
+    for (let i = 0; i < 24; i++) {
+      if (board[i] === 0) {
+        board[i] = player;
+        const isMill = checkMillCreated(i, player);
+        board[i] = 0;
+        if (isMill) return i;
+      }
+    }
+    return null;
+  }
+
+  // イベントリスナー
+  domBtnRestart.addEventListener('click', initGame);
+  domSelectLang.addEventListener('change', (e) => { lang = e.target.value; renderAll(); });
+  domSelectMode.addEventListener('change', (e) => {
+    mode = e.target.value;
+    domSelectLevel.style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    document.getElementById('lbl-level').style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    initGame();
+  });
+  domSelectLevel.addEventListener('change', (e) => { cpuLevel = parseInt(e.target.value, 10); });
+
+  initGame();
+})();
+</script>
+</body>
+</html>
