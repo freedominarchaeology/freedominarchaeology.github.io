@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Backgammon / オフラインバックギャモン</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #2c2825;
+      color: #f0e6d2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #3a3430;
+      border: 1px solid #5a5048;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 13px; }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #6b5d52;
+      border-radius: 4px;
+      background: #2c2825;
+      color: #f0e6d2;
+      cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid #c2a680; }
+    button:hover { background: #4a423d; }
+    
+    .status-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 760px;
+      margin-bottom: 8px;
+      padding: 8px 16px;
+      background: #3a3430;
+      border-radius: 6px;
+      border: 1px solid #5a5048;
+    }
+    .status-message {
+      font-size: 14px;
+      font-weight: bold;
+      color: #c2a680;
+    }
+    .dice-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .die {
+      width: 28px;
+      height: 28px;
+      background: #fff;
+      color: #000;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 4px;
+      font-size: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .die.used {
+      opacity: 0.3;
+    }
+
+    /* 盤面エリア */
+    .bg-board {
+      width: 100%;
+      max-width: 760px;
+      height: 400px;
+      background: #5c3a21;
+      border: 8px solid #3a2211;
+      border-radius: 6px;
+      display: flex;
+      position: relative;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+    }
+    .quadrant-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .board-half {
+      flex: 1;
+      display: flex;
+    }
+    .bar-area {
+      width: 44px;
+      background: #3a2211;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      border-left: 2px solid #221309;
+      border-right: 2px solid #221309;
+    }
+    .off-area {
+      width: 50px;
+      background: #2b190c;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px;
+      border-left: 2px solid #3a2211;
+    }
+
+    .point {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+    .point-svg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+    .top-half .point { justify-content: flex-start; }
+    .bottom-half .point { justify-content: flex-end; }
+
+    .checkers-holder {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      padding: 2px 0;
+    }
+    .bottom-half .checkers-holder {
+      flex-direction: column-reverse;
+    }
+
+    .checker {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      margin: -3px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 11px;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .checker.white {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #cccccc);
+      color: #222;
+      border: 1px solid #aaa;
+    }
+    .checker.black {
+      background: radial-gradient(circle at 30% 30%, #444444, #111111);
+      color: #fff;
+      border: 1px solid #000;
+    }
+    .point.selected .point-svg polygon {
+      fill: #d4b255 !important;
+    }
+    .point.valid-target::after {
+      content: "";
+      position: absolute;
+      width: 12px; height: 12px;
+      background: #4caf50;
+      border-radius: 50%;
+      z-index: 3;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .off-label {
+      font-size: 10px;
+      color: #a08c7d;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-mode" for="select-mode">対戦:</label>
+    <select id="select-mode">
+      <option value="2p">2 Players</option>
+      <option value="cpu" selected>VS CPU</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-roll">サイコロを振る</button>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="status-panel">
+  <div class="status-message" id="status-text">サイコロを振ってください</div>
+  <div class="dice-container" id="dice-panel"></div>
+</div>
+
+<div class="bg-board">
+  <div class="quadrant-container">
+    <div class="board-half top-half" id="top-left"></div>
+    <div class="board-half bottom-half" id="bottom-left"></div>
+  </div>
+  <div class="bar-area" id="bar-area"></div>
+  <div class="quadrant-container">
+    <div class="board-half top-half" id="top-right"></div>
+    <div class="board-half bottom-half" id="bottom-right"></div>
+  </div>
+  <div class="off-area" id="off-area"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const I18N = {
+    ja: {
+      mode: "対戦:", level: "難易度:", lang: "言語:", roll: "サイコロを振る", restart: "リセット",
+      turnWhite: "白の番です", turnBlack: "黒の番です",
+      rollPrompt: "サイコロを振ってください",
+      winWhite: "白の勝利！", winBlack: "黒の勝利！", noMoves: "可能な手がありません",
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"]
+    },
+    en: {
+      mode: "Mode:", level: "Level:", lang: "Lang:", roll: "Roll Dice", restart: "Reset",
+      turnWhite: "White's Turn", turnBlack: "Black's Turn",
+      rollPrompt: "Please Roll Dice",
+      winWhite: "White Wins!", winBlack: "Black Wins!", noMoves: "No valid moves",
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"]
+    },
+    zh: {
+      mode: "模式:", level: "难度:", lang: "语言:", roll: "掷骰子", restart: "重置",
+      turnWhite: "白方回合", turnBlack: "黑方回合",
+      rollPrompt: "请掷骰子",
+      winWhite: "白方获胜！", winBlack: "黑方获胜！", noMoves: "无合法移动",
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"]
+    },
+    ko: {
+      mode: "모드:", level: "난이도:", lang: "언어:", roll: "주사위 굴리기", restart: "리셋",
+      turnWhite: "백의 차례", turnBlack: "흑의 차례",
+      rollPrompt: "주사위를 굴리세요",
+      winWhite: "백 승리!", winBlack: "흑 승리!", noMoves: "이동할 수 없습니다",
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"]
+    },
+    fr: {
+      mode: "Mode:", level: "Niveau:", lang: "Langue:", roll: "Lancer dés", restart: "Réinit.",
+      turnWhite: "Tour aux Blancs", turnBlack: "Tour aux Noirs",
+      rollPrompt: "Lancez les dés",
+      winWhite: "Blancs Gagnent !", winBlack: "Noirs Gagnent !", noMoves: "Pas de coup",
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"]
+    },
+    es: {
+      mode: "Modo:", level: "Nivel:", lang: "Idioma:", roll: "Lanzar dados", restart: "Reiniciar",
+      turnWhite: "Turno de Blancas", turnBlack: "Turno de Negras",
+      rollPrompt: "Lanza los dados",
+      winWhite: "¡Ganan Blancas!", winBlack: "¡Ganan Negras!", noMoves: "Sin movimientos",
+      levels: ["Principiante", "Fácil", "Medio", "Difícil", "Experto", "Demencial"]
+    }
+  };
+
+  // 盤面データ構想
+  // Points: 0 ~ 23 (0は白ホーム側, 23は黒ホーム側)
+  // 正数: 白の駒数, 負数: 黒の駒数
+  let points = new Array(24).fill(0);
+  let bar = { w: 0, b: 0 };
+  let off = { w: 0, b: 0 };
+
+  let turn = 'w'; // 'w' or 'b'
+  let dice = [];
+  let usedDice = [];
+  let selectedPoint = null; // 'bar' もしくは 0~23
+  let validTargets = [];
+
+  let lang = 'ja';
+  let mode = 'cpu';
+  let cpuLevel = 4;
+  let isGameOver = false;
+  let hasRolled = false;
+
+  // DOM
+  const domStatus = document.getElementById('status-text');
+  const domDicePanel = document.getElementById('dice-panel');
+  const domBtnRoll = document.getElementById('btn-roll');
+  const domBtnRestart = document.getElementById('btn-restart');
+  const domSelectLang = document.getElementById('select-lang');
+  const domSelectMode = document.getElementById('select-mode');
+  const domSelectLevel = document.getElementById('select-level');
+
+  function initGame() {
+    points.fill(0);
+    // 初期配置
+    // 白(正) 移動方向: 23 -> 0
+    // 黒(負) 移動方向: 0 -> 23
+    points[0] = -2;   points[11] = -5;  points[16] = -3;  points[18] = -5;
+    points[23] = 2;   points[12] = 5;   points[7] = 3;    points[5] = 5;
+
+    bar = { w: 0, b: 0 };
+    off = { w: 0, b: 0 };
+    turn = 'w';
+    dice = [];
+    usedDice = [];
+    selectedPoint = null;
+    validTargets = [];
+    isGameOver = false;
+    hasRolled = false;
+
+    renderAll();
+  }
+
+  function updateUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-mode').textContent = dict.mode;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    domBtnRoll.textContent = dict.roll;
+    domBtnRestart.textContent = dict.restart;
+
+    const opts = domSelectLevel.options;
+    for (let i = 0; i < opts.length; i++) opts[i].textContent = dict.levels[i];
+
+    if (!isGameOver) {
+      if (!hasRolled) {
+        domStatus.textContent = (turn === 'w' ? dict.turnWhite : dict.turnBlack) + " - " + dict.rollPrompt;
+      } else {
+        domStatus.textContent = turn === 'w' ? dict.turnWhite : dict.turnBlack;
+      }
+    }
+    domBtnRoll.disabled = hasRolled || isGameOver || (mode === 'cpu' && turn === 'b');
+  }
+
+  function rollDice() {
+    if (hasRolled || isGameOver) return;
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+
+    if (d1 === d2) {
+      dice = [d1, d1, d1, d1];
+    } else {
+      dice = [d1, d2];
+    }
+    usedDice = new Array(dice.length).fill(false);
+    hasRolled = true;
+
+    renderAll();
+    checkPossibleMoves();
+  }
+
+  function checkPossibleMoves() {
+    const moves = getAvailableMoves(points, bar, off, turn, dice, usedDice);
+    if (moves.length === 0) {
+      setTimeout(() => {
+        domStatus.textContent = I18N[lang].noMoves;
+        setTimeout(endTurn, 1000);
+      }, 300);
+    } else if (mode === 'cpu' && turn === 'b') {
+      setTimeout(makeCpuMove, 600);
+    }
+  }
+
+  function endTurn() {
+    turn = turn === 'w' ? 'b' : 'w';
+    hasRolled = false;
+    dice = [];
+    usedDice = [];
+    selectedPoint = null;
+    validTargets = [];
+    renderAll();
+
+    if (mode === 'cpu' && turn === 'b') {
+      setTimeout(rollDice, 500);
+    }
+  }
+
+  // 有効手探索ロジック
+  function getAvailableMoves(pts, b, o, curTurn, dList, uList) {
+    const moves = [];
+    const availableDiceIndices = [];
+    uList.forEach((u, idx) => { if (!u) availableDiceIndices.push(idx); });
+    if (availableDiceIndices.length === 0) return moves;
+
+    const uniqueDiceVal = [...new Set(availableDiceIndices.map(i => dList[i]))];
+
+    // バーに駒がある場合は優先脱出
+    if ((curTurn === 'w' && b.w > 0) || (curTurn === 'b' && b.b > 0)) {
+      uniqueDiceVal.forEach(dVal => {
+        const targetPt = curTurn === 'w' ? 24 - dVal : dVal - 1;
+        if (canLand(pts, targetPt, curTurn)) {
+          moves.push({ from: 'bar', to: targetPt, dieVal: dVal });
+        }
+      });
+      return moves;
+    }
+
+    // 全駒がホームにあるかチェック（ベアリングオフ可能判定）
+    const canOff = isHomeReady(pts, b, curTurn);
+
+    for (let i = 0; i < 24; i++) {
+      if ((curTurn === 'w' && pts[i] > 0) || (curTurn === 'b' && pts[i] < 0)) {
+        uniqueDiceVal.forEach(dVal => {
+          const targetPt = curTurn === 'w' ? i - dVal : i + dVal;
+          
+          if (targetPt >= 0 && targetPt < 24) {
+            if (canLand(pts, targetPt, curTurn)) {
+              moves.push({ from: i, to: targetPt, dieVal: dVal });
+            }
+          } else if (canOff) {
+            // ベアリングオフ判定
+            if ((curTurn === 'w' && targetPt < 0) || (curTurn === 'b' && targetPt >= 24)) {
+              moves.push({ from: i, to: 'off', dieVal: dVal });
+            }
+          }
+        });
+      }
+    }
+    return moves;
+  }
+
+  function canLand(pts, idx, curTurn) {
+    if (idx < 0 || idx >= 24) return false;
+    const val = pts[idx];
+    if (curTurn === 'w') return val >= -1; // 黒が2枚以上でブロック
+    else return val <= 1; // 白が2枚以上でブロック
+  }
+
+  function isHomeReady(pts, b, curTurn) {
+    if (curTurn === 'w') {
+      if (b.w > 0) return false;
+      for (let i = 6; i < 24; i++) if (pts[i] > 0) return false;
+    } else {
+      if (b.b > 0) return false;
+      for (let i = 0; i < 18; i++) if (pts[i] < 0) return false;
+    }
+    return true;
+  }
+
+  function executeMove(from, to, dieVal) {
+    // サイコロの消化
+    const dIdx = usedDice.findIndex((u, idx) => !u && dice[idx] === dieVal);
+    if (dIdx !== -1) usedDice[dIdx] = true;
+
+    // 移動処理
+    if (from === 'bar') {
+      if (turn === 'w') bar.w--; else bar.b--;
+    } else {
+      if (turn === 'w') points[from]--; else points[from]++;
+    }
+
+    if (to === 'off') {
+      if (turn === 'w') off.w++; else off.b++;
+    } else {
+      // ヒット判定
+      if (turn === 'w' && points[to] === -1) {
+        points[to] = 1;
+        bar.b++;
+      } else if (turn === 'b' && points[to] === 1) {
+        points[to] = -1;
+        bar.w++;
+      } else {
+        if (turn === 'w') points[to]++; else points[to]--;
+      }
+    }
+
+    selectedPoint = null;
+    validTargets = [];
+
+    // 勝利判定
+    if (off.w === 15 || off.b === 15) {
+      isGameOver = true;
+      domStatus.textContent = off.w === 15 ? I18N[lang].winWhite : I18N[lang].winBlack;
+      renderAll();
+      return;
+    }
+
+    renderAll();
+
+    // 継続判定
+    if (usedDice.every(u => u)) {
+      endTurn();
+    } else {
+      checkPossibleMoves();
+    }
+  }
+
+  // CPU 思考アルゴリズム
+  function makeCpuMove() {
+    if (isGameOver || turn !== 'b') return;
+    const moves = getAvailableMoves(points, bar, off, 'b', dice, usedDice);
+    if (moves.length === 0) return;
+
+    let chosen = null;
+
+    if (cpuLevel === 1) {
+      // ランダム
+      chosen = moves[Math.floor(Math.random() * moves.length)];
+    } else {
+      // 評価関数による最適手選択
+      let bestScore = -Infinity;
+      moves.forEach(m => {
+        let score = 0;
+        // ヒット評価
+        if (m.to !== 'off' && m.to !== 'bar' && points[m.to] === 1) score += 30 * cpuLevel;
+        // ベアリングオフ評価
+        if (m.to === 'off') score += 40 * cpuLevel;
+        // ブロット（単独コマ）を作るリスク回避
+        if (m.to !== 'off' && points[m.to] === 0) score -= 10;
+        
+        // 高難易度: ピップカウント（進み具合）意識
+        if (cpuLevel >= 4) {
+          score += (m.dieVal * 2);
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          chosen = m;
+        }
+      });
+    }
+
+    if (!chosen) chosen = moves[0];
+    executeMove(chosen.from, chosen.to, chosen.dieVal);
+  }
+
+  // クリック操作
+  function handlePointClick(ptIdx) {
+    if (isGameOver || !hasRolled) return;
+    if (mode === 'cpu' && turn === 'b') return;
+
+    if (selectedPoint !== null) {
+      const target = validTargets.find(t => t.to === ptIdx);
+      if (target) {
+        executeMove(selectedPoint, target.to, target.dieVal);
+        return;
+      }
+    }
+
+    // 選択
+    const avail = getAvailableMoves(points, bar, off, turn, dice, usedDice);
+    if (ptIdx === 'bar') {
+      if ((turn === 'w' && bar.w > 0) || (turn === 'b' && bar.b > 0)) {
+        selectedPoint = 'bar';
+        validTargets = avail.filter(m => m.from === 'bar');
+      }
+    } else {
+      if ((turn === 'w' && points[ptIdx] > 0 && bar.w === 0) || 
+          (turn === 'b' && points[ptIdx] < 0 && bar.b === 0)) {
+        selectedPoint = ptIdx;
+        validTargets = avail.filter(m => m.from === ptIdx);
+      }
+    }
+    renderAll();
+  }
+
+  // 描画ルーチン
+  function renderAll() {
+    updateUI();
+
+    // ダイス描画
+    domDicePanel.textContent = '';
+    dice.forEach((d, idx) => {
+      const el = document.createElement('div');
+      el.className = `die ${usedDice[idx] ? 'used' : ''}`;
+      el.textContent = d;
+      domDicePanel.appendChild(el);
+    });
+
+    // 盤面クリア・再構築 (クワドラント: 12-17, 18-23 / 11-6, 5-0)
+    const quadrants = {
+      topLeft: [12, 13, 14, 15, 16, 17],
+      topRight: [18, 19, 20, 21, 22, 23],
+      bottomLeft: [11, 10, 9, 8, 7, 6],
+      bottomRight: [5, 4, 3, 2, 1, 0]
+    };
+
+    renderHalf('top-left', quadrants.topLeft, true);
+    renderHalf('top-right', quadrants.topRight, true);
+    renderHalf('bottom-left', quadrants.bottomLeft, false);
+    renderHalf('bottom-right', quadrants.bottomRight, false);
+
+    // バー領域描画
+    const barArea = document.getElementById('bar-area');
+    barArea.textContent = '';
+    barArea.onclick = () => handlePointClick('bar');
+    if (selectedPoint === 'bar') barArea.style.outline = '2px solid #d4b255';
+    else barArea.style.outline = 'none';
+
+    for (let i = 0; i < bar.w; i++) createChecker(barArea, 'w');
+    for (let i = 0; i < bar.b; i++) createChecker(barArea, 'b');
+
+    // オフ（上がり）領域描画
+    const offArea = document.getElementById('off-area');
+    offArea.textContent = '';
+    offArea.onclick = () => {
+      if (selectedPoint !== null) {
+        const target = validTargets.find(t => t.to === 'off');
+        if (target) executeMove(selectedPoint, 'off', target.dieVal);
+      }
+    };
+    const offW = document.createElement('div');
+    offW.className = 'off-label';
+    offW.textContent = `W: ${off.w}`;
+    const offB = document.createElement('div');
+    offB.className = 'off-label';
+    offB.textContent = `B: ${off.b}`;
+    offArea.appendChild(offB);
+    offArea.appendChild(offW);
+  }
+
+  function renderHalf(elementId, pointIndices, isTop) {
+    const container = document.getElementById(elementId);
+    container.textContent = '';
+
+    pointIndices.forEach(idx => {
+      const pt = document.createElement('div');
+      pt.className = 'point';
+      if (selectedPoint === idx) pt.classList.add('selected');
+      if (validTargets.some(t => t.to === idx)) pt.classList.add('valid-target');
+
+      // 三角形SVGインライン描画
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'point-svg');
+      svg.setAttribute('viewBox', '0 0 100 300');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      
+      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const color = (idx % 2 === 0) ? '#8c6d58' : '#eadeca';
+      polygon.setAttribute('fill', color);
+      
+      if (isTop) polygon.setAttribute('points', '0,0 100,0 50,300');
+      else polygon.setAttribute('points', '0,300 100,300 50,0');
+      
+      svg.appendChild(polygon);
+      pt.appendChild(svg);
+
+      // チェッカー表示
+      const holder = document.createElement('div');
+      holder.className = 'checkers-holder';
+      const count = points[idx];
+      const absCount = Math.abs(count);
+      const colorClass = count > 0 ? 'w' : 'b';
+
+      for (let i = 0; i < absCount; i++) {
+        createChecker(holder, colorClass, (i === absCount - 1 && absCount > 5) ? `+${absCount - 4}` : null);
+        if (i >= 4 && absCount > 5) break; // 多数の駒は数値で省略表示
+      }
+
+      pt.appendChild(holder);
+      pt.onclick = () => handlePointClick(idx);
+      container.appendChild(pt);
+    });
+  }
+
+  function createChecker(parent, colorClass, text = null) {
+    const el = document.createElement('div');
+    el.className = `checker ${colorClass === 'w' ? 'white' : 'black'}`;
+    if (text) el.textContent = text;
+    parent.appendChild(el);
+  }
+
+  // イベントリスナー
+  domBtnRoll.addEventListener('click', rollDice);
+  domBtnRestart.addEventListener('click', initGame);
+  domSelectLang.addEventListener('change', (e) => { lang = e.target.value; renderAll(); });
+  domSelectMode.addEventListener('change', (e) => {
+    mode = e.target.value;
+    domSelectLevel.style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    document.getElementById('lbl-level').style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    initGame();
+  });
+  domSelectLevel.addEventListener('change', (e) => { cpuLevel = parseInt(e.target.value, 10); });
+
+  initGame();
+})();
+</script>
+</body>
+</html>
