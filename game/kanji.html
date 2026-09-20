@@ -13,7 +13,7 @@
         }
 
         body {
-            font-family: "MS Mincho", "MS 明朝", "Yu Mincho", "游明朝", serif;
+            font-family: sans-serif;
             background-color: #f4f7f6;
             color: #333;
             display: flex;
@@ -51,16 +51,16 @@
             width: 100%;
             max-width: 600px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin-bottom: 15px;
             flex-wrap: wrap;
         }
 
         .controls select {
             flex: 1;
-            min-width: 120px;
+            min-width: 110px;
             padding: 8px;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
         .app-container {
@@ -128,7 +128,7 @@
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s ease;
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.35);
         }
 
         .overlay.show {
@@ -153,10 +153,11 @@
             font-size: 1.1rem;
             font-weight: bold;
             color: #2c3e50;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 2px 10px;
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 4px 12px;
+            border-radius: 12px;
             margin-top: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .buttons {
@@ -208,6 +209,11 @@
     <div class="controls">
         <select id="grade-select" aria-label="Grade Select"></select>
         <select id="kanji-select" aria-label="Kanji Select"></select>
+        <!-- フォント切り替え機能（ゴシック体・明朝体） -->
+        <select id="font-select" aria-label="Font Select">
+            <option value="gothic" selected>ゴシック体</option>
+            <option value="mincho">明朝体</option>
+        </select>
     </div>
 
     <div class="app-container">
@@ -216,12 +222,9 @@
         </div>
 
         <div class="canvas-wrapper">
-            <!-- ガイド文字描画層 -->
             <canvas id="bgCanvas" width="280" height="280"></canvas>
-            <!-- ユーザー手書き描画層 -->
             <canvas id="drawCanvas" width="280" height="280"></canvas>
             
-            <!-- 判定マーク overlay -->
             <div class="overlay" id="overlay">
                 <div class="result-mark" id="result-mark">◎</div>
                 <div class="score-text" id="score-text">100%</div>
@@ -239,7 +242,6 @@
 (function() {
     'use strict';
 
-    // UIテキスト定義 (多言語対応)
     const i18n = {
         ja: { title: "かんじ れんしゅう", grades: ["小1", "小2", "小3", "小4", "小5", "小6"], clear: "けす", check: "できた！", next: "つぎへ", read: "よみ" },
         en: { title: "Kanji Practice", grades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"], clear: "Clear", check: "Check", next: "Next", read: "Reading" },
@@ -249,7 +251,11 @@
         es: { title: "Práctica Kanji", grades: ["1º Grado", "2º Grado", "3º Grado", "4º Grado", "5º Grado", "6º Grado"], clear: "Borrar", check: "Comprobar", next: "Siguiente", read: "Lectura" }
     };
 
-    // 学年別 常用漢字配当表（漢字と復元した読み仮名データ）
+    const fontFamilies = {
+        gothic: '"Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, "Yu Gothic", "游ゴシック", "MS Gothic", "ＭＳ ゴシック", sans-serif',
+        mincho: '"MS Mincho", "ＭＳ 明朝", "Yu Mincho", "游明朝", serif'
+    };
+
     const kanjiData = {
         0: [
             {char:"一",read:"イチ, イツ / ひと, ひとつ"}, {char:"右",read:"ウ, ユウ / みぎ"}, {char:"雨",read:"ウ / あめ, あま"}, {char:"円",read:"エン / まるい"},
@@ -309,21 +315,21 @@
             {char:"方",read:"ホウ / かた"}, {char:"北",read:"ホク / きた"}, {char:"毎",read:"マイ"}, {char:"妹",read:"マイ / いもうと"},
             {char:"万",read:"マン, バン"}, {char:"鳴",read:"メイ / なく, なると"}, {char:"毛",read:"モウ / け"}, {char:"門",read:"モン / かど"},
             {char:"夜",read:"ヤ / よる, よ"}, {char:"野",read:"ヤ / の"}, {char:"用",read:"ヨウ / もちいる"}, {char:"友",read:"ユウ / とも"},
-            {char:"曜",read:"ヨウ"}, {char:"来",read:"ライ / くる, いたる"}, {char:"里",read:"リ / さと"}, {char:"理",read:"リ"}, {char:"話",read:"ワ / はなす, はなし"}
+            {char:"曜",read:"ヨウ"}, {char:"来",read:"ライ /くる, いたる"}, {char:"里",read:"リ / さと"}, {char:"理",read:"リ"}, {char:"話",read:"ワ / はなす, はなし"}
         ]
     };
 
-    // 音声および判定のための基本状態変数
     let currentLang = 'ja';
     let currentGrade = 0;
     let currentKanjiIndex = 0;
+    let currentFont = 'gothic';
     let isDrawing = false;
     let hasDrawn = false;
 
-    // DOM要素の取得
     const langSelect = document.getElementById('lang-select');
     const gradeSelect = document.getElementById('grade-select');
     const kanjiSelect = document.getElementById('kanji-select');
+    const fontSelect = document.getElementById('font-select');
     const titleText = document.getElementById('title-text');
     const kanjiInfo = document.getElementById('kanji-info');
     
@@ -331,6 +337,12 @@
     const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
     const drawCanvas = document.getElementById('drawCanvas');
     const drawCtx = drawCanvas.getContext('2d', { willReadFrequently: true });
+
+    // 判定計算用（判定膨張処理用の非表示Canvas）
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = 280;
+    maskCanvas.height = 280;
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
     const btnClear = document.getElementById('btn-clear');
     const btnCheck = document.getElementById('btn-check');
@@ -352,7 +364,6 @@
         return audioCtx;
     }
 
-    // 正解音（ピンポン）
     function playSuccessSound() {
         const ctx = getAudioContext();
         if (!ctx) return;
@@ -365,8 +376,8 @@
         osc1.type = 'sine';
         osc2.type = 'sine';
 
-        osc1.frequency.setValueAtTime(659.25, now); // E5
-        osc2.frequency.setValueAtTime(830.61, now + 0.15); // G#5
+        osc1.frequency.setValueAtTime(659.25, now);
+        osc2.frequency.setValueAtTime(830.61, now + 0.15);
 
         gain.gain.setValueAtTime(0.3, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
@@ -381,7 +392,6 @@
         osc2.stop(now + 0.8);
     }
 
-    // 不合格音（ブブー音）
     function playBuzzerSound() {
         const ctx = getAudioContext();
         if (!ctx) return;
@@ -391,14 +401,12 @@
         const osc2 = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        // 低い鋸波でブザー音を生成
         osc1.type = 'sawtooth';
         osc2.type = 'sawtooth';
 
         osc1.frequency.setValueAtTime(140, now);
-        osc2.frequency.setValueAtTime(143, now); // わずかにずらして唸りを生む
+        osc2.frequency.setValueAtTime(143, now);
 
-        // ブッ・ブッ の2回音
         gain.gain.setValueAtTime(0.2, now);
         gain.gain.setValueAtTime(0.01, now + 0.2);
         gain.gain.setValueAtTime(0.2, now + 0.25);
@@ -414,7 +422,6 @@
         osc2.stop(now + 0.55);
     }
 
-    // 言語切り替え
     function updateLanguage() {
         const texts = i18n[currentLang];
         titleText.textContent = texts.title;
@@ -435,7 +442,6 @@
         updateKanjiList();
     }
 
-    // 漢字ドロップダウンの更新
     function updateKanjiList() {
         currentGrade = parseInt(gradeSelect.value, 10) || 0;
         const list = kanjiData[currentGrade] || kanjiData[0];
@@ -453,7 +459,6 @@
         loadCurrentKanji();
     }
 
-    // 漢字および復元読み仮名の読み込み
     function loadCurrentKanji() {
         clearCanvas();
         hideOverlay();
@@ -472,7 +477,7 @@
         }
     }
 
-    // ガイド漢字を描画
+    // 選択中のフォント（明朝／ゴシック）で文字を描画
     function drawBackgroundKanji() {
         const list = kanjiData[currentGrade] || kanjiData[0];
         const item = list[currentKanjiIndex];
@@ -481,14 +486,13 @@
         bgCtx.fillStyle = '#ffffff';
         bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
-        bgCtx.font = '200px "MS Mincho", "MS 明朝", "Yu Mincho", "游明朝", serif';
+        bgCtx.font = `200px ${fontFamilies[currentFont]}`;
         bgCtx.textAlign = 'center';
         bgCtx.textBaseline = 'middle';
-        bgCtx.fillStyle = '#dcdde1'; // 灰色の見本
+        bgCtx.fillStyle = '#dcdde1';
         bgCtx.fillText(item.char, bgCanvas.width / 2, bgCanvas.height / 2 + 15);
     }
 
-    // タッチ・マウス位置座標の取得
     function getPos(e) {
         const rect = drawCanvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -508,7 +512,7 @@
         drawCtx.beginPath();
         drawCtx.moveTo(pos.x, pos.y);
         drawCtx.strokeStyle = '#2c3e50';
-        drawCtx.lineWidth = 16;
+        drawCtx.lineWidth = 14;
         drawCtx.lineCap = 'round';
         drawCtx.lineJoin = 'round';
     }
@@ -534,66 +538,89 @@
     }
 
     /**
-     * 見本（bgCanvas）とユーザー手書き（drawCanvas）のピクセル合致率判定
+     * 【厳格判定ロジック】
+     * 塗りつぶし対策：はみ出しペナルティの導入と太幅許容エリアの生成
      */
     function evaluateDrawing() {
         if (!hasDrawn) return;
 
-        const width = drawCanvas.width;
-        const height = drawCanvas.height;
+        const list = kanjiData[currentGrade] || kanjiData[0];
+        const item = list[currentKanjiIndex];
+        if (!item) return;
 
-        const bgData = bgCtx.getImageData(0, 0, width, height).data;
-        const drawData = drawCtx.getImageData(0, 0, width, height).data;
+        const width = 280;
+        const height = 280;
 
-        let guidePixels = 0;
-        let drawnPixels = 0;
-        let overlapPixels = 0;
+        // 1. 正解許容ゾーン（マスク）を作成：太い線幅で文字を描画して多少のズレを許容
+        maskCtx.fillStyle = '#ffffff';
+        maskCtx.fillRect(0, 0, width, height);
+        maskCtx.font = `200px ${fontFamilies[currentFont]}`;
+        maskCtx.textAlign = 'center';
+        maskCtx.textBaseline = 'middle';
+        maskCtx.strokeStyle = '#000000';
+        maskCtx.lineWidth = 32; // 太い輪郭でなぞりの誤差を許容
+        maskCtx.strokeText(item.char, width / 2, height / 2 + 15);
+        maskCtx.fillStyle = '#000000';
+        maskCtx.fillText(item.char, width / 2, height / 2 + 15);
+
+        // 2. ピクセル取得
+        const bgData = bgCtx.getImageData(0, 0, width, height).data;      // 見本（細い線）
+        const maskData = maskCtx.getImageData(0, 0, width, height).data;  // 正解許容エリア（太線）
+        const drawData = drawCtx.getImageData(0, 0, width, height).data;  // 子供の手書き線
+
+        let targetPixels = 0;     // 見本のピクセル数
+        let userPixels = 0;       // 手書きの全ピクセル数
+        let coveredPixels = 0;    // 正しい線をなぞれたピクセル数
+        let outOfBoundsPixels = 0;// 許容エリア外にはみ出した（塗りつぶした）ピクセル数
 
         for (let i = 0; i < bgData.length; i += 4) {
-            // 背景ガイド文字が存在するピクセル（白色 #FFFFFF 以外のピクセル）
-            const isGuide = (bgData[i] < 240 || bgData[i+1] < 240 || bgData[i+2] < 240);
-            // ユーザーの手書き線が存在するピクセル（アルファ値 > 0）
+            const isTarget = (bgData[i] < 240 || bgData[i+1] < 240 || bgData[i+2] < 240);
+            const isAllowed = (maskData[i] < 200 || maskData[i+1] < 200 || maskData[i+2] < 200);
             const isDrawn = (drawData[i + 3] > 50);
 
-            if (isGuide) guidePixels++;
-            if (isDrawn) drawnPixels++;
-            if (isGuide && isDrawn) overlapPixels++;
+            if (isTarget) targetPixels++;
+            if (isDrawn) {
+                userPixels++;
+                if (isAllowed) {
+                    coveredPixels++;
+                } else {
+                    outOfBoundsPixels++; // はみ出し（塗り潰し）領域
+                }
+            }
         }
 
-        if (guidePixels === 0 || drawnPixels === 0) return;
+        if (targetPixels === 0 || userPixels === 0) return;
 
-        // カバー率（見本をどれだけ覆えたか）と 精度（はみ出しの少なさ）
-        const coverage = overlapPixels / guidePixels;
-        const precision = overlapPixels / drawnPixels;
-        
-        // 総合スコア（0%〜100%）
-        const score = Math.round(((coverage * 0.6) + (precision * 0.4)) * 100);
+        // 【計算】なぞり達成度（0.0〜1.0）
+        const coverage = Math.min(1.0, coveredPixels / (targetPixels * 0.85));
 
-        showResult(score);
+        // 【計算】はみ出しペナルティ率（はみ出しピクセル数 / 手書き全ピクセル数）
+        const penaltyRatio = outOfBoundsPixels / userPixels;
+
+        // 最終スコア（％）：達成度から「はみ出しペナルティ（2.0倍の重み）」を減算
+        let finalScore = Math.round((coverage - (penaltyRatio * 2.0)) * 100);
+        if (finalScore < 0) finalScore = 0;
+
+        showResult(finalScore);
     }
 
-    // 判定マークと音声の出力
     function showResult(score) {
         resultMark.className = 'result-mark';
-        scoreText.textContent = `一致度: ${score}%`;
+        scoreText.textContent = `てんすう: ${score}てん`;
 
-        if (score >= 75) {
-            // ◎ 二重丸（合格）
+        if (score >= 70) {
             resultMark.textContent = '◎';
             resultMark.classList.add('mark-double');
             playSuccessSound();
-        } else if (score >= 55) {
-            // ○ 丸（合格）
+        } else if (score >= 45) {
             resultMark.textContent = '○';
             resultMark.classList.add('mark-single');
             playSuccessSound();
-        } else if (score >= 35) {
-            // △ 三角（もう一歩）
+        } else if (score >= 20) {
             resultMark.textContent = '△';
             resultMark.classList.add('mark-triangle');
             playBuzzerSound();
         } else {
-            // × バツ（不合格ブザー）
             resultMark.textContent = '×';
             resultMark.classList.add('mark-cross');
             playBuzzerSound();
@@ -626,6 +653,12 @@
 
         kanjiSelect.addEventListener('change', (e) => {
             currentKanjiIndex = parseInt(e.target.value, 10) || 0;
+            loadCurrentKanji();
+        });
+
+        // フォント切替イベント
+        fontSelect.addEventListener('change', (e) => {
+            currentFont = e.target.value;
             loadCurrentKanji();
         });
 
