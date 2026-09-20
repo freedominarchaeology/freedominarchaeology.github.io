@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>流星群 (Meteor Shower Board Game)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #1a1829;
+      color: #e2e0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 650px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      background: #28243d;
+      border: 1px solid #48406c;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 13px; }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #5c528a;
+      border-radius: 4px;
+      background: #1a1829;
+      color: #e2e0f0;
+      cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid #9d8ec7; }
+    button:hover { background: #373254; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .player-config {
+      width: 100%;
+      max-width: 650px;
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      justify-content: space-between;
+      background: #211e33;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #3c365d;
+      flex-wrap: wrap;
+    }
+    .p-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+    }
+    .p-color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-panel {
+      width: 100%;
+      max-width: 650px;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      background: #28243d;
+      border-radius: 6px;
+      border: 1px solid #48406c;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-message {
+      font-size: 13px;
+      font-weight: bold;
+      color: #d1c4e9;
+      flex: 1;
+      margin-right: 8px;
+    }
+    .dice-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dice-box {
+      width: 34px;
+      height: 34px;
+      background: #e2e0f0;
+      color: #1a1829;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .energy-dashboard {
+      width: 100%;
+      max-width: 650px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .p-card {
+      background: #211e33;
+      border: 1px solid #3c365d;
+      border-radius: 4px;
+      padding: 4px 6px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .p-card.active {
+      border-color: #ffd700;
+      background: #2f2a4a;
+    }
+    .energy-val {
+      font-size: 14px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    .board-container {
+      width: 100%;
+      max-width: 550px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      background: #0f0d1a;
+      border: 4px solid #48406c;
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+    }
+    svg.board-svg {
+      width: 100%;
+      height: 100%;
+    }
+    .tile-rect { stroke: #2a2440; stroke-width: 2; }
+    .tile-gain { fill: #2e4d36; }
+    .tile-drain { fill: #5c2828; }
+    .tile-attack { fill: #5a2e5c; }
+    .tile-warp { fill: #284c5c; }
+    .tile-super { fill: #665c28; }
+    .tile-text {
+      font-size: 9px;
+      fill: #ffffff;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-players" for="select-count">人数:</label>
+    <select id="select-count">
+      <option value="2" selected>2 Players</option>
+      <option value="3">3 Players</option>
+      <option value="4">4 Players</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">CPU難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="player-config" id="player-config"></div>
+
+<div class="energy-dashboard" id="energy-dashboard"></div>
+
+<div class="status-panel">
+  <div class="status-message" id="status-text">ゲーム開始</div>
+  <div class="dice-area">
+    <div class="dice-box" id="dice-val">?</div>
+    <button id="btn-roll">振る</button>
+  </div>
+</div>
+
+<div class="board-container">
+  <svg class="board-svg" viewBox="0 0 500 500" id="board-svg"></svg>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const PLAYER_COLORS = ['#ff4d6d', '#4ea8de', '#52b788', '#ffb703'];
+  const PLAYER_NAMES = ['P1', 'P2', 'P3', 'P4'];
+  const WIN_ENERGY = 100;
+
+  const I18N = {
+    ja: {
+      players: "人数:", level: "CPU難易度:", lang: "言語:", restart: "リセット",
+      roll: "サイコロを振る", human: "人間", cpu: "CPU",
+      turn: "の番です",
+      rolled: "の出目: ",
+      gainMsg: " エネルギーを獲得！",
+      drainMsg: " エネルギーを失った！",
+      attackMsg: " 他のプレイヤーからエネルギーを奪った！",
+      warpMsg: " 星間にワープした！",
+      supernova: " スーパーノヴァ発生！勝利！",
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"],
+      tiles: { gain: "星塵", drain: "暗黒", attack: "流星", warp: "跳躍", super: "超新星" }
+    },
+    en: {
+      players: "Count:", level: "CPU Level:", lang: "Lang:", restart: "Reset",
+      roll: "Roll Dice", human: "Human", cpu: "CPU",
+      turn: "'s Turn",
+      rolled: " rolled ",
+      gainMsg: " Energy Gained!",
+      drainMsg: " Energy Lost!",
+      attackMsg: " Siphoned Energy from rivals!",
+      warpMsg: " Warped through space!",
+      supernova: " SUPERNOVA! Victory!",
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"],
+      tiles: { gain: "Stardust", drain: "Drain", attack: "Meteor", warp: "Warp", super: "Supernova" }
+    },
+    zh: {
+      players: "人数:", level: "CPU难度:", lang: "语言:", restart: "重置",
+      roll: "掷骰子", human: "玩家", cpu: "CPU",
+      turn: "的回合",
+      rolled: " 掷出了 ",
+      gainMsg: " 获得能量！",
+      drainMsg: " 失去能量！",
+      attackMsg: " 掠夺了其他人的能量！",
+      warpMsg: " 空间跃迁！",
+      supernova: " 超新星爆发！胜利！",
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"],
+      tiles: { gain: "星尘", drain: "黑洞", attack: "流星", warp: "跃迁", super: "超新星" }
+    },
+    ko: {
+      players: "인원:", level: "CPU난이도:", lang: "언어:", restart: "리셋",
+      roll: "굴리기", human: "인간", cpu: "CPU",
+      turn: "의 차례",
+      rolled: "의 주사위: ",
+      gainMsg: " 에너지 획득!",
+      drainMsg: " 에너지 손실!",
+      attackMsg: " 라이벌의 에너지를 빼앗았습니다!",
+      warpMsg: " 공간 워프!",
+      supernova: " 초신성 폭발! 승리!",
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"],
+      tiles: { gain: "성전", drain: "블랙홀", attack: "유성", warp: "워프", super: "초신성" }
+    },
+    fr: {
+      players: "Joueurs:", level: "Niveau CPU:", lang: "Langue:", restart: "Réinit.",
+      roll: "Lancer", human: "Humain", cpu: "CPU",
+      turn: " Tour de ",
+      rolled: " a obtenu ",
+      gainMsg: " Énergie gagnée !",
+      drainMsg: " Énergie perdue !",
+      attackMsg: " Énergie volée aux rivaux !",
+      warpMsg: " Siphonné à travers l'espace !",
+      supernova: " SUPERNOVA ! Victoire !",
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"],
+      tiles: { gain: "Poussière", drain: "Drain", attack: "Météore", warp: "Warp", super: "Supernova" }
+    },
+    es: {
+      players: "Jugadores:", level: "Nivel CPU:", lang: "Idioma:", restart: "Reiniciar",
+      roll: "Lanzar", human: "Humano", cpu: "CPU",
+      turn: "Turno de ",
+      rolled: " sacó ",
+      gainMsg: " ¡Energía Ganada!",
+      drainMsg: " ¡Energía Perdida!",
+      attackMsg: " ¡Energía robada a los rivales!",
+      warpMsg: " ¡Salto espacial!",
+      supernova: " ¡SUPERNOVA! ¡Victoria!",
+      levels: ["Principiante", "Fácil", "Medio", "Difícil", "Experto", "Demencial"],
+      tiles: { gain: "Polvo", drain: "Drenaje", attack: "Meteoro", warp: "Salto", super: "Supernova" }
+    }
+  };
+
+  // 16マスの環状宇宙盤面 (type: gain, drain, attack, warp, super)
+  const TILE_TYPES = [
+    'super', 'gain', 'attack', 'gain', 'drain',
+    'gain', 'warp', 'gain', 'attack', 'drain',
+    'gain', 'warp', 'gain', 'attack', 'drain', 'gain'
+  ];
+
+  // 外周16マスの座標マッピング
+  const GRID_POS = [
+    [0,0],[1,0],[2,0],[3,0],[4,0],
+    [4,1],[4,2],[4,3],[4,4],
+    [3,4],[2,4],[1,4],[0,4],
+    [0,3],[0,2],[0,1]
+  ];
+
+  // 状態変数
+  let playerCount = 2;
+  let cpuLevel = 4;
+  let lang = 'ja';
+  let playerTypes = ['human', 'cpu', 'cpu', 'cpu'];
+  let positions = [0, 0, 0, 0];
+  let energy = [0, 0, 0, 0];
+  let currentTurn = 0;
+  let isAnimating = false;
+  let isGameOver = false;
+
+  const domSvg = document.getElementById('board-svg');
+  const domStatus = document.getElementById('status-text');
+  const domDiceVal = document.getElementById('dice-val');
+  const domBtnRoll = document.getElementById('btn-roll');
+  const domBtnRestart = document.getElementById('btn-restart');
+  const domSelectCount = document.getElementById('select-count');
+  const domSelectLevel = document.getElementById('select-level');
+  const domSelectLang = document.getElementById('select-lang');
+  const domPlayerConfig = document.getElementById('player-config');
+  const domDashboard = document.getElementById('energy-dashboard');
+
+  function initGame() {
+    positions.fill(0);
+    energy.fill(20); // 初期エネルギー20
+    currentTurn = 0;
+    isAnimating = false;
+    isGameOver = false;
+    domDiceVal.textContent = '?';
+
+    renderPlayerConfigUI();
+    drawStaticBoard();
+    renderAll();
+    checkTurnAutoPlay();
+  }
+
+  function renderPlayerConfigUI() {
+    domPlayerConfig.textContent = '';
+    const dict = I18N[lang];
+
+    for (let i = 0; i < playerCount; i++) {
+      const box = document.createElement('div');
+      box.className = 'p-box';
+
+      const dot = document.createElement('span');
+      dot.className = 'p-color-dot';
+      dot.style.backgroundColor = PLAYER_COLORS[i];
+
+      const lbl = document.createElement('span');
+      lbl.textContent = PLAYER_NAMES[i] + ":";
+
+      const sel = document.createElement('select');
+      const optH = document.createElement('option');
+      optH.value = 'human'; optH.textContent = dict.human;
+      const optC = document.createElement('option');
+      optC.value = 'cpu'; optC.textContent = dict.cpu;
+
+      sel.appendChild(optH);
+      sel.appendChild(optC);
+      sel.value = playerTypes[i];
+
+      const pIdx = i;
+      sel.addEventListener('change', (e) => {
+        playerTypes[pIdx] = e.target.value;
+        checkTurnAutoPlay();
+      });
+
+      box.appendChild(dot);
+      box.appendChild(lbl);
+      box.appendChild(sel);
+      domPlayerConfig.appendChild(box);
+    }
+  }
+
+  function drawStaticBoard() {
+    domSvg.textContent = '';
+    const tileSize = 90;
+    const margin = 25;
+    const dict = I18N[lang];
+
+    TILE_TYPES.forEach((type, idx) => {
+      const pos = GRID_POS[idx];
+      const x = margin + pos[0] * tileSize;
+      const y = margin + pos[1] * tileSize;
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', x + 2);
+      rect.setAttribute('y', y + 2);
+      rect.setAttribute('width', tileSize - 4);
+      rect.setAttribute('height', tileSize - 4);
+      rect.setAttribute('rx', 6);
+      rect.setAttribute('class', 'tile-rect tile-' + type);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x + tileSize/2);
+      text.setAttribute('y', y + tileSize/2);
+      text.setAttribute('class', 'tile-text');
+      text.textContent = dict.tiles[type] || '';
+
+      g.appendChild(rect);
+      g.appendChild(text);
+      domSvg.appendChild(g);
+    });
+
+    const pieceGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    pieceGroup.setAttribute('id', 'layer-pieces');
+    domSvg.appendChild(pieceGroup);
+  }
+
+  function updateUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-players').textContent = dict.players;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    domBtnRoll.textContent = dict.roll;
+    domBtnRestart.textContent = dict.restart;
+
+    const opts = domSelectLevel.options;
+    for (let i = 0; i < opts.length; i++) opts[i].textContent = dict.levels[i];
+
+    // ダッシュボード表示
+    domDashboard.textContent = '';
+    for (let i = 0; i < playerCount; i++) {
+      const card = document.createElement('div');
+      card.className = 'p-card' + (i === currentTurn ? ' active' : '');
+      
+      const name = document.createElement('div');
+      name.textContent = PLAYER_NAMES[i] + ` (${playerTypes[i].toUpperCase()})`;
+      name.style.color = PLAYER_COLORS[i];
+
+      const val = document.createElement('div');
+      val.className = 'energy-val';
+      val.textContent = energy[i] + ' E';
+
+      card.appendChild(name);
+      card.appendChild(val);
+      domDashboard.appendChild(card);
+    }
+
+    if (!isGameOver) {
+      domStatus.textContent = PLAYER_NAMES[currentTurn] + dict.turn;
+      domBtnRoll.disabled = isAnimating || playerTypes[currentTurn] === 'cpu';
+    }
+  }
+
+  function renderAll() {
+    updateUI();
+
+    const layerPieces = domSvg.getElementById('layer-pieces');
+    if (!layerPieces) return;
+    layerPieces.textContent = '';
+
+    const tileSize = 90;
+    const margin = 25;
+
+    for (let i = 0; i < playerCount; i++) {
+      const posIdx = positions[i];
+      const grid = GRID_POS[posIdx];
+      const baseX = margin + grid[0] * tileSize + tileSize/2;
+      const baseY = margin + grid[1] * tileSize + tileSize/2;
+
+      const offsetX = (i % 2 === 0 ? -12 : 12);
+      const offsetY = (i < 2 ? -12 : 12);
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', baseX + offsetX);
+      circle.setAttribute('cy', baseY + offsetY);
+      circle.setAttribute('r', 9);
+      circle.setAttribute('fill', PLAYER_COLORS[i]);
+      circle.setAttribute('stroke', '#ffffff');
+      circle.setAttribute('stroke-width', '2');
+
+      layerPieces.appendChild(circle);
+    }
+  }
+
+  function handleRoll() {
+    if (isAnimating || isGameOver) return;
+    executeTurn();
+  }
+
+  function executeTurn() {
+    isAnimating = true;
+    domBtnRoll.disabled = true;
+
+    let rolls = 0;
+    const interval = setInterval(() => {
+      const tempVal = Math.floor(Math.random() * 6) + 1;
+      domDiceVal.textContent = tempVal;
+      rolls++;
+
+      if (rolls > 8) {
+        clearInterval(interval);
+        const diceVal = getAdjustedDiceRoll();
+        domDiceVal.textContent = diceVal;
+        processMove(diceVal);
+      }
+    }, 60);
+  }
+
+  // CPU難易度補正付きのダイス判定
+  function getAdjustedDiceRoll() {
+    const raw = Math.floor(Math.random() * 6) + 1;
+    if (playerTypes[currentTurn] !== 'cpu' || cpuLevel <= 3) return raw;
+
+    // 高難易度CPU: 最大獲得ができる目を選択する確率を付与
+    if (Math.random() < (cpuLevel * 0.12)) {
+      let bestDice = raw;
+      let maxBenefit = -999;
+      for (let d = 1; d <= 6; d++) {
+        const targetPos = (positions[currentTurn] + d) % TILE_TYPES.length;
+        const type = TILE_TYPES[targetPos];
+        let benefit = 0;
+        if (type === 'gain') benefit = d * 5;
+        if (type === 'attack') benefit = 25;
+        if (type === 'drain') benefit = -15;
+        if (type === 'super' && energy[currentTurn] >= WIN_ENERGY) benefit = 1000;
+
+        if (benefit > maxBenefit) {
+          maxBenefit = benefit;
+          bestDice = d;
+        }
+      }
+      return bestDice;
+    }
+    return raw;
+  }
+
+  function processMove(steps) {
+    let currPos = positions[currentTurn];
+    let targetPos = (currPos + steps) % TILE_TYPES.length;
+
+    let stepCount = 0;
+    const moveInterval = setInterval(() => {
+      currPos = (currPos + 1) % TILE_TYPES.length;
+      positions[currentTurn] = currPos;
+      renderAll();
+      stepCount++;
+
+      if (stepCount >= steps) {
+        clearInterval(moveInterval);
+        setTimeout(() => handleTileEffect(targetPos, steps), 250);
+      }
+    }, 150);
+  }
+
+  function handleTileEffect(posIdx, diceVal) {
+    const dict = I18N[lang];
+    const type = TILE_TYPES[posIdx];
+    let msg = PLAYER_NAMES[currentTurn] + dict.rolled + diceVal + " -> ";
+
+    switch (type) {
+      case 'gain':
+        const gained = diceVal * 6;
+        energy[currentTurn] += gained;
+        msg += "+" + gained + dict.gainMsg;
+        break;
+      case 'drain':
+        const lost = diceVal * 4;
+        energy[currentTurn] = Math.max(0, energy[currentTurn] - lost);
+        msg += "-" + lost + dict.drainMsg;
+        break;
+      case 'attack':
+        let stolenTotal = 0;
+        for (let i = 0; i < playerCount; i++) {
+          if (i !== currentTurn && energy[i] > 0) {
+            const st = Math.min(energy[i], diceVal * 3);
+            energy[i] -= st;
+            stolenTotal += st;
+          }
+        }
+        energy[currentTurn] += stolenTotal;
+        msg += dict.attackMsg;
+        break;
+      case 'warp':
+        const warpTarget = (posIdx + 4) % TILE_TYPES.length;
+        positions[currentTurn] = warpTarget;
+        msg += dict.warpMsg;
+        break;
+      case 'super':
+        if (energy[currentTurn] >= WIN_ENERGY) {
+          domStatus.textContent = PLAYER_NAMES[currentTurn] + dict.supernova;
+          isGameOver = true;
+          isAnimating = false;
+          renderAll();
+          return;
+        } else {
+          energy[currentTurn] += 10;
+          msg += "+10 Energy";
+        }
+        break;
+    }
+
+    domStatus.textContent = msg;
+    renderAll();
+
+    // 規定達成時の勝利判定
+    if (energy[currentTurn] >= WIN_ENERGY) {
+      domStatus.textContent = PLAYER_NAMES[currentTurn] + dict.supernova;
+      isGameOver = true;
+      isAnimating = false;
+      return;
+    }
+
+    setTimeout(nextTurn, 800);
+  }
+
+  function nextTurn() {
+    currentTurn = (currentTurn + 1) % playerCount;
+    isAnimating = false;
+    renderAll();
+    checkTurnAutoPlay();
+  }
+
+  function checkTurnAutoPlay() {
+    if (isGameOver || isAnimating) return;
+    if (playerTypes[currentTurn] === 'cpu') {
+      domBtnRoll.disabled = true;
+      setTimeout(executeTurn, 500);
+    } else {
+      domBtnRoll.disabled = false;
+    }
+  }
+
+  // イベントリスナー
+  domBtnRoll.addEventListener('click', handleRoll);
+  domBtnRestart.addEventListener('click', initGame);
+  domSelectLang.addEventListener('change', (e) => { lang = e.target.value; renderPlayerConfigUI(); drawStaticBoard(); renderAll(); });
+  domSelectCount.addEventListener('change', (e) => {
+    playerCount = parseInt(e.target.value, 10);
+    initGame();
+  });
+  domSelectLevel.addEventListener('change', (e) => { cpuLevel = parseInt(e.target.value, 10); });
+
+  initGame();
+})();
+</script>
+</body>
+</html>
