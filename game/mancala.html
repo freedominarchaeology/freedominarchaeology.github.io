@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Mancala / オフラインマンカラ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #2b1f17;
+      color: #f3e5ab;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #3d2b20;
+      border: 1px solid #6e4e37;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 13px; }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #8c684d;
+      border-radius: 4px;
+      background: #2b1f17;
+      color: #f3e5ab;
+      cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid #d4a373; }
+    button:hover { background: #4a3528; }
+    
+    .status-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 12px;
+      padding: 10px 16px;
+      background: #3d2b20;
+      border-radius: 6px;
+      border: 1px solid #6e4e37;
+    }
+    .status-message {
+      font-size: 15px;
+      font-weight: bold;
+      color: #d4a373;
+    }
+
+    /* マンカラ盤面エリア */
+    .mancala-board {
+      width: 100%;
+      max-width: 800px;
+      background: #5c3e2b;
+      border: 10px solid #3a2518;
+      border-radius: 20px;
+      padding: 15px;
+      display: flex;
+      gap: 12px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 8px 25px rgba(0,0,0,0.6);
+    }
+
+    .store {
+      width: 90px;
+      background: #2b1f17;
+      border: 3px solid #3a2518;
+      border-radius: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 4px;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.7);
+    }
+    .store-title { font-size: 11px; text-align: center; color: #a88a6d; }
+    .store-count { font-size: 24px; font-weight: bold; color: #fff; }
+
+    .pits-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      justify-content: space-between;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .pit {
+      flex: 1;
+      height: 90px;
+      background: #2b1f17;
+      border: 3px solid #3a2518;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.7);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pit.clickable:hover {
+      background: #423024;
+      border-color: #d4a373;
+    }
+    .pit.disabled {
+      cursor: not-allowed;
+    }
+    .pit-count {
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 2;
+    }
+
+    /* おはじき（玉）の描画 */
+    .seeds-container {
+      position: absolute;
+      width: 80%;
+      height: 80%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      overflow: hidden;
+      z-index: 1;
+      opacity: 0.85;
+    }
+    .seed {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .store .seed {
+      width: 8px;
+      height: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-mode" for="select-mode">対戦:</label>
+    <select id="select-mode">
+      <option value="2p">2 Players</option>
+      <option value="cpu" selected>VS CPU</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="status-panel">
+  <div class="status-message" id="status-text">P1の番です</div>
+</div>
+
+<div class="mancala-board">
+  <!-- P2 (CPU) ストア -->
+  <div class="store" id="store-p2">
+    <div class="store-title" id="lbl-store-p2">P2 Store</div>
+    <div class="seeds-container" id="seeds-store-p2"></div>
+    <div class="store-count" id="cnt-store-p2">0</div>
+  </div>
+
+  <div class="pits-center">
+    <!-- P2 (CPU) のポケット (12 ~ 7) -->
+    <div class="row" id="row-p2">
+      <div class="pit" data-idx="12"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="11"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="10"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="9"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="8"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="7"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+    </div>
+
+    <!-- P1 (人間) のポケット (0 ~ 5) -->
+    <div class="row" id="row-p1">
+      <div class="pit" data-idx="0"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="1"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="2"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="3"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="4"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+      <div class="pit" data-idx="5"><div class="seeds-container"></div><span class="pit-count">4</span></div>
+    </div>
+  </div>
+
+  <!-- P1 (人間) ストア -->
+  <div class="store" id="store-p1">
+    <div class="store-title" id="lbl-store-p1">P1 Store</div>
+    <div class="seeds-container" id="seeds-store-p1"></div>
+    <div class="store-count" id="cnt-store-p1">0</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 多言語定義
+  const I18N = {
+    ja: {
+      mode: "対戦:", level: "難易度:", lang: "言語:", restart: "リセット",
+      turnP1: "P1（あなた）の番です", turnP2: "P2の番です", turnCPU: "CPU思考中...",
+      extraP1: "もう一度P1の番です！", extraP2: "もう一度P2（CPU）の番です！",
+      winP1: "P1の勝利！", winP2: "P2の勝利！", draw: "引き分けです！",
+      storeP1: "P1 ストア", storeP2: "P2 ストア",
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"]
+    },
+    en: {
+      mode: "Mode:", level: "Level:", lang: "Lang:", restart: "Reset",
+      turnP1: "P1's Turn", turnP2: "P2's Turn", turnCPU: "CPU Thinking...",
+      extraP1: "Extra Turn for P1!", extraP2: "Extra Turn for P2!",
+      winP1: "P1 Wins!", winP2: "P2 Wins!", draw: "Draw Game!",
+      storeP1: "P1 Store", storeP2: "P2 Store",
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"]
+    },
+    zh: {
+      mode: "模式:", level: "难度:", lang: "语言:", restart: "重置",
+      turnP1: "P1 的回合", turnP2: "P2 的回合", turnCPU: "CPU思考中...",
+      extraP1: "P1 获得奖励回合！", extraP2: "P2 获得奖励回合！",
+      winP1: "P1 获胜！", winP2: "P2 获胜！", draw: "平局！",
+      storeP1: "P1 计分槽", storeP2: "P2 计分槽",
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"]
+    },
+    ko: {
+      mode: "모드:", level: "난이도:", lang: "언어:", restart: "리셋",
+      turnP1: "P1의 차례", turnP2: "P2의 차례", turnCPU: "CPU 생각 중...",
+      extraP1: "P1 한 번 더!", extraP2: "P2 한 번 더!",
+      winP1: "P1 승리!", winP2: "P2 승리!", draw: "무승부!",
+      storeP1: "P1 스토어", storeP2: "P2 스토어",
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"]
+    },
+    fr: {
+      mode: "Mode:", level: "Niveau:", lang: "Langue:", restart: "Réinit.",
+      turnP1: "Tour de P1", turnP2: "Tour de P2", turnCPU: "CPU réfléchit...",
+      extraP1: "Rejouez P1 !", extraP2: "Rejouez P2 !",
+      winP1: "P1 Gagne !", winP2: "P2 Gagne !", draw: "Égalité !",
+      storeP1: "P1 Magasin", storeP2: "P2 Magasin",
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"]
+    },
+    es: {
+      mode: "Modo:", level: "Nivel:", lang: "Idioma:", restart: "Reiniciar",
+      turnP1: "Turno de P1", turnP2: "Turno de P2", turnCPU: "CPU Pensando...",
+      extraP1: "¡Turno extra para P1!", extraP2: "¡Turno extra para P2!",
+      winP1: "¡Gana P1!", winP2: "¡Gana P2!", draw: "¡Empate!",
+      storeP1: "P1 Almacén", storeP2: "P2 Almacén",
+      levels: ["Principiante", "Fácil", "Medio", "Difícil", "Experto", "Demencial"]
+    }
+  };
+
+  /* 
+    内部ボード構成 (長さ14の固定配列)
+    0~5: P1のポケット
+    6: P1のストア
+    7~12: P2のポケット
+    13: P2のストア
+  */
+  let board = new Array(14).fill(4);
+  board[6] = 0;
+  board[13] = 0;
+
+  let turn = 1; // 1: P1, 2: P2
+  let mode = 'cpu'; // '2p' or 'cpu'
+  let cpuLevel = 4;
+  let lang = 'ja';
+  let isGameOver = false;
+
+  // DOM キャッシュ
+  const domStatus = document.getElementById('status-text');
+  const domBtnRestart = document.getElementById('btn-restart');
+  const domSelectLang = document.getElementById('select-lang');
+  const domSelectMode = document.getElementById('select-mode');
+  const domSelectLevel = document.getElementById('select-level');
+  const domPits = document.querySelectorAll('.pit');
+  const domStoreP1 = document.getElementById('cnt-store-p1');
+  const domStoreP2 = document.getElementById('cnt-store-p2');
+
+  function initGame() {
+    for (let i = 0; i < 14; i++) {
+      board[i] = (i === 6 || i === 13) ? 0 : 4;
+    }
+    turn = 1;
+    isGameOver = false;
+    renderAll();
+  }
+
+  function updateUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-mode').textContent = dict.mode;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    document.getElementById('lbl-store-p1').textContent = dict.storeP1;
+    document.getElementById('lbl-store-p2').textContent = dict.storeP2;
+    domBtnRestart.textContent = dict.restart;
+
+    const opts = domSelectLevel.options;
+    for (let i = 0; i < opts.length; i++) opts[i].textContent = dict.levels[i];
+
+    if (!isGameOver) {
+      if (turn === 1) domStatus.textContent = dict.turnP1;
+      else domStatus.textContent = mode === 'cpu' ? dict.turnCPU : dict.turnP2;
+    }
+  }
+
+  // 描画更新（全オブジェクト破棄を防ぎ安全にカウント更新）
+  function renderAll() {
+    updateUI();
+
+    // ポケット描画
+    domPits.forEach(pit => {
+      const idx = parseInt(pit.getAttribute('data-idx'), 10);
+      const count = board[idx];
+      const countEl = pit.querySelector('.pit-count');
+      const seedContainer = pit.querySelector('.seeds-container');
+
+      countEl.textContent = count;
+      updateSeeds(seedContainer, count);
+
+      // 操作可能判定
+      const isP1Turn = (turn === 1 && idx >= 0 && idx <= 5);
+      const isP2Turn = (turn === 2 && mode === '2p' && idx >= 7 && idx <= 12);
+
+      if (!isGameOver && count > 0 && (isP1Turn || isP2Turn)) {
+        pit.classList.add('clickable');
+        pit.classList.remove('disabled');
+      } else {
+        pit.classList.remove('clickable');
+        pit.classList.add('disabled');
+      }
+    });
+
+    // ストア描画
+    domStoreP1.textContent = board[6];
+    domStoreP2.textContent = board[13];
+    updateSeeds(document.getElementById('seeds-store-p1'), board[6]);
+    updateSeeds(document.getElementById('seeds-store-p2'), board[13]);
+  }
+
+  // 玉（おはじき）の軽量DOM更新
+  function updateSeeds(container, count) {
+    const currentCount = container.children.length;
+    if (currentCount < count) {
+      for (let i = currentCount; i < Math.min(count, 16); i++) {
+        const seed = document.createElement('div');
+        seed.className = 'seed';
+        container.appendChild(seed);
+      }
+    } else if (currentCount > count) {
+      while (container.children.length > Math.min(count, 16)) {
+        container.removeChild(container.lastChild);
+      }
+    }
+  }
+
+  // マンカラ移動（播種）メインロジック
+  function makeMove(pitIndex) {
+    if (isGameOver) return;
+
+    let seeds = board[pitIndex];
+    if (seeds === 0) return;
+
+    board[pitIndex] = 0;
+    let curr = pitIndex;
+    const playerStore = (turn === 1) ? 6 : 13;
+    const opponentStore = (turn === 1) ? 13 : 6;
+
+    while (seeds > 0) {
+      curr = (curr + 1) % 14;
+      if (curr === opponentStore) continue; // 相手ストアはスキップ
+      board[curr]++;
+      seeds--;
+    }
+
+    let extraTurn = false;
+
+    // ルール1: 最後の玉が自分のストアで終わったら連続手
+    if (curr === playerStore) {
+      extraTurn = true;
+    }
+    // ルール2: 最後の玉が自分の空ポケットに入り、対面に相手の玉があれば獲得（キャプチャ）
+    else {
+      const isOwnSide = (turn === 1 && curr >= 0 && curr <= 5) || (turn === 2 && curr >= 7 && curr <= 12);
+      if (isOwnSide && board[curr] === 1) {
+        const opposite = 12 - curr;
+        if (board[opposite] > 0) {
+          board[playerStore] += board[opposite] + 1;
+          board[opposite] = 0;
+          board[curr] = 0;
+        }
+      }
+    }
+
+    // 終了チェック
+    if (checkGameOver()) {
+      renderAll();
+      return;
+    }
+
+    const dict = I18N[lang];
+    if (extraTurn) {
+      domStatus.textContent = (turn === 1) ? dict.extraP1 : dict.extraP2;
+    } else {
+      turn = (turn === 1) ? 2 : 1;
+    }
+
+    renderAll();
+
+    // CPUのターン呼び出し
+    if (!isGameOver && turn === 2 && mode === 'cpu') {
+      setTimeout(cpuPlay, 600);
+    }
+  }
+
+  function checkGameOver() {
+    const p1Empty = board.slice(0, 6).every(x => x === 0);
+    const p2Empty = board.slice(7, 13).every(x => x === 0);
+
+    if (p1Empty || p2Empty) {
+      isGameOver = true;
+      // 残った駒をそれぞれのストアに回収
+      for (let i = 0; i < 6; i++) {
+        board[6] += board[i];
+        board[i] = 0;
+      }
+      for (let i = 7; i < 13; i++) {
+        board[13] += board[i];
+        board[i] = 0;
+      }
+
+      const dict = I18N[lang];
+      if (board[6] > board[13]) domStatus.textContent = dict.winP1;
+      else if (board[13] > board[6]) domStatus.textContent = dict.winP2;
+      else domStatus.textContent = dict.draw;
+
+      return true;
+    }
+    return false;
+  }
+
+  // --- CPU AI アルゴリズム ---
+  function cpuPlay() {
+    if (isGameOver || turn !== 2) return;
+
+    const validMoves = [];
+    for (let i = 7; i <= 12; i++) {
+      if (board[i] > 0) validMoves.push(i);
+    }
+
+    if (validMoves.length === 0) return;
+
+    let chosenMove = -1;
+
+    if (cpuLevel === 1) {
+      // 初級: 完全ランダム
+      chosenMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+    } else if (cpuLevel === 2) {
+      // 低級: 連続ターン最優先
+      chosenMove = validMoves.find(m => (m + board[m]) % 14 === 13) || validMoves[0];
+    } else {
+      // 中級〜異常: 評価関数＋探索
+      let bestScore = -Infinity;
+      const depth = cpuLevel === 3 ? 1 : cpuLevel === 4 ? 2 : cpuLevel === 5 ? 3 : 4;
+
+      validMoves.forEach(m => {
+        const score = minimax(simulateMove(board, m, 2), depth - 1, false, -Infinity, Infinity);
+        if (score > bestScore) {
+          bestScore = score;
+          chosenMove = m;
+        }
+      });
+    }
+
+    if (chosenMove === -1) chosenMove = validMoves[0];
+    makeMove(chosenMove);
+  }
+
+  // 仮想移動シミュレーション
+  function simulateMove(currentBoard, moveIndex, player) {
+    const b = [...currentBoard];
+    let seeds = b[moveIndex];
+    b[moveIndex] = 0;
+    let curr = moveIndex;
+    const pStore = (player === 1) ? 6 : 13;
+    const oStore = (player === 1) ? 13 : 6;
+
+    while (seeds > 0) {
+      curr = (curr + 1) % 14;
+      if (curr === oStore) continue;
+      b[curr]++;
+      seeds--;
+    }
+
+    const isOwnSide = (player === 1 && curr >= 0 && curr <= 5) || (player === 2 && curr >= 7 && curr <= 12);
+    if (curr !== pStore && isOwnSide && b[curr] === 1) {
+      const opposite = 12 - curr;
+      if (b[opposite] > 0) {
+        b[pStore] += b[opposite] + 1;
+        b[opposite] = 0;
+        b[curr] = 0;
+      }
+    }
+    return { board: b, lastPit: curr, player: player };
+  }
+
+  // ミニマックス探索 (αβカット)
+  function minimax(simResult, depth, isMaximizing, alpha, beta) {
+    const b = simResult.board;
+    if (depth === 0 || b.slice(0, 6).every(x => x === 0) || b.slice(7, 13).every(x => x === 0)) {
+      return b[13] - b[6]; // P2(CPU)のストア点数 - P1(人間)のストア点数
+    }
+
+    if (isMaximizing) {
+      let maxEval = -Infinity;
+      for (let i = 7; i <= 12; i++) {
+        if (b[i] > 0) {
+          const nextSim = simulateMove(b, i, 2);
+          const evalVal = minimax(nextSim, depth - 1, nextSim.lastPit === 13, alpha, beta);
+          maxEval = Math.max(maxEval, evalVal);
+          alpha = Math.max(alpha, evalVal);
+          if (beta <= alpha) break;
+        }
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (let i = 0; i <= 5; i++) {
+        if (b[i] > 0) {
+          const nextSim = simulateMove(b, i, 1);
+          const evalVal = minimax(nextSim, depth - 1, nextSim.lastPit !== 6, alpha, beta);
+          minEval = Math.min(minEval, evalVal);
+          beta = Math.min(beta, evalVal);
+          if (beta <= alpha) break;
+        }
+      }
+      return minEval;
+    }
+  }
+
+  // イベント登録
+  domPits.forEach(pit => {
+    pit.addEventListener('click', () => {
+      const idx = parseInt(pit.getAttribute('data-idx'), 10);
+      makeMove(idx);
+    });
+  });
+
+  domBtnRestart.addEventListener('click', initGame);
+  domSelectLang.addEventListener('change', (e) => { lang = e.target.value; renderAll(); });
+  domSelectMode.addEventListener('change', (e) => {
+    mode = e.target.value;
+    domSelectLevel.style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    document.getElementById('lbl-level').style.display = mode === 'cpu' ? 'inline-block' : 'none';
+    initGame();
+  });
+  domSelectLevel.addEventListener('change', (e) => { cpuLevel = parseInt(e.target.value, 10); });
+
+  initGame();
+})();
+</script>
+</body>
+</html>
