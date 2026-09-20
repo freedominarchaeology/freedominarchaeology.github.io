@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>十六武蔵 (Jukumu-sashi)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "MS Mincho", "MS 明朝", "Yu Mincho", serif;
+    }
+    body {
+      background-color: #2b2622;
+      color: #f0e6d2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      background: #3d352e;
+      border: 1px solid #5c5045;
+      border-radius: 6px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 13px; }
+    select, button {
+      font-family: inherit;
+      padding: 4px 8px;
+      font-size: 13px;
+      border: 1px solid #736456;
+      border-radius: 4px;
+      background: #2b2622;
+      color: #f0e6d2;
+      cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid #c2a680; }
+    button:hover { background: #4a4037; }
+
+    .status-panel {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 10px;
+      padding: 8px 16px;
+      background: #3d352e;
+      border-radius: 6px;
+      border: 1px solid #5c5045;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .status-message {
+      font-weight: bold;
+      color: #c2a680;
+    }
+    .info-count {
+      color: #e0d0b0;
+      font-size: 13px;
+    }
+
+    .board-container {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1 / 1.15;
+      position: relative;
+      background: #dcb35c;
+      border: 6px solid #8f6d28;
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+    }
+    svg.board-svg {
+      width: 100%;
+      height: 100%;
+    }
+    .board-line {
+      stroke: #4a3510;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+    }
+    .node-target {
+      fill: transparent;
+      cursor: pointer;
+    }
+    .node-target:hover {
+      fill: rgba(255, 255, 255, 0.3);
+    }
+    .node-selected {
+      stroke: #00ffcc;
+      stroke-width: 3.5;
+      fill: none;
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      100% { opacity: 1.0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="control-group">
+    <label id="lbl-mode" for="select-mode">対戦:</label>
+    <select id="select-mode">
+      <option value="hh" selected>人間 vs 人間</option>
+      <option value="hc">人間(親) vs CPU(子)</option>
+      <option value="ch">CPU(親) vs 人間(子)</option>
+    </select>
+
+    <label id="lbl-level" for="select-level">CPU難易度:</label>
+    <select id="select-level">
+      <option value="1">初級</option>
+      <option value="2">低級</option>
+      <option value="3">中級</option>
+      <option value="4" selected>上級</option>
+      <option value="5">特級</option>
+      <option value="6">異常</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label id="lbl-lang" for="select-lang">言語:</label>
+    <select id="select-lang">
+      <option value="ja" selected>日本語</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ko">한국어</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
+    <button id="btn-restart">リセット</button>
+  </div>
+</header>
+
+<div class="status-panel">
+  <div class="status-message" id="status-text">ゲーム開始</div>
+  <div class="info-count" id="info-count">子: 16体</div>
+</div>
+
+<div class="board-container">
+  <svg class="board-svg" viewBox="0 0 500 580" id="board-svg">
+    <!-- 線・ノード・駒の動的描画領域 -->
+  </svg>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 多言語定義
+  const I18N = {
+    ja: {
+      mode: "対戦:", level: "CPU難易度:", lang: "言語:", restart: "リセット",
+      modes: ["人間 vs 人間", "人間(親) vs CPU(子)", "CPU(親) vs 人間(子)"],
+      levels: ["初級", "低級", "中級", "上級", "特級", "異常"],
+      parentTurn: "親（武蔵）の番です",
+      childTurn: "子（法師）の番です",
+      captured: "親が子を2体挟み撃ちで取りました！",
+      parentWin: "親（武蔵）の勝利！子の数を減らしました。",
+      childWin: "子（法師）の勝利！親を追い詰めました。",
+      count: "残りの子: "
+    },
+    en: {
+      mode: "Mode:", level: "CPU Level:", lang: "Lang:", restart: "Reset",
+      modes: ["Human vs Human", "Human(P) vs CPU(C)", "CPU(P) vs Human(C)"],
+      levels: ["Beginner", "Easy", "Medium", "Hard", "Expert", "Insane"],
+      parentTurn: "Parent (Musashi) Turn",
+      childTurn: "Child (Minions) Turn",
+      captured: "Parent captured 2 Children!",
+      parentWin: "Parent Wins! Minions reduced.",
+      childWin: "Children Win! Parent trapped.",
+      count: "Children Left: "
+    },
+    zh: {
+      mode: "模式:", level: "CPU难度:", lang: "语言:", restart: "重置",
+      modes: ["双人对战", "玩家(亲) vs CPU(子)", "CPU(亲) vs 玩家(子)"],
+      levels: ["初级", "低级", "中级", "高级", "特级", "噩梦"],
+      parentTurn: "轮到 亲（武藏）",
+      childTurn: "轮到 子（法师）",
+      captured: "亲夹击吃掉了2个子！",
+      parentWin: "亲（武藏）获胜！",
+      childWin: "子（法师）获胜！已包围亲。",
+      count: "剩余 子: "
+    },
+    ko: {
+      mode: "대전:", level: "CPU난이도:", lang: "언어:", restart: "리셋",
+      modes: ["인간 vs 인간", "인간(어버이) vs CPU(자식)", "CPU(어버이) vs 인간(자식)"],
+      levels: ["초급", "하급", "중급", "상급", "특급", "이상의"],
+      parentTurn: "어버이 차례",
+      childTurn: "자식 차례",
+      captured: "어버이가 자식 2개를 잡았습니다!",
+      parentWin: "어버이 승리!",
+      childWin: "자식 승리! 어버이를 포위했습니다.",
+      count: "남은 자식: "
+    },
+    fr: {
+      mode: "Mode:", level: "Niveau CPU:", lang: "Langue:", restart: "Réinit.",
+      modes: ["Humain vs Humain", "Humain(P) vs CPU(C)", "CPU(P) vs Humain(C)"],
+      levels: ["Débutant", "Facile", "Moyen", "Difficile", "Expert", "Insensé"],
+      parentTurn: "Tour du Parent",
+      childTurn: "Tour des Enfants",
+      captured: "Le Parent a capturé 2 Enfants !",
+      parentWin: "Le Parent gagne !",
+      childWin: "Les Enfants gagnent ! Parent piégé.",
+      count: "Enfants restants: "
+    },
+    es: {
+      mode: "Modo:", level: "Nivel CPU:", lang: "Idioma:", restart: "Reiniciar",
+      modes: ["Humano vs Humano", "Humano(P) vs CPU(C)", "CPU(P) vs Humano(C)"],
+      levels: ["Principiante", "Fácil", "Medio", "Difícil", "Experto", "Demencial"],
+      parentTurn: "Turno del Padre",
+      childTurn: "Turno de los Hijos",
+      captured: "¡El Padre capturó 2 Hijos!",
+      parentWin: "¡Gana el Padre!",
+      childWin: "¡Ganan los Hijos! Padre atrapado.",
+      count: "Hijos restantes: "
+    }
+  };
+
+  // 27箇所の交差点座標 (x, y)
+  // 0~24: 5x5グリッド (y: 100~500), 25~26: 上部山型エリア
+  const NODES = [
+    // 5x5 グリッド (0-24)
+    {x:50,y:180},  {x:150,y:180}, {x:250,y:180}, {x:350,y:180}, {x:450,y:180},
+    {x:50,y:260},  {x:150,y:260}, {x:250,y:260}, {x:350,y:260}, {x:450,y:260},
+    {x:50,y:340},  {x:150,y:340}, {x:250,y:340}, {x:350,y:340}, {x:450,y:340},
+    {x:50,y:420},  {x:150,y:420}, {x:250,y:420}, {x:350,y:420}, {x:450,y:420},
+    {x:50,y:500},  {x:150,y:500}, {x:250,y:500}, {x:350,y:500}, {x:450,y:500},
+    // 山型頂点 (25:最上部, 26:中間)
+    {x:250,y:30},  {x:250,y:105}
+  ];
+
+  // 隣接接続マップ（グラフ構造）
+  const ADJACENT = [
+    /* 0*/ [1, 5, 6],
+    /* 1*/ [0, 2, 6],
+    /* 2*/ [1, 3, 7, 26],
+    /* 3*/ [2, 4, 8],
+    /* 4*/ [3, 9, 8],
+    /* 5*/ [0, 6, 10],
+    /* 6*/ [0, 1, 5, 7, 11, 12, 2],
+    /* 7*/ [2, 6, 8, 12],
+    /* 8*/ [3, 4, 7, 9, 12, 13, 14],
+    /* 9*/ [4, 8, 14],
+    /*10*/ [5, 11, 15],
+    /*11*/ [6, 10, 12, 16],
+    /*12*/ [6, 7, 8, 11, 13, 16, 17, 18],
+    /*13*/ [8, 12, 14, 18],
+    /*14*/ [8, 9, 13, 19],
+    /*15*/ [10, 16, 20],
+    /*16*/ [11, 12, 15, 17, 20, 21, 22],
+    /*17*/ [12, 16, 18, 22],
+    /*18*/ [12, 13, 17, 19, 22, 23, 24],
+    /*19*/ [14, 18, 24],
+    /*20*/ [15, 16, 21],
+    /*21*/ [16, 20, 22],
+    /*22*/ [16, 17, 18, 21, 23],
+    /*23*/ [18, 22, 24],
+    /*24*/ [18, 19, 23],
+    /*25*/ [26, 0, 4],
+    /*26*/ [25, 2, 1, 3]
+  ];
+
+  // 直線挟みチェックテーブル: [親の位置, 子1の位置, 子2の位置]
+  // 親がposに移動したとき、c1とc2を挟んでいるか
+  const TRAP_PATTERNS = [
+    // 水平
+    [1,0,2],[2,1,3],[3,2,4],
+    [6,5,7],[7,6,8],[8,7,9],
+    [11,10,12],[12,11,13],[13,12,14],
+    [16,15,17],[17,16,18],[18,17,19],
+    [21,20,22],[22,21,23],[23,22,24],
+    // 垂直
+    [5,0,10],[10,5,15],[15,10,20],
+    [6,1,11],[11,6,16],[16,11,21],
+    [7,2,12],[12,7,17],[17,12,22],
+    [8,3,13],[13,8,18],[18,13,23],
+    [9,4,14],[14,9,19],[19,14,24]
+  ];
+
+  // 状態定数
+  const EMPTY = 0;
+  const PARENT = 1;
+  const CHILD = 2;
+
+  // ゲーム状態
+  let board = new Array(27).fill(EMPTY);
+  let turn = PARENT; // PARENT (1) or CHILD (2)
+  let selectedNode = -1;
+  let gameMode = 'hh'; // hh, hc, ch
+  let cpuLevel = 4;
+  let lang = 'ja';
+  let isGameOver = false;
+
+  // DOM要素
+  const domSvg = document.getElementById('board-svg');
+  const domStatus = document.getElementById('status-text');
+  const domCount = document.getElementById('info-count');
+  const domSelectMode = document.getElementById('select-mode');
+  const domSelectLevel = document.getElementById('select-level');
+  const domSelectLang = document.getElementById('select-lang');
+  const domBtnRestart = document.getElementById('btn-restart');
+
+  function initGame() {
+    board.fill(EMPTY);
+    // 初期配置: 親(12:中央), 子16体(外周マス)
+    board[12] = PARENT;
+    const childInitial = [0,1,2,3,4, 5,9, 10,14, 15,19, 20,21,22,23,24];
+    childInitial.forEach(idx => board[idx] = CHILD);
+
+    turn = PARENT;
+    selectedNode = -1;
+    isGameOver = false;
+
+    renderBoard();
+    updateUI();
+    checkCpuTurn();
+  }
+
+  function updateUI() {
+    const dict = I18N[lang];
+    document.getElementById('lbl-mode').textContent = dict.mode;
+    document.getElementById('lbl-level').textContent = dict.level;
+    document.getElementById('lbl-lang').textContent = dict.lang;
+    domBtnRestart.textContent = dict.restart;
+
+    const mOpts = domSelectMode.options;
+    for (let i = 0; i < mOpts.length; i++) mOpts[i].textContent = dict.modes[i];
+    const lOpts = domSelectLevel.options;
+    for (let i = 0; i < lOpts.length; i++) lOpts[i].textContent = dict.levels[i];
+
+    const childCount = board.filter(v => v === CHILD).length;
+    domCount.textContent = dict.count + childCount;
+
+    if (!isGameOver) {
+      domStatus.textContent = (turn === PARENT) ? dict.parentTurn : dict.childTurn;
+    }
+  }
+
+  function renderBoard() {
+    domSvg.textContent = '';
+
+    // 1. 線を描画
+    const drawnLines = new Set();
+    ADJACENT.forEach((neighbors, u) => {
+      neighbors.forEach(v => {
+        const key = u < v ? `${u}-${v}` : `${v}-${u}`;
+        if (!drawnLines.has(key)) {
+          drawnLines.add(key);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', NODES[u].x);
+          line.setAttribute('y1', NODES[u].y);
+          line.setAttribute('x2', NODES[v].x);
+          line.setAttribute('y2', NODES[v].y);
+          line.setAttribute('class', 'board-line');
+          domSvg.appendChild(line);
+        }
+      });
+    });
+
+    // 2. タップ判定領域 & コマの描画
+    NODES.forEach((node, idx) => {
+      // 選択中のハイライト
+      if (selectedNode === idx) {
+        const hl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hl.setAttribute('cx', node.x);
+        hl.setAttribute('cy', node.y);
+        hl.setAttribute('r', 22);
+        hl.setAttribute('class', 'node-selected');
+        domSvg.appendChild(hl);
+      }
+
+      // 駒
+      if (board[idx] !== EMPTY) {
+        const piece = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        piece.setAttribute('cx', node.x);
+        piece.setAttribute('cy', node.y);
+        piece.setAttribute('r', board[idx] === PARENT ? 18 : 14);
+        piece.setAttribute('fill', board[idx] === PARENT ? '#d90429' : '#2b2622');
+        piece.setAttribute('stroke', '#ffffff');
+        piece.setAttribute('stroke-width', '2.5');
+        domSvg.appendChild(piece);
+      }
+
+      // タップターゲット
+      const target = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      target.setAttribute('cx', node.x);
+      target.setAttribute('cy', node.y);
+      target.setAttribute('r', 25);
+      target.setAttribute('class', 'node-target');
+      target.addEventListener('click', () => handleNodeClick(idx));
+      domSvg.appendChild(target);
+    });
+  }
+
+  function handleNodeClick(idx) {
+    if (isGameOver || isCpuTurn()) return;
+
+    if (selectedNode === -1) {
+      if (board[idx] === turn) {
+        selectedNode = idx;
+        renderBoard();
+      }
+    } else {
+      if (idx === selectedNode) {
+        selectedNode = -1;
+        renderBoard();
+      } else if (board[idx] === turn) {
+        selectedNode = idx;
+        renderBoard();
+      } else if (board[idx] === EMPTY && ADJACENT[selectedNode].includes(idx)) {
+        executeMove(selectedNode, idx);
+      }
+    }
+  }
+
+  function executeMove(from, to) {
+    board[to] = board[from];
+    board[from] = EMPTY;
+    selectedNode = -1;
+
+    let dict = I18N[lang];
+
+    // 親の挟み撃ち判定
+    if (turn === PARENT) {
+      const removed = checkAndRemoveTrappedChildren(to);
+      if (removed) {
+        domStatus.textContent = dict.captured;
+      }
+    }
+
+    // 勝利条件判定
+    const childCount = board.filter(v => v === CHILD).length;
+    if (childCount <= 6) { // 子が6体以下で親の勝ち
+      domStatus.textContent = dict.parentWin;
+      isGameOver = true;
+      renderBoard();
+      updateUI();
+      return;
+    }
+
+    // 親の移動可能性チェック（詰み判定）
+    const parentPos = board.indexOf(PARENT);
+    const parentCanMove = ADJACENT[parentPos].some(n => board[n] === EMPTY);
+    if (!parentCanMove) {
+      domStatus.textContent = dict.childWin;
+      isGameOver = true;
+      renderBoard();
+      updateUI();
+      return;
+    }
+
+    // ターン交代
+    turn = (turn === PARENT) ? CHILD : PARENT;
+    renderBoard();
+    updateUI();
+
+    checkCpuTurn();
+  }
+
+  // 挟み撃ちで子を取り除く
+  function checkAndRemoveTrappedChildren(parentPos) {
+    let captured = false;
+    TRAP_PATTERNS.forEach(pat => {
+      if (pat[0] === parentPos) {
+        const c1 = pat[1];
+        const c2 = pat[2];
+        if (board[c1] === CHILD && board[c2] === CHILD) {
+          board[c1] = EMPTY;
+          board[c2] = EMPTY;
+          captured = true;
+        }
+      }
+    });
+    return captured;
+  }
+
+  function isCpuTurn() {
+    if (gameMode === 'hc' && turn === CHILD) return true;
+    if (gameMode === 'ch' && turn === PARENT) return true;
+    return false;
+  }
+
+  function checkCpuTurn() {
+    if (isGameOver || !isCpuTurn()) return;
+    setTimeout(makeCpuMove, 400);
+  }
+
+  // CPU思考エンジン（軽量評価関数）
+  function makeCpuMove() {
+    const validMoves = [];
+
+    board.forEach((val, from) => {
+      if (val === turn) {
+        ADJACENT[from].forEach(to => {
+          if (board[to] === EMPTY) {
+            validMoves.push({from, to});
+          }
+        });
+      }
+    });
+
+    if (validMoves.length === 0) return;
+
+    let chosenMove = null;
+
+    // 難易度別の探索
+    if (cpuLevel <= 2 && Math.random() < 0.6) {
+      // 初級・低級: ランダム重視
+      chosenMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+    } else {
+      // 中級〜異常: 評価値付け
+      let bestScore = -9999;
+      validMoves.forEach(m => {
+        let score = 0;
+        // 擬似移動
+        board[m.to] = turn;
+        board[m.from] = EMPTY;
+
+        if (turn === PARENT) {
+          // 親の評価: 子を挟めるか
+          TRAP_PATTERNS.forEach(pat => {
+            if (pat[0] === m.to && board[pat[1]] === CHILD && board[pat[2]] === CHILD) {
+              score += 100;
+            }
+          });
+          score += ADJACENT[m.to].filter(n => board[n] === EMPTY).length * 5; // 可動域重視
+        } else {
+          // 子の評価: 親の周囲を埋める
+          const parentPos = board.indexOf(PARENT);
+          if (ADJACENT[parentPos].includes(m.to)) {
+            score += 30; // 親の隣をブロック
+          }
+        }
+
+        // ノイズ付与（難易度調整）
+        score += Math.random() * (7 - cpuLevel) * 10;
+
+        if (score > bestScore) {
+          bestScore = score;
+          chosenMove = m;
+        }
+
+        // 戻す
+        board[m.from] = turn;
+        board[m.to] = EMPTY;
+      });
+    }
+
+    if (!chosenMove) chosenMove = validMoves[0];
+    executeMove(chosenMove.from, chosenMove.to);
+  }
+
+  // イベントリスナー
+  domSelectMode.addEventListener('change', (e) => { gameMode = e.target.value; initGame(); });
+  domSelectLevel.addEventListener('change', (e) => { cpuLevel = parseInt(e.target.value, 10); });
+  domSelectLang.addEventListener('change', (e) => { lang = e.target.value; updateUI(); });
+  domBtnRestart.addEventListener('click', initGame);
+
+  initGame();
+})();
+</script>
+</body>
+</html>
