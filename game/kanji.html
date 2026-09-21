@@ -1,794 +1,795 @@
-<!DOCTYPE html>  
-<html lang="ja">  
-<head>  
-    <meta charset="UTF-8">  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
-    <title>かんじ れんしゅう / Kanji Practice</title>  
-    <style>  
-        * {  
-            box-sizing: border-box;  
-            touch-action: manipulation;  
-            margin: 0;  
-            padding: 0;  
-        }  
-  
-        body {  
-            font-family: sans-serif;  
-            background-color: #f4f7f6;  
-            color: #333;  
-            display: flex;  
-            flex-direction: column;  
-            align-items: center;  
-            min-height: 100vh;  
-            padding: 10px;  
-        }  
-  
-        header {  
-            width: 100%;  
-            max-width: 600px;  
-            display: flex;  
-            justify-content: space-between;  
-            align-items: center;  
-            margin-bottom: 10px;  
-            padding: 5px 0;  
-        }  
-  
-        h1 {  
-            font-size: 1.2rem;  
-            color: #2c3e50;  
-        }  
-  
-        select {  
-            font-family: sans-serif;  
-            font-size: 0.9rem;  
-            padding: 5px 8px;  
-            border-radius: 5px;  
-            border: 1px solid #ccc;  
-            background-color: #fff;  
-        }  
-  
-        .controls {  
-            width: 100%;  
-            max-width: 600px;  
-            display: flex;  
-            gap: 8px;  
-            margin-bottom: 15px;  
-            flex-wrap: wrap;  
-        }  
-  
-        .controls select {  
-            flex: 1;  
-            min-width: 110px;  
-            padding: 8px;  
-            font-size: 0.95rem;  
-        }  
-  
-        .app-container {  
-            width: 100%;  
-            max-width: 600px;  
-            background: #ffffff;  
-            border-radius: 12px;  
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);  
-            padding: 15px;  
-            display: flex;  
-            flex-direction: column;  
-            align-items: center;  
-        }  
-  
-        .info-panel {  
-            width: 100%;  
-            text-align: center;  
-            margin-bottom: 10px;  
-        }  
-  
-        .kanji-info {  
-            font-size: 1rem;  
-            font-weight: bold;  
-            color: #34495e;  
-            min-height: 1.5em;  
-            word-break: break-all;  
-        }  
-  
-        /* 漢字手書き領域 */  
-        .canvas-wrapper {  
-            position: relative;  
-            width: 280px;  
-            height: 280px;  
-            border: 4px solid #34495e;  
-            border-radius: 8px;  
-            background-color: #fff;  
-            /* 田の字補助線 */  
-            background-image:   
-                linear-gradient(to right, transparent 49.5%, #e0e0e0 49.5%, #e0e0e0 50.5%, transparent 50.5%),  
-                linear-gradient(to bottom, transparent 49.5%, #e0e0e0 49.5%, #e0e0e0 50.5%, transparent 50.5%);  
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);  
-            margin-bottom: 15px;  
-        }  
-  
-        canvas {  
-            position: absolute;  
-            top: 0;  
-            left: 0;  
-            width: 100%;  
-            height: 100%;  
-            touch-action: none;  
-        }  
-  
-        /* 判定オーバーレイ表示 */  
-        .overlay {  
-            position: absolute;  
-            top: 0;  
-            left: 0;  
-            width: 100%;  
-            height: 100%;  
-            display: flex;  
-            flex-direction: column;  
-            justify-content: center;  
-            align-items: center;  
-            pointer-events: none;  
-            opacity: 0;  
-            transition: opacity 0.2s ease;  
-            background-color: rgba(255, 255, 255, 0.35);  
-        }  
-  
-        .overlay.show {  
-            opacity: 1;  
-        }  
-  
-        .result-mark {  
-            font-family: sans-serif;  
-            font-weight: bold;  
-            font-size: 130px;  
-            line-height: 1;  
-            text-shadow: 0 4px 10px rgba(0,0,0,0.2);  
-        }  
-  
-        .mark-double { color: #ff4757; } /* ◎ 二重丸 */  
-        .mark-single { color: #2ed573; } /* ○ 丸 */  
-        .mark-triangle { color: #ffa502; } /* △ 三角 */  
-        .mark-cross { color: #57606f; } /* × バツ */  
-  
-        .score-text {  
-            font-family: sans-serif;  
-            font-size: 1.1rem;  
-            font-weight: bold;  
-            color: #2c3e50;  
-            background: rgba(255, 255, 255, 0.95);  
-            padding: 4px 12px;  
-            border-radius: 12px;  
-            margin-top: 5px;  
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);  
-        }  
-  
-        .buttons {  
-            display: flex;  
-            gap: 10px;  
-            width: 100%;  
-            justify-content: center;  
-        }  
-  
-        button {  
-            font-family: sans-serif;  
-            padding: 10px 20px;  
-            font-size: 1rem;  
-            font-weight: bold;  
-            border: none;  
-            border-radius: 6px;  
-            cursor: pointer;  
-            transition: background 0.2s, transform 0.1s;  
-        }  
-  
-        button:active {  
-            transform: scale(0.96);  
-        }  
-  
-        .btn-clear { background-color: #e74c3c; color: white; }  
-        .btn-check { background-color: #2ecc71; color: white; }  
-        .btn-next  { background-color: #3498db; color: white; }  
-  
-        @media (max-height: 600px) {  
-            .canvas-wrapper { width: 220px; height: 220px; }  
-            .result-mark { font-size: 100px; }  
-        }  
-    </style>  
-</head>  
-<body>  
-  
-    <header>  
-        <h1 id="title-text">かんじ れんしゅう</h1>  
-        <select id="lang-select" aria-label="Language Select">  
-            <option value="ja" selected>日本語</option>  
-            <option value="en">English</option>  
-            <option value="zh">中文</option>  
-            <option value="ko">한국어</option>  
-            <option value="fr">Français</option>  
-            <option value="es">Español</option>  
-        </select>  
-    </header>  
-  
-    <div class="controls">  
-        <select id="grade-select" aria-label="Grade Select"></select>  
-        <select id="kanji-select" aria-label="Kanji Select"></select>  
-        <!-- フォント切り替え機能（ゴシック体・明朝体） -->  
-        <select id="font-select" aria-label="Font Select">  
-            <option value="gothic" selected>ゴシック体</option>  
-            <option value="mincho">明朝体</option>  
-        </select>  
-    </div>  
-  
-    <div class="app-container">  
-        <div class="info-panel">  
-            <div class="kanji-info" id="kanji-info">読み: -</div>  
-        </div>  
-  
-        <div class="canvas-wrapper">  
-            <canvas id="bgCanvas" width="280" height="280"></canvas>  
-            <canvas id="drawCanvas" width="280" height="280"></canvas>  
-              
-            <div class="overlay" id="overlay">  
-                <div class="result-mark" id="result-mark">◎</div>  
-                <div class="score-text" id="score-text">100%</div>  
-            </div>  
-        </div>  
-  
-        <div class="buttons">  
-            <button class="btn-clear" id="btn-clear">けす</button>  
-            <button class="btn-check" id="btn-check">できた！</button>  
-            <button class="btn-next"  id="btn-next">つぎへ</button>  
-        </div>  
-    </div>  
-  
-<script>  
-(function() {  
-    'use strict';  
-  
-    const i18n = {  
-        ja: { title: "かんじ れんしゅう", grades: ["小1", "小2", "小3", "小4", "小5", "小6", "常用漢字 (あ〜お)", "常用漢字 (か〜こ)", "常用漢字 (さ〜と)", "常用漢字 (な〜ほ)", "常用漢字 (ま〜ん)"], clear: "けす", check: "できた！", next: "つぎへ", read: "よみ" },  
-        en: { title: "Kanji Practice", grades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Joyo (A-O)", "Joyo (Ka-Ko)", "Joyo (Sa-To)", "Joyo (Na-Ho)", "Joyo (Ma-N)"], clear: "Clear", check: "Check", next: "Next", read: "Reading" },  
-        zh: { title: "汉字练习", grades: ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级", "常用汉字 (あ〜お)", "常用汉字 (か〜こ)", "常用汉字 (さ〜と)", "常用汉字 (な〜ほ)", "常用汉字 (ま〜ん)"], clear: "清除", check: "完成！", next: "下一个", read: "读音" },  
-        ko: { title: "한자 연습", grades: ["1학년", "2학년", "3학년", "4학년", "5학년", "6학년", "상용한자 (あ〜お)", "상용한자 (か〜こ)", "상용한자 (さ〜と)", "상용한자 (な〜ほ)", "상용한자 (ま〜ん)"], clear: "지우기", check: "확인!", next: "다음", read: "음と훈" },  
-        fr: { title: "Pratique Kanji", grades: ["CP", "CE1", "CE2", "CM1", "CM2", "6ème", "Jōyō (A-O)", "Jōyō (Ka-Ko)", "Jōyō (Sa-To)", "Jōyō (Na-Ho)", "Jōyō (Ma-N)"], clear: "Effacer", check: "Vérifier", next: "Suivant", read: "Lecture" },  
-        es: { title: "Práctica Kanji", grades: ["1º Grado", "2º Grado", "3º Grado", "4º Grado", "5º Grado", "6º Grado", "Jōyō (A-O)", "Jōyō (Ka-Ko)", "Jōyō (Sa-To)", "Jōyō (Na-Ho)", "Jōyō (Ma-N)"], clear: "Borrar", check: "Comprobar", next: "Siguiente", read: "Lectura" }  
-    };  
-  
-    const fontFamilies = {  
-        gothic: '"Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, "Yu Gothic", "游ゴシック", "MS Gothic", "ＭＳ ゴシック", sans-serif',  
-        mincho: '"MS Mincho", "ＭＳ 明朝", "Yu Mincho", "游明朝", serif'  
-    };  
-  
-    const joyoKanjiAll = [
-        {char:"亜",read:"ア"}, {char:"哀",read:"アイ / あわれ, あわれむ"}, {char:"挨",read:"アイ"}, {char:"愛",read:"アイ"}, {char:"曖",read:"アイ"},
-        {char:"悪",read:"アク, オ / わるい"}, {char:"握",read:"アク / にぎる"}, {char:"圧",read:"アツ"}, {char:"扱",read:"あつかう"}, {char:"宛",read:"あてる"},
-        {char:"嵐",read:"あらし"}, {char:"安",read:"アン / やすい"}, {char:"案",read:"アン"}, {char:"暗",read:"アン / くらい"}, {char:"以",read:"イ"},
-        {char:"衣",read:"イ / ころも"}, {char:"位",read:"イ / くらい"}, {char:"囲",read:"イ / かこむ, かこう"}, {char:"医",read:"イ"}, {char:"依",read:"イ"},
-        {char:"委",read:"イ / ゆだねる"}, {char:"威",read:"イ"}, {char:"為",read:"イ"}, {char:"畏",read:"イ / おそれる"}, {char:"胃",read:"イ"},
-        {char:"尉",read:"イ"}, {char:"異",read:"イ / こと"}, {char:"移",read:"イ / うつる, うつす"}, {char:"萎",read:"イ / なえる"}, {char:"偉",read:"イ / えらい"},
-        {char:"椅",read:"イ"}, {char:"彙",read:"イ"}, {char:"意",read:"イ"}, {char:"違",read:"イ / ちがう, ちがえる"}, {char:"維",read:"イ"},
-        {char:"慰",read:"イ / なぐさめる, なぐさむ"}, {char:"遺",read:"イ, ユイ"}, {char:"緯",read:"イ"}, {char:"域",read:"イキ"}, {char:"育",read:"イク / そだつ, そだてる, はぐくむ"},
-        {char:"一",read:"イチ, イツ / ひと, ひとつ"}, {char:"壱",read:"イチ"}, {char:"逸",read:"イツ"}, {char:"茨",read:"いばら"}, {char:"芋",read:"いも"},
-        {char:"引",read:"イン / ひく, ひける"}, {char:"印",read:"イン / しるし"}, {char:"因",read:"イン / よる"}, {char:"咽",read:"イン"}, {char:"姻",read:"イン"},
-        {char:"員",read:"イン"}, {char:"院",read:"イン"}, {char:"淫",read:"イン / みだら"}, {char:"陰",read:"イン / かげ, かげる"}, {char:"飲",read:"イン / のむ"},
-        {char:"隠",read:"イン / かくす, かくれる"}, {char:"韻",read:"イン"}, {char:"右",read:"ウ, ユウ / みぎ"}, {char:"宇",read:"ウ"}, {char:"羽",read:"ウ / は, はね"},
-        {char:"雨",read:"ウ / あめ, あま"}, {char:"唄",read:"うた"}, {char:"鬱",read:"ウツ"}, {char:"畝",read:"うね"}, {char:"浦",read:"うら"},
-        {char:"運",read:"ウン / はこぶ"}, {char:"雲",read:"ウン / くも"}, {char:"永",read:"エイ / ながい"}, {char:"泳",read:"エイ / およぐ"}, {char:"英",read:"エイ"},
-        {char:"映",read:"エイ / うつる, うつす, はえる"}, {char:"栄",read:"エイ / さかえる, はえ, はえる"}, {char:"営",read:"エイ / いとなむ"}, {char:"詠",read:"エイ / よむ"}, {char:"影",read:"エイ / かげ"},
-        {char:"鋭",read:"エイ / するどい"}, {char:"衛",read:"エイ"}, {char:"易",read:"エキ, イ / やさしい"}, {char:"疫",read:"エキ, ヤク"}, {char:"益",read:"エキ, ヤク"},
-        {char:"液",read:"エキ"}, {char:"駅",read:"エキ"}, {char:"悦",read:"エツ"}, {char:"越",read:"エツ / こす, こえる"}, {char:"謁",read:"エツ"},
-        {char:"閲覧",read:"エツ"}, {char:"円",read:"エン / まるい"}, {char:"延",read:"エン / のびる, のべる, のばす"}, {char:"沿",read:"エン / そう"}, {char:"炎",read:"エン / ほのお"},
-        {char:"怨",read:"エン, オン"}, {char:"宴",read:"エン"}, {char:"媛",read:"エン"}, {char:"援",read:"エン"}, {char:"園",read:"エン / その"},
-        {char:"煙",read:"エン / けむる, けむり, けむい"}, {char:"猿",read:"エン / さる"}, {char:"遠",read:"エン, オン / とおい"}, {char:"鉛",read:"エン / なまり"}, {char:"塩",read:"エン / しお"},
-        {char:"演",read:"エン"}, {char:"縁",read:"エン / ふち"}, {char:"艶",read:"エン / つや"}, {char:"汚",read:"オ / けがす, けがれる, けがらわしい, よごす, よごれる, きたない"}, {char:"王",read:"オウ"},
-        {char:"凹",read:"オウ"}, {char:"央",read:"オウ"}, {char:"応",read:"オウ / こたえる"}, {char:"往",read:"オウ"}, {char:"押",read:"オウ / おす, おさえる"},
-        {char:"旺",read:"オウ"}, {char:"欧",read:"オウ"}, {char:"殴",read:"オウ / なぐる"}, {char:"桜",read:"オウ / さくら"}, {char:"翁",read:"オウ"},
-        {char:"奥",read:"オウ / おく"}, {char:"横",read:"オウ / よこ"}, {char:"岡",read:"おか"}, {char:"屋",read:"オク / や"}, {char:"億",read:"オク"},
-        {char:"憶",read:"オク"}, {char:"臆",read:"オク"}, {char:"虞",read:"おそれ"}, {char:"乙",read:"オツ"}, {char:"俺",read:"おれ"},
-        {char:"卸",read:"おろす, おろし"}, {char:"音",read:"オン, イン / おと, ね"}, {char:"恩",read:"オン"}, {char:"温",read:"オン / あたたか, あたたかい, あたたまる, あたためる"}, {char:"穏",read:"オン / おだやか"},
-        {char:"下",read:"カ, ゲ / した, しも, もと, さげる, さがる, くだる, くだす, くださる, おろす, おりる"}, {char:"化",read:"カ, ケ / ばける, ばかす"}, {char:"火",read:"カ / ひ, ほ"}, {char:"加",read:"カ / くわえる, くわわる"}, {char:"可",read:"カ"},
-        {char:"仮",read:"カ, ケ / かり"}, {char:"何",read:"カ / なに, なん"}, {char:"花",read:"カ / はな"}, {char:"佳",read:"カ"}, {char:"価",read:"カ / あたい"},
-        {char:"果",read:"カ / はたす, はてる, はて"}, {char:"河",read:"カ / かわ"}, {char:"苛",read:"カ"}, {char:"科",read:"カ"}, {char:"架",read:"カ / かける, かかる"},
-        {char:"夏",read:"カ, ゲ / なつ"}, {char:"家",read:"カ, ケ / いえ, や"}, {char:"荷",read:"カ / に"}, {char:"華",read:"カ, ケ / はな"}, {char:"菓",read:"カ"},
-        {char:"貨",read:"カ"}, {char:"渦",read:"カ / うず"}, {char:"過",read:"カ / すぎる, すごす, あやまつ, あやまち"}, {char:"嫁",read:"カ / よめ, とつぐ"}, {char:"暇",read:"カ / ひま"},
-        {char:"禍",read:"カ"}, {char:"靴",read:"カ / くつ"}, {char:"寡",read:"カ"}, {char:"歌",read:"カ / うた, うたう"}, {char:"箇",read:"カ"},
-        {char:"稼",read:"カ / かせぐ"}, {char:"課",read:"カ"}, {char:"蚊",read:"か"}, {char:"牙",read:"ガ, ゲ / きば"}, {char:"瓦",read:"ガ / かわら"},
-        {char:"我",read:"ガ / われ, わ"}, {char:"画",read:"ガ, カク"}, {char:"芽",read:"ガ / め"}, {char:"賀",read:"ガ"}, {char:"雅",read:"ガ"},
-        {char:"餓",read:"ガ"}, {char:"介",read:"カイ"}, {char:"回",read:"カイ / まわる, まわす"}, {char:"灰",read:"カイ / はい"}, {char:"会",read:"カイ, エ / あう"},
-        {char:"快",read:"カイ / こころよい"}, {char:"戒",read:"カイ / いましめる"}, {char:"改",read:"カイ / あらためる, あらたまる"}, {char:"怪",read:"カイ / あやしい, あやしむ"}, {char:"拐",read:"カイ"},
-        {char:"悔",read:"カイ / くいる, くやむ, くやしい"}, {char:"海",read:"カイ / うみ"}, {char:"界",read:"カイ"}, {char:"皆",read:"カイ / みな"}, {char:"械",read:"カイ"},
-        {char:"絵",read:"カイ, エ"}, {char:"開",read:"カイ / ひらく, ひらける, あく, あける"}, {char:"階",read:"カイ"}, {char:"塊",read:"カイ / かたまり"}, {char:"楷",read:"カイ"},
-        {char:"解",read:"カイ, ゲ / とく, とかす, とける"}, {char:"潰",read:"カイ / つぶす, つぶれる"}, {char:"壊",read:"カイ / こわす, こわれる"}, {char:"懐",read:"カイ / ふところ, なつかしい, なつかしむ, なつく, なつける"}, {char:"諧",read:"カイ"},
-        {char:"貝",read:"かい"}, {char:"外",read:"ガイ, ゲ / そと, ほか, はずす, はずれる"}, {char:"劾",read:"ガイ"}, {char:"害",read:"ガイ"}, {char:"崖",read:"ガイ / がけ"},
-        {char:"涯",read:"ガイ"}, {char:"街",read:"ガイ, カイ / まち"}, {char:"慨",read:"ガイ"}, {char:"蓋",read:"ガイ / ふた"}, {char:"該",read:"ガイ"},
-        {char:"概",read:"ガイ"}, {char:"骸",read:"ガイ"}, {char:"垣",read:"かき"}, {char:"柿",read:"かき"}, {char:"各",read:"カク / おのおの"},
-        {char:"角",read:"カク / かど, つの"}, {char:"拡",read:"カク"}, {char:"革",read:"カク / かわ"}, {char:"格",read:"カク, コウ"}, {char:"核",read:"カク"},
-        {char:"殻",read:"カク / から"}, {char:"郭",read:"カク"}, {char:"覚",read:"カク / おぼえる, さます, さめる"}, {char:"較",read:"カク"}, {char:"隔",read:"カク / へだてる, へだたる"},
-        {char:"閣",read:"カク"}, {char:"確",read:"カク / たしか, たしかめる"}, {char:"獲",read:"カク / える"}, {char:"嚇",read:"カク"}, {char:"穫",read:"カク"},
-        {char:"学",read:"ガク / まなぶ"}, {char:"岳",read:"ガク / たけ"}, {char:"楽",read:"ガク, ラク / たのしい, たのしむ"}, {char:"額",read:"ガク / ひたい"}, {char:"顎",read:"ガク / あご"},
-        {char:"掛",read:"かける, かかる, かかり"}, {char:"潟",read:"かた"}, {char:"括",read:"カツ"}, {char:"活",read:"カツ"}, {char:"喝",read:"カツ"},
-        {char:"渇",read:"カツ / かわく"}, {char:"割",read:"カツ / わる, わり, われる, さく"}, {char:"葛",read:"カツ / くず"}, {char:"滑",read:"カツ, コツ / すべる, なめらか"}, {char:"褐",read:"カツ"},
-        {char:"轄",read:"カツ"}, {char:"且",read:"かつ"}, {char:"株",read:"かぶ"}, {char:"釜",read:"かま"}, {char:"鎌",read:"かま"},
-        {char:"刈",read:"かる"}, {char:"干",read:"カン / ほす, ひる"}, {char:"刊",read:"カン"}, {char:"甘",read:"カン / あまい, あまえる, あまやかす"}, {char:"汗",read:"カン / あせ"},
-        {char:"缶",read:"カン"}, {char:"完",read:"カン"}, {char:"肝",read:"カン / きも"}, {char:"官",read:"カン"}, {char:"冠",read:"カン / かんむり"},
-        {char:"巻",read:"カン / まく, まき"}, {char:"看",read:"カン"}, {char:"陥",read:"カン / おちいる, おとしいれる"}, {char:"乾",read:"カン / かわく, かわかす"}, {char:"勘",read:"カン"},
-        {char:"患",read:"カン / わずらう"}, {char:"貫",read:"カン / つらぬく"}, {char:"寒",read:"カン / さむい"}, {char:"喚",read:"カン"}, {char:"堪",read:"カン / たえる"},
-        {char:"換",read:"カン / かえる, かわる"}, {char:"敢",read:"カン"}, {char:"棺",read:"カン"}, {char:"款",read:"カン"}, {char:"間",read:"カン, ケン / あいだ, ま"},
-        {char:"閑",read:"カン"}, {char:"勧",read:"カン / すすめる"}, {char:"寛",read:"カン"}, {char:"幹",read:"カン / みき"}, {char:"感",read:"カン"},
-        {char:"漢",read:"カン"}, {char:"慣",read:"カン / なれる, ならす"}, {char:"管",read:"カン / くだ"}, {char:"関",read:"カン / せき, かかわる"}, {char:"歓",read:"カン"},
-        {char:"監",read:"カン"}, {char:"緩",read:"カン / ゆるい, ゆるやか, ゆるむ, ゆるめる"}, {char:"憾",read:"カン"}, {char:"還",read:"カン"}, {char:"館",read:"カン / やかた"},
-        {char:"環",read:"カン"}, {char:"簡",read:"カン"}, {char:"観",read:"カン"}, {char:"韓",read:"カン"}, {char:"艦",read:"カン"},
-        {char:"鑑",read:"カン / かんがみる"}, {char:"丸",read:"ガン / まる, まるい, まるめる"}, {char:"含",read:"ガン / ふくむ, ふくめる"}, {char:"岸",read:"ガン / きし"}, {char:"岩",read:"ガン / いわ"},
-        {char:"玩",read:"ガン"}, {char:"眼",read:"ガン, ゲン / まなこ"}, {char:"頑",read:"ガン"}, {char:"顔",read:"ガン / かお"}, {char:"願",read:"ガン / ねがう"},
-        {char:"企",read:"キ / くわだてる"}, {char:"伎",read:"キ"}, {char:"危",read:"キ / あぶない, あやうい, あやぶむ"}, {char:"机",read:"キ / つくえ"}, {char:"気",read:"キ, ケ"},
-        {char:"岐",read:"キ"}, {char:"希",read:"キ"}, {char:"忌",read:"キ / いむ, いまわしい"}, {char:"汽",read:"キ"}, {char:"奇",read:"キ"},
-        {char:"祈",read:"キ / いのる"}, {char:"季",read:"キ"}, {char:"紀",read:"キ"}, {char:"軌",read:"キ"}, {char:"既",read:"キ / すでに"},
-        {char:"記",read:"キ / しるす"}, {char:"起",read:"キ / おきる, おこる, おこす"}, {char:"飢",read:"キ / うえる"}, {char:"鬼",read:"キ / おに"}, {char:"帰",read:"キ / かえる, かえす"},
-        {char:"基",read:"キ / もと, もとい"}, {char:"寄",read:"キ / よる, よせる"}, {char:"規",read:"キ"}, {char:"亀",read:"キ / かめ"}, {char:"喜",read:"キ / よろこぶ"},
-        {char:"幾",read:"キ / いく"}, {char:"揮",read:"キ"}, {char:"期",read:"キ, ゴ"}, {char:"棋",read:"キ"}, {char:"貴",read:"キ / たっとい, とうとい, たっとぶ, とうとぶ"},
-        {char:"棄",read:"キ"}, {char:"毀",read:"キ"}, {char:"旗",read:"キ / はた"}, {char:"器",read:"キ / うつわ"}, {char:"畿",read:"キ"},
-        {char:"輝",read:"キ / かがやく"}, {char:"機",read:"キ / はた"}, {char:"騎",read:"キ"}, {char:"技",read:"ギ / わざ"}, {char:"宜",read:"ギ"},
-        {char:"偽",read:"ギ / いつわる, にせ"}, {char:"欺",read:"ギ / あざむく"}, {char:"義",read:"ギ"}, {char:"疑",read:"ギ / うたがう"}, {char:"儀",read:"ギ"},
-        {char:"戯",read:"ギ / たわむれる"}, {char:"擬",read:"ギ"}, {char:"犠",read:"ギ"}, {char:"議",read:"ギ"}, {char:"菊",read:"キク"},
-        {char:"吉",read:"キチ, キツ"}, {char:"喫",read:"キッ"}, {char:"詰",read:"キツ / つめる, つまる, つむ"}, {char:"却",read:"キャク"}, {char:"客",read:"キャク, カク"},
-        {char:"脚",read:"キャク, キャ / あし"}, {char:"逆",read:"ギャク / さか, さからう"}, {char:"虐",read:"ギャク / しいたげる"}, {char:"九",read:"キュウ, ク / ここの, ここのつ"}, {char:"久",read:"キュウ, ク / ひさしい"},
-        {char:"及",read:"キュウ / およぶ, および, およぼす"}, {char:"弓",read:"キュウ / ゆみ"}, {char:"丘",read:"キュウ / おか"}, {char:"旧",read:"キュウ"}, {char:"休",read:"キュウ / やすむ, やすまる, やすめる"},
-        {char:"吸",read:"キュウ / すう"}, {char:"朽",read:"キュウ / くちる"}, {char:"臼",read:"キュウ / うす"}, {char:"求",read:"キュウ / もとめる"}, {char:"究",read:"キュウ / きわめる"},
-        {char:"泣",read:"キュウ / なく"}, {char:"急",read:"キュウ / いそぐ"}, {char:"級",read:"キュウ"}, {char:"糾",read:"キュウ"}, {char:"宮",read:"キュウ, グウ, ク / みや"},
-        {char:"救",read:"キュウ / すくう"}, {char:"球",read:"キュウ / たま"}, {char:"給",read:"キュウ"}, {char:"嗅",read:"キュウ / かぐ"}, {char:"窮",read:"キュウ / きわめる, きわまる"},
-        {char:"牛",read:"ギュウ / うし"}, {char:"去",read:"キョ, コ / さる"}, {char:"巨",read:"キョ"}, {char:"居",read:"キョ / いる"}, {char:"拒",read:"キョ / こばむ"},
-        {char:"拠",read:"キョ, コ"}, {char:"挙",read:"キョ / あげる, あがる"}, {char:"虚",read:"キョ, コ"}, {char:"許",read:"キョ / ゆるす"}, {char:"距",read:"キョ"},
-        {char:"魚",read:"ギョ / うお, さかな"}, {char:"御",read:"ギョ, ゴ / おん"}, {char:"漁",read:"ギョ, リョウ"}, {char:"凶",read:"キョウ"}, {char:"共",read:"キョウ / とも"},
-        {char:"叫",read:"キョウ / さけぶ"}, {char:"狂",read:"キョウ / くるう, くるおしい"}, {char:"京",read:"キョウ, ケイ"}, {char:"享",read:"キョウ"}, {char:"供",read:"キョウ, ク / そなえる, とも"},
-        {char:"協",read:"キョウ"}, {char:"況",read:"キョウ"}, {char:"峡",read:"キョウ"}, {char:"挟",read:"キョウ / はさむ, はさまる"}, {char:"狭",read:"キョウ / せまい, せばめる, せばまる"},
-        {char:"恐",read:"キョウ / おそれる, おそろしい"}, {char:"恭",read:"キョウ / うやうやしい"}, {char:"胸",read:"キョウ / むね, むな"}, {char:"脅",read:"キョウ / おびやかす, おどす, おどかす"}, {char:"強",read:"キョウ, ゴウ / つよい, つよまる, つよめる, しじる"},
-        {char:"教",read:"キョウ / おしえる, おそわる"}, {char:"郷",read:"キョウ, ゴウ"}, {char:"境",read:"キョウ, ケイ / さかい"}, {char:"橋",read:"キョウ / はし"}, {char:"矯",read:"キョウ / ためる"},
-        {char:"鏡",read:"キョウ / かがみ"}, {char:"競",read:"キョウ, ケイ / きそう, せる"}, {char:"響",read:"キョウ / ひびく"}, {char:"驚",read:"キョウ / おどろく, おどろかす"}, {char:"仰",read:"ギョウ, コウ / あおぐ, おおせ"},
-        {char:"暁",read:"ギョウ / あかつき"}, {char:"業",read:"ギョウ, ゴウ / わざ"}, {char:"凝",read:"ギョウ / こる, こらす"}, {char:"曲",read:"キョク / まがる, まげる"}, {char:"局",read:"キョク"},
-        {char:"極",read:"キョク, ゴク / きわめる, きわまる, きわみ"}, {char:"玉",read:"ギョク / たま"}, {char:"巾",read:"キン"}, {char:"斤",read:"キン"}, {char:"均",read:"キン"},
-        {char:"近",read:"キン / ちかい"}, {char:"金",read:"キン, コン / かね, かな"}, {char:"菌",read:"キン"}, {char:"勤",read:"キン, ゴン / つとめる, つとまる"}, {char:"琴",read:"キン / こと"},
-        {char:"筋",read:"キン / すじ"}, {char:"僅",read:"キン / わずか"}, {char:"禁",read:"キン"}, {char:"緊",read:"キン"}, {char:"錦",read:"キン / にしき"},
-        {char:"謹",read:"キン / つつつしむ"}, {char:"襟",read:"キン / えり"}, {char:"吟",read:"ギン"}, {char:"銀",read:"ギン"}, {char:"区",read:"ク"},
-        {char:"句",read:"ク"}, {char:"苦",read:"ク / くるしい, くるしむ, くるしめる, にがい, にがる"}, {char:"駆",read:"ク / かける, かる"}, {char:"具",read:"グ"}, {char:"惧",read:"グ"},
-        {char:"愚",read:"グ / おろか"}, {char:"空",read:"クウ / そら, あく, あける, から"}, {char:"偶",read:"グウ"}, {char:"遇",read:"グウ"}, {char:"隅",read:"グウ / すみ"},
-        {char:"串",read:"くし"}, {char:"屈",read:"クツ"}, {char:"掘",read:"クツ / ほる"}, {char:"窟",read:"クツ"}, {char:"熊",read:"くま"},
-        {char:"繰",read:"くる"}, {char:"君",read:"クン / きみ"}, {char:"訓",read:"クン"}, {char:"勲",read:"クン"}, {char:"薫",read:"クン / かおる"},
-        {char:"軍",read:"グン"}, {char:"郡",read:"グン"}, {char:"群",read:"グン / むれる, むれ, むら"}, {char:"兄",read:"ケイ, キョウ / あに"}, {char:"刑",read:"ケイ"},
-        {char:"形",read:"ケイ, ギョウ / かた, かたち"}, {char:"系",read:"ケイ"}, {char:"径",read:"ケイ"}, {char:"茎",read:"ケイ / くき"}
-    ];
-  
-    const kanjiData = {  
-        0: [  
-            {char:"一",read:"イチ, イツ / ひと, ひとつ"}, {char:"右",read:"ウ, ユウ / みぎ"}, {char:"雨",read:"ウ / あめ, あま"}, {char:"円",read:"エン / まるい"},  
-            {char:"王",read:"オウ"}, {char:"音",read:"オン, イン / おと, ね"}, {char:"下",read:"カ, ゲ / した, しも, もと, さげる, くだる"}, {char:"火",read:"カ / ひ, ほ"},  
-            {char:"花",read:"カ / はな"}, {char:"貝",read:"かい"}, {char:"九",read:"キュウ, ク / ここの, ここのつ"}, {char:"休",read:"キュウ / やすむ, やすまる"},  
-            {char:"玉",read:"ギョク / たま"}, {char:"金",read:"キン, コン / かね, かな"}, {char:"空",read:"クウ / そら, あく, から, むなしい"}, {char:"月",read:"ゲツ, ガツ / つき"},  
-            {char:"犬",read:"ケン / いぬ"}, {char:"見",read:"ケン / みる, みえる, みせる"}, {char:"五",read:"ゴ / いつ, いつつ"}, {char:"口",read:"コウ, ク / くち"},  
-            {char:"校",read:"コウ"}, {char:"左",read:"サ / ひだり"}, {char:"三",read:"サン / み, みつ, みっつ"}, {char:"山",read:"サン / やま"},  
-            {char:"子",read:"シ, ス / こ"}, {char:"四",read:"シ / よ, よつ, よっつ, よん"}, {char:"糸",read:"シ / いと"}, {char:"字",read:"ジ / あざ"},  
-            {char:"耳",read:"ジ / みみ"}, {char:"七",read:"シチ / なな, ななつ, なの"}, {char:"車",read:"シャ / くるま"}, {char:"手",read:"シュ / て, た"},  
-            {char:"十",read:"ジュウ, ジッ / とお, と"}, {char:"出",read:"シュツ / でる, だす"}, {char:"女",read:"ジョ, ニョ / おんな, め"}, {char:"小",read:"ショウ / ちいさい, こ, お"},  
-            {char:"上",read:"ジョウ / うえ, あがる, のぼる"}, {char:"森",read:"シン / もり"}, {char:"人",read:"ジン, ニン / ひと"}, {char:"水",read:"スイ / みず"},  
-            {char:"正",read:"セイ, ショウ / ただしい, まさ"}, {char:"生",read:"セイ, ショウ / いきる, うまれる, なま"}, {char:"青",read:"セイ, ショウ / あお, あおい"}, {char:"夕",read:"セキ / ゆう"},  
-            {char:"石",read:"セキ, シャク / いし"}, {char:"赤",read:"セキ / あか, あかい"}, {char:"千",read:"セン / ち"}, {char:"川",read:"セン / かわ"},  
-            {char:"先",read:"セン / さき"}, {char:"早",read:"ソウ, サッ / はやい, はやまる"}, {char:"草",read:"ソウ / くさ"}, {char:"足",read:"ソク / あし, たりる"},  
-            {char:"村",read:"ソン / むら"}, {char:"大",read:"ダイ, タイ / おおきい"}, {char:"男",read:"ダン, ナン / おとこ"}, {char:"竹",read:"チク / たけ"},  
-            {char:"中",read:"チュウ / なか"}, {char:"虫",read:"チュウ / むし"}, {char:"町",read:"チョウ / まち"}, {char:"天",read:"テン / あめ, あま"},  
-            {char:"田",read:"デン / た"}, {char:"土",read:"ト, ド / つち"}, {char:"二",read:"ニ / ふた, ふたつ"}, {char:"日",read:"ニチ, ジツ / ひ, か"},  
-            {char:"入",read:"ニュウ / はいる, いれる"}, {char:"年",read:"ネン / とし"}, {char:"白",read:"ハク, ビャク / しろ, しろい"}, {char:"八",read:"ハチ / や, やつ, やっつ, よう"},  
-            {char:"百",read:"ヒャク"}, {char:"文",read:"ブン, モン / ふみ"}, {char:"木",read:"ボク, モク / き, こ"}, {char:"本",read:"ホン / もと"},  
-            {char:"名",read:"メイ, ミョウ / な"}, {char:"目",read:"モク / め, ま"}, {char:"立",read:"リツ / たつ, たてる"}, {char:"林",read:"リン / はやし"},  
-            {char:"六",read:"ロク / む, むつ, むっつ, むい"}, {char:"力",read:"リョク, リキ / ちから"}  
+<!DOCTYPE html>    
+<html lang="ja">    
+<head>    
+    <meta charset="UTF-8">    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    
+    <title>かんじ れんしゅう / Kanji Practice</title>    
+    <style>    
+        * {    
+            box-sizing: border-box;    
+            touch-action: manipulation;    
+            margin: 0;    
+            padding: 0;    
+        }    
+    
+        body {    
+            font-family: sans-serif;    
+            background-color: #f4f7f6;    
+            color: #333;    
+            display: flex;    
+            flex-direction: column;    
+            align-items: center;    
+            min-height: 100vh;    
+            padding: 10px;    
+        }    
+    
+        header {    
+            width: 100%;    
+            max-width: 600px;    
+            display: flex;    
+            justify-content: space-between;    
+            align-items: center;    
+            margin-bottom: 10px;    
+            padding: 5px 0;    
+        }    
+    
+        h1 {    
+            font-size: 1.2rem;    
+            color: #2c3e50;    
+        }    
+    
+        select {    
+            font-family: sans-serif;    
+            font-size: 0.9rem;    
+            padding: 5px 8px;    
+            border-radius: 5px;    
+            border: 1px solid #ccc;    
+            background-color: #fff;    
+        }    
+    
+        .controls {    
+            width: 100%;    
+            max-width: 600px;    
+            display: flex;    
+            gap: 8px;    
+            margin-bottom: 15px;    
+            flex-wrap: wrap;    
+        }    
+    
+        .controls select {    
+            flex: 1;    
+            min-width: 110px;    
+            padding: 8px;    
+            font-size: 0.95rem;    
+        }    
+    
+        .app-container {    
+            width: 100%;    
+            max-width: 600px;    
+            background: #ffffff;    
+            border-radius: 12px;    
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);    
+            padding: 15px;    
+            display: flex;    
+            flex-direction: column;    
+            align-items: center;    
+        }    
+    
+        .info-panel {    
+            width: 100%;    
+            text-align: center;    
+            margin-bottom: 10px;    
+        }    
+    
+        .kanji-info {    
+            font-size: 1rem;    
+            font-weight: bold;    
+            color: #34495e;    
+            min-height: 1.5em;    
+            word-break: break-all;    
+        }    
+    
+        /* 漢字手書き領域 */    
+        .canvas-wrapper {    
+            position: relative;    
+            width: 280px;    
+            height: 280px;    
+            border: 4px solid #34495e;    
+            border-radius: 8px;    
+            background-color: #fff;    
+            /* 田の字補助線 */    
+            background-image:     
+                linear-gradient(to right, transparent 49.5%, #e0e0e0 49.5%, #e0e0e0 50.5%, transparent 50.5%),    
+                linear-gradient(to bottom, transparent 49.5%, #e0e0e0 49.5%, #e0e0e0 50.5%, transparent 50.5%);    
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);    
+            margin-bottom: 15px;    
+        }    
+    
+        canvas {    
+            position: absolute;    
+            top: 0;    
+            left: 0;    
+            width: 100%;    
+            height: 100%;    
+            touch-action: none;    
+        }    
+    
+        /* 判定オーバーレイ表示 */    
+        .overlay {    
+            position: absolute;    
+            top: 0;    
+            left: 0;    
+            width: 100%;    
+            height: 100%;    
+            display: flex;    
+            flex-direction: column;    
+            justify-content: center;    
+            align-items: center;    
+            pointer-events: none;    
+            opacity: 0;    
+            transition: opacity 0.2s ease;    
+            background-color: rgba(255, 255, 255, 0.35);    
+        }    
+    
+        .overlay.show {    
+            opacity: 1;    
+        }    
+    
+        .result-mark {    
+            font-family: sans-serif;    
+            font-weight: bold;    
+            font-size: 130px;    
+            line-height: 1;    
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);    
+        }    
+    
+        .mark-double { color: #ff4757; } /* ◎ 二重丸 */    
+        .mark-single { color: #2ed573; } /* ○ 丸 */    
+        .mark-triangle { color: #ffa502; } /* △ 三角 */    
+        .mark-cross { color: #57606f; } /* × バツ */    
+    
+        .score-text {    
+            font-family: sans-serif;    
+            font-size: 1.1rem;    
+            font-weight: bold;    
+            color: #2c3e50;    
+            background: rgba(255, 255, 255, 0.95);    
+            padding: 4px 12px;    
+            border-radius: 12px;    
+            margin-top: 5px;    
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);    
+        }    
+    
+        .buttons {    
+            display: flex;    
+            gap: 10px;    
+            width: 100%;    
+            justify-content: center;    
+        }    
+    
+        button {    
+            font-family: sans-serif;    
+            padding: 10px 20px;    
+            font-size: 1rem;    
+            font-weight: bold;    
+            border: none;    
+            border-radius: 6px;    
+            cursor: pointer;    
+            transition: background 0.2s, transform 0.1s;    
+        }    
+    
+        button:active {    
+            transform: scale(0.96);    
+        }    
+    
+        .btn-clear { background-color: #e74c3c; color: white; }    
+        .btn-check { background-color: #2ecc71; color: white; }    
+        .btn-next  { background-color: #3498db; color: white; }    
+    
+        @media (max-height: 600px) {    
+            .canvas-wrapper { width: 220px; height: 220px; }    
+            .result-mark { font-size: 100px; }    
+        }    
+    </style>    
+</head>    
+<body>    
+    
+    <header>    
+        <h1 id="title-text">かんじ れんしゅう</h1>    
+        <select id="lang-select" aria-label="Language Select">    
+            <option value="ja" selected>日本語</option>    
+            <option value="en">English</option>    
+            <option value="zh">中文</option>    
+            <option value="ko">한국어</option>    
+            <option value="fr">Français</option>    
+            <option value="es">Español</option>    
+        </select>    
+    </header>    
+    
+    <div class="controls">    
+        <select id="grade-select" aria-label="Grade Select"></select>    
+        <select id="kanji-select" aria-label="Kanji Select"></select>    
+        <!-- フォント切り替え機能（ゴシック体・明朝体） -->    
+        <select id="font-select" aria-label="Font Select">    
+            <option value="gothic" selected>ゴシック体</option>    
+            <option value="mincho">明朝体</option>    
+        </select>    
+    </div>    
+    
+    <div class="app-container">    
+        <div class="info-panel">    
+            <div class="kanji-info" id="kanji-info">読み: -</div>    
+        </div>    
+    
+        <div class="canvas-wrapper">    
+            <canvas id="bgCanvas" width="280" height="280"></canvas>    
+            <canvas id="drawCanvas" width="280" height="280"></canvas>    
+                
+            <div class="overlay" id="overlay">    
+                <div class="result-mark" id="result-mark">◎</div>    
+                <div class="score-text" id="score-text">100%</div>    
+            </div>    
+        </div>    
+    
+        <div class="buttons">    
+            <button class="btn-clear" id="btn-clear">けす</button>    
+            <button class="btn-check" id="btn-check">できた！</button>    
+            <button class="btn-next"  id="btn-next">つぎへ</button>    
+        </div>    
+    </div>    
+    
+<script>    
+(function() {    
+    'use strict';    
+    
+    const i18n = {    
+        ja: { title: "かんじ れんしゅう", grades: ["小1", "小2", "小3", "小4", "小5", "小6", "常用漢字 (あ〜お)", "常用漢字 (か〜こ)", "常用漢字 (さ〜と)", "常用漢字 (な〜ほ)", "常用漢字 (ま〜ん)"], clear: "けす", check: "できた！", next: "つぎへ", read: "よみ" },    
+        en: { title: "Kanji Practice", grades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Joyo (A-O)", "Joyo (Ka-Ko)", "Joyo (Sa-To)", "Joyo (Na-Ho)", "Joyo (Ma-N)"], clear: "Clear", check: "Check", next: "Next", read: "Reading" },    
+        zh: { title: "汉字练习", grades: ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级", "常用汉字 (あ〜お)", "常用汉字 (か〜こ)", "常用汉字 (さ〜と)", "常用汉字 (な〜ほ)", "常用汉字 (ま〜ん)"], clear: "清除", check: "完成！", next: "下一个", read: "读音" },    
+        ko: { title: "한자 연습", grades: ["1학년", "2학년", "3학년", "4학년", "5학년", "6학년", "상용한자 (あ〜お)", "상용한자 (か〜こ)", "상용한자 (さ〜と)", "상용한자 (な〜호)", "상용한자 (ま〜ん)"], clear: "지우기", check: "확인!", next: "다음", read: "음と훈" },    
+        fr: { title: "Pratique Kanji", grades: ["CP", "CE1", "CE2", "CM1", "CM2", "6ème", "Jōyō (A-O)", "Jōyō (Ka-Ko)", "Jōyō (Sa-To)", "Jōyō (Na-Ho)", "Jōyō (Ma-N)"], clear: "Effacer", check: "Vérifier", next: "Suivant", read: "Lecture" },    
+        es: { title: "Práctica Kanji", grades: ["1º Grado", "2º Grado", "3º Grado", "4º Grado", "5º Grado", "6º Grado", "Jōyō (A-O)", "Jōyō (Ka-Ko)", "Jōyō (Sa-To)", "Jōyō (Na-Ho)", "Jōyō (Ma-N)"], clear: "Borrar", check: "Comprobar", next: "Siguiente", read: "Lectura" }    
+    };    
+    
+    const fontFamilies = {    
+        gothic: '"Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, "Yu Gothic", "游ゴシック", "MS Gothic", "ＭＳ ゴシック", sans-serif',    
+        mincho: '"MS Mincho", "ＭＳ 明朝", "Yu Mincho", "游明朝", serif'    
+    };    
+    
+    // 常用漢字表（音訓の五十音順・同音は画数順）に基づいた正しい並び順
+    const joyoKanjiAll = [  
+        {char:"亜",read:"ア"}, {char:"哀",read:"アイ / あわれ, あわれむ"}, {char:"挨",read:"アイ"}, {char:"愛",read:"アイ"}, {char:"曖",read:"アイ"},  
+        {char:"悪",read:"アク, オ / わるい"}, {char:"握",read:"アク / にぎる"}, {char:"圧",read:"アツ"}, {char:"扱",read:"あつかう"}, {char:"宛",read:"あてる"},  
+        {char:"嵐",read:"あらし"}, {char:"安",read:"アン / やすい"}, {char:"案",read:"アン"}, {char:"暗",read:"アン / くらい"}, {char:"以",read:"イ"},  
+        {char:"衣",read:"イ / ころも"}, {char:"位",read:"イ / くらい"}, {char:"囲",read:"イ / かこむ, かこう"}, {char:"医",read:"イ"}, {char:"依",read:"イ"},  
+        {char:"委",read:"イ / ゆだねる"}, {char:"威",read:"イ"}, {char:"為",read:"イ"}, {char:"畏",read:"イ / おそれる"}, {char:"胃",read:"イ"},  
+        {char:"尉",read:"イ"}, {char:"異",read:"イ / こと"}, {char:"移",read:"イ / うつる, うつす"}, {char:"萎",read:"イ / なえる"}, {char:"偉",read:"イ / えらい"},  
+        {char:"椅",read:"イ"}, {char:"彙",read:"イ"}, {char:"意",read:"イ"}, {char:"違",read:"イ / ちがう, ちがえる"}, {char:"維",read:"イ"},  
+        {char:"慰",read:"イ / なぐさめる, なぐさむ"}, {char:"遺",read:"イ, ユイ"}, {char:"緯",read:"イ"}, {char:"域",read:"イキ"}, {char:"育",read:"イク / そだつ, そだてる, はぐくむ"},  
+        {char:"一",read:"イチ, イツ / ひと, ひとつ"}, {char:"壱",read:"イチ"}, {char:"逸",read:"イツ"}, {char:"茨",read:"いばら"}, {char:"芋",read:"いも"},  
+        {char:"引",read:"イン / ひく, ひける"}, {char:"印",read:"イン / しるし"}, {char:"因",read:"イン / よる"}, {char:"咽",read:"イン"}, {char:"姻",read:"イン"},  
+        {char:"員",read:"イン"}, {char:"院",read:"イン"}, {char:"淫",read:"イン / みだら"}, {char:"陰",read:"イン / かげ, かげる"}, {char:"飲",read:"イン / のむ"},  
+        {char:"隠",read:"イン / かくす, かくれる"}, {char:"韻",read:"イン"}, {char:"右",read:"ウ, ユウ / みぎ"}, {char:"宇",read:"ウ"}, {char:"羽",read:"ウ / は, はね"},  
+        {char:"雨",read:"ウ / あめ, あま"}, {char:"唄",read:"うた"}, {char:"鬱",read:"ウツ"}, {char:"畝",read:"うね"}, {char:"浦",read:"うら"},  
+        {char:"運",read:"ウン / はこぶ"}, {char:"雲",read:"ウン / くも"}, {char:"永",read:"エイ / ながい"}, {char:"泳",read:"エイ / およぐ"}, {char:"英",read:"エイ"},  
+        {char:"映",read:"エイ / うつる, うつす, はえる"}, {char:"栄",read:"エイ / さかえる, はえ, はえる"}, {char:"営",read:"エイ / いとなむ"}, {char:"詠",read:"エイ / よむ"}, {char:"影",read:"エイ / かげ"},  
+        {char:"鋭",read:"エイ / するどい"}, {char:"衛",read:"エイ"}, {char:"易",read:"エキ, イ / やさしい"}, {char:"疫",read:"エキ, ヤク"}, {char:"益",read:"エキ, ヤク"},  
+        {char:"液",read:"エキ"}, {char:"駅",read:"エキ"}, {char:"悦",read:"エツ"}, {char:"越",read:"エツ / こす, こえる"}, {char:"謁",read:"エツ"},  
+        {char:"閲",read:"エツ / けみする"}, {char:"円",read:"エン / まるい"}, {char:"延",read:"エン / のびる, のべる, のばす"}, {char:"沿",read:"エン / そう"}, {char:"炎",read:"エン / ほのお"},  
+        {char:"怨",read:"エン, オン"}, {char:"宴",read:"エン"}, {char:"媛",read:"エン"}, {char:"援",read:"エン"}, {char:"園",read:"エン / その"},  
+        {char:"煙",read:"エン / けむる, けむり, けむい"}, {char:"猿",read:"エン / さる"}, {char:"遠",read:"エン, オン / とおい"}, {char:"鉛",read:"エン / なまり"}, {char:"塩",read:"エン / しお"},  
+        {char:"演",read:"エン"}, {char:"縁",read:"エン / ふち"}, {char:"艶",read:"エン / つや"}, {char:"汚",read:"オ / けがす, けがれる, けがらわしい, よごす, よごれる, きたない"}, {char:"王",read:"オウ"},  
+        {char:"凹",read:"オウ"}, {char:"央",read:"オウ"}, {char:"応",read:"オウ / こたえる"}, {char:"往",read:"オウ"}, {char:"押",read:"オウ / おす, おさえる"},  
+        {char:"旺",read:"オウ"}, {char:"欧",read:"オウ"}, {char:"殴",read:"オウ / なぐる"}, {char:"桜",read:"オウ / さくら"}, {char:"翁",read:"オウ"},  
+        {char:"奥",read:"オウ / おく"}, {char:"横",read:"オウ / よこ"}, {char:"岡",read:"おか"}, {char:"屋",read:"オク / や"}, {char:"億",read:"オク"},  
+        {char:"憶",read:"オク"}, {char:"臆",read:"オク"}, {char:"虞",read:"おそれ"}, {char:"乙",read:"オツ"}, {char:"俺",read:"おれ"},  
+        {char:"卸",read:"おろす, おろし"}, {char:"音",read:"オン, イン / おと, ね"}, {char:"恩",read:"オン"}, {char:"温",read:"オン / あたたか, あたたかい, あたたまる, あたためる"}, {char:"穏",read:"オン / おだやか"},  
+        {char:"下",read:"カ, ゲ / した, しも, もと, さげる, さがる, くだる, くだす, くださる, おろす, おりる"}, {char:"化",read:"カ, ケ / ばける, ばかす"}, {char:"火",read:"カ / ひ, ほ"}, {char:"加",read:"カ / くわえる, くわわる"}, {char:"可",read:"カ"},  
+        {char:"仮",read:"カ, ケ / かり"}, {char:"何",read:"カ / なに, なん"}, {char:"花",read:"カ / はな"}, {char:"佳",read:"カ"}, {char:"価",read:"カ / あたい"},  
+        {char:"果",read:"カ / はたす, はてる, はて"}, {char:"河",read:"カ / かわ"}, {char:"苛",read:"カ"}, {char:"科",read:"カ"}, {char:"架",read:"カ / かける, かかる"},  
+        {char:"夏",read:"カ, ゲ / なつ"}, {char:"家",read:"カ, ケ / いえ, や"}, {char:"荷",read:"カ / に"}, {char:"華",read:"カ, ケ / はな"}, {char:"菓",read:"カ"},  
+        {char:"貨",read:"カ"}, {char:"渦",read:"カ / うず"}, {char:"過",read:"カ / すぎる, すごす, あやまつ, あやまち"}, {char:"嫁",read:"カ / よめ, とつぐ"}, {char:"暇",read:"カ / ひま"},  
+        {char:"禍",read:"カ"}, {char:"靴",read:"カ / くつ"}, {char:"寡",read:"カ"}, {char:"歌",read:"カ / うた, うたう"}, {char:"箇",read:"カ"},  
+        {char:"稼",read:"カ / かせぐ"}, {char:"課",read:"カ"}, {char:"蚊",read:"か"}, {char:"牙",read:"ガ, ゲ / きば"}, {char:"瓦",read:"ガ / かわら"},  
+        {char:"我",read:"ガ / われ, わ"}, {char:"画",read:"ガ, カク"}, {char:"芽",read:"ガ / め"}, {char:"賀",read:"ガ"}, {char:"雅",read:"ガ"},  
+        {char:"餓",read:"ガ"}, {char:"介",read:"カイ"}, {char:"回",read:"カイ / まわる, まわす"}, {char:"灰",read:"カイ / はい"}, {char:"会",read:"カイ, エ / あう"},  
+        {char:"快",read:"カイ / こころよい"}, {char:"戒",read:"カイ / いましめる"}, {char:"改",read:"カイ / あらためる, あらたまる"}, {char:"怪",read:"カイ / あやしい, あやしむ"}, {char:"拐",read:"カイ"},  
+        {char:"悔",read:"カイ / くいる, くやむ, くやしい"}, {char:"海",read:"カイ / うみ"}, {char:"界",read:"カイ"}, {char:"皆",read:"カイ / みな"}, {char:"械",read:"カイ"},  
+        {char:"絵",read:"カイ, エ"}, {char:"開",read:"カイ / ひらく, ひらける, あく, あける"}, {char:"階",read:"カイ"}, {char:"塊",read:"カイ / かたまり"}, {char:"楷",read:"カイ"},  
+        {char:"解",read:"カイ, ゲ / とく, とかす, とける"}, {char:"潰",read:"カイ / つぶす, つぶれる"}, {char:"壊",read:"カイ / こわす, こわれる"}, {char:"懐",read:"カイ / ふところ, なつかしい, なつかしむ, なつく, なつける"}, {char:"諧",read:"カイ"},  
+        {char:"貝",read:"かい"}, {char:"外",read:"ガイ, ゲ / そと, ほか, はずす, はずれる"}, {char:"劾",read:"ガイ"}, {char:"害",read:"ガイ"}, {char:"崖",read:"ガイ / がけ"},  
+        {char:"涯",read:"ガイ"}, {char:"街",read:"ガイ, カイ / まち"}, {char:"慨",read:"ガイ"}, {char:"蓋",read:"ガイ / ふた"}, {char:"該",read:"ガイ"},  
+        {char:"概",read:"ガイ"}, {char:"骸",read:"ガイ"}, {char:"垣",read:"かき"}, {char:"柿",read:"かき"}, {char:"各",read:"カク / おのおの"},  
+        {char:"角",read:"カク / かど, つの"}, {char:"拡",read:"カク"}, {char:"革",read:"カク / かわ"}, {char:"格",read:"カク, コウ"}, {char:"核",read:"カク"},  
+        {char:"殻",read:"カク / から"}, {char:"郭",read:"カク"}, {char:"覚",read:"カク / おぼえる, さます, さめる"}, {char:"較",read:"カク"}, {char:"隔",read:"カク / へだてる, へだたる"},  
+        {char:"閣",read:"カク"}, {char:"確",read:"カク / たしか, たしかめる"}, {char:"獲",read:"カク / える"}, {char:"嚇",read:"カク"}, {char:"穫",read:"カク"},  
+        {char:"学",read:"ガク / まなぶ"}, {char:"岳",read:"ガク / たけ"}, {char:"楽",read:"ガク, ラク / たのしい, たのしむ"}, {char:"額",read:"ガク / ひたい"}, {char:"顎",read:"ガク / あご"},  
+        {char:"掛",read:"かける, かかる, かかり"}, {char:"潟",read:"かた"}, {char:"括",read:"カツ"}, {char:"活",read:"カツ"}, {char:"喝",read:"カツ"},  
+        {char:"渇",read:"カツ / かわく"}, {char:"割",read:"カツ / わる, わり, われる, さく"}, {char:"葛",read:"カツ / くず"}, {char:"滑",read:"カツ, コツ / すべる, なめらか"}, {char:"褐",read:"カツ"},  
+        {char:"轄",read:"カツ"}, {char:"且",read:"かつ"}, {char:"株",read:"かぶ"}, {char:"釜",read:"かま"}, {char:"鎌",read:"かま"},  
+        {char:"刈",read:"かる"}, {char:"干",read:"カン / ほす, ひる"}, {char:"刊",read:"カン"}, {char:"甘",read:"カン / あまい, あまえる, あまやかす"}, {char:"汗",read:"カン / あせ"},  
+        {char:"缶",read:"カン"}, {char:"完",read:"カン"}, {char:"肝",read:"カン / きも"}, {char:"官",read:"カン"}, {char:"冠",read:"カン / かんむり"},  
+        {char:"巻",read:"カン / まく, まき"}, {char:"看",read:"カン"}, {char:"陥",read:"カン / おちいる, おとしいれる"}, {char:"乾",read:"カン / かわく, かわかす"}, {char:"勘",read:"カン"},  
+        {char:"患",read:"カン / わずらう"}, {char:"貫",read:"カン / つらぬく"}, {char:"寒",read:"カン / さむい"}, {char:"喚",read:"カン"}, {char:"堪",read:"カン / たえる"},  
+        {char:"換",read:"カン / かえる, かわる"}, {char:"敢",read:"カン"}, {char:"棺",read:"カン"}, {char:"款",read:"カン"}, {char:"間",read:"カン, ケン / あいだ, ま"},  
+        {char:"閑",read:"カン"}, {char:"勧",read:"カン / すすめる"}, {char:"寛",read:"カン"}, {char:"幹",read:"カン / みき"}, {char:"感",read:"カン"},  
+        {char:"漢",read:"カン"}, {char:"慣",read:"カン / なれる, ならす"}, {char:"管",read:"カン / くだ"}, {char:"関",read:"カン / せき, かかわる"}, {char:"歓",read:"カン"},  
+        {char:"監",read:"カン"}, {char:"緩",read:"カン / ゆるい, ゆるやか, ゆるむ, ゆるめる"}, {char:"憾",read:"カン"}, {char:"還",read:"カン"}, {char:"館",read:"カン / やかた"},  
+        {char:"環",read:"カン"}, {char:"簡",read:"カン"}, {char:"観",read:"カン"}, {char:"韓",read:"カン"}, {char:"艦",read:"カン"},  
+        {char:"鑑",read:"カン / かんがみる"}, {char:"丸",read:"ガン / まる, まるい, まるめる"}, {char:"含",read:"ガン / ふくむ, ふくめる"}, {char:"岸",read:"ガン / きし"}, {char:"岩",read:"ガン / いわ"},  
+        {char:"玩",read:"ガン"}, {char:"眼",read:"ガン, ゲン / まなこ"}, {char:"頑",read:"ガン"}, {char:"顔",read:"ガン / かお"}, {char:"願",read:"ガン / ねがう"},  
+        {char:"企",read:"キ / くわだてる"}, {char:"伎",read:"キ"}, {char:"危",read:"キ / あぶない, あやうい, あやぶむ"}, {char:"机",read:"キ / つくえ"}, {char:"気",read:"キ, ケ"},  
+        {char:"岐",read:"キ"}, {char:"希",read:"キ"}, {char:"忌",read:"キ / いむ, いまわしい"}, {char:"汽",read:"キ"}, {char:"奇",read:"キ"},  
+        {char:"祈",read:"キ / いのる"}, {char:"季",read:"キ"}, {char:"紀",read:"キ"}, {char:"軌",read:"キ"}, {char:"既",read:"キ / すでに"},  
+        {char:"記",read:"キ / しるす"}, {char:"起",read:"キ / おきる, おこる, おこす"}, {char:"飢",read:"キ / うえる"}, {char:"鬼",read:"キ / おに"}, {char:"帰",read:"キ / かえる, かえす"},  
+        {char:"基",read:"キ / もと, もとい"}, {char:"寄",read:"キ / よる, よせる"}, {char:"規",read:"キ"}, {char:"亀",read:"キ / かめ"}, {char:"喜",read:"キ / よろこぶ"},  
+        {char:"幾",read:"キ / いく"}, {char:"揮",read:"キ"}, {char:"期",read:"キ, ゴ"}, {char:"棋",read:"キ"}, {char:"貴",read:"キ / たっとい, とうとい, たっとぶ, とうとぶ"},  
+        {char:"棄",read:"キ"}, {char:"毀",read:"キ"}, {char:"旗",read:"キ / はた"}, {char:"器",read:"キ / うつわ"}, {char:"畿",read:"キ"},  
+        {char:"輝",read:"キ / かがやく"}, {char:"機",read:"キ / はた"}, {char:"騎",read:"キ"}, {char:"技",read:"ギ / わざ"}, {char:"宜",read:"ギ"},  
+        {char:"偽",read:"ギ / いつわる, にせ"}, {char:"欺",read:"ギ / あざむく"}, {char:"義",read:"ギ"}, {char:"疑",read:"ギ / うたがう"}, {char:"儀",read:"ギ"},  
+        {char:"戯",read:"ギ / たわむれる"}, {char:"擬",read:"ギ"}, {char:"犠",read:"ギ"}, {char:"議",read:"ギ"}, {char:"菊",read:"キク"},  
+        {char:"吉",read:"キチ, キツ"}, {char:"喫",read:"キッ"}, {char:"詰",read:"キツ / つめる, つまる, つむ"}, {char:"却",read:"キャク"}, {char:"客",read:"キャク, カク"},  
+        {char:"脚",read:"キャク, キャ / あし"}, {char:"逆",read:"ギャク / さか, さからう"}, {char:"虐",read:"ギャク / しいたげる"}, {char:"九",read:"キュウ, ク / ここの, ここのつ"}, {char:"久",read:"キュウ, ク / ひさしい"},  
+        {char:"及",read:"キュウ / およぶ, および, およぼす"}, {char:"弓",read:"キュウ / ゆみ"}, {char:"丘",read:"キュウ / おか"}, {char:"旧",read:"キュウ"}, {char:"休",read:"キュウ / やすむ, やすまる, やすめる"},  
+        {char:"吸",read:"キュウ / すう"}, {char:"朽",read:"キュウ / くちる"}, {char:"臼",read:"キュウ / うす"}, {char:"求",read:"キュウ / もとめる"}, {char:"究",read:"キュウ / きわめる"},  
+        {char:"泣",read:"キュウ / なく"}, {char:"急",read:"キュウ / いそぐ"}, {char:"級",read:"キュウ"}, {char:"糾",read:"キュウ"}, {char:"宮",read:"キュウ, グウ, ク / みや"},  
+        {char:"救",read:"キュウ / すくう"}, {char:"球",read:"キュウ / たま"}, {char:"給",read:"キュウ"}, {char:"嗅",read:"キュウ / かぐ"}, {char:"窮",read:"キュウ / きわめる, きわまる"},  
+        {char:"牛",read:"ギュウ / うし"}, {char:"去",read:"キョ, コ / さる"}, {char:"巨",read:"キョ"}, {char:"居",read:"キョ / いる"}, {char:"拒",read:"キョ / こばむ"},  
+        {char:"拠",read:"キョ, コ"}, {char:"挙",read:"キョ / あげる, あがる"}, {char:"虚",read:"キョ, コ"}, {char:"許",read:"キョ / ゆるす"}, {char:"距",read:"キョ"},  
+        {char:"魚",read:"ギョ / うお, さかな"}, {char:"御",read:"ギョ, ゴ / おん"}, {char:"漁",read:"ギョ, リョウ"}, {char:"凶",read:"キョウ"}, {char:"共",read:"キョウ / とも"},  
+        {char:"叫",read:"キョウ / さけぶ"}, {char:"狂",read:"キョウ / くるう, くるおしい"}, {char:"京",read:"キョウ, ケイ"}, {char:"享",read:"キョウ"}, {char:"供",read:"キョウ, ク / そなえる, とも"},  
+        {char:"協",read:"キョウ"}, {char:"況",read:"キョウ"}, {char:"峡",read:"キョウ"}, {char:"挟",read:"キョウ / はさむ, はさまる"}, {char:"狭",read:"キョウ / せまい, せばめる, せばまる"},  
+        {char:"恐",read:"キョウ / おそれる, おそろしい"}, {char:"恭",read:"キョウ / うやうやしい"}, {char:"胸",read:"キョウ / むね, むな"}, {char:"脅",read:"キョウ / おびやかす, おどす, おどかす"}, {char:"強",read:"キョウ, ゴウ / つよい, つよまる, つよめる, しじる"},  
+        {char:"教",read:"キョウ / おしえる, おそわる"}, {char:"郷",read:"キョウ, ゴウ"}, {char:"境",read:"キョウ, ケイ / さかい"}, {char:"橋",read:"キョウ / はし"}, {char:"矯",read:"キョウ / ためる"},  
+        {char:"鏡",read:"キョウ / かがみ"}, {char:"競",read:"キョウ, ケイ / きそう, せる"}, {char:"響",read:"キョウ / ひびく"}, {char:"驚",read:"キョウ / おどろく, おどろかす"}, {char:"仰",read:"ギョウ, コウ / あおぐ, おおせ"},  
+        {char:"暁",read:"ギョウ / あかつき"}, {char:"業",read:"ギョウ, ゴウ / わざ"}, {char:"凝",read:"ギョウ / こる, こらす"}, {char:"曲",read:"キョク / まがる, まげる"}, {char:"局",read:"キョク"},  
+        {char:"極",read:"キョク, ゴク / きわめる, きわまる, きわみ"}, {char:"玉",read:"ギョク / たま"}, {char:"巾",read:"キン"}, {char:"斤",read:"キン"}, {char:"均",read:"キン"},  
+        {char:"近",read:"キン / ちかい"}, {char:"金",read:"キン, コン / かね, かな"}, {char:"菌",read:"キン"}, {char:"勤",read:"キン, ゴン / つとめる, つとまる"}, {char:"琴",read:"キン / こと"},  
+        {char:"筋",read:"キン / すじ"}, {char:"僅",read:"キン / わずか"}, {char:"禁",read:"キン"}, {char:"緊",read:"キン"}, {char:"錦",read:"キン / にしき"},  
+        {char:"謹",read:"キン / つつつしむ"}, {char:"襟",read:"キン / えり"}, {char:"吟",read:"ギン"}, {char:"銀",read:"ギン"}, {char:"区",read:"ク"},  
+        {char:"句",read:"ク"}, {char:"苦",read:"ク / くるしい, くるしむ, くるしめる, にがい, にがる"}, {char:"駆",read:"ク / かける, かる"}, {char:"具",read:"グ"}, {char:"惧",read:"グ"},  
+        {char:"愚",read:"グ / おろか"}, {char:"空",read:"クウ / そら, あく, あける, から"}, {char:"偶",read:"グウ"}, {char:"遇",read:"グウ"}, {char:"隅",read:"グウ / すみ"},  
+        {char:"串",read:"くし"}, {char:"屈",read:"クツ"}, {char:"掘",read:"クツ / ほる"}, {char:"窟",read:"クツ"}, {char:"熊",read:"くま"},  
+        {char:"繰",read:"くる"}, {char:"君",read:"クン / きみ"}, {char:"訓",read:"クン"}, {char:"勲",read:"クン"}, {char:"薫",read:"クン / かおる"},  
+        {char:"軍",read:"グン"}, {char:"郡",read:"グン"}, {char:"群",read:"グン / むれる, むれ, むら"}, {char:"兄",read:"ケイ, キョウ / あに"}, {char:"刑",read:"ケイ"},  
+        {char:"形",read:"ケイ, ギョウ / かた, かたち"}, {char:"系",read:"ケイ"}, {char:"径",read:"ケイ"}, {char:"茎",read:"ケイ / くき"}, {char:"覧",read:"ラン"}
+    ];  
+    
+    const kanjiData = {    
+        0: [    
+            {char:"一",read:"イチ, イツ / ひと, ひとつ"}, {char:"右",read:"ウ, ユウ / みぎ"}, {char:"雨",read:"ウ / あめ, あま"}, {char:"円",read:"エン / まるい"},    
+            {char:"王",read:"オウ"}, {char:"音",read:"オン, イン / おと, ね"}, {char:"下",read:"カ, ゲ / した, しも, もと, さげる, くだる"}, {char:"火",read:"カ / ひ, ほ"},    
+            {char:"花",read:"カ / はな"}, {char:"貝",read:"かい"}, {char:"九",read:"キュウ, ク / ここの, ここのつ"}, {char:"休",read:"キュウ / やすむ, やすまる"},    
+            {char:"玉",read:"ギョク / たま"}, {char:"金",read:"キン, コン / かね, かな"}, {char:"空",read:"クウ / そら, あく, から, むなしい"}, {char:"月",read:"ゲツ, ガツ / つき"},    
+            {char:"犬",read:"ケン / いぬ"}, {char:"見",read:"ケン / みる, みえる, みせる"}, {char:"五",read:"ゴ / いつ, いつつ"}, {char:"口",read:"コウ, ク / くち"},    
+            {char:"校",read:"コウ"}, {char:"左",read:"サ / ひだり"}, {char:"三",read:"サン / み, みつ, みっつ"}, {char:"山",read:"サン / やま"},    
+            {char:"子",read:"シ, ス / こ"}, {char:"四",read:"シ / よ, よつ, よっつ, よん"}, {char:"糸",read:"シ / いと"}, {char:"字",read:"ジ / あざ"},    
+            {char:"耳",read:"ジ / みみ"}, {char:"七",read:"シチ / なな, ななつ, なの"}, {char:"車",read:"シャ / くるま"}, {char:"手",read:"シュ / て, た"},    
+            {char:"十",read:"ジュウ, ジッ / とお, と"}, {char:"出",read:"シュツ / でる, だす"}, {char:"女",read:"ジョ, ニョ / おんな, め"}, {char:"小",read:"ショウ / ちいさい, こ, お"},    
+            {char:"上",read:"ジョウ / うえ, あがる, のぼる"}, {char:"森",read:"シン / もり"}, {char:"人",read:"ジン, ニン / ひと"}, {char:"水",read:"スイ / みず"},    
+            {char:"正",read:"セイ, ショウ / ただしい, まさ"}, {char:"生",read:"セイ, ショウ / いきる, うまれる, なま"}, {char:"青",read:"セイ, ショウ / あお, あおい"}, {char:"夕",read:"セキ / ゆう"},    
+            {char:"石",read:"セキ, シャク / いし"}, {char:"赤",read:"セキ / あか, あかい"}, {char:"千",read:"セン / ち"}, {char:"川",read:"セン / かわ"},    
+            {char:"先",read:"セン / さき"}, {char:"早",read:"ソウ, サッ / はやい, はやまる"}, {char:"草",read:"ソウ / くさ"}, {char:"足",read:"ソク / あし, たりる"},    
+            {char:"村",read:"ソン / むら"}, {char:"大",read:"ダイ, タイ / おおきい"}, {char:"男",read:"ダン, ナン / おとこ"}, {char:"竹",read:"チク / たけ"},    
+            {char:"中",read:"チュウ / なか"}, {char:"虫",read:"チュウ / むし"}, {char:"町",read:"チョウ / まち"}, {char:"天",read:"テン / あめ, あま"},    
+            {char:"田",read:"デン / た"}, {char:"土",read:"ト, ド / つち"}, {char:"二",read:"ニ / ふた, ふたつ"}, {char:"日",read:"ニチ, ジツ / ひ, か"},    
+            {char:"入",read:"ニュウ / はいる, いれる"}, {char:"年",read:"ネン / とし"}, {char:"白",read:"ハク, ビャク / しろ, しろい"}, {char:"八",read:"ハチ / や, やつ, やっつ, よう"},    
+            {char:"百",read:"ヒャク"}, {char:"文",read:"ブン, モン / ふみ"}, {char:"木",read:"ボク, モク / き, こ"}, {char:"本",read:"ホン / もと"},    
+            {char:"名",read:"メイ, ミョウ / な"}, {char:"目",read:"モク / め, ま"}, {char:"立",read:"リツ / たつ, たてる"}, {char:"林",read:"リン / はやし"},    
+            {char:"六",read:"ロク / む, むつ, むっつ, むい"}, {char:"力",read:"リョク, リキ / ちから"}    
+        ],    
+        1: [    
+            {char:"引",read:"イン / ひく, ひける"}, {char:"羽",read:"ウ / は, はね"}, {char:"雲",read:"ウン / くも"}, {char:"園",read:"エン / その"},    
+            {char:"遠",read:"エン / とおい"}, {char:"何",read:"カ / なに, なん"}, {char:"科",read:"カ"}, {char:"夏",read:"カ, ゲ / なつ"},    
+            {char:"家",read:"カ, ケ / いえ, や, うち"}, {char:"歌",read:"カ / うた, うたう"}, {char:"画",read:"ガ, カク / えがく, かく"}, {char:"回",read:"カイ / まわる, まわす"},    
+            {char:"会",read:"カイ, エ / あう"}, {char:"海",read:"カイ / うみ"}, {char:"絵",read:"カイ, エ"}, {char:"外",read:"ガイ, ゲ / そと, ほか, はずす"},    
+            {char:"角",read:"カク / かど, つの"}, {char:"楽",read:"ガク, ラク / たのしい"}, {char:"活",read:"カツ / いきる"}, {char:"間",read:"カン, ケン / あいだ, ま"},    
+            {char:"丸",read:"ガン / まる, まるい"}, {char:"岩",read:"ガン / いわ"}, {char:"顔",read:"ガン / かお"}, {char:"汽",read:"キ"},    
+            {char:"記",read:"キ / しるす"}, {char:"帰",read:"キ / かえる, かえす"}, {char:"弓",read:"キュウ / ゆみ"}, {char:"牛",read:"ギュウ / うし"},    
+            {char:"魚",read:"ギョ / うお, さかな"}, {char:"京",read:"キョウ, ケイ"}, {char:"強",read:"キョウ, ゴウ / つよい, つよまる"}, {char:"教",read:"キョウ / おしえる, おそわる"},    
+            {char:"近",read:"キン / ちかい"}, {char:"兄",read:"ケイ, キョウ / あに"}, {char:"形",read:"ケイ, ギョウ / かた, かたち"}, {char:"計",read:"ケイ / はかる, はかる"},    
+            {char:"元",read:"ゲン, ガン / もと"}, {char:"言",read:"ゲン, ゴン / いう, こと"}, {char:"原",read:"ゲン / はら"}, {char:"戸",read:"コ / と"},    
+            {char:"古",read:"コ / ふるい"}, {char:"午",read:"ゴ"}, {char:"後",read:"ゴ, コウ / のち, うしろ, あと"}, {char:"語",read:"ゴ / かたる"},    
+            {char:"工",read:"コウ, ク"}, {char:"公",read:"コウ / おおやけ"}, {char:"広",read:"コウ / ひろい, ひろがる"}, {char:"交",read:"コウ / まじる, かわす"},    
+            {char:"光",read:"コウ / ひかり, ひかる"}, {char:"考",read:"コウ / かんがえる"}, {char:"行",read:"コウ, ギョウ / いく, おこなう"}, {char:"高",read:"コウ / たかい, たかまる"},    
+            {char:"黄",read:"コウ / き, こ"}, {char:"合",read:"ゴウ / あう, あわせる"}, {char:"谷",read:"コク / たに"}, {char:"国",read:"コク / くに"},    
+            {char:"黒",read:"コク / くろ, くろい"}, {char:"今",read:"コン, キン / いま"}, {char:"才",read:"サイ"}, {char:"細",read:"サイ / ほそい, こまかい"},    
+            {char:"作",read:"サク, サ / つくる"}, {char:"算",read:"サン"}, {char:"止",read:"シ / とまる, とめる"}, {char:"市",read:"シ / いち"}, {char:"矢",read:"シ / や"},    
+            {char:"姉",read:"シ / あね"}, {char:"思",read:"シ / おもう"}, {char:"紙",read:"シ / かみ"}, {char:"寺",read:"ジ / てら"},    
+            {char:"自",read:"ジ, シ / みずから"}, {char:"時",read:"ジ / とき"}, {char:"社",read:"シャ / やしろ"}, {char:"場",read:"ジョウ / ば"},    
+            {char:"首",read:"シュ / くび"}, {char:"秋",read:"シュウ / あき"}, {char:"週",read:"シュウ"}, {char:"春",read:"シュン / はる"},    
+            {char:"書",read:"ショ / かく"}, {char:"少",read:"ショウ / すくない, すこし"}, {char:"場",read:"ジョウ / ば"}, {char:"色",read:"ショク, シキ / いろ"},    
+            {char:"食",read:"ショク / たべる, くう"}, {char:"心",read:"シン / こころ"}, {char:"新",read:"シン / あたらしい, あらた"}, {char:"親",read:"シン / おや, したしい"},    
+            {char:"図",read:"ズ, ト / はかる"}, {char:"数",read:"スウ / かず, かぞえる"}, {char:"西",read:"セイ, サイ / にし"}, {char:"声",read:"セイ / こえ"},    
+            {char:"星",read:"セイ / ほし"}, {char:"晴",read:"セイ / はれる"}, {char:"切",read:"セツ / きる, きれる"}, {char:"多",read:"タ / おおい"},    
+            {char:"太",read:"タイ, タ / ふとい"}, {char:"体",read:"タイ, テイ / からだ"}, {char:"台",read:"ダイ, タイ"}, {char:"地",read:"チ, ジ"},    
+            {char:"池",read:"チ / いけ"}, {char:"知",read:"チ / しる"}, {char:"茶",read:"チャ, サ"}, {char:"昼",read:"チュウ / ひる"},    
+            {char:"長",read:"チョウ / ながい"}, {char:"鳥",read:"チョウ / とり"}, {char:"朝",read:"チョウ / あさ"}, {char:"直",read:"チョク, ジキ / ただちに, なおす"},    
+            {char:"通",read:"ツウ / とおる, かよう"}, {char:"弟",read:"テイ / おとうと"}, {char:"店",read:"テン / みせ"}, {char:"点",read:"テン"},    
+            {char:"電",read:"デン"}, {char:"刀",read:"トウ / かたな"}, {char:"冬",read:"トウ / ふゆ"}, {char:"当",read:"トウ / あたる, あてる"},    
+            {char:"東",read:"トウ / ひがし"}, {char:"答",read:"トウ / こたえる"}, {char:"頭",read:"トウ, ズ / あたま, かしら"}, {char:"同",read:"ドウ / おなじ"},    
+            {char:"道",read:"ドウ / みち"}, {char:"読",read:"ドク / よむ"}, {char:"南",read:"ナン / みなみ"}, {char:"半",read:"ハン / なかば"},    
+            {char:"番",read:"バン"}, {char:"父",read:"フ / ちち"}, {char:"風",read:"フウ / かぜ, かざ"}, {char:"分",read:"ブン, ブ / わける, わかる"},    
+            {char:"聞",read:"ブン, モン / きく, きこえる"}, {char:"米",read:"ベイ, マイ / こめ"}, {char:"歩",read:"ホ, ブ / あるく, あゆむ"}, {char:"母",read:"ボ / はは"},    
+            {char:"方",read:"ホウ / かた"}, {char:"北",read:"ホク / きた"}, {char:"毎",read:"マイ"}, {char:"妹",read:"マイ / いもうと"},    
+            {char:"万",read:"マン, バン"}, {char:"鳴",read:"メイ / なく, なると"}, {char:"毛",read:"モウ / け"}, {char:"門",read:"モン / かど"},    
+            {char:"夜",read:"ヤ / よる, よ"}, {char:"野",read:"ヤ / の"}, {char:"用",read:"ヨウ / もちいる"}, {char:"友",read:"ユウ / とも"},    
+            {char:"曜",read:"ヨウ"}, {char:"来",read:"ライ /くる, いたる"}, {char:"里",read:"リ / さと"}, {char:"理",read:"リ"}, {char:"話",read:"ワ / はなす, はなし"}    
         ],  
-        1: [  
-            {char:"引",read:"イン / ひく, ひける"}, {char:"羽",read:"ウ / は, はね"}, {char:"雲",read:"ウン / くも"}, {char:"園",read:"エン / その"},  
-            {char:"遠",read:"エン / とおい"}, {char:"何",read:"カ / なに, なん"}, {char:"科",read:"カ"}, {char:"夏",read:"カ, ゲ / なつ"},  
-            {char:"家",read:"カ, ケ / いえ, や, うち"}, {char:"歌",read:"カ / うた, うたう"}, {char:"画",read:"ガ, カク / えがく, かく"}, {char:"回",read:"カイ / まわる, まわす"},  
-            {char:"会",read:"カイ, エ / あう"}, {char:"海",read:"カイ / うみ"}, {char:"絵",read:"カイ, エ"}, {char:"外",read:"ガイ, ゲ / そと, ほか, はずす"},  
-            {char:"角",read:"カク / かど, つの"}, {char:"楽",read:"ガク, ラク / たのしい"}, {char:"活",read:"カツ / いきる"}, {char:"間",read:"カン, ケン / あいだ, ま"},  
-            {char:"丸",read:"ガン / まる, まるい"}, {char:"岩",read:"ガン / いわ"}, {char:"顔",read:"ガン / かお"}, {char:"汽",read:"キ"},  
-            {char:"記",read:"キ / しるす"}, {char:"帰",read:"キ / かえる, かえす"}, {char:"弓",read:"キュウ / ゆみ"}, {char:"牛",read:"ギュウ / うし"},  
-            {char:"魚",read:"ギョ / うお, さかな"}, {char:"京",read:"キョウ, ケイ"}, {char:"強",read:"キョウ, ゴウ / つよい, つよまる"}, {char:"教",read:"キョウ / おしえる, おそわる"},  
-            {char:"近",read:"キン / ちかい"}, {char:"兄",read:"ケイ, キョウ / あに"}, {char:"形",read:"ケイ, ギョウ / かた, かたち"}, {char:"計",read:"ケイ / はかる, はかる"},  
-            {char:"元",read:"ゲン, ガン / もと"}, {char:"言",read:"ゲン, ゴン / いう, こと"}, {char:"原",read:"ゲン / はら"}, {char:"戸",read:"コ / と"},  
-            {char:"古",read:"コ / ふるい"}, {char:"午",read:"ゴ"}, {char:"後",read:"ゴ, コウ / のち, うしろ, あと"}, {char:"語",read:"ゴ / かたる"},  
-            {char:"工",read:"コウ, ク"}, {char:"公",read:"コウ / おおやけ"}, {char:"広",read:"コウ / ひろい, ひろがる"}, {char:"交",read:"コウ / まじる, かわす"},  
-            {char:"光",read:"コウ / ひかり, ひかる"}, {char:"考",read:"コウ / かんがえる"}, {char:"行",read:"コウ, ギョウ / いく, おこなう"}, {char:"高",read:"コウ / たかい, たかまる"},  
-            {char:"黄",read:"コウ / き, こ"}, {char:"合",read:"ゴウ / あう, あわせる"}, {char:"谷",read:"コク / たに"}, {char:"国",read:"コク / くに"},  
-            {char:"黒",read:"コク / くろ, くろい"}, {char:"今",read:"コン, キン / いま"}, {char:"才",read:"サイ"}, {char:"細",read:"サイ / ほそい, こまかい"},  
-            {char:"作",read:"サク, サ / つくる"}, {char:"算",read:"サン"}, {char:"止",read:"シ / とまる, とめる"}, {char:"市",read:"シ / いち"}, {char:"矢",read:"シ / や"},  
-            {char:"姉",read:"シ / あね"}, {char:"思",read:"シ / おもう"}, {char:"紙",read:"シ / かみ"}, {char:"寺",read:"ジ / てら"},  
-            {char:"自",read:"ジ, シ / みずから"}, {char:"時",read:"ジ / とき"}, {char:"社",read:"シャ / やしろ"}, {char:"場",read:"ジョウ / ば"},  
-            {char:"首",read:"シュ / くび"}, {char:"秋",read:"シュウ / あき"}, {char:"週",read:"シュウ"}, {char:"春",read:"シュン / はる"},  
-            {char:"書",read:"ショ / かく"}, {char:"少",read:"ショウ / すくない, すこし"}, {char:"場",read:"ジョウ / ば"}, {char:"色",read:"ショク, シキ / いろ"},  
-            {char:"食",read:"ショク / たべる, くう"}, {char:"心",read:"シン / こころ"}, {char:"新",read:"シン / あたらしい, あらた"}, {char:"親",read:"シン / おや, したしい"},  
-            {char:"図",read:"ズ, ト / はかる"}, {char:"数",read:"スウ / かず, かぞえる"}, {char:"西",read:"セイ, サイ / にし"}, {char:"声",read:"セイ / こえ"},  
-            {char:"星",read:"セイ / ほし"}, {char:"晴",read:"セイ / はれる"}, {char:"切",read:"セツ / きる, きれる"}, {char:"多",read:"タ / おおい"},  
-            {char:"太",read:"タイ, タ / ふとい"}, {char:"体",read:"タイ, テイ / からだ"}, {char:"台",read:"ダイ, タイ"}, {char:"地",read:"チ, ジ"},  
-            {char:"池",read:"チ / いけ"}, {char:"知",read:"チ / しる"}, {char:"茶",read:"チャ, サ"}, {char:"昼",read:"チュウ / ひる"},  
-            {char:"長",read:"チョウ / ながい"}, {char:"鳥",read:"チョウ / とり"}, {char:"朝",read:"チョウ / あさ"}, {char:"直",read:"チョク, ジキ / ただちに, なおす"},  
-            {char:"通",read:"ツウ / とおる, かよう"}, {char:"弟",read:"テイ / おとうと"}, {char:"店",read:"テン / みせ"}, {char:"点",read:"テン"},  
-            {char:"電",read:"デン"}, {char:"刀",read:"トウ / かたな"}, {char:"冬",read:"トウ / ふゆ"}, {char:"当",read:"トウ / あたる, あてる"},  
-            {char:"東",read:"トウ / ひがし"}, {char:"答",read:"トウ / こたえる"}, {char:"頭",read:"トウ, ズ / あたま, かしら"}, {char:"同",read:"ドウ / おなじ"},  
-            {char:"道",read:"ドウ / みち"}, {char:"読",read:"ドク / よむ"}, {char:"南",read:"ナン / みなみ"}, {char:"半",read:"ハン / なかば"},  
-            {char:"番",read:"バン"}, {char:"父",read:"フ / ちち"}, {char:"風",read:"フウ / かぜ, かざ"}, {char:"分",read:"ブン, ブ / わける, わかる"},  
-            {char:"聞",read:"ブン, モン / きく, きこえる"}, {char:"米",read:"ベイ, マイ / こめ"}, {char:"歩",read:"ホ, ブ / あるく, あゆむ"}, {char:"母",read:"ボ / はは"},  
-            {char:"方",read:"ホウ / かた"}, {char:"北",read:"ホク / きた"}, {char:"毎",read:"マイ"}, {char:"妹",read:"マイ / いもうと"},  
-            {char:"万",read:"マン, バン"}, {char:"鳴",read:"メイ / なく, なると"}, {char:"毛",read:"モウ / け"}, {char:"門",read:"モン / かど"},  
-            {char:"夜",read:"ヤ / よる, よ"}, {char:"野",read:"ヤ / の"}, {char:"用",read:"ヨウ / もちいる"}, {char:"友",read:"ユウ / とも"},  
-            {char:"曜",read:"ヨウ"}, {char:"来",read:"ライ /くる, いたる"}, {char:"里",read:"リ / さと"}, {char:"理",read:"リ"}, {char:"話",read:"ワ / はなす, はなし"}  
-        ],
-        6: joyoKanjiAll.slice(0, 100),
-        7: joyoKanjiAll.slice(100, 200),
-        8: joyoKanjiAll.slice(200, 300),
-        9: joyoKanjiAll.slice(300, 400),
-        10: joyoKanjiAll.slice(400)
-    };  
-  
-    let currentLang = 'ja';  
-    let currentGrade = 0;  
-    let currentKanjiIndex = 0;  
-    let currentFont = 'gothic';  
-    let isDrawing = false;  
-    let hasDrawn = false;  
-  
-    const langSelect = document.getElementById('lang-select');  
-    const gradeSelect = document.getElementById('grade-select');  
-    const kanjiSelect = document.getElementById('kanji-select');  
-    const fontSelect = document.getElementById('font-select');  
-    const titleText = document.getElementById('title-text');  
-    const kanjiInfo = document.getElementById('kanji-info');  
-      
-    const bgCanvas = document.getElementById('bgCanvas');  
-    const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });  
-    const drawCanvas = document.getElementById('drawCanvas');  
-    const drawCtx = drawCanvas.getContext('2d', { willReadFrequently: true });  
-  
-    // 判定計算用（判定膨張処理用の非表示Canvas）  
-    const maskCanvas = document.createElement('canvas');  
-    maskCanvas.width = 280;  
-    maskCanvas.height = 280;  
-    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });  
-  
-    const btnClear = document.getElementById('btn-clear');  
-    const btnCheck = document.getElementById('btn-check');  
-    const btnNext = document.getElementById('btn-next');  
-    const overlay = document.getElementById('overlay');  
-    const resultMark = document.getElementById('result-mark');  
-    const scoreText = document.getElementById('score-text');  
-  
-    let audioCtx = null;  
-  
-    function getAudioContext() {  
-        if (!audioCtx) {  
-            const AudioContext = window.AudioContext || window.webkitAudioContext;  
-            if (AudioContext) audioCtx = new AudioContext();  
-        }  
-        if (audioCtx && audioCtx.state === 'suspended') {  
-            audioCtx.resume();  
-        }  
-        return audioCtx;  
-    }  
-  
-    function playSuccessSound() {  
-        const ctx = getAudioContext();  
-        if (!ctx) return;  
-  
-        const now = ctx.currentTime;  
-        const osc1 = ctx.createOscillator();  
-        const osc2 = ctx.createOscillator();  
-        const gain = ctx.createGain();  
-  
-        osc1.type = 'sine';  
-        osc2.type = 'sine';  
-  
-        osc1.frequency.setValueAtTime(659.25, now);  
-        osc2.frequency.setValueAtTime(830.61, now + 0.15);  
-  
-        gain.gain.setValueAtTime(0.3, now);  
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);  
-  
-        osc1.connect(gain);  
-        osc2.connect(gain);  
-        gain.connect(ctx.destination);  
-  
-        osc1.start(now);  
-        osc1.stop(now + 0.15);  
-        osc2.start(now + 0.15);  
-        osc2.stop(now + 0.8);  
-    }  
-  
-    function playBuzzerSound() {  
-        const ctx = getAudioContext();  
-        if (!ctx) return;  
-  
-        const now = ctx.currentTime;  
-        const osc1 = ctx.createOscillator();  
-        const osc2 = ctx.createOscillator();  
-        const gain = ctx.createGain();  
-  
-        osc1.type = 'sawtooth';  
-        osc2.type = 'sawtooth';  
-  
-        osc1.frequency.setValueAtTime(140, now);  
-        osc2.frequency.setValueAtTime(143, now);  
-  
-        gain.gain.setValueAtTime(0.2, now);  
-        gain.gain.setValueAtTime(0.01, now + 0.2);  
-        gain.gain.setValueAtTime(0.2, now + 0.25);  
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);  
-  
-        osc1.connect(gain);  
-        osc2.connect(gain);  
-        gain.connect(ctx.destination);  
-  
-        osc1.start(now);  
-        osc2.start(now);  
-        osc1.stop(now + 0.55);  
-        osc2.stop(now + 0.55);  
-    }  
-  
-    function updateLanguage() {  
-        const texts = i18n[currentLang];  
-        titleText.textContent = texts.title;  
-        btnClear.textContent = texts.clear;  
-        btnCheck.textContent = texts.check;  
-        btnNext.textContent = texts.next;  
-  
-        const prevGrade = gradeSelect.value;  
-        gradeSelect.innerHTML = '';  
-        texts.grades.forEach((g, idx) => {  
-            const opt = document.createElement('option');  
-            opt.value = idx;  
-            opt.textContent = g;  
-            gradeSelect.appendChild(opt);  
-        });  
-        gradeSelect.value = prevGrade !== "" && prevGrade < texts.grades.length ? prevGrade : 0;  
-  
-        updateKanjiList();  
-    }  
-  
-    function updateKanjiList() {  
-        currentGrade = parseInt(gradeSelect.value, 10) || 0;  
-        const list = kanjiData[currentGrade] || kanjiData[0];  
-          
-        kanjiSelect.innerHTML = '';  
-        list.forEach((item, idx) => {  
-            const opt = document.createElement('option');  
-            opt.value = idx;  
-            opt.textContent = `${idx + 1}. ${item.char}`;  
-            kanjiSelect.appendChild(opt);  
-        });  
-  
-        currentKanjiIndex = 0;  
-        kanjiSelect.value = 0;  
-        loadCurrentKanji();  
-    }  
-  
-    function loadCurrentKanji() {  
-        clearCanvas();  
-        hideOverlay();  
-        updateKanjiInfo();  
-        drawBackgroundKanji();  
-    }  
-  
-    function updateKanjiInfo() {  
-        const list = kanjiData[currentGrade] || kanjiData[0];  
-        const item = list[currentKanjiIndex];  
-        const label = i18n[currentLang].read;  
-        if (item) {  
-            kanjiInfo.textContent = `${label}: ${item.read}`;  
-        } else {  
-            kanjiInfo.textContent = '';  
-        }  
-    }  
-  
-    // 選択中のフォント（明朝／ゴシック）で文字を描画  
-    function drawBackgroundKanji() {  
-        const list = kanjiData[currentGrade] || kanjiData[0];  
-        const item = list[currentKanjiIndex];  
-        if (!item) return;  
-  
-        bgCtx.fillStyle = '#ffffff';  
-        bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);  
-  
-        bgCtx.font = `200px ${fontFamilies[currentFont]}`;  
-        bgCtx.textAlign = 'center';  
-        bgCtx.textBaseline = 'middle';  
-        bgCtx.fillStyle = '#dcdde1';  
-        bgCtx.fillText(item.char, bgCanvas.width / 2, bgCanvas.height / 2 + 15);  
-    }  
-  
-    function getPos(e) {  
-        const rect = drawCanvas.getBoundingClientRect();  
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;  
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;  
-        return {  
-            x: (clientX - rect.left) * (drawCanvas.width / rect.width),  
-            y: (clientY - rect.top) * (drawCanvas.height / rect.height)  
-        };  
-    }  
-  
-    function startDrawing(e) {  
-        e.preventDefault();  
-        getAudioContext();  
-        isDrawing = true;  
-        hasDrawn = true;  
-        const pos = getPos(e);  
-        drawCtx.beginPath();  
-        drawCtx.moveTo(pos.x, pos.y);  
-        drawCtx.strokeStyle = '#2c3e50';  
-        drawCtx.lineWidth = 14;  
-        drawCtx.lineCap = 'round';  
-        drawCtx.lineJoin = 'round';  
-    }  
-  
-    function draw(e) {  
-        if (!isDrawing) return;  
-        e.preventDefault();  
-        const pos = getPos(e);  
-        drawCtx.lineTo(pos.x, pos.y);  
-        drawCtx.stroke();  
-    }  
-  
-    function stopDrawing() {  
-        if (!isDrawing) return;  
-        isDrawing = false;  
-        drawCtx.closePath();  
-    }  
-  
-    function clearCanvas() {  
-        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);  
-        hasDrawn = false;  
-        hideOverlay();  
-    }  
-  
-    /**  
-     * 【厳格判定ロジック】  
-     * 塗りつぶし対策：はみ出しペナルティの導入と太幅許容エリアの生成  
-     */  
-    function evaluateDrawing() {  
-        if (!hasDrawn) return;  
-  
-        const list = kanjiData[currentGrade] || kanjiData[0];  
-        const item = list[currentKanjiIndex];  
-        if (!item) return;  
-  
-        const width = 280;  
-        const height = 280;  
-  
-        // 1. 正解許容ゾーン（マスク）を作成：太い線幅で文字を描画して多少のズレを許容  
-        maskCtx.fillStyle = '#ffffff';  
-        maskCtx.fillRect(0, 0, width, height);  
-        maskCtx.font = `200px ${fontFamilies[currentFont]}`;  
-        maskCtx.textAlign = 'center';  
-        maskCtx.textBaseline = 'middle';  
-        maskCtx.strokeStyle = '#000000';  
-        maskCtx.lineWidth = 32; // 太い輪郭でなぞりの誤差を許容  
-        maskCtx.strokeText(item.char, width / 2, height / 2 + 15);  
-        maskCtx.fillStyle = '#000000';  
-        maskCtx.fillText(item.char, width / 2, height / 2 + 15);  
-  
-        // 2. ピクセル取得  
-        const bgData = bgCtx.getImageData(0, 0, width, height).data;      // 見本（細い線）  
-        const maskData = maskCtx.getImageData(0, 0, width, height).data;  // 正解許容エリア（太線）  
-        const drawData = drawCtx.getImageData(0, 0, width, height).data;  // 子供の手書き線  
-  
-        let targetPixels = 0;     // 見本のピクセル数  
-        let userPixels = 0;       // 手書きの全ピクセル数  
-        let coveredPixels = 0;    // 正しい線をなぞれたピクセル数  
-        let outOfBoundsPixels = 0;// 許容エリア外にはみ出した（塗りつぶした）ピクセル数  
-  
-        for (let i = 0; i < bgData.length; i += 4) {  
-            const isTarget = (bgData[i] < 240 || bgData[i+1] < 240 || bgData[i+2] < 240);  
-            const isAllowed = (maskData[i] < 200 || maskData[i+1] < 200 || maskData[i+2] < 200);  
-            const isDrawn = (drawData[i + 3] > 50);  
-  
-            if (isTarget) targetPixels++;  
-            if (isDrawn) {  
-                userPixels++;  
-                if (isAllowed) {  
-                    coveredPixels++;  
-                } else {  
-                    outOfBoundsPixels++; // はみ出し（塗り潰し）領域  
-                }  
-            }  
-        }  
-  
-        if (targetPixels === 0 || userPixels === 0) return;  
-  
-        // 【計算】なぞり達成度（0.0〜1.0）  
-        const coverage = Math.min(1.0, coveredPixels / (targetPixels * 0.85));  
-  
-        // 【計算】はみ出しペナルティ率（はみ出しピクセル数 / 手書き全ピクセル数）  
-        const penaltyRatio = outOfBoundsPixels / userPixels;  
-  
-        // 最終スコア（％）：達成度から「はみ出しペナルティ（2.0倍の重み）」を減算  
-        let finalScore = Math.round((coverage - (penaltyRatio * 2.0)) * 100);  
-        if (finalScore < 0) finalScore = 0;  
-  
-        showResult(finalScore);  
-    }  
-  
-    function showResult(score) {  
-        resultMark.className = 'result-mark';  
-        scoreText.textContent = `てんすう: ${score}てん`;  
-  
-        if (score >= 70) {  
-            resultMark.textContent = '◎';  
-            resultMark.classList.add('mark-double');  
-            playSuccessSound();  
-        } else if (score >= 45) {  
-            resultMark.textContent = '○';  
-            resultMark.classList.add('mark-single');  
-            playSuccessSound();  
-        } else if (score >= 20) {  
-            resultMark.textContent = '△';  
-            resultMark.classList.add('mark-triangle');  
-            playBuzzerSound();  
-        } else {  
-            resultMark.textContent = '×';  
-            resultMark.classList.add('mark-cross');  
-            playBuzzerSound();  
-        }  
-  
-        overlay.classList.add('show');  
-    }  
-  
-    function hideOverlay() {  
-        overlay.classList.remove('show');  
-    }  
-  
-    function nextKanji() {  
-        const list = kanjiData[currentGrade] || kanjiData[0];  
-        if (list.length === 0) return;  
-        currentKanjiIndex = (currentKanjiIndex + 1) % list.length;  
-        kanjiSelect.value = currentKanjiIndex;  
-        loadCurrentKanji();  
-    }  
-  
-    function initEvents() {  
-        langSelect.addEventListener('change', (e) => {  
-            currentLang = e.target.value;  
-            updateLanguage();  
-        });  
-  
-        gradeSelect.addEventListener('change', () => {  
-            updateKanjiList();  
-        });  
-  
-        kanjiSelect.addEventListener('change', (e) => {  
-            currentKanjiIndex = parseInt(e.target.value, 10) || 0;  
-            loadCurrentKanji();  
-        });  
-  
-        // フォント切替イベント  
-        fontSelect.addEventListener('change', (e) => {  
-            currentFont = e.target.value;  
-            loadCurrentKanji();  
-        });  
-  
-        btnClear.addEventListener('click', clearCanvas);  
-        btnCheck.addEventListener('click', evaluateDrawing);  
-        btnNext.addEventListener('click', nextKanji);  
-  
-        drawCanvas.addEventListener('mousedown', startDrawing);  
-        drawCanvas.addEventListener('mousemove', draw);  
-        window.addEventListener('mouseup', stopDrawing);  
-  
-        drawCanvas.addEventListener('touchstart', startDrawing, { passive: false });  
-        drawCanvas.addEventListener('touchmove', draw, { passive: false });  
-        drawCanvas.addEventListener('touchend', stopDrawing);  
-    }  
-  
-    function init() {  
-        initEvents();  
-        updateLanguage();  
-    }  
-  
-    if (document.readyState === 'loading') {  
-        document.addEventListener('DOMContentLoaded', init);  
-    } else {  
-        init();  
-    }  
-})();  
-</script>  
-</body>  
-</html>  
+        6: joyoKanjiAll.slice(0, 100),  
+        7: joyoKanjiAll.slice(100, 200),  
+        8: joyoKanjiAll.slice(200, 300),  
+        9: joyoKanjiAll.slice(300, 400),  
+        10: joyoKanjiAll.slice(400)  
+    };    
+    
+    let currentLang = 'ja';    
+    let currentGrade = 0;    
+    let currentKanjiIndex = 0;    
+    let currentFont = 'gothic';    
+    let isDrawing = false;    
+    let hasDrawn = false;    
+    
+    const langSelect = document.getElementById('lang-select');    
+    const gradeSelect = document.getElementById('grade-select');    
+    const kanjiSelect = document.getElementById('kanji-select');    
+    const fontSelect = document.getElementById('font-select');    
+    const titleText = document.getElementById('title-text');    
+    const kanjiInfo = document.getElementById('kanji-info');    
+        
+    const bgCanvas = document.getElementById('bgCanvas');    
+    const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });    
+    const drawCanvas = document.getElementById('drawCanvas');    
+    const drawCtx = drawCanvas.getContext('2d', { willReadFrequently: true });    
+    
+    // 判定計算用（判定膨張処理用の非表示Canvas）    
+    const maskCanvas = document.createElement('canvas');    
+    maskCanvas.width = 280;    
+    maskCanvas.height = 280;    
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });    
+    
+    const btnClear = document.getElementById('btn-clear');    
+    const btnCheck = document.getElementById('btn-check');    
+    const btnNext = document.getElementById('btn-next');    
+    const overlay = document.getElementById('overlay');    
+    const resultMark = document.getElementById('result-mark');    
+    const scoreText = document.getElementById('score-text');    
+    
+    let audioCtx = null;    
+    
+    function getAudioContext() {    
+        if (!audioCtx) {    
+            const AudioContext = window.AudioContext || window.webkitAudioContext;    
+            if (AudioContext) audioCtx = new AudioContext();    
+        }    
+        if (audioCtx && audioCtx.state === 'suspended') {    
+            audioCtx.resume();    
+        }    
+        return audioCtx;    
+    }    
+    
+    function playSuccessSound() {    
+        const ctx = getAudioContext();    
+        if (!ctx) return;    
+    
+        const now = ctx.currentTime;    
+        const osc1 = ctx.createOscillator();    
+        const osc2 = ctx.createOscillator();    
+        const gain = ctx.createGain();    
+    
+        osc1.type = 'sine';    
+        osc2.type = 'sine';    
+    
+        osc1.frequency.setValueAtTime(659.25, now);    
+        osc2.frequency.setValueAtTime(830.61, now + 0.15);    
+    
+        gain.gain.setValueAtTime(0.3, now);    
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);    
+    
+        osc1.connect(gain);    
+        osc2.connect(gain);    
+        gain.connect(ctx.destination);    
+    
+        osc1.start(now);    
+        osc1.stop(now + 0.15);    
+        osc2.start(now + 0.15);    
+        osc2.stop(now + 0.8);    
+    }    
+    
+    function playBuzzerSound() {    
+        const ctx = getAudioContext();    
+        if (!ctx) return;    
+    
+        const now = ctx.currentTime;    
+        const osc1 = ctx.createOscillator();    
+        const osc2 = ctx.createOscillator();    
+        const gain = ctx.createGain();    
+    
+        osc1.type = 'sawtooth';    
+        osc2.type = 'sawtooth';    
+    
+        osc1.frequency.setValueAtTime(140, now);    
+        osc2.frequency.setValueAtTime(143, now);    
+    
+        gain.gain.setValueAtTime(0.2, now);    
+        gain.gain.setValueAtTime(0.01, now + 0.2);    
+        gain.gain.setValueAtTime(0.2, now + 0.25);    
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);    
+    
+        osc1.connect(gain);    
+        osc2.connect(gain);    
+        gain.connect(ctx.destination);    
+    
+        osc1.start(now);    
+        osc2.start(now);    
+        osc1.stop(now + 0.55);    
+        osc2.stop(now + 0.55);    
+    }    
+    
+    function updateLanguage() {    
+        const texts = i18n[currentLang];    
+        titleText.textContent = texts.title;    
+        btnClear.textContent = texts.clear;    
+        btnCheck.textContent = texts.check;    
+        btnNext.textContent = texts.next;    
+    
+        const prevGrade = gradeSelect.value;    
+        gradeSelect.innerHTML = '';    
+        texts.grades.forEach((g, idx) => {    
+            const opt = document.createElement('option');    
+            opt.value = idx;    
+            opt.textContent = g;    
+            gradeSelect.appendChild(opt);    
+        });    
+        gradeSelect.value = prevGrade !== "" && prevGrade < texts.grades.length ? prevGrade : 0;    
+    
+        updateKanjiList();    
+    }    
+    
+    function updateKanjiList() {    
+        currentGrade = parseInt(gradeSelect.value, 10) || 0;    
+        const list = kanjiData[currentGrade] || kanjiData[0];    
+            
+        kanjiSelect.innerHTML = '';    
+        list.forEach((item, idx) => {    
+            const opt = document.createElement('option');    
+            opt.value = idx;    
+            opt.textContent = `${idx + 1}. ${item.char}`;    
+            kanjiSelect.appendChild(opt);    
+        });    
+    
+        currentKanjiIndex = 0;    
+        kanjiSelect.value = 0;    
+        loadCurrentKanji();    
+    }    
+    
+    function loadCurrentKanji() {    
+        clearCanvas();    
+        hideOverlay();    
+        updateKanjiInfo();    
+        drawBackgroundKanji();    
+    }    
+    
+    function updateKanjiInfo() {    
+        const list = kanjiData[currentGrade] || kanjiData[0];    
+        const item = list[currentKanjiIndex];    
+        const label = i18n[currentLang].read;    
+        if (item) {    
+            kanjiInfo.textContent = `${label}: ${item.read}`;    
+        } else {    
+            kanjiInfo.textContent = '';    
+        }    
+    }    
+    
+    // 選択中のフォント（明朝／ゴシック）で文字を描画    
+    function drawBackgroundKanji() {    
+        const list = kanjiData[currentGrade] || kanjiData[0];    
+        const item = list[currentKanjiIndex];    
+        if (!item) return;    
+    
+        bgCtx.fillStyle = '#ffffff';    
+        bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);    
+    
+        bgCtx.font = `200px ${fontFamilies[currentFont]}`;    
+        bgCtx.textAlign = 'center';    
+        bgCtx.textBaseline = 'middle';    
+        bgCtx.fillStyle = '#dcdde1';    
+        bgCtx.fillText(item.char, bgCanvas.width / 2, bgCanvas.height / 2 + 15);    
+    }    
+    
+    function getPos(e) {    
+        const rect = drawCanvas.getBoundingClientRect();    
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;    
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;    
+        return {    
+            x: (clientX - rect.left) * (drawCanvas.width / rect.width),    
+            y: (clientY - rect.top) * (drawCanvas.height / rect.height)    
+        };    
+    }    
+    
+    function startDrawing(e) {    
+        e.preventDefault();    
+        getAudioContext();    
+        isDrawing = true;    
+        hasDrawn = true;    
+        const pos = getPos(e);    
+        drawCtx.beginPath();    
+        drawCtx.moveTo(pos.x, pos.y);    
+        drawCtx.strokeStyle = '#2c3e50';    
+        drawCtx.lineWidth = 14;    
+        drawCtx.lineCap = 'round';    
+        drawCtx.lineJoin = 'round';    
+    }    
+    
+    function draw(e) {    
+        if (!isDrawing) return;    
+        e.preventDefault();    
+        const pos = getPos(e);    
+        drawCtx.lineTo(pos.x, pos.y);    
+        drawCtx.stroke();    
+    }    
+    
+    function stopDrawing() {    
+        if (!isDrawing) return;    
+        isDrawing = false;    
+        drawCtx.closePath();    
+    }    
+    
+    function clearCanvas() {    
+        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);    
+        hasDrawn = false;    
+        hideOverlay();    
+    }    
+    
+    /**    
+     * 【厳格判定ロジック】    
+     * 塗りつぶし対策：はみ出しペナルティの導入と太幅許容エリアの生成    
+     */    
+    function evaluateDrawing() {    
+        if (!hasDrawn) return;    
+    
+        const list = kanjiData[currentGrade] || kanjiData[0];    
+        const item = list[currentKanjiIndex];    
+        if (!item) return;    
+    
+        const width = 280;    
+        const height = 280;    
+    
+        // 1. 正解許容ゾーン（マスク）を作成：太い線幅で文字を描画して多少のズレを許容    
+        maskCtx.fillStyle = '#ffffff';    
+        maskCtx.fillRect(0, 0, width, height);    
+        maskCtx.font = `200px ${fontFamilies[currentFont]}`;    
+        maskCtx.textAlign = 'center';    
+        maskCtx.textBaseline = 'middle';    
+        maskCtx.strokeStyle = '#000000';    
+        maskCtx.lineWidth = 32; // 太い輪郭でなぞりの誤差を許容    
+        maskCtx.strokeText(item.char, width / 2, height / 2 + 15);    
+        maskCtx.fillStyle = '#000000';    
+        maskCtx.fillText(item.char, width / 2, height / 2 + 15);    
+    
+        // 2. ピクセル取得    
+        const bgData = bgCtx.getImageData(0, 0, width, height).data;      // 見本（細い線）    
+        const maskData = maskCtx.getImageData(0, 0, width, height).data;  // 正解許容エリア（太線）    
+        const drawData = drawCtx.getImageData(0, 0, width, height).data;  // 子供の手書き線    
+    
+        let targetPixels = 0;     // 見本のピクセル数    
+        let userPixels = 0;       // 手書きの全ピクセル数    
+        let coveredPixels = 0;    // 正しい線をなぞれたピクセル数    
+        let outOfBoundsPixels = 0;// 許容エリア外にはみ出した（塗りつぶした）ピクセル数    
+    
+        for (let i = 0; i < bgData.length; i += 4) {    
+            const isTarget = (bgData[i] < 240 || bgData[i+1] < 240 || bgData[i+2] < 240);    
+            const isAllowed = (maskData[i] < 200 || maskData[i+1] < 200 || maskData[i+2] < 200);    
+            const isDrawn = (drawData[i + 3] > 50);    
+    
+            if (isTarget) targetPixels++;    
+            if (isDrawn) {    
+                userPixels++;    
+                if (isAllowed) {    
+                    coveredPixels++;    
+                } else {    
+                    outOfBoundsPixels++; // はみ出し（塗り潰し）領域    
+                }    
+            }    
+        }    
+    
+        if (targetPixels === 0 || userPixels === 0) return;    
+    
+        // 【計算】なぞり達成度（0.0〜1.0）    
+        const coverage = Math.min(1.0, coveredPixels / (targetPixels * 0.85));    
+    
+        // 【計算】はみ出しペナルティ率（はみ出しピクセル数 / 手書き全ピクセル数）    
+        const penaltyRatio = outOfBoundsPixels / userPixels;    
+    
+        // 最終スコア（％）：達成度から「はみ出しペナルティ（2.0倍の重み）」を減算    
+        let finalScore = Math.round((coverage - (penaltyRatio * 2.0)) * 100);    
+        if (finalScore < 0) finalScore = 0;    
+    
+        showResult(finalScore);    
+    }    
+    
+    function showResult(score) {    
+        resultMark.className = 'result-mark';    
+        scoreText.textContent = `てんすう: ${score}てん`;    
+    
+        if (score >= 70) {    
+            resultMark.textContent = '◎';    
+            resultMark.classList.add('mark-double');    
+            playSuccessSound();    
+        } else if (score >= 45) {    
+            resultMark.textContent = '○';    
+            resultMark.classList.add('mark-single');    
+            playSuccessSound();    
+        } else if (score >= 20) {    
+            resultMark.textContent = '△';    
+            resultMark.classList.add('mark-triangle');    
+            playBuzzerSound();    
+        } else {    
+            resultMark.textContent = '×';    
+            resultMark.classList.add('mark-cross');    
+            playBuzzerSound();    
+        }    
+    
+        overlay.classList.add('show');    
+    }    
+    
+    function hideOverlay() {    
+        overlay.classList.remove('show');    
+    }    
+    
+    function nextKanji() {    
+        const list = kanjiData[currentGrade] || kanjiData[0];    
+        if (list.length === 0) return;    
+        currentKanjiIndex = (currentKanjiIndex + 1) % list.length;    
+        kanjiSelect.value = currentKanjiIndex;    
+        loadCurrentKanji();    
+    }    
+    
+    function initEvents() {    
+        langSelect.addEventListener('change', (e) => {    
+            currentLang = e.target.value;    
+            updateLanguage();    
+        });    
+    
+        gradeSelect.addEventListener('change', () => {    
+            updateKanjiList();    
+        });    
+    
+        kanjiSelect.addEventListener('change', (e) => {    
+            currentKanjiIndex = parseInt(e.target.value, 10) || 0;    
+            loadCurrentKanji();    
+        });    
+    
+        // フォント切替イベント    
+        fontSelect.addEventListener('change', (e) => {    
+            currentFont = e.target.value;    
+            loadCurrentKanji();    
+        });    
+    
+        btnClear.addEventListener('click', clearCanvas);    
+        btnCheck.addEventListener('click', evaluateDrawing);    
+        btnNext.addEventListener('click', nextKanji);    
+    
+        drawCanvas.addEventListener('mousedown', startDrawing);    
+        drawCanvas.addEventListener('mousemove', draw);    
+        window.addEventListener('mouseup', stopDrawing);    
+    
+        drawCanvas.addEventListener('touchstart', startDrawing, { passive: false });    
+        drawCanvas.addEventListener('touchmove', draw, { passive: false });    
+        drawCanvas.addEventListener('touchend', stopDrawing);    
+    }    
+    
+    function init() {    
+        initEvents();    
+        updateLanguage();    
+    }    
+    
+    if (document.readyState === 'loading') {    
+        document.addEventListener('DOMContentLoaded', init);    
+    } else {    
+        init();    
+    }    
+})();    
+</script>    
+</body>    
+</html>
