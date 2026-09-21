@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>レトロアスレチック / Retro Athletic</title>
+    <style>
+        /* メモリ・描画負荷を最小限に抑えるスタイル定義 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #111;
+            color: #eee;
+            /* 汎用的フォント「MS 明朝」を最優先 */
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 4px solid #fff;
+            padding: 10px;
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .ui-bar {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        select {
+            background: #222;
+            color: #fff;
+            border: 1px solid #aaa;
+            font-family: "MS Mincho", "MS 明朝", serif;
+            padding: 4px 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        canvas {
+            background-color: #101420;
+            border: 2px solid #555;
+            /* レトロドット絵の鮮明化処理 */
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            display: block;
+        }
+
+        .controls-hint {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #aaa;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="ui-bar">
+        <span id="label-language">言語:</span>
+        <select id="lang-select">
+            <option value="ja" selected>日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+
+    <!-- 描画用キャンバス (軽量サイズ: 640x360) -->
+    <canvas id="gameCanvas" width="640" height="360"></canvas>
+
+    <div class="controls-hint" id="label-controls">
+        [SPACE / TAP] ジャンプ
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // 多言語辞書（メモリを最小限にするため軽量な静的オブジェクトとして保存）
+    const i18n = {
+        ja: {
+            title: "レトロアスレチック",
+            langLabel: "言語:",
+            controls: "[SPACE / クリック] ジャンプ",
+            score: "スコア",
+            highScore: "ハイスコア",
+            titleText: "レトロアスレチック",
+            startHint: "[SPACE] でスタート",
+            gameOver: "ゲームオーバー",
+            restartHint: "[SPACE] で再挑戦"
+        },
+        en: {
+            title: "Retro Athletic",
+            langLabel: "Lang:",
+            controls: "[SPACE / Click] Jump",
+            score: "Score",
+            highScore: "High",
+            titleText: "Retro Athletic",
+            startHint: "Press [SPACE] to Start",
+            gameOver: "Game Over",
+            restartHint: "Press [SPACE] to Retry"
+        },
+        zh: {
+            title: "复古田径",
+            langLabel: "语言:",
+            controls: "[SPACE / 点击] 跳跃",
+            score: "得分",
+            highScore: "最高分",
+            titleText: "复古田径",
+            startHint: "按 [SPACE] 开始",
+            gameOver: "游戏结束",
+            restartHint: "按 [SPACE] 重试"
+        },
+        ko: {
+            title: "레트로 아슬레틱",
+            langLabel: "언어:",
+            controls: "[SPACE / 클릭] 점프",
+            score: "점수",
+            highScore: "최고 점수",
+            titleText: "레트로 아슬레틱",
+            startHint: "[SPACE]를 누르면 시작",
+            gameOver: "게임 오버",
+            restartHint: "[SPACE]를 누르면 다시 시도"
+        },
+        fr: {
+            title: "Athlétique Rétro",
+            langLabel: "Langue:",
+            controls: "[ESPACE / Clic] Sauter",
+            score: "Score",
+            highScore: "Record",
+            titleText: "Athlétique Rétro",
+            startHint: "Appuyez sur [ESPACE] pour démarrer",
+            gameOver: "Partie Terminée",
+            restartHint: "Appuyez sur [ESPACE] pour rejouer"
+        },
+        es: {
+            title: "Atlético Retro",
+            langLabel: "Idioma:",
+            controls: "[ESPACIO / Clic] Saltar",
+            score: "Puntos",
+            highScore: "Rrecord",
+            titleText: "Atlético Retro",
+            startHint: "Presiona [ESPACIO] para empezar",
+            gameOver: "Fin del Juego",
+            restartHint: "Presiona [ESPACIO] para reintentar"
+        }
+    };
+
+    let currentLang = 'ja';
+
+    // ゲーム状態
+    const STATE_TITLE = 0;
+    const STATE_PLAYING = 1;
+    const STATE_GAMEOVER = 2;
+    let gameState = STATE_TITLE;
+
+    // キャンバス・コンテキスト
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // αチャンネルオフで描画高速化
+
+    // UI要素
+    const langSelect = document.getElementById('lang-select');
+    const labelLang = document.getElementById('label-language');
+    const labelControls = document.getElementById('label-controls');
+
+    // 定数
+    const CANVAS_WIDTH = 640;
+    const CANVAS_HEIGHT = 360;
+    const GROUND_Y = 300;
+    const GRAVITY = 0.6;
+
+    // プレイヤーオブジェクト（固定インスタンスでメモリ再割り当てを防ぐ）
+    const player = {
+        x: 80,
+        y: GROUND_Y - 32,
+        width: 32,
+        height: 32,
+        vy: 0,
+        isGrounded: true,
+        animFrame: 0
+    };
+
+    // 障害物管理（オブジェクトプール風にメモリ固定化）
+    let obstacles = [];
+    let score = 0;
+    let highScore = 0;
+    let speed = 4;
+    let spawnTimer = 0;
+    let animationFrameId = null;
+
+    // 言語アップデート
+    function updateLanguage(lang) {
+        if (!i18n[lang]) return;
+        currentLang = lang;
+        const text = i18n[lang];
+        document.title = text.title;
+        labelLang.textContent = text.langLabel;
+        labelControls.textContent = text.controls;
+    }
+
+    langSelect.addEventListener('change', (e) => {
+        updateLanguage(e.target.value);
+    });
+
+    // 入力処理
+    function handleAction() {
+        if (gameState === STATE_TITLE) {
+            startGame();
+        } else if (gameState === STATE_PLAYING) {
+            if (player.isGrounded) {
+                player.vy = -12;
+                player.isGrounded = false;
+            }
+        } else if (gameState === STATE_GAMEOVER) {
+            startGame();
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            e.preventDefault();
+            handleAction();
+        }
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleAction();
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        handleAction();
+    });
+
+    function startGame() {
+        gameState = STATE_PLAYING;
+        score = 0;
+        speed = 5;
+        spawnTimer = 0;
+        player.y = GROUND_Y - player.height;
+        player.vy = 0;
+        player.isGrounded = true;
+        obstacles.length = 0; // 配列再生成を避け、既存配列を空にしてメモリ節約
+    }
+
+    // 更新ロジック
+    function update() {
+        if (gameState !== STATE_PLAYING) return;
+
+        // プレイヤー物理計算
+        player.vy += GRAVITY;
+        player.y += player.vy;
+
+        if (player.y >= GROUND_Y - player.height) {
+            player.y = GROUND_Y - player.height;
+            player.vy = 0;
+            player.isGrounded = true;
+        }
+
+        player.animFrame += 0.15;
+
+        // スコアと難易度上昇
+        score += 0.1;
+        speed += 0.0005;
+
+        // 障害物の生成
+        spawnTimer++;
+        if (spawnTimer > Math.max(40, 100 - Math.floor(speed * 5))) {
+            if (Math.random() < 0.6) {
+                obstacles.push({
+                    x: CANVAS_WIDTH,
+                    y: GROUND_Y - 28,
+                    width: 20,
+                    height: 28
+                });
+                spawnTimer = 0;
+            }
+        }
+
+        // 障害物の移動 & 衝突判定
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const obs = obstacles[i];
+            obs.x -= speed;
+
+            // 衝突判定 (AABB)
+            if (
+                player.x < obs.x + obs.width &&
+                player.x + player.width > obs.x &&
+                player.y < obs.y + obs.height &&
+                player.y + player.height > obs.y
+            ) {
+                gameState = STATE_GAMEOVER;
+                if (Math.floor(score) > highScore) {
+                    highScore = Math.floor(score);
+                }
+            }
+
+            // 画面外退避した要素を削除（メモリ解放）
+            if (obs.x + obs.width < 0) {
+                obstacles.splice(i, 1);
+            }
+        }
+    }
+
+    // ドット絵描画ヘルパー（ドット画像を使わずCanvas描画でオフライン軽量化）
+    function drawPixelPlayer(x, y, frame) {
+        ctx.fillStyle = '#4CAF50'; // 緑のドットキャラ
+        ctx.fillRect(x, y, 32, 32);
+        
+        // 目
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(x + 20, y + 6, 8, 8);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x + 24, y + 8, 4, 4);
+
+        // 足の動的アニメーション
+        ctx.fillStyle = '#333';
+        const legOffset = Math.sin(frame) * 6;
+        if (player.isGrounded) {
+            ctx.fillRect(x + 4, y + 26, 8, 6 + legOffset);
+            ctx.fillRect(x + 18, y + 26, 8, 6 - legOffset);
+        } else {
+            ctx.fillRect(x + 4, y + 22, 8, 8);
+            ctx.fillRect(x + 18, y + 24, 8, 4);
+        }
+    }
+
+    function drawPixelObstacle(x, y, w, h) {
+        ctx.fillStyle = '#E53935'; // 赤いハードル
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#FFEB3B'; // 模様
+        ctx.fillRect(x + 2, y + 4, w - 4, 6);
+    }
+
+    // レンダリング関数
+    function render() {
+        const t = i18n[currentLang];
+
+        // 背景クリア
+        ctx.fillStyle = '#101420';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // 地面
+        ctx.fillStyle = '#3E2723';
+        ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
+        ctx.fillStyle = '#8D6E63';
+        ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 4);
+
+        // フォント設定（MS 明朝を直接指定）
+        ctx.font = 'bold 16px "MS Mincho", "MS 明朝", serif';
+
+        if (gameState === STATE_TITLE) {
+            drawPixelPlayer(player.x, player.y, 0);
+
+            ctx.fillStyle = '#FFF';
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 28px "MS Mincho", "MS 明朝", serif';
+            ctx.fillText(t.titleText, CANVAS_WIDTH / 2, 120);
+
+            ctx.font = '18px "MS Mincho", "MS 明朝", serif';
+            ctx.fillText(t.startHint, CANVAS_WIDTH / 2, 200);
+
+        } else if (gameState === STATE_PLAYING || gameState === STATE_GAMEOVER) {
+            // プレイヤー & 障害物
+            drawPixelPlayer(player.x, player.y, player.animFrame);
+            
+            for (let i = 0; i < obstacles.length; i++) {
+                drawPixelObstacle(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+            }
+
+            // スコア表示
+            ctx.fillStyle = '#FFF';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${t.score}: ${Math.floor(score)}`, 20, 30);
+            ctx.fillText(`${t.highScore}: ${highScore}`, 20, 55);
+
+            if (gameState === STATE_GAMEOVER) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                ctx.fillStyle = '#FF5252';
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 32px "MS Mincho", "MS 明朝", serif';
+                ctx.fillText(t.gameOver, CANVAS_WIDTH / 2, 140);
+
+                ctx.fillStyle = '#FFF';
+                ctx.font = '18px "MS Mincho", "MS 明朝", serif';
+                ctx.fillText(`${t.score}: ${Math.floor(score)}`, CANVAS_WIDTH / 2, 190);
+                ctx.fillText(t.restartHint, CANVAS_WIDTH / 2, 230);
+            }
+        }
+    }
+
+    // メインゲームループ
+    function gameLoop() {
+        update();
+        render();
+        animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    // 画面が非表示の時は処理を停止してバッテリー・メモリ消費を軽減
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        } else {
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+    });
+
+    // 初期化実行
+    updateLanguage('ja');
+    gameLoop();
+})();
+</script>
+</body>
+</html>
