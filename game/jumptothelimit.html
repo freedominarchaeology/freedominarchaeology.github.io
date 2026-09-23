@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scale=no">
+    <title>限界までとんで / Jump to the Limit</title>
+    <style>
+        /* メモリ最適化および完全オフライン対応のCSS設定 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050510;
+            /* 汎用フォント指定：MS明朝 / MS Mincho / serif（非フォールバック崩れ防止） */
+            font-family: "MS 明朝", "MS Mincho", "Hiragino Mincho ProN", serif;
+            color: #ffffff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        canvas {
+            background-color: #08071a;
+            display: block;
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+        }
+
+        /* UIオーバーレイレイアウト */
+        .ui-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ui-panel * {
+            pointer-events: auto;
+        }
+
+        .lang-select {
+            background: rgba(10, 15, 30, 0.8);
+            color: #fff;
+            border: 1px solid #00ffcc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .score-board {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ffcc;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 14px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+        }
+
+        /* スタート・オーバー画面 */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 16, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .title {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #ffffff;
+            text-shadow: 0 0 10px #00ffcc;
+        }
+
+        .instructions {
+            font-size: 16px;
+            margin-bottom: 25px;
+            color: #cccccc;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00b386, #006644);
+            color: #ffffff;
+            border: 1px solid #00ffcc;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-family: inherit;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="ui-panel">
+        <select id="langSelect" class="lang-select" aria-label="Language Select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+        <div id="scoreText" class="score-board">スコア: 0</div>
+    </div>
+
+    <!-- スタート画面 -->
+    <div id="startScreen" class="overlay-screen">
+        <h1 id="titleText" class="title">限界までとんで</h1>
+        <p id="descText" class="instructions">画面をタップ・クリックするかスペースキーを押してジャンプ！緑のドカンを避けよう！</p>
+        <button id="startBtn" class="btn">スタート</button>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="gameOverScreen" class="overlay-screen hidden">
+        <h1 id="gameOverTitle" class="title">ゲームオーバー</h1>
+        <p id="finalScoreText" class="instructions">スコア: 0</p>
+        <button id="restartBtn" class="btn">もう一度プレイ</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+/**
+ * 堅牢・軽量・メモリ最適化設計
+ * 外部依存一切なし（完全オフライン）
+ */
+(function () {
+    'use strict';
+
+    // 多言語辞書データ
+    const i18n = {
+        ja: {
+            title: "限界までとんで",
+            desc: "タップ/クリックでジャンプ！緑の土管を避けながら突き進め！",
+            start: "スタート",
+            score: "スコア: ",
+            gameOver: "ゲームオーバー",
+            restart: "もう一度"
+        },
+        en: {
+            title: "Jump to the Limit",
+            desc: "Tap/Click to jump! Avoid the green pipes and fly as far as you can!",
+            start: "Start",
+            score: "Score: ",
+            gameOver: "Game Over",
+            restart: "Try Again"
+        },
+        zh: {
+            title: "飞跃极限",
+            desc: "点击跳跃！避开绿色管道，尽你所能飞得更远！",
+            start: "开始ゲーム",
+            score: "得分: ",
+            gameOver: "游戏结束",
+            restart: "再试一次"
+        },
+        ko: {
+            title: "한계까지 점프",
+            desc: "탭/클릭으로 점프! 초록색 파이프를 피해 한계에 도전하세요!",
+            start: "시작",
+            score: "점수: ",
+            gameOver: "게임 오버",
+            restart: "다시 시도"
+        },
+        fr: {
+            title: "Saute à la limite",
+            desc: "Appuyez pour sauter ! Évitez les tuyaux verts et allez le plus loin possible !",
+            start: "Commencer",
+            score: "Score: ",
+            gameOver: "Partie Terminée",
+            restart: "Recommencer"
+        },
+        es: {
+            title: "Salta al Límite",
+            desc: "¡Toca para saltar! ¡Evita las tuberías verdes y llega lo más lejos posible!",
+            start: "Comenzar",
+            score: "Puntuación: ",
+            gameOver: "Juego Terminado",
+            restart: "Reintentar"
+        }
+    };
+
+    let currentLang = 'ja';
+
+    // DOM要素参照
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // alpha: false で描画パフォーマンス最適化
+    const langSelect = document.getElementById('langSelect');
+    const scoreText = document.getElementById('scoreText');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const titleText = document.getElementById('titleText');
+    const descText = document.getElementById('descText');
+    const gameOverTitle = document.getElementById('gameOverTitle');
+    const finalScoreText = document.getElementById('finalScoreText');
+
+    // キャンバス解像度設定
+    const LOGICAL_WIDTH = 400;
+    const LOGICAL_HEIGHT = 600;
+    let scale = 1;
+
+    function resizeCanvas() {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // アスペクト比を維持してスケーリング
+        const scaleX = windowWidth / LOGICAL_WIDTH;
+        const scaleY = windowHeight / LOGICAL_HEIGHT;
+        scale = Math.min(scaleX, scaleY);
+
+        canvas.width = LOGICAL_WIDTH * scale;
+        canvas.height = LOGICAL_HEIGHT * scale;
+
+        // コンテキストのスケール設定
+        ctx.imageSmoothingEnabled = false;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // ゲーム状態管理
+    let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+    let score = 0;
+    let frameCount = 0;
+    let animationFrameId = null;
+
+    // オブジェクトプール & 変数再利用（ガベージコレクション低減によるメモリ軽量化）
+    const player = {
+        x: 80,
+        y: 250,
+        radius: 12,
+        velocity: 0,
+        gravity: 0.35,
+        jump: -6.5
+    };
+
+    // 背景の星データ（固定長配列でメモリ割り当てを最小化）
+    const MAX_STARS = 40;
+    const stars = new Float32Array(MAX_STARS * 3); // x, y, size
+    for (let i = 0; i < MAX_STARS; i++) {
+        stars[i * 3] = Math.random() * LOGICAL_WIDTH;
+        stars[i * 3 + 1] = Math.random() * LOGICAL_HEIGHT;
+        stars[i * 3 + 2] = Math.random() * 1.5 + 0.5;
+    }
+
+    // 障害物（土管）データ：配列再利用のため固定長運用
+    const MAX_PIPES = 4;
+    const pipes = [];
+    for (let i = 0; i < MAX_PIPES; i++) {
+        pipes.push({ x: -100, topHeight: 0, bottomY: 0, passed: false, active: false });
+    }
+
+    const PIPE_WIDTH = 50;
+    const PIPE_GAP = 130;
+    const PIPE_SPEED = 2.2;
+
+    // 言語設定更新関数
+    function updateLanguage(lang) {
+        if (!i18n[lang]) return;
+        currentLang = lang;
+        const dict = i18n[lang];
+
+        titleText.textContent = dict.title;
+        descText.textContent = dict.desc;
+        startBtn.textContent = dict.start;
+        gameOverTitle.textContent = dict.gameOver;
+        restartBtn.textContent = dict.restart;
+        
+        updateScoreUI();
+    }
+
+    function updateScoreUI() {
+        const dict = i18n[currentLang];
+        scoreText.textContent = dict.score + score;
+        finalScoreText.textContent = dict.score + score;
+    }
+
+    langSelect.addEventListener('change', (e) => {
+        updateLanguage(e.target.value);
+    });
+
+    // ゲームループ制御
+    function resetGame() {
+        player.y = LOGICAL_HEIGHT / 2;
+        player.velocity = 0;
+        score = 0;
+        frameCount = 0;
+        
+        // 土管のリセット
+        for (let i = 0; i < MAX_PIPES; i++) {
+            pipes[i].active = false;
+            pipes[i].x = -100;
+        }
+
+        updateScoreUI();
+    }
+
+    function spawnPipe() {
+        // 非アクティブな土管を探して再利用
+        const pipe = pipes.find(p => !p.active);
+        if (!pipe) return;
+
+        const minHeight = 50;
+        const maxHeight = LOGICAL_HEIGHT - PIPE_GAP - minHeight;
+        const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+        pipe.x = LOGICAL_WIDTH;
+        pipe.topHeight = topHeight;
+        pipe.bottomY = topHeight + PIPE_GAP;
+        pipe.passed = false;
+        pipe.active = true;
+    }
+
+    function handleInput(e) {
+        // キーボード（Space/Up）または タップ/クリック
+        if (e && e.type === 'keydown' && e.code !== 'Space' && e.code !== 'ArrowUp') {
+            return;
+        }
+        
+        if (gameState === 'PLAYING') {
+            player.velocity = player.jump;
+        }
+    }
+
+    // イベントリスナー（メモリリーク防止のためグローバルで一度だけ登録）
+    window.addEventListener('keydown', handleInput);
+    canvas.addEventListener('pointerdown', handleInput);
+
+    startBtn.addEventListener('click', () => {
+        resetGame();
+        gameState = 'PLAYING';
+        startScreen.classList.add('hidden');
+        gameLoop();
+    });
+
+    restartBtn.addEventListener('click', () => {
+        resetGame();
+        gameState = 'PLAYING';
+        gameOverScreen.classList.add('hidden');
+        gameLoop();
+    });
+
+    function triggerGameOver() {
+        gameState = 'GAMEOVER';
+        gameOverScreen.classList.remove('hidden');
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    // 描画 & 更新メインループ
+    function gameLoop() {
+        if (gameState !== 'PLAYING') return;
+
+        // 1. 物理状態更新
+        frameCount++;
+        player.velocity += player.gravity;
+        player.y += player.velocity;
+
+        // 天井・地面判定
+        if (player.y - player.radius <= 0 || player.y + player.radius >= LOGICAL_HEIGHT) {
+            triggerGameOver();
+            return;
+        }
+
+        // 土管生成タイミング（一定フレームごと）
+        if (frameCount % 110 === 0) {
+            spawnPipe();
+        }
+
+        // 2. 描画初期化（画面クリア）
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 描画時のスケール適用
+        ctx.save();
+        ctx.scale(scale, scale);
+
+        // 3. 背景描画（宇宙の星）
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < MAX_STARS; i++) {
+            const x = stars[i * 3];
+            const y = stars[i * 3 + 1];
+            const sz = stars[i * 3 + 2];
+            ctx.fillRect(x, y, sz, sz);
+        }
+
+        // 4. 土管の更新および描画
+        for (let i = 0; i < MAX_PIPES; i++) {
+            const p = pipes[i];
+            if (!p.active) continue;
+
+            p.x -= PIPE_SPEED;
+
+            // 土管（緑）の描画
+            ctx.fillStyle = '#00e676';
+            ctx.strokeStyle = '#004d40';
+            ctx.lineWidth = 2;
+
+            // 上の土管
+            ctx.fillRect(p.x, 0, PIPE_WIDTH, p.topHeight);
+            ctx.strokeRect(p.x, 0, PIPE_WIDTH, p.topHeight);
+
+            // 下の土管
+            ctx.fillRect(p.x, p.bottomY, PIPE_WIDTH, LOGICAL_HEIGHT - p.bottomY);
+            ctx.strokeRect(p.x, p.bottomY, PIPE_WIDTH, LOGICAL_HEIGHT - p.bottomY);
+
+            // 衝突判定 (AABB vs Circle 簡易判定)
+            const closestX = Math.max(p.x, Math.min(player.x, p.x + PIPE_WIDTH));
+            
+            // 上部土管との衝突
+            const closestYTop = Math.max(0, Math.min(player.y, p.topHeight));
+            const distXTop = player.x - closestX;
+            const distYTop = player.y - closestYTop;
+            if ((distXTop * distXTop + distYTop * distYTop) < (player.radius * player.radius)) {
+                ctx.restore();
+                triggerGameOver();
+                return;
+            }
+
+            // 下部土管との衝突
+            const closestYBottom = Math.max(p.bottomY, Math.min(player.y, LOGICAL_HEIGHT));
+            const distXBottom = player.x - closestX;
+            const distYBottom = player.y - closestYBottom;
+            if ((distXBottom * distXBottom + distYBottom * distYBottom) < (player.radius * player.radius)) {
+                ctx.restore();
+                triggerGameOver();
+                return;
+            }
+
+            // スコア加算
+            if (!p.passed && p.x + PIPE_WIDTH < player.x) {
+                p.passed = true;
+                score++;
+                updateScoreUI();
+            }
+
+            // 画面外退避
+            if (p.x + PIPE_WIDTH < 0) {
+                p.active = false;
+            }
+        }
+
+        // 5. プレイヤー描画 (ロケット/光る球体)
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#00ffff';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 次フレームのリクエスト（メモリリークのない適切なループ管理）
+        animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    // 初期化実行
+    updateLanguage('ja');
+
+})();
+</script>
+</body>
+</html>
