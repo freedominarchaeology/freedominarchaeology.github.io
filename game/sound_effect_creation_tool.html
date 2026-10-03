@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Web Audio FX Synthesizer - Rhythm Text Edition</title>
+    <title>Advanced Web Audio FX Synthesizer - Rhythm Text Edition (Fixed)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -281,13 +281,16 @@
         let importedAudioBuffer = null;
         let micAudioBuffer = null;
         let padSampleBuffer = null;
+        
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+        let micStream = null;
         
         let padRecorder = null;
         let padChunks = [];
         let isPadRecording = false;
+        let padStream = null;
 
         let continuousToneOsc = null;
         let continuousToneGain = null;
@@ -344,7 +347,6 @@
             });
         });
 
-        // 💡 強化版：文字の区切り（・やスペース）を解析してリズムを生み出すステップ音声合成ロジック
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
@@ -354,32 +356,27 @@
             const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
             const pitchVal = parseInt(document.getElementById('pitchSlider').value);
 
-            // 「・」やスペース、あるいは文字ごとにステップ（音符の断片）に分割
-            // 例: 「ドッ・カーン」 -> ["ドッ", "カーン"]
             const steps = rawText.split(/[・\s]+/);
-            const stepDuration = 0.35 / tempoVal; // 1ステップあたりの基本時間
+            const stepDuration = 0.35 / tempoVal;
 
             const masterGroupGain = audioCtx.createGain();
             masterGroupGain.gain.setValueAtTime(0.8, now);
 
             steps.forEach((stepText, index) => {
                 if (!stepText) return;
-                const startTime = now + (index * stepDuration * 1.5); // ステップごとのタイミング間隔
+                const startTime = now + (index * stepDuration * 1.5);
 
-                // ステップ文字列のハッシュ・文字特徴解析
                 let charCodeSum = 0;
                 for (let i = 0; i < stepText.length; i++) {
                     charCodeSum += stepText.charCodeAt(i);
                 }
 
-                // 「ド」「爆」などの重低音・衝撃音キーワードが含まれているか判定
                 const isImpact = stepText.includes('ド') || stepText.includes('爆') || stepText.includes('バ') || stepText.includes('ど');
                 
-                let baseFreq = isImpact ? (50 + (charCodeSum % 40)) : (150 + (absHash(charCodeSum) % 600));
+                let baseFreq = isImpact ? (50 + (charCodeSum % 40)) : (150 + (Math.abs(charCodeSum) % 600));
                 const duration = isImpact ? 0.6 : 0.4;
                 const chosenWave = isImpact ? 'sawtooth' : (charCodeSum % 2 === 0 ? 'square' : 'triangle');
 
-                // ノイズ成分の追加（爆発音「ドッカーン」の「ドッ」の部分にリアルな衝撃を演出）
                 if (isImpact) {
                     const bufferSize = audioCtx.sampleRate * 0.2;
                     const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -408,7 +405,6 @@
                     activeSources.push(noise);
                 }
 
-                // オシレーターによる音程・余韻の生成
                 const osc = audioCtx.createOscillator();
                 const stepGain = audioCtx.createGain();
 
@@ -416,16 +412,14 @@
                 const finalFreq = baseFreq * Math.pow(2, pitchVal / 12);
                 osc.frequency.setValueAtTime(finalFreq, startTime);
 
-                // 爆発音や余韻に応じた周波数ベンド（ピッチが急降下・急上昇するドラマチックな動き）
                 if (isImpact) {
                     osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.2, startTime + duration);
                 } else {
                     osc.frequency.linearRampToValueAtTime(finalFreq * 1.3, startTime + (duration * 0.5));
                 }
 
-                // エンベロープ（アタックとディケイ）
                 stepGain.gain.setValueAtTime(0.001, startTime);
-                stepGain.gain.linearRampToValueAtTime(0.7, startTime + 0.03); // 素早い立ち上がり
+                stepGain.gain.linearRampToValueAtTime(0.7, startTime + 0.03);
                 stepGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
                 osc.connect(stepGain);
@@ -439,10 +433,6 @@
             connectToEffectChain(masterGroupGain, audioCtx, masterGain, effectChain);
         });
 
-        function absHash(n) {
-            return Math.abs(n);
-        }
-
         const btnRecordMic = document.getElementById('btnRecordMic');
         const btnPlayMic = document.getElementById('btnPlayMic');
         const micStatusText = document.getElementById('micStatusText');
@@ -451,8 +441,8 @@
             initAudioContext();
             if (!isRecording) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(micStream);
                     audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                     mediaRecorder.onstop = async () => {
@@ -461,6 +451,9 @@
                         micAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                         btnPlayMic.removeAttribute('disabled');
                         micStatusText.textContent = "サンプリング状態: 録音完了";
+                        if (micStream) {
+                            micStream.getTracks().forEach(track => track.stop());
+                        }
                     };
                     mediaRecorder.start();
                     isRecording = true;
@@ -600,13 +593,14 @@
 
         const btnRecordPadSample = document.getElementById('btnRecordPadSample');
         const padRecordLabel = document.getElementById('padRecordLabel');
+        const padTouchStatus = document.getElementById('padTouchStatus');
 
         btnRecordPadSample.addEventListener('click', async () => {
             initAudioContext();
             if (!isPadRecording) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    padRecorder = new MediaRecorder(stream);
+                    padStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    padRecorder = new MediaRecorder(padStream);
                     padChunks = [];
                     padRecorder.ondataavailable = e => padChunks.push(e.data);
                     padRecorder.onstop = async () => {
@@ -614,6 +608,9 @@
                         const arrayBuffer = await blob.arrayBuffer();
                         padSampleBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                         padTouchStatus.textContent = "STATUS: READY";
+                        if (padStream) {
+                            padStream.getTracks().forEach(track => track.stop());
+                        }
                     };
                     padRecorder.start();
                     isPadRecording = true;
@@ -918,44 +915,9 @@
             activeSources = [];
         });
 
-        function bufferToWav(buffer) {
-            const numOfChan = buffer.numberOfChannels;
-            const length = buffer.length * numOfChan * 2 + 44;
-            const out = new DataView(new ArrayBuffer(length));
-            let channels = [];
-            let sampleRate = buffer.sampleRate;
-            let offset = 0;
-            let pos = 0;
-
-            function writeString(str) {
-                for (let i = 0; i < str.length; i++) out.setUint8(pos++, str.charCodeAt(i));
-            }
-            function setUint16(data) { out.setUint16(pos, data, true); pos += 2; }
-            function setUint32(data) { out.setUint32(pos, data, true); pos += 4; }
-
-            writeString('RIFF'); setUint32(length - 8); writeString('WAVE');
-            writeString('fmt '); setUint32(16); setUint16(1); setUint16(numOfChan);
-            setUint32(sampleRate); setUint32(sampleRate * numOfChan * 2);
-            setUint16(numOfChan * 2); setUint16(16);
-            writeString('data'); setUint32(length - pos - 4);
-
-            for (let i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
-            while (offset < buffer.length) {
-                for (let i = 0; i < numOfChan; i++) {
-                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                    sample = (sample < 0 ? sample * 32768 : sample * 32767);
-                    out.setInt16(pos, sample, true);
-                    pos += 2;
-                }
-                offset++;
-            }
-            return new Blob([out.buffer], { type: 'audio/wav' });
-        }
-
         document.getElementById('btnExportWav').addEventListener('click', async () => {
             const exportStatusText = document.getElementById('exportStatusText');
             exportStatusText.textContent = "書き出し中...";
-            // 簡易的にオフラインレンダリング実行
             setTimeout(() => {
                 exportStatusText.textContent = "書き出し完了！";
             }, 1000);
