@@ -157,26 +157,33 @@
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow flex-1 flex flex-col space-y-4">
                 <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest">2. 音声ファイル インポート & サンプラーパッド</h2>
                 
-                <div class="relative border-2 border-dashed border-synth-border hover:border-cyan-500 rounded-lg p-3 text-center cursor-pointer transition bg-synth-dark group">
-                    <input type="file" id="audioFileInput" accept="audio/*" class="absolute inset-0 opacity-0 cursor-pointer">
-                    <div class="flex items-center justify-center space-x-2 pointer-events-none">
-                        <span class="text-lg">📁</span>
-                        <div class="text-left">
-                            <p class="text-xs text-gray-300 font-medium group-hover:text-cyan-400 transition">サウンドファイルをインポート</p>
-                            <p id="importedFileName" class="text-[10px] text-gray-500 truncate max-w-[240px]">WAV, MP3, OGG, FLAC 対応</p>
+                <div class="flex items-center space-x-2">
+                    <div class="relative flex-1 border-2 border-dashed border-synth-border hover:border-cyan-500 rounded-lg p-2.5 text-center cursor-pointer transition bg-synth-dark group">
+                        <input type="file" id="audioFileInput" accept="audio/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                        <div class="flex items-center justify-center space-x-2 pointer-events-none">
+                            <span class="text-base">📁</span>
+                            <div class="text-left">
+                                <p class="text-[11px] text-gray-300 font-medium group-hover:text-cyan-400 transition">サウンドファイル インポート</p>
+                                <p id="importedFileName" class="text-[9px] text-gray-500 truncate max-w-[180px]">WAV, MP3, OGG, FLAC</p>
+                            </div>
                         </div>
                     </div>
+                    <!-- Pad Record Button -->
+                    <button id="btnRecordPadSample" class="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-2 rounded-lg text-xs transition flex flex-col items-center justify-center shrink-0 cursor-pointer">
+                        <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse mb-1"></span>
+                        <span id="padRecordLabel">パッド用録音</span>
+                    </button>
                 </div>
 
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-xs text-gray-400">タッチ & サンプリング リズムパッド (XY Pad)</span>
-                        <span id="padTouchStatus" class="text-[10px] font-mono text-cyan-400">STATUS: READY</span>
+                        <span id="padTouchStatus" class="text-[10px] font-mono text-cyan-400">STATUS: READY (未録音/デフォルト)</span>
                     </div>
                     <div id="xyPad" class="w-full h-32 bg-synth-dark border border-synth-border rounded-lg relative overflow-hidden cursor-crosshair touch-none flex items-center justify-center group">
                         <div class="absolute inset-0 bg-gradient-to-tr from-cyan-950/20 to-indigo-950/20 pointer-events-none"></div>
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span class="text-xs text-gray-500 tracking-widest uppercase font-mono">TAP TO RECORD/SAMPLE & PLAY FX</span>
+                            <span class="text-xs text-gray-500 tracking-widest uppercase font-mono">TAP TO PLAY & TRIGGER FX</span>
                         </div>
                         <div id="xyCursor" class="w-6 h-6 rounded-full bg-cyan-500/50 border-2 border-cyan-400 absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 hidden shadow-lg shadow-cyan-500/50"></div>
                     </div>
@@ -281,6 +288,11 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+        
+        let padRecorder = null;
+        let padChunks = [];
+        let isPadRecording = false;
+
         let continuousToneOsc = null;
         let continuousToneGain = null;
 
@@ -540,8 +552,45 @@
                 const arrayBuffer = await file.arrayBuffer();
                 importedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 padSampleBuffer = importedAudioBuffer;
+                document.getElementById('padTouchStatus').textContent = "STATUS: READY (ファイル読込済み)";
             } catch (err) {
                 alert("音声ファイルの読み込みに失敗しました。");
+            }
+        });
+
+        // Pad Sample Recording Feature
+        const btnRecordPadSample = document.getElementById('btnRecordPadSample');
+        const padRecordLabel = document.getElementById('padRecordLabel');
+
+        btnRecordPadSample.addEventListener('click', async () => {
+            initAudioContext();
+            if (!isPadRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    padRecorder = new MediaRecorder(stream);
+                    padChunks = [];
+                    padRecorder.ondataavailable = e => padChunks.push(e.data);
+                    padRecorder.onstop = async () => {
+                        const blob = new Blob(padChunks, { type: 'audio/webm' });
+                        const arrayBuffer = await blob.arrayBuffer();
+                        padSampleBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                        padTouchStatus.textContent = "STATUS: READY (パッド用録音完了！)";
+                    };
+                    padRecorder.start();
+                    isPadRecording = true;
+                    btnRecordPadSample.classList.remove('bg-red-600', 'hover:bg-red-500');
+                    btnRecordPadSample.classList.add('bg-gray-700');
+                    padRecordLabel.textContent = "録音停止";
+                    padTouchStatus.textContent = "STATUS: パッド用マイク録音中...";
+                } catch(err) {
+                    alert("マイクへのアクセスが許可されていないか、利用できません。");
+                }
+            } else {
+                padRecorder.stop();
+                isPadRecording = false;
+                btnRecordPadSample.classList.remove('bg-gray-700');
+                btnRecordPadSample.classList.add('bg-red-600', 'hover:bg-red-500');
+                padRecordLabel.textContent = "パッド用録音";
             }
         });
 
@@ -558,7 +607,6 @@
             xyCursor.style.left = `${x * 100}%`;
             xyCursor.style.top = `${y * 100}%`;
             xyCursor.classList.remove('hidden');
-            padTouchStatus.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)}`;
             
             if (effectChain.length > 0 && !effectChain[0].bypass) {
                 const firstFx = effectChain[0];
@@ -579,6 +627,9 @@
             if (padSampleBuffer) {
                 const source = audioCtx.createBufferSource();
                 source.buffer = padSampleBuffer;
+                const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
+                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
                 connectToEffectChain(source, audioCtx, masterGain, effectChain);
                 source.start(audioCtx.currentTime);
                 activeSources.push(source);
@@ -587,7 +638,8 @@
                 const gain = audioCtx.createGain();
                 const now = audioCtx.currentTime;
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(150, now);
+                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                osc.frequency.setValueAtTime(150 * Math.pow(2, pitchVal / 12), now);
                 osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
                 gain.gain.setValueAtTime(0.7, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
@@ -607,7 +659,6 @@
         xyPad.addEventListener('pointerup', () => {
             isXyActive = false;
             xyCursor.classList.add('hidden');
-            padTouchStatus.textContent = "STATUS: READY";
         });
 
         const addEffectSelect = document.getElementById('addEffectSelect');
@@ -867,9 +918,12 @@
         document.getElementById('btnPlayMaster').addEventListener('click', () => {
             initAudioContext();
 
-            if (importedAudioBuffer) {
+            // 試聴時にパッド用録音音声（padSampleBuffer）またはインポート音声があれば優先してマスター試聴に使用
+            const targetBuffer = padSampleBuffer || importedAudioBuffer;
+
+            if (targetBuffer) {
                 const source = audioCtx.createBufferSource();
-                source.buffer = importedAudioBuffer;
+                source.buffer = targetBuffer;
                 const tempoVal = parseFloat(tempoSlider.value);
                 const pitchVal = parseInt(pitchSlider.value);
                 source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
@@ -897,11 +951,14 @@
             }
         });
 
+        // 停止ボタンの不具合修正（すべての活きている音源ソース、および連続トーンを安全に停止）
         document.getElementById('btnStopMaster').addEventListener('click', () => {
             stopContinuousTone();
             activeSources.forEach(src => {
                 try {
-                    src.stop();
+                    if (typeof src.stop === 'function') {
+                        src.stop();
+                    }
                 } catch(e) {}
             });
             activeSources = [];
@@ -963,28 +1020,34 @@
             return new Blob([out.buffer], { type: 'audio/wav' });
         }
 
-        // WAV書き出しボタン（修正済み：インポート音声未選択時でもオシレーター音声を確実にレンダリング）
+        // WAV書き出しボタン（パッド用録音・インポート音源の有無を正しく判定してエフェクト適用レンダリング）
         document.getElementById('btnExportWav').addEventListener('click', async () => {
             const exportStatusText = document.getElementById('exportStatusText');
             exportStatusText.textContent = "レンダリング中（書き出し処理バッファ生成）...";
 
             const tempoVal = parseFloat(tempoSlider.value);
             const pitchVal = parseInt(pitchSlider.value);
-            const duration = importedAudioBuffer ? (importedAudioBuffer.duration / tempoVal) + 2.0 : 3.0;
+            const targetBuffer = padSampleBuffer || importedAudioBuffer;
+            const duration = targetBuffer ? (targetBuffer.duration / tempoVal) + 2.0 : 3.0;
             const sampleRate = 44100;
             const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
 
             let source;
-            if (importedAudioBuffer) {
+            if (targetBuffer) {
                 source = offlineCtx.createBufferSource();
-                source.buffer = importedAudioBuffer;
+                source.buffer = targetBuffer;
                 source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
+                
+                const offlineGain = offlineCtx.createGain();
+                offlineGain.gain.value = parseFloat(masterVolumeSlider.value);
+                connectToEffectChain(source, offlineCtx, offlineGain, effectChain);
+                offlineGain.connect(offlineCtx.destination);
+                source.start(0);
             } else {
                 source = offlineCtx.createOscillator();
                 source.type = currentWaveform;
                 source.frequency.value = currentFreq * Math.pow(2, pitchVal / 12);
                 
-                // オシレーターの場合はゲインエンベロープ（減衰）を付与して2秒で消音させる
                 const oscGain = offlineCtx.createGain();
                 oscGain.gain.setValueAtTime(0.7, 0);
                 oscGain.gain.exponentialRampToValueAtTime(0.001, 2.0);
@@ -993,14 +1056,6 @@
                 connectToEffectChain(oscGain, offlineCtx, offlineCtx.destination, effectChain);
                 source.start(0);
                 source.stop(2.0);
-            }
-
-            if (importedAudioBuffer) {
-                const offlineGain = offlineCtx.createGain();
-                offlineGain.gain.value = parseFloat(masterVolumeSlider.value);
-                connectToEffectChain(source, offlineCtx, offlineGain, effectChain);
-                offlineGain.connect(offlineCtx.destination);
-                source.start(0);
             }
 
             try {
