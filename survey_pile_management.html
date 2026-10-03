@@ -269,7 +269,7 @@
 
     <!-- Footer -->
     <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-3 text-center text-xs text-slate-500 dark:text-slate-400 no-print">
-        <p>&copy; 2026 現場測量杭管理アプリ. All rights reserved. | MS Mincho Font & Vector Vector Support</p>
+        <p>&copy; 2026 現場測量杭管理アプリ. All rights reserved. | MS Mincho Font & Vector Support</p>
     </footer>
 
     <!-- JavaScript Application Logic -->
@@ -432,20 +432,9 @@
         let currentLang = 'ja';
         let stakes = [];
 
-        // Sample initial data if empty
-        const defaultStakes = [
-            { name: "P-01", x: 100.500, y: 200.250, z: 10.120, photo: "" },
-            { name: "P-02", x: 150.750, y: 280.100, z: 10.450, photo: "" },
-            { name: "P-03", x: 220.000, y: 230.500, z: 11.200, photo: "" },
-            { name: "P-04", x: 180.250, y: 150.000, z: 10.890, photo: "" }
-        ];
-
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             loadDataFromStorage();
-            if (stakes.length === 0) {
-                stakes = [...defaultStakes];
-            }
             initTheme();
             renderTable();
             renderMap();
@@ -535,7 +524,6 @@
         function renderTable() {
             const tbody = document.getElementById('stakeTableBody');
             tbody.innerHTML = '';
-            document.getElementById('stakeCount.textContent') // placeholder
             document.getElementById('stakeCount').textContent = `${stakes.length} 杭`;
 
             if (stakes.length === 0) {
@@ -734,8 +722,6 @@
             document.getElementById('mapScaleIndicator').textContent = selectedScaleOption === 'auto' ? `Scale: Auto (~1:${Math.round(1000/scale)})` : `Scale: 1:${selectedScaleOption}`;
 
             // Transform coordinates to SVG space (Note: X is North (Up), Y is East (Right))
-            // In standard screen: X goes right, Y goes down.
-            // In surveying: X (North) goes up, Y (East) goes right.
             function toSvgCoords(x, y) {
                 const px = padding + (y - minY) * scale + (drawWidth - dy * scale) / 2;
                 const py = height - padding - (x - minX) * scale - (drawHeight - dx * scale) / 2;
@@ -893,7 +879,6 @@
                 a.click();
                 a.remove();
             } else if (type === 'eps') {
-                // EPS wrapper for SVG content compatible with Illustrator
                 const epsContent = `%PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 600 400\n%%Title: Survey Layout Vector\n%%Creator: Site Survey Stake Manager\n%%EndComments\n${svgString}`;
                 const blob = new Blob([epsContent], { type: 'application/postscript;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
@@ -909,7 +894,6 @@
                 pdf.text("Site Survey Stake Layout Plan", 40, 40);
                 pdf.text("Vector Grid & Coordinates (MS Mincho / Alphanumeric)", 40, 60);
                 
-                // Add table summary to PDF
                 let yPos = 90;
                 pdf.setFontSize(10);
                 stakes.forEach((s, i) => {
