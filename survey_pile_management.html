@@ -23,7 +23,7 @@
     <!-- SheetJS (xlsx) for Excel/CSV import/export -->  
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>  
     <!-- jsPDF for PDF export -->  
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>  
     <!-- Lucide Icons -->  
     <script src="https://unpkg.com/lucide@latest"></script>  
     <style>  
@@ -143,9 +143,9 @@
                             <tr>  
                                 <th class="p-3 w-12 text-center" data-i18n="colNo">No</th>  
                                 <th class="p-3" data-i18n="colName">杭名称</th>  
-                                <th class="p-3 text-right">X (N) [m]</th>  
-                                <th class="p-3 text-right">Y (E) [m]</th>  
-                                <th class="p-3 text-right">Z (H) [m]</th>  
+                                <th class="p-3 text-right">X (N)</th>  
+                                <th class="p-3 text-right">Y (E)</th>  
+                                <th class="p-3 text-right">Z (H)</th>  
                                 <th class="p-3 text-center" data-i18n="colPhoto">写真</th>  
                                 <th class="p-3 text-center no-print" data-i18n="colOrder">順序</th>  
                                 <th class="p-3 text-center no-print" data-i18n="colAction">操作</th>  
@@ -163,11 +163,11 @@
                 <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">  
                     <h2 class="font-bold flex items-center space-x-2">  
                         <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>  
-                        <span data-i18n="mapTitle">配置図 (XY方眼ベクター / m単位)</span>  
+                        <span data-i18n="mapTitle">配置図 (プロ仕様方眼ベクター)</span>  
                     </h2>  
                     <div class="flex items-center space-x-2">  
                         <select id="mapScale" onchange="renderMap()" class="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs rounded-lg px-2 py-1 font-medium focus:outline-none cursor-pointer">  
-                            <option value="auto" data-i18n="scaleAuto">自動縮尺 (枠内最適化)</option>  
+                            <option value="auto" data-i18n="scaleAuto">自動縮尺 (Auto)</option>  
                             <option value="100">1:100</option>  
                             <option value="500">1:500</option>  
                             <option value="1000">1:1000</option>  
@@ -178,7 +178,7 @@
                             <button class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-1.5 rounded-lg border border-slate-200 dark:border-slate-600 transition" title="Vector Export">  
                                 <i data-lucide="download-cloud" class="w-4 h-4"></i>  
                             </button>  
-                            <div class="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 hidden group-hover:block z-20">  
+                            <div class="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 hidden group-hover:block z-20">  
                                 <button onclick="exportVector('svg')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
                                     <i data-lucide="file-code" class="w-4 h-4 text-amber-500"></i><span>SVG 形式</span>  
                                 </button>  
@@ -186,7 +186,7 @@
                                     <i data-lucide="file" class="w-4 h-4 text-purple-500"></i><span>EPS 形式</span>  
                                 </button>  
                                 <button onclick="exportVector('pdf')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
-                                    <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i><span>PDF 形式</span>  
+                                    <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i><span>PDF 成果図 (A3横)</span>  
                                 </button>  
                             </div>  
                         </div>  
@@ -201,7 +201,7 @@
                     </div>  
                     <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 flex justify-between w-full px-1">  
                         <span id="mapScaleIndicator">Scale: Auto</span>  
-                        <span data-i18n="vectorNote">※m単位・枠内自動収縮対応</span>  
+                        <span data-i18n="vectorNote">※GPSアプリ準拠アノテーション・引き出し線対応</span>  
                     </div>  
                 </div>  
             </div>  
@@ -230,15 +230,15 @@
                 </div>  
                 <div class="grid grid-cols-3 gap-3">  
                     <div>  
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">X (N) [m]</label>  
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">X (N) 座標</label>  
                         <input type="number" step="0.001" id="stakeX" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
                     </div>  
                     <div>  
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Y (E) [m]</label>  
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Y (E) 座標</label>  
                         <input type="number" step="0.001" id="stakeY" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
                     </div>  
                     <div>  
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Z (H) [m]</label>  
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Z (H) 標高</label>  
                         <input type="number" step="0.001" id="stakeZ" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
                     </div>  
                 </div>  
@@ -269,7 +269,7 @@
   
     <!-- Footer -->  
     <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-3 text-center text-xs text-slate-500 dark:text-slate-400 no-print">  
-        <p>&copy; 2026 現場測量杭管理アプリ. All rights reserved. | MS Mincho Font & Vector Support</p>  
+        <p>&copy; 2026 現場測量杭管理アプリ. All rights reserved. | MS Mincho Font & Advanced Vector/PDF Support</p>  
     </footer>  
   
     <!-- JavaScript Application Logic -->  
@@ -290,9 +290,9 @@
                 colPhoto: "写真",  
                 colOrder: "順序",  
                 colAction: "操作",  
-                mapTitle: "配置図 (XY方眼ベクター / m単位)",  
-                scaleAuto: "自動縮尺 (枠内最適化)",  
-                vectorNote: "※m単位・枠内自動収縮対応",  
+                mapTitle: "配置図 (プロ仕様方眼ベクター)",  
+                scaleAuto: "自動縮尺 (Auto)",  
+                vectorNote: "※GPSアプリ準拠アノテーション・引き出し線対応",  
                 modalAddTitle: "杭の追加",  
                 modalEditTitle: "杭の編集",  
                 formName: "杭名称 (英数字推奨)",  
@@ -315,9 +315,9 @@
                 colPhoto: "Photo",  
                 colOrder: "Order",  
                 colAction: "Action",  
-                mapTitle: "Layout Map (XY Vector / Meters)",  
-                scaleAuto: "Auto Scale (Fit to Frame)",  
-                vectorNote: "*Meters unit & auto-fit frame supported",  
+                mapTitle: "Layout Map (Professional Vector Grid)",  
+                scaleAuto: "Auto Scale",  
+                vectorNote: "*GPS App compatible annotation & leader lines",  
                 modalAddTitle: "Add New Stake",  
                 modalEditTitle: "Edit Stake",  
                 formName: "Stake Name (Alphanumeric recommended)",  
@@ -340,9 +340,9 @@
                 colPhoto: "照片",  
                 colOrder: "排序",  
                 colAction: "操作",  
-                mapTitle: "布置图 (XY矢量网格 / 米)",  
-                scaleAuto: "自动比例尺 (自适应)",  
-                vectorNote: "*支持以米为单位及自适应防溢出",  
+                mapTitle: "布置图 (专业矢量网格)",  
+                scaleAuto: "自动比例尺",  
+                vectorNote: "*支持GPS应用兼容引出线标注",  
                 modalAddTitle: "添加测量桩",  
                 modalEditTitle: "编辑测量桩",  
                 formName: "桩名称 (推荐使用英数字)",  
@@ -365,9 +365,9 @@
                 colPhoto: "사진",  
                 colOrder: "순서",  
                 colAction: "작업",  
-                mapTitle: "배치도 (XY 벡터 / 미터)",  
-                scaleAuto: "자동 축척 (틀 맞춤)",  
-                vectorNote: "*미터 단위 및 프레임 이탈 방지",  
+                mapTitle: "배치도 (전문가용 벡터 그리드)",  
+                scaleAuto: "자동 축척",  
+                vectorNote: "*GPS 앱 호환 지시선 및 주석",  
                 modalAddTitle: "말뚝 추가",  
                 modalEditTitle: "말뚝 편집",  
                 formName: "말뚝 명칭 (영숫자 권장)",  
@@ -390,9 +390,9 @@
                 colPhoto: "Photo",  
                 colOrder: "Ordre",  
                 colAction: "Action",  
-                mapTitle: "Plan (Grille XY / Mètres)",  
-                scaleAuto: "Échelle Auto (Ajustée)",  
-                vectorNote: "*Unité en mètres et anti-débordement",  
+                mapTitle: "Plan (Grille Vectorielle Pro)",  
+                scaleAuto: "Échelle Auto",  
+                vectorNote: "*Lignes de repère compatibles GPS",  
                 modalAddTitle: "Ajouter un Piquet",  
                 modalEditTitle: "Modifier le Piquet",  
                 formName: "Nom du piquet (Alphanumérique)",  
@@ -415,9 +415,9 @@
                 colPhoto: "Foto",  
                 colOrder: "Orden",  
                 colAction: "Acción",  
-                mapTitle: "Plano (Cuadrícula XY / Metros)",  
-                scaleAuto: "Escala Automática (Ajustada)",  
-                vectorNote: "*Unidad en metros y anti-desbordamiento",  
+                mapTitle: "Plano (Cuadrícula Vectorial Pro)",  
+                scaleAuto: "Escala Automática",  
+                vectorNote: "*Líneas de referencia compatibles con GPS",  
                 modalAddTitle: "Añadir Estaca",  
                 modalEditTitle: "Editar Estaca",  
                 formName: "Nombre de estaca (Alfanumérico)",  
@@ -440,13 +440,11 @@
             renderMap();  
             lucide.createIcons();  
   
-            // Language event listener  
             document.getElementById('langSelect').addEventListener('change', (e) => {  
                 currentLang = e.target.value;  
                 updateLanguage();  
             });  
   
-            // Photo preview listener  
             document.getElementById('stakePhoto').addEventListener('change', function(e) {  
                 const file = e.target.files[0];  
                 if (file) {  
@@ -536,7 +534,6 @@
             stakes.forEach((stake, index) => {  
                 const tr = document.createElement('tr');  
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition font-mono";  
-                  
                 const hasPhoto = stake.photo && stake.photo.length > 0;  
                   
                 tr.innerHTML = `  
@@ -666,7 +663,7 @@
             document.getElementById('photoModal').classList.add('hidden');  
         }  
   
-        // --- Vector Map Rendering (m単位対応・枠内自動収縮) ---  
+        // --- Enhanced Vector Map Rendering (SVG) with GPS App Alignment ---  
         function renderMap() {  
             const svg = document.getElementById('vectorMapSvg');  
             svg.innerHTML = '';  
@@ -683,76 +680,51 @@
             const textColor = isDark ? '#cbd5e1' : '#475569';  
             const pointColor = '#2563eb';  
   
-            // SVG 描画領域の固定解像度  
             const width = 600;  
             const height = 400;  
-            const padding = 60; // ラベルやテキストがはみ出ないためのマージン（px）  
+            const padding = 50;  
   
-            // 全登録杭のX（N), Y（E）座標配列を取得  
-            const xs = stakes.map(s => s.x);  
-            const ys = stakes.map(s => s.y);  
+            let xs = stakes.map(s => s.x);  
+            let ys = stakes.map(s => s.y);  
   
-            const minX = Math.min(...xs);  
-            const maxX = Math.max(...xs);  
-            const minY = Math.min(...ys);  
-            const maxY = Math.max(...ys);  
+            let minX = Math.min(...xs);  
+            let maxX = Math.max(...xs);  
+            let minY = Math.min(...ys);  
+            let maxY = Math.max(...ys);  
   
-            // m単位でのスパン（幅と高さ）を算出  
-            let dx = maxX - minX;  
-            let dy = maxY - minY;  
+            let dx = maxX - minX || 10;  
+            let dy = maxY - minY || 10;  
   
-            // 杭が1本だけの場合や、同一座標線上にある場合のゼロ除算・縮尺崩れ防止（最小1mを確保）  
-            if (dx < 1) dx = 1;  
-            if (dy < 1) dy = 1;  
+            const marginRatio = 0.2;  
+            minX -= dx * marginRatio;  
+            maxX += dx * marginRatio;  
+            minY -= dy * marginRatio;  
+            maxY += dy * marginRatio;  
   
-            // 杭群の中心座標 (m単位)  
-            const centerX = (minX + maxX) / 2;  
-            const centerY = (minY + maxY) / 2;  
+            dx = maxX - minX;  
+            dy = maxY - minY;  
   
-            // 有効描画ピクセル領域  
             const drawWidth = width - padding * 2;  
             const drawHeight = height - padding * 2;  
   
-            // 縮尺の適用（自動または固定）  
-            const scaleOption = document.getElementById('mapScale').value;  
-            let scale; // 1メートルあたりの描画ピクセル数 (px / m)  
+            const scaleX = drawWidth / dx;  
+            const scaleY = drawHeight / dy;  
+            const scale = Math.min(scaleX, scaleY);  
   
-            if (scaleOption === 'auto') {  
-                // 自動縮尺：プレビュー枠（padding含む）に必ず収まるようにスケールを自動計算  
-                // 枠の縦横比に対して杭の広がりが収まるよう余裕を持たせる（1.2倍マージン）  
-                const marginFactor = 1.25;  
-                const requiredWidthSpan = dx * marginFactor;  
-                const requiredHeightSpan = dy * marginFactor;  
+            const selectedScaleOption = document.getElementById('mapScale').value;  
+            document.getElementById('mapScaleIndicator').textContent = selectedScaleOption === 'auto' ? `Scale: Auto (~1:${Math.round(1000/scale)})` : `Scale: 1:${selectedScaleOption}`;  
   
-                const scaleX = drawWidth / requiredWidthSpan;  
-                const scaleY = drawHeight / requiredHeightSpan;  
-                scale = Math.min(scaleX, scaleY);  
-  
-                document.getElementById('mapScaleIndicator').textContent = `Scale: Auto (1:${Math.round(100/scale) * 10 || 100} 相当)`;  
-            } else {  
-                // 固定縮尺が選択された場合  
-                const targetScaleRatio = parseInt(scaleOption);  
-                // 1:S の場合のm単位換算スケール（見やすいように調整）  
-                scale = 1000 / targetScaleRatio;  
-                document.getElementById('mapScaleIndicator').textContent = `Scale: 1:${targetScaleRatio}`;  
-            }  
-  
-            // m単位座標をSVGピクセル座標に変換する関数  
-            // X: North (縦軸 / 上がプラス), Y: East (横軸 / 右がプラス)  
             function toSvgCoords(x, y) {  
-                const px = (width / 2) + (y - centerY) * scale;  
-                const py = (height / 2) - (x - centerX) * scale; // SVGのY軸は下向きのため反転  
+                const px = padding + (y - minY) * scale + (drawWidth - dy * scale) / 2;  
+                const py = height - padding - (x - minX) * scale - (drawHeight - dx * scale) / 2;  
                 return { x: px, y: py };  
             }  
   
-            // グリッド線（方眼）の描画 (m単位で等間隔に配置)  
             const gridSteps = 5;  
             for (let i = 0; i <= gridSteps; i++) {  
-                const ratio = i / gridSteps;  
-                const gx = minX + dx * ratio;  
-                const gy = minY + dy * ratio;  
+                const gx = minX + (dx / gridSteps) * i;  
+                const gy = minY + (dy / gridSteps) * i;  
   
-                // 縦方向・横方向のグリッド線  
                 const p1 = toSvgCoords(minX, gy);  
                 const p2 = toSvgCoords(maxX, gy);  
                 svg.innerHTML += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 4" />`;  
@@ -761,28 +733,22 @@
                 const q2 = toSvgCoords(gx, maxY);  
                 svg.innerHTML += `<line x1="${q1.x}" y1="${q1.y}" x2="${q2.x}" y2="${q2.y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 4" />`;  
   
-                // 座標軸の数値ラベル (m単位)  
-                svg.innerHTML += `<text x="${p1.x}" y="${height - 12}" font-size="8" fill="${axisColor}" text-anchor="middle" font-family="monospace">Y:${gy.toFixed(1)}m</text>`;  
-                svg.innerHTML += `<text x="25" y="${q1.y + 3}" font-size="8" fill="${axisColor}" text-anchor="middle" font-family="monospace">X:${gx.toFixed(1)}m</text>`;  
+                svg.innerHTML += `<text x="${p1.x}" y="${height - 15}" font-size="9" fill="${axisColor}" text-anchor="middle" font-family="monospace">Y:${gy.toFixed(1)}</text>`;  
+                svg.innerHTML += `<text x="15" y="${q1.y + 3}" font-size="9" fill="${axisColor}" text-anchor="middle" font-family="monospace">X:${gx.toFixed(1)}</text>`;  
             }  
   
-            // 外枠ボーダーライン  
-            svg.innerHTML += `<rect x="${padding * 0.6}" y="${padding * 0.6}" width="${width - padding * 1.2}" height="${height - padding * 1.2}" fill="none" stroke="${axisColor}" stroke-width="1.5" />`;  
+            svg.innerHTML += `<rect x="${padding}" y="${padding}" width="${drawWidth}" height="${drawHeight}" fill="none" stroke="${axisColor}" stroke-width="1.5" />`;  
   
-            // 各登録杭の描画 (枠外に飛び出ない位置に正確にプロット)  
             stakes.forEach((stake, idx) => {  
                 const pt = toSvgCoords(stake.x, stake.y);  
-                  
-                // 杭のポイント（十字＆円）およびラベル  
                 svg.innerHTML += `  
                     <g class="stake-node" data-index="${idx}">  
-                        <circle cx="${pt.x}" cy="${pt.y}" r="4.5" fill="${pointColor}" stroke="#ffffff" stroke-width="1.5" />  
-                        <line x1="${pt.x - 7}" y1="${pt.y}" x2="${pt.x + 7}" y2="${pt.y}" stroke="${pointColor}" stroke-width="1" />  
-                        <line x1="${pt.x}" y1="${pt.y - 7}" x2="${pt.x}" y2="${pt.y + 7}" stroke="${pointColor}" stroke-width="1" />  
-                        <!-- 杭名称とXY座標 (m単位) -->  
-                        <text x="${pt.x + 8}" y="${pt.y - 4}" font-family="serif" font-size="10" font-weight="bold" fill="${textColor}">[No.${idx + 1}] ${escapeHtml(stake.name)}</text>  
-                        <text x="${pt.x + 8}" y="${pt.y + 7}" font-family="monospace" font-size="8" fill="${axisColor}">X:${Number(stake.x).toFixed(2)}m</text>  
-                        <text x="${pt.x + 8}" y="${pt.y + 16}" font-family="monospace" font-size="8" fill="${axisColor}">Y:${Number(stake.y).toFixed(2)}m</text>  
+                        <circle cx="${pt.x}" cy="${pt.y}" r="5" fill="${pointColor}" stroke="#ffffff" stroke-width="1.5" />  
+                        <line x1="${pt.x - 8}" y1="${pt.y}" x2="${pt.x + 8}" y2="${pt.y}" stroke="${pointColor}" stroke-width="1" />  
+                        <line x1="${pt.x}" y1="${pt.y - 8}" x2="${pt.x}" y2="${pt.y + 8}" stroke="${pointColor}" stroke-width="1" />  
+                        <text x="${pt.x + 10}" y="${pt.y - 5}" font-family="serif" font-size="11" font-weight="bold" fill="${textColor}">[No.${idx + 1}] ${escapeHtml(stake.name)}</text>  
+                        <text x="${pt.x + 10}" y="${pt.y + 8}" font-family="monospace" font-size="9" fill="${axisColor}">X:${Number(stake.x).toFixed(2)}</text>  
+                        <text x="${pt.x + 10}" y="${pt.y + 18}" font-family="monospace" font-size="9" fill="${axisColor}">Y:${Number(stake.y).toFixed(2)}</text>  
                     </g>  
                 `;  
             });  
@@ -864,9 +830,9 @@
                 const worksheetData = stakes.map((s, i) => ({  
                     No: i + 1,  
                     Name: s.name,  
-                    'X(m)': s.x,  
-                    'Y(m)': s.y,  
-                    'Z(m)': s.z,  
+                    X: s.x,  
+                    Y: s.y,  
+                    Z: s.z,  
                     PhotoAttached: s.photo ? 'Yes' : 'No'  
                 }));  
                 const worksheet = XLSX.utils.json_to_sheet(worksheetData);  
@@ -881,7 +847,7 @@
             }  
         }  
   
-        // --- Vector Export (SVG, EPS, PDF) ---  
+        // --- Advanced Vector Export (SVG, EPS, and GPS-style A3 PDF Report) ---  
         function exportVector(type) {  
             const svgElement = document.getElementById('vectorMapSvg');  
             const svgString = new XMLSerializer().serializeToString(svgElement);  
@@ -906,23 +872,161 @@
                 a.click();  
                 a.remove();  
             } else if (type === 'pdf') {  
+                if (stakes.length === 0) {  
+                    alert('No stakes to export to PDF.');  
+                    return;  
+                }  
                 const { jsPDF } = window.jspdf;  
-                const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });  
-                pdf.text("Site Survey Stake Layout Plan (Meters)", 40, 40);  
-                pdf.text("Vector Grid & Coordinates", 40, 60);  
-                  
-                let yPos = 90;  
-                pdf.setFontSize(10);  
-                stakes.forEach((s, i) => {  
-                    if (yPos > 520) {  
-                        pdf.addPage();  
-                        yPos = 40;  
-                    }  
-                    pdf.text(`[No.${i+1}] Name: ${s.name} | X: ${s.x}m | Y: ${s.y}m | Z: ${s.z}m`, 40, yPos);  
-                    yPos += 20;  
+                // GPSアプリに準拠したプロ仕様A3横長レイアウト  
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });  
+                doc.setFont('helvetica');  
+  
+                const marginLeft = 20;  
+                const marginTop = 25;  
+                const drawWidth = 380;  
+                const drawHeight = 245;  
+  
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;  
+                stakes.forEach(s => {  
+                    if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x;  
+                    if (s.y < minY) minY = s.y; if (s.y > maxY) maxY = s.y;  
                 });  
-                  
-                pdf.save('survey_layout_report.pdf');  
+                if (minX === Infinity) { minX = 0; maxX = 10; minY = 0; maxY = 10; }  
+  
+                let spanX = maxX - minX || 10;  
+                let spanY = maxY - minY || 10;  
+                const marginRatio = 0.1;  
+                const totalMetersX = spanX * (1 + marginRatio * 2);  
+                const totalMetersY = spanY * (1 + marginRatio * 2);  
+  
+                const scaleX = drawHeight / totalMetersX;  
+                const scaleY = drawWidth / totalMetersY;  
+                const scale = Math.min(scaleX, scaleY);  
+  
+                const centerX = (minX + maxX) / 2;  
+                const centerY = (minY + maxY) / 2;  
+  
+                const pageMinX = centerX - (drawHeight / scale) / 2;  
+                const pageMaxX = centerX + (drawHeight / scale) / 2;  
+                const pageMinY = centerY - (drawWidth / scale) / 2;  
+                const pageMaxY = centerY + (drawWidth / scale) / 2;  
+                const scaleDenominator = Math.round(1000 / scale);  
+  
+                let gridInterval = 10;  
+                const maxSpan = Math.max(spanX, spanY);  
+                if (maxSpan <= 10) gridInterval = 1;  
+                else if (maxSpan <= 50) gridInterval = 5;  
+                else if (maxSpan <= 200) gridInterval = 10;  
+                else if (maxSpan <= 500) gridInterval = 50;  
+                else gridInterval = 100;  
+  
+                doc.setFontSize(16);  
+                doc.setTextColor(17, 24, 39);  
+                doc.text(`Site Survey Stake Layout Report`, 15, 12);  
+                doc.setFontSize(9);  
+                doc.setTextColor(75, 85, 99);  
+                doc.text(`Scale: 1/${scaleDenominator.toLocaleString()} | Total Stakes: ${stakes.length}`, 15, 18);  
+  
+                function toPdfCoord(x, y) {  
+                    const px = marginLeft + (y - pageMinY) * scale;  
+                    const py = marginTop + drawHeight - ((x - pageMinX) * scale);  
+                    return { x: px, y: py };  
+                }  
+  
+                doc.setDrawColor(55, 65, 81);  
+                doc.setLineWidth(0.4);  
+                doc.rect(marginLeft, marginTop, drawWidth, drawHeight);  
+  
+                const startX = Math.floor(pageMinX / gridInterval) * gridInterval;  
+                const endX = Math.ceil(pageMaxX / gridInterval) * gridInterval;  
+                const startY = Math.floor(pageMinY / gridInterval) * gridInterval;  
+                const endY = Math.ceil(pageMaxY / gridInterval) * gridInterval;  
+  
+                doc.setDrawColor(229, 231, 235);  
+                doc.setLineWidth(0.15);  
+                doc.setFontSize(7);  
+                doc.setTextColor(107, 114, 128);  
+  
+                for (let yVal = startY; yVal <= endY; yVal += gridInterval) {  
+                    const p = toPdfCoord(pageMinX, yVal);  
+                    if (p.x >= marginLeft && p.x <= marginLeft + drawWidth) {  
+                        doc.line(p.x, marginTop, p.x, marginTop + drawHeight);  
+                        doc.text(`Y:${yVal}m`, p.x, marginTop + drawHeight + 4, { align: 'center' });  
+                    }  
+                }  
+  
+                for (let xVal = startX; xVal <= endX; xVal += gridInterval) {  
+                    const p = toPdfCoord(xVal, pageMinY);  
+                    if (p.y >= marginTop && p.y <= marginTop + drawHeight) {  
+                        doc.line(marginLeft, p.y, marginLeft + drawWidth, p.y);  
+                        doc.text(`X:${xVal}m`, marginLeft - 1.5, p.y + 1, { align: 'right' });  
+                    }  
+                }  
+  
+                // Scale Bar  
+                let scaleMeters = gridInterval;  
+                let scalePx = scaleMeters * scale;  
+                if (scalePx < 10) {  
+                    scaleMeters *= 2;  
+                    scalePx = scaleMeters * scale;  
+                }  
+                const sbX = marginLeft + 5;  
+                const sbY = marginTop + drawHeight - 5;  
+                doc.setDrawColor(17, 24, 39);  
+                doc.setLineWidth(0.5);  
+                doc.line(sbX, sbY, sbX + scalePx, sbY);  
+                doc.line(sbX, sbY - 1.5, sbX, sbY + 1.5);  
+                doc.line(sbX + scalePx, sbY - 1.5, sbX + scalePx, sbY + 1.5);  
+                doc.setFontSize(8);  
+                doc.setTextColor(17, 24, 39);  
+                doc.text('0', sbX, sbY - 2, { align: 'center' });  
+                doc.text(`${scaleMeters}m`, sbX + scalePx, sbY - 2, { align: 'center' });  
+  
+                // Draw Annotated Points with Leader Lines (GPS App style)  
+                stakes.forEach((stake, idx) => {  
+                    const cvPt = toPdfCoord(stake.x, stake.y);  
+                    const labelStr = `[No.${idx + 1}] ${stake.name}`;  
+                    const zText = stake.z !== undefined ? Number(stake.z).toFixed(3) : '---';  
+  
+                    doc.setFillColor(37, 99, 235);  
+                    doc.setDrawColor(0, 0, 0);  
+                    doc.setLineWidth(0.3);  
+                    doc.circle(cvPt.x, cvPt.y, 1.2, 'FD');  
+  
+                    doc.setFont('helvetica', 'bold');  
+                    doc.setFontSize(9);  
+                    const titleWidth = doc.getTextWidth(labelStr);  
+                    const boxWidth = Math.max(titleWidth, 22) + 4;  
+                    const boxHeight = 13;  
+  
+                    let offsetX = cvPt.x > (marginLeft + drawWidth / 2) ? -boxWidth - 6 : 6;  
+                    let offsetY = cvPt.y > (marginTop + drawHeight / 2) ? -boxHeight - 3 : 3;  
+  
+                    let textX = cvPt.x + offsetX;  
+                    let textY = cvPt.y + offsetY;  
+                    const lineTargetX = textX < cvPt.x ? textX + boxWidth : textX;  
+                    const lineTargetY = textY + boxHeight / 2;  
+  
+                    doc.setDrawColor(75, 85, 99);  
+                    doc.setLineWidth(0.25);  
+                    doc.line(cvPt.x, cvPt.y, lineTargetX, lineTargetY);  
+  
+                    doc.setFillColor(255, 255, 255);  
+                    doc.setDrawColor(156, 163, 175);  
+                    doc.setLineWidth(0.2);  
+                    doc.rect(textX, textY, boxWidth, boxHeight, 'FD');  
+  
+                    doc.setTextColor(0, 0, 0);  
+                    doc.text(labelStr, textX + 1.5, textY + 3.5);  
+                    doc.setFont('helvetica', 'normal');  
+                    doc.setFontSize(6.5);  
+                    doc.setTextColor(31, 41, 55);  
+                    doc.text(`X: ${Number(stake.x).toFixed(3)}`, textX + 1.5, textY + 6.5);  
+                    doc.text(`Y: ${Number(stake.y).toFixed(3)}`, textX + 1.5, textY + 9.2);  
+                    doc.text(`Z: ${zText}`, textX + 1.5, textY + 11.8);  
+                });  
+  
+                doc.save('survey_layout_pro_report.pdf');  
             }  
         }  
   
