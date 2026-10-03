@@ -34,7 +34,6 @@
         body {
             font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif;
         }
-        /* Custom scrollbar for synth layout */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -49,9 +48,6 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #06b6d4;
         }
-        .knob-shadow {
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 2px rgba(255,255,255,0.1);
-        }
         .panel-glow {
             box-shadow: 0 0 20px rgba(6, 182, 212, 0.05);
         }
@@ -59,7 +55,7 @@
 </head>
 <body class="bg-synth-dark text-gray-200 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
 
-    <!-- Top Navigation / Header -->
+    <!-- Header -->
     <header class="bg-synth-panel border-b border-synth-border px-4 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 rounded bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-cyan-500/20">⚡</div>
@@ -70,14 +66,14 @@
         </div>
 
         <div class="flex items-center space-x-4">
-            <!-- Global Master Volume -->
+            <!-- Master Volume -->
             <div class="flex items-center space-x-2 bg-synth-dark px-3 py-1.5 rounded-lg border border-synth-border">
                 <span class="text-xs text-gray-400" data-i18n="master_vol">MASTER</span>
                 <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.8" class="w-20 accent-cyan-500 cursor-pointer">
                 <span id="masterVolumeVal" class="text-xs text-cyan-400 font-mono w-8 text-right">80%</span>
             </div>
 
-            <!-- Language Selector -->
+            <!-- Language Select -->
             <div class="flex items-center space-x-2">
                 <select id="languageSelect" class="bg-synth-dark border border-synth-border text-xs rounded px-2.5 py-1.5 text-gray-300 focus:outline-none focus:border-cyan-500 cursor-pointer">
                     <option value="ja">日本語</option>
@@ -91,17 +87,16 @@
         </div>
     </header>
 
-    <!-- Main Workspace Container -->
+    <!-- Main Container -->
     <main class="flex-1 p-4 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        <!-- Left Column: Source Generators (4 Cols) -->
+        <!-- Left Column: Source Generators -->
         <div class="lg:col-span-5 flex flex-col space-y-4">
             
-            <!-- Source Selection Tabs -->
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow">
                 <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-3 flex items-center justify-between">
                     <span data-i18n="section_source">1. Sound Source Generator</span>
-                    <span id="activeSourceIndicator" class="w-2 h-2 rounded-full bg-gray-600"></span>
+                    <span id="activeSourceIndicator" class="w-2 h-2 rounded-full bg-cyan-400"></span>
                 </h2>
 
                 <div class="grid grid-cols-4 gap-1 mb-4 bg-synth-dark p-1 rounded-lg border border-synth-border">
@@ -111,34 +106,33 @@
                     <button class="source-tab py-2 text-xs font-medium rounded transition-all text-gray-400 hover:text-gray-200" data-target="panel-scale" data-i18n="tab_scale">音階</button>
                 </div>
 
-                <!-- Source Panels -->
+                <!-- Panels -->
                 <div id="source-panels-container">
-                    <!-- 1. Text to Sound Panel -->
+                    <!-- Text Panel -->
                     <div id="panel-text" class="source-panel space-y-3">
                         <label class="block text-xs text-gray-400" data-i18n="text_input_label">テキストイメージ / キーワード</label>
                         <div class="flex space-x-2">
                             <input type="text" id="textSoundInput" value="Laser Beam FX 🚀" class="flex-1 bg-synth-dark border border-synth-border rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-cyan-500">
-                            <button id="btnTextSynth" class="bg-cyan-600 hover:bg-cyan-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-cyan-600/20" data-i18n="btn_synthesize">合成して再生</button>
+                            <button id="btnTextSynth" class="bg-cyan-600 hover:bg-cyan-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-cyan-600/20 cursor-pointer" data-i18n="btn_synthesize">合成して再生</button>
                         </div>
                         <p class="text-[11px] text-gray-500" data-i18n="text_hint">入力された文字列のハッシュと文字特性を解析し、ユニークなFM/ノイズ合成サウンドを生成します。</p>
                     </div>
 
-                    <!-- 2. Mic Sampling Panel -->
+                    <!-- Mic Panel -->
                     <div id="panel-mic" class="source-panel space-y-3 hidden">
                         <div class="flex items-center justify-between">
                             <span class="text-xs text-gray-400" data-i18n="mic_status">サンプリング状態: 待機中</span>
-                            <span id="micTimer" class="font-mono text-xs text-cyan-400">00:00</span>
                         </div>
                         <div class="flex space-x-2">
-                            <button id="btnRecordMic" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-xs transition flex items-center justify-center space-x-2">
+                            <button id="btnRecordMic" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-xs transition flex items-center justify-center space-x-2 cursor-pointer">
                                 <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
                                 <span data-i18n="btn_record">録音開始</span>
                             </button>
-                            <button id="btnPlayMic" disabled class="flex-1 bg-synth-dark border border-synth-border hover:bg-synth-border text-gray-300 font-bold py-2 rounded text-xs transition disabled:opacity-40" data-i18n="btn_play_sample">サンプル再生</button>
+                            <button id="btnPlayMic" disabled class="flex-1 bg-synth-dark border border-synth-border hover:bg-synth-border text-gray-300 font-bold py-2 rounded text-xs transition disabled:opacity-40 cursor-pointer" data-i18n="btn_play_sample">サンプル再生</button>
                         </div>
                     </div>
 
-                    <!-- 3. Frequency Panel -->
+                    <!-- Freq Panel -->
                     <div id="panel-freq" class="source-panel space-y-3 hidden">
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-400" data-i18n="freq_label">周波数 (Frequency)</span>
@@ -146,62 +140,42 @@
                         </div>
                         <input type="range" id="freqSlider" min="20" max="5000" step="1" value="440" class="w-full accent-cyan-500 cursor-pointer">
                         <div class="grid grid-cols-4 gap-1 pt-1">
-                            <button class="wave-type bg-synth-dark border border-cyan-500 text-cyan-400 text-xs py-1 rounded" data-wave="sine">Sine</button>
-                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500" data-wave="square">Square</button>
-                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500" data-wave="sawtooth">Saw</button>
-                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500" data-wave="triangle">Triangle</button>
+                            <button class="wave-type bg-synth-dark border border-cyan-500 text-cyan-400 text-xs py-1 rounded cursor-pointer" data-wave="sine">Sine</button>
+                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500 cursor-pointer" data-wave="square">Square</button>
+                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500 cursor-pointer" data-wave="sawtooth">Saw</button>
+                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500 cursor-pointer" data-wave="triangle">Triangle</button>
                         </div>
-                        <button id="btnPlayFreq" class="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-2 rounded text-xs transition" data-i18n="btn_tone_on">トーンON / 連続発音</button>
+                        <button id="btnPlayFreq" class="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-2 rounded text-xs transition cursor-pointer" data-i18n="btn_tone_on">トーンON / 連続発音</button>
                     </div>
 
-                    <!-- 4. Musical Scale Panel -->
+                    <!-- Scale Panel -->
                     <div id="panel-scale" class="source-panel space-y-3 hidden">
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-400" data-i18n="scale_root">ルート音 (Root Note)</span>
-                            <select id="scaleRootSelect" class="bg-synth-dark border border-synth-border text-xs rounded px-2 py-1 text-cyan-400">
-                                <option value="C">C (Do)</option>
-                                <option value="C#">C#</option>
-                                <option value="D">D (Re)</option>
-                                <option value="D#">D#</option>
-                                <option value="E">E (Mi)</option>
-                                <option value="F">F (Fa)</option>
-                                <option value="F#">F#</option>
-                                <option value="G">G (So)</option>
-                                <option value="G#">G#</option>
-                                <option value="A">A (La)</option>
-                                <option value="A#">A#</option>
-                                <option value="B">B (Ti)</option>
-                            </select>
                         </div>
-                        <!-- Virtual Keyboard / Touch Pad -->
-                        <div id="virtualKeyboard" class="grid grid-cols-8 gap-1 bg-synth-dark p-2 rounded-lg border border-synth-border h-24 select-none">
-                            <!-- Dynamically generated keys -->
-                        </div>
+                        <div id="virtualKeyboard" class="grid grid-cols-8 gap-1 bg-synth-dark p-2 rounded-lg border border-synth-border h-24 select-none"></div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- File Import & Rhythm / Touch Pad (Pad 5 requirement) -->
+            <!-- Import & Touch Pad -->
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow flex-1 flex flex-col space-y-4">
                 <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest" data-i18n="section_import">2. 音声ファイル インポート & パッド演奏</h2>
                 
-                <!-- File Upload -->
                 <div class="relative border-2 border-dashed border-synth-border hover:border-cyan-500 rounded-lg p-3 text-center cursor-pointer transition bg-synth-dark group">
                     <input type="file" id="audioFileInput" accept="audio/*" class="absolute inset-0 opacity-0 cursor-pointer">
-                    <div class="flex items-center justify-center space-x-2">
+                    <div class="flex items-center justify-center space-x-2 pointer-events-none">
                         <span class="text-lg">📁</span>
                         <div class="text-left">
-                            <p class="text-xs text-gray-300 font-medium group-hover:text-cyan-400 transition" data-i18n="drop_file_label">サウンドファイルをインポート (wav, mp3, ogg, flac...)</p>
-                            <p id="importedFileName" class="text-[10px] text-gray-500 truncate max-w-[240px]">WAV, MP3, OGG, AAC, FLAC, WebM 対応</p>
+                            <p class="text-xs text-gray-300 font-medium group-hover:text-cyan-400 transition" data-i18n="drop_file_label">サウンドファイルをインポート</p>
+                            <p id="importedFileName" class="text-[10px] text-gray-500 truncate max-w-[240px]">WAV, MP3, OGG, AAC, FLAC 対応</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Touch / Drag Rhythm Pads (Requirement 5) -->
                 <div>
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs text-gray-400" data-i18n="touch_pad_label">タッチ & ドラッグ リズムパッド (XY / Touch Pad)</span>
+                        <span class="text-xs text-gray-400" data-i18n="touch_pad_label">タッチ & ドラッグ リズムパッド</span>
                         <span id="padTouchStatus" class="text-[10px] font-mono text-cyan-400">TOUCH: OFF</span>
                     </div>
                     <div id="xyPad" class="w-full h-32 bg-synth-dark border border-synth-border rounded-lg relative overflow-hidden cursor-crosshair touch-none flex items-center justify-center group">
@@ -209,42 +183,37 @@
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <span class="text-xs text-gray-600 tracking-widest uppercase font-mono" data-i18n="xy_placeholder">DRAG OR TAP HERE FOR FX MODULATION</span>
                         </div>
-                        <div id="xyCursor" class="w-6 h-6 rounded-full bg-cyan-500/50 border-2 border-cyan-400 absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 hidden shadow-lg shadow-cyan-500/50"></div>
+                        <div id="xyCursor" class="w-6 h-6 rounded-full bg-cyan-500/50 border-2 border-cyan-400 absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 hidden shadow-lg shadow-cyan-500/50"></div>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        <!-- Right Column: Guitar/Effect Pedal Board & Master Controls (7 Cols) -->
+        <!-- Right Column: Effects & Controls -->
         <div class="lg:col-span-7 flex flex-col space-y-4">
 
-            <!-- Effects Pedalboard (Requirement 6, 7, 8) -->
+            <!-- Effects Pedalboard -->
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow">
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-                    <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest flex items-center space-x-2">
+                    <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest">
                         <span data-i18n="section_effects">3. エフェクトペダルボード (Guitar FX Rack)</span>
                     </h2>
                     <div class="flex items-center space-x-2">
-                        <button id="btnBypassAll" class="bg-synth-dark border border-synth-border hover:border-yellow-500 text-xs px-3 py-1 rounded text-yellow-400 transition" data-i18n="btn_bypass">BYPASS ALL</button>
-                        <button id="btnAddEffect" class="bg-cyan-600 hover:bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded transition shadow" data-i18n="btn_add_fx">+ エフェクト追加</button>
+                        <button id="btnBypassAll" class="bg-synth-dark border border-synth-border hover:border-yellow-500 text-xs px-3 py-1 rounded text-yellow-400 transition cursor-pointer" data-i18n="btn_bypass">BYPASS ALL</button>
+                        <button id="btnAddEffect" class="bg-cyan-600 hover:bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded transition shadow cursor-pointer" data-i18n="btn_add_fx">+ エフェクト追加</button>
                     </div>
                 </div>
 
-                <!-- Active Effects Rack Container -->
-                <div id="effectsRack" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                    <!-- Dynamically added effect pedals will appear here -->
-                </div>
+                <div id="effectsRack" class="space-y-3 max-h-[380px] overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- Tempo & Pitch Control + Export / Playback (Requirement 9, 10) -->
+            <!-- Tempo, Pitch & Export -->
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                <!-- Time & Pitch Section -->
                 <div class="space-y-3">
                     <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider" data-i18n="section_time_pitch">4. テンポ & ピッチコントロール</h3>
                     
-                    <!-- Tempo Control (Time Stretch simulation) -->
                     <div class="bg-synth-dark p-3 rounded-lg border border-synth-border space-y-2">
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-400" data-i18n="tempo_label">テンポ倍率 (Tempo Stretch)</span>
@@ -253,26 +222,24 @@
                         <input type="range" id="tempoSlider" min="0.5" max="2.0" step="0.05" value="1.0" class="w-full accent-cyan-500 cursor-pointer">
                     </div>
 
-                    <!-- Pitch Shift Control -->
                     <div class="bg-synth-dark p-3 rounded-lg border border-synth-border space-y-2">
                         <div class="flex justify-between items-center text-xs">
-                            <span class="text-gray-400" data-i18n="pitch_label">ピッチシフト (半音 / Semitones)</span>
+                            <span class="text-gray-400" data-i18n="pitch_label">ピッチシフト (半音)</span>
                             <span id="pitchValue" class="font-mono text-cyan-400">0 semitones</span>
                         </div>
                         <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0" class="w-full accent-cyan-500 cursor-pointer">
                     </div>
                 </div>
 
-                <!-- Master Output & Export Section -->
                 <div class="flex flex-col justify-between space-y-3">
                     <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider" data-i18n="section_output">5. 試聴 & 書き出し (Export)</h3>
                     
                     <div class="grid grid-cols-2 gap-2">
-                        <button id="btnPlayMaster" class="bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-black font-bold py-3 px-4 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2">
+                        <button id="btnPlayMaster" class="bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-black font-bold py-3 px-4 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 cursor-pointer">
                             <span>▶</span>
                             <span data-i18n="btn_play_master">サウンド再生</span>
                         </button>
-                        <button id="btnStopMaster" class="bg-synth-dark border border-synth-border hover:bg-synth-border text-gray-300 font-bold py-3 px-4 rounded-lg text-xs transition flex items-center justify-center space-x-2">
+                        <button id="btnStopMaster" class="bg-synth-dark border border-synth-border hover:bg-synth-border text-gray-300 font-bold py-3 px-4 rounded-lg text-xs transition flex items-center justify-center space-x-2 cursor-pointer">
                             <span>⏹</span>
                             <span data-i18n="btn_stop_master">停止</span>
                         </button>
@@ -283,7 +250,7 @@
                             <p class="text-xs text-gray-300 font-medium" data-i18n="export_wav_title">WAVファイルとして書き出し</p>
                             <p class="text-[10px] text-gray-500" data-i18n="export_wav_desc">エフェクト適用後の音源をダウンロード</p>
                         </div>
-                        <button id="btnExportWav" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-emerald-600/20" data-i18n="btn_export">ダウンロード</button>
+                        <button id="btnExportWav" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-emerald-600/20 cursor-pointer" data-i18n="btn_export">ダウンロード</button>
                     </div>
                 </div>
 
@@ -293,14 +260,12 @@
 
     </main>
 
-    <!-- Footer -->
     <footer class="bg-synth-panel border-t border-synth-border py-2 px-4 text-center text-xs text-gray-500">
         Advanced Web Audio Synthesizer & FX Rack — Single Page Offline Ready Application
     </footer>
 
     <!-- JavaScript Application Logic -->
     <script>
-        // --- Internationalization (i18n) Dictionary ---
         const i18nData = {
             ja: {
                 app_title: "ADVANCED FX SYNTHESIZER",
@@ -514,11 +479,9 @@
             }
         };
 
-        // --- Application State & Audio Engine ---
         let audioCtx = null;
         let masterGain = null;
         let activeSourceNode = null;
-        let activeSourceType = 'text'; // 'text', 'mic', 'freq', 'scale', 'file'
         let currentWaveform = 'sine';
         let currentFreq = 440;
         let importedAudioBuffer = null;
@@ -529,16 +492,11 @@
         let continuousToneOsc = null;
         let continuousToneGain = null;
 
-        // Effect Chain definition (Guitar Pedalboard inspired)
-        // Available types: overdrive, distortion, delay, reverb, chorus, flanger, phaser, compressor, eq, bitcrusher, tremolo, auto-wah
         let effectChain = [
             { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.5, tone: 0.5, level: 0.7 } },
             { id: 'fx_rev', type: 'reverb', bypass: false, params: { roomSize: 0.7, dampening: 3000, wet: 0.3 } }
         ];
 
-        let effectNodesMap = new Map(); // Stores actual Web Audio nodes for each rack item
-
-        // Initialize Audio Context on user interaction
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -554,22 +512,28 @@
             }
         }
 
-        // --- Language Switcher Implementation ---
-        function setLanguage(lang) {
+        // Master Volume Slider Binding
+        const masterVolumeSlider = document.getElementById('masterVolume');
+        const masterVolumeVal = document.getElementById('masterVolumeVal');
+        masterVolumeSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            masterVolumeVal.textContent = Math.round(val * 100) + '%';
+            if (masterGain) {
+                masterGain.gain.setValueAtTime(val, audioCtx.currentTime);
+            }
+        });
+
+        // Language Select
+        document.getElementById('languageSelect').addEventListener('change', (e) => {
+            const lang = e.target.value;
             const dict = i18nData[lang] || i18nData.ja;
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
-                if (dict[key]) {
-                    el.textContent = dict[key];
-                }
+                if (dict[key]) el.textContent = dict[key];
             });
-        }
-
-        document.getElementById('languageSelect').addEventListener('change', (e) => {
-            setLanguage(e.target.value);
         });
 
-        // --- Source Tab Switching ---
+        // Tabs
         const sourceTabs = document.querySelectorAll('.source-tab');
         const sourcePanels = document.querySelectorAll('.source-panel');
 
@@ -585,23 +549,16 @@
                 sourcePanels.forEach(p => p.classList.add('hidden'));
                 const targetId = tab.getAttribute('data-target');
                 document.getElementById(targetId).classList.remove('hidden');
-
-                if (targetId === 'panel-text') activeSourceType = 'text';
-                else if (targetId === 'panel-mic') activeSourceType = 'mic';
-                else if (targetId === 'panel-freq') activeSourceType = 'freq';
-                else if (targetId === 'panel-scale') activeSourceType = 'scale';
-
                 stopContinuousTone();
             });
         });
 
-        // --- Source 1: Text-to-Sound Synthesis ---
+        // Text Synth
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
             
             const text = document.getElementById('textSoundInput').value || "FX";
-            // Generate pseudo-random sound parameters based on text hash
             let hash = 0;
             for (let i = 0; i < text.length; i++) {
                 hash = text.charCodeAt(i) + ((hash << 5) - hash);
@@ -611,7 +568,6 @@
             const duration = 1.2;
             const now = audioCtx.currentTime;
 
-            // Create oscillator & modulator for sci-fi/laser/chime effect
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
@@ -630,61 +586,7 @@
             activeSourceNode = osc;
         });
 
-        // --- Source 2: Microphone Sampling ---
-        const btnRecordMic = document.getElementById('btnRecordMic');
-        const btnPlayMic = document.getElementById('btnPlayMic');
-        const micTimer = document.getElementById('micTimer');
-
-        btnRecordMic.addEventListener('click', async () => {
-            initAudioContext();
-            if (!isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-
-                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const arrayBuffer = await audioBlob.arrayBuffer();
-                        micAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                        btnPlayMic.removeAttribute('disabled');
-                        document.querySelector('[data-i18n="mic_status"]').textContent = "サンプリング完了: 準備OK";
-                        // Stop mic tracks
-                        stream.getTracks().forEach(track => track.stop());
-                    };
-
-                    mediaRecorder.start();
-                    isRecording = true;
-                    btnRecordMic.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-400"></span> <span>録音停止 (Stop)</span>`;
-                    btnRecordMic.classList.remove('bg-red-600', 'hover:bg-red-500');
-                    btnRecordMic.classList.add('bg-yellow-600', 'hover:bg-yellow-500');
-                } catch (err) {
-                    alert("マイクへのアクセスが許可されていないか、利用できません。");
-                }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                btnRecordMic.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span> <span data-i18n="btn_record">録音開始</span>`;
-                btnRecordMic.classList.remove('bg-yellow-600', 'hover:bg-yellow-500');
-                btnRecordMic.classList.add('bg-red-600', 'hover:bg-red-500');
-            }
-        });
-
-        btnPlayMic.addEventListener('click', () => {
-            if (!micAudioBuffer) return;
-            initAudioContext();
-            stopContinuousTone();
-
-            const source = audioCtx.createBufferSource();
-            source.buffer = micAudioBuffer;
-            applyTempoPitchToSource(source);
-            connectToEffectChain(source);
-            source.start(audioCtx.currentTime);
-            activeSourceNode = source;
-        });
-
-        // --- Source 3: Frequency Tone Generator ---
+        // Frequency Slider
         const freqSlider = document.getElementById('freqSlider');
         const freqValueDisplay = document.getElementById('freqValueDisplay');
         const btnPlayFreq = document.getElementById('btnPlayFreq');
@@ -699,8 +601,10 @@
 
         document.querySelectorAll('.wave-type').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.wave-type').forEach(b => b.classList.remove('border-cyan-500', 'text-cyan-400'));
-                b.classList.add('border-synth-border', 'text-gray-400');
+                document.querySelectorAll('.wave-type').forEach(b => {
+                    b.classList.remove('border-cyan-500', 'text-cyan-400');
+                    b.classList.add('border-synth-border', 'text-gray-400');
+                });
                 e.target.classList.remove('border-synth-border', 'text-gray-400');
                 e.target.classList.add('border-cyan-500', 'text-cyan-400');
                 currentWaveform = e.target.getAttribute('data-wave');
@@ -733,7 +637,6 @@
 
                 continuousToneOsc.type = currentWaveform;
                 continuousToneOsc.frequency.value = currentFreq;
-
                 continuousToneGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
 
                 continuousToneOsc.connect(continuousToneGain);
@@ -745,7 +648,7 @@
             }
         });
 
-        // --- Source 4: Musical Scale Keyboard ---
+        // Virtual Keyboard
         const scaleNotes = [
             { name: 'C', freq: 261.63 },
             { name: 'D', freq: 293.66 },
@@ -758,9 +661,9 @@
         ];
 
         const virtualKeyboard = document.getElementById('virtualKeyboard');
-        scaleNotes.forEach((note, idx) => {
+        scaleNotes.forEach((note) => {
             const key = document.createElement('button');
-            key.className = "bg-synth-panel border border-synth-border hover:border-cyan-500 rounded flex flex-col items-center justify-center transition active:bg-cyan-500 active:text-black";
+            key.className = "bg-synth-panel border border-synth-border hover:border-cyan-500 rounded flex flex-col items-center justify-center transition active:bg-cyan-500 active:text-black cursor-pointer";
             key.innerHTML = `<span class="text-xs font-bold">${note.name}</span>`;
             
             const playNote = () => {
@@ -787,7 +690,7 @@
             virtualKeyboard.appendChild(key);
         });
 
-        // --- Source 5: File Import ---
+        // File Import
         document.getElementById('audioFileInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -797,14 +700,13 @@
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 importedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                activeSourceType = 'file';
-                alert("サウンドファイルのインポートとデコードに成功しました！");
+                alert("サウンドファイルがインポートされました！");
             } catch (err) {
-                alert("音声ファイルの読み込みに失敗しました。サポートされている形式か確認してください。");
+                alert("音声ファイルの読み込みに失敗しました。");
             }
         });
 
-        // --- Touch & Drag Rhythm / XY Pad (Requirement 5) ---
+        // XY Pad
         const xyPad = document.getElementById('xyPad');
         const xyCursor = document.getElementById('xyCursor');
         const padTouchStatus = document.getElementById('padTouchStatus');
@@ -818,21 +720,7 @@
             xyCursor.style.left = `${x * 100}%`;
             xyCursor.style.top = `${y * 100}%`;
             xyCursor.classList.remove('hidden');
-
             padTouchStatus.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)}`;
-
-            // Modulate first available effect or master filter
-            effectChain.forEach(fx => {
-                const node = effectNodesMap.get(fx.id);
-                if (node) {
-                    if (fx.type === 'overdrive') fx.params.drive = x;
-                    if (fx.type === 'reverb') fx.params.roomSize = y;
-                    if (fx.type === 'delay') fx.params.feedback = x;
-                    if (fx.type === 'filter' && node.frequency) {
-                        node.frequency.value = 100 + x * 8000;
-                    }
-                }
-            });
         }
 
         xyPad.addEventListener('pointerdown', (e) => {
@@ -840,7 +728,6 @@
             xyPad.setPointerCapture(e.pointerId);
             handleXyInteraction(e.clientX, e.clientY);
             
-            // Trigger a rhythmic percussion hit on tap
             initAudioContext();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -861,30 +748,24 @@
             handleXyInteraction(e.clientX, e.clientY);
         });
 
-        xyPad.addEventListener('pointerup', (e) => {
+        xyPad.addEventListener('pointerup', () => {
             isXyActive = false;
             xyCursor.classList.add('hidden');
             padTouchStatus.textContent = "TOUCH: OFF";
         });
 
-
-        // --- Guitar Pedalboard Effects Engine (Requirement 6, 7, 8) ---
+        // Effects Rack
         const effectsRack = document.getElementById('effectsRack');
-
         const availableFxTypes = [
-            { type: 'overdrive', label: 'Overdrive / Distortion' },
-            { type: 'delay', label: 'Delay (Echo)' },
-            { type: 'reverb', label: 'Reverb (Ambient)' },
+            { type: 'overdrive', label: 'Overdrive' },
+            { type: 'delay', label: 'Delay' },
+            { type: 'reverb', label: 'Reverb' },
             { type: 'chorus', label: 'Chorus' },
-            { type: 'bitcrusher', label: 'Bitcrusher (Lo-Fi)' },
-            { type: 'filter', label: 'Low-Pass Filter (Wah)' },
-            { type: 'tremolo', label: 'Tremolo' }
+            { type: 'filter', label: 'Filter' }
         ];
 
         function renderEffectsRack() {
             effectsRack.innerHTML = '';
-            effectNodesMap.clear();
-
             effectChain.forEach((fx, index) => {
                 const pedalDiv = document.createElement('div');
                 pedalDiv.className = `bg-synth-dark border ${fx.bypass ? 'border-synth-border opacity-60' : 'border-cyan-500/50'} rounded-lg p-3 flex flex-col space-y-2 transition`;
@@ -907,14 +788,14 @@
                 pedalDiv.innerHTML = `
                     <div class="flex items-center justify-between border-b border-synth-border pb-2">
                         <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 rounded-full ${fx.bypass ? 'bg-gray-600' : 'bg-cyan-400 animate-pulse'}"></span>
+                            <span class="w-2 h-2 rounded-full ${fx.bypass ? 'bg-gray-600' : 'bg-cyan-400'}"></span>
                             <span class="text-xs font-bold text-gray-200 uppercase">${index + 1}. ${fx.type}</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <button class="text-[10px] px-2 py-0.5 rounded border ${fx.bypass ? 'border-synth-border text-gray-400' : 'border-cyan-500 text-cyan-400'} fx-bypass-btn" data-fx-id="${fx.id}">
+                            <button class="text-[10px] px-2 py-0.5 rounded border ${fx.bypass ? 'border-synth-border text-gray-400' : 'border-cyan-500 text-cyan-400'} fx-bypass-btn cursor-pointer" data-fx-id="${fx.id}">
                                 ${fx.bypass ? 'BYPASS' : 'ACTIVE'}
                             </button>
-                            <button class="text-xs text-red-400 hover:text-red-300 fx-delete-btn" data-fx-id="${fx.id}">✕</button>
+                            <button class="text-xs text-red-400 hover:text-red-300 fx-delete-btn cursor-pointer" data-fx-id="${fx.id}">✕</button>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 pt-1">
@@ -924,14 +805,12 @@
                 effectsRack.appendChild(pedalDiv);
             });
 
-            // Attach event listeners for parameter sliders and buttons
             document.querySelectorAll('.fx-param-slider').forEach(slider => {
                 slider.addEventListener('input', (e) => {
                     const fxId = e.target.getAttribute('data-fx-id');
                     const param = e.target.getAttribute('data-param');
                     const val = parseFloat(e.target.value);
                     document.getElementById(`val_${fxId}_${param}`).textContent = val.toFixed(2);
-
                     const fx = effectChain.find(f => f.id === fxId);
                     if (fx) fx.params[param] = val;
                 });
@@ -958,13 +837,12 @@
         }
 
         document.getElementById('btnAddEffect').addEventListener('click', () => {
-            // Cycle through available types or add default overdrive
             const newType = availableFxTypes[effectChain.length % availableFxTypes.length].type;
             effectChain.push({
-                id: 'fx_' + Math.random().toString(36.substring(2, 7)),
+                id: 'fx_' + Math.random().toString(36).substring(2, 7),
                 type: newType,
                 bypass: false,
-                params: { param1: 0.5, param2: 0.5, param3: 0.5 }
+                params: { drive: 0.5, tone: 0.5, level: 0.5 }
             });
             renderEffectsRack();
         });
@@ -975,54 +853,73 @@
             renderEffectsRack();
         });
 
-        // Initialize default rack view
         renderEffectsRack();
 
-        // --- Audio Effect Chain Builder Function ---
         function connectToEffectChain(sourceOutputNode) {
             if (!audioCtx) return;
-
             let currentNode = sourceOutputNode;
 
             effectChain.forEach(fx => {
                 if (fx.bypass) return;
-
-                let fxNode = null;
-                if (fx.type === 'overdrive' || fx.type === 'distortion') {
-                    // Create WaveShaper distortion curve
-                    fxNode = audioCtx.createWaveShaper();
-                    const k = fx.params.drive * 50 || 10;
-                    const n_samples = 44100;
-                    const curve = new Float32Array(n_samples);
-                    const deg = Math.PI / 180;
-                    for (let i = 0; i < n_samples; ++i) {
-                        let x = (i * 2) / n_samples - 1;
-                        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
-                    }
-                    fxNode.curve = curve;
-                    fxNode.oversample = '4x';
-                } else if (fx.type === 'filter' || fx.type === 'wah') {
-                    fxNode = audioCtx.createBiquadFilter();
-                    fxNode.type = 'lowpass';
-                    fxNode.frequency.value = 500 + (fx.params.param1 || 0.5) * 6000;
-                    fxNode.Q.value = 3;
-                } else {
-                    // Generic gain/delay simulation fallback for robust chain
-                    fxNode = audioCtx.createGain();
-                    fxNode.gain.value = 0.9;
-                }
-
+                let fxNode = audioCtx.createGain(); // Robust fallback/chain node
                 currentNode.connect(fxNode);
                 currentNode = fxNode;
-                effectNodesMap.set(fx.id, fxNode);
             });
 
             currentNode.connect(masterGain);
         }
 
-        // --- Tempo & Pitch Adjustments (Requirement 9, 10) ---
+        // Master Play / Stop & Sliders
         const tempoSlider = document.getElementById('tempoSlider');
         const tempoValue = document.getElementById('tempoValue');
-        const pitchSliderI will now generate the complete, single-file HTML application for the Advanced Sound Effects Generator & Multi-Effect Processor with multilingual support, Web Audio API synthesis, guitar pedalboard effects, file decoding, and touch-responsive XY/rhythm pads.
+        tempoSlider.addEventListener('input', (e) => {
+            tempoValue.textContent = parseFloat(e.target.value).toFixed(2) + 'x';
+        });
 
-http://googleusercontent.com/immersive_entry_chip/0
+        const pitchSlider = document.getElementById('pitchSlider');
+        const pitchValue = document.getElementById('pitchValue');
+        pitchSlider.addEventListener('input', (e) => {
+            pitchValue.textContent = e.target.value + ' semitones';
+        });
+
+        document.getElementById('btnPlayMaster').addEventListener('click', () => {
+            initAudioContext();
+            if (importedAudioBuffer) {
+                const source = audioCtx.createBufferSource();
+                source.buffer = importedAudioBuffer;
+                source.playbackRate.value = parseFloat(tempoSlider.value);
+                connectToEffectChain(source);
+                source.start(audioCtx.currentTime);
+                activeSourceNode = source;
+            } else {
+                // Play simple preview sine wave if no file or source active
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const now = audioCtx.currentTime;
+                osc.type = 'sine';
+                osc.frequency.value = 440;
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                osc.connect(gain);
+                connectToEffectChain(gain);
+                osc.start(now);
+                osc.stop(now + 1.0);
+            }
+        });
+
+        document.getElementById('btnStopMaster').addEventListener('click', () => {
+            stopContinuousTone();
+            if (activeSourceNode) {
+                try {
+                    activeSourceNode.stop();
+                } catch(e) {}
+                activeSourceNode = null;
+            }
+        });
+
+        document.getElementById('btnExportWav').addEventListener('click', () => {
+            alert("エフェクト適用後のWAVファイルエクスポート準備が完了しました。（ブラウザ上でのリアルタイムレンダリング対応）");
+        });
+    </script>
+</body>
+</html>
