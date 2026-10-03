@@ -106,7 +106,7 @@
                 <div id="source-panels-container">
                     <!-- Text Panel -->
                     <div id="panel-text" class="source-panel space-y-3">
-                        <label class="block text-xs text-gray-400">テキストイメージ / キーワード</label>
+                        <label class="block text-xs text-gray-400">テキストイメージ / キーワード（多彩な音に変化します）</label>
                         <div class="flex space-x-2">
                             <input type="text" id="textSoundInput" value="Guitar Heavy Riff 🎸" class="flex-1 bg-synth-dark border border-synth-border rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-cyan-500">
                             <button id="btnTextSynth" class="bg-cyan-600 hover:bg-cyan-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-cyan-600/20 cursor-pointer">合成して再生</button>
@@ -348,41 +348,70 @@
             });
         });
 
+        // 多彩でリッチなテキスト音響合成ロジック（文字の母音・響き・長さから音の性質を動的に生成）
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
             
             const text = document.getElementById('textSoundInput').value || "FX";
-            let hash = 0;
-            for (let i = 0; i < text.length; i++) {
-                hash = text.charCodeAt(i) + ((hash << 5) - hash);
-            }
-
-            const baseFreq = 120 + Math.abs(hash % 800);
-            const duration = 2.0;
             const now = audioCtx.currentTime;
-
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = 'sawtooth';
-            
             const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
             const pitchVal = parseInt(document.getElementById('pitchSlider').value);
-            const finalFreq = baseFreq * Math.pow(2, pitchVal / 12);
+
+            // 1. テキスト解析による動的パラメータ算出
+            let charCodeSum = 0;
+            let vowelCount = 0;
+            const vowels = ['a', 'i', 'u', 'e', 'o', 'ア', 'イ', 'ウ', 'エ', 'オ', 'あ', 'い', 'う', 'え', 'お'];
             
-            osc.frequency.setValueAtTime(finalFreq, now);
-            osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.3, now + (duration / tempoVal));
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                charCodeSum += text.charCodeAt(i);
+                if (vowels.includes(char)) vowelCount++;
+            }
 
-            gain.gain.setValueAtTime(0.7, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + (duration / tempoVal));
+            // ベース周波数（80Hz〜1200Hzの間で文字ごとに大きく変化）
+            const baseFreq = 80 + (Math.abs(charCodeSum * 37) % 1120);
+            const duration = Math.min(4.0, Math.max(1.2, text.length * 0.35));
+            
+            // 波形の自動選択（文字ハッシュに応じて変化）
+            const waveTypes = ['sawtooth', 'square', 'triangle', 'sine'];
+            const chosenWave = waveTypes[Math.abs(charCodeSum) % waveTypes.length];
 
-            osc.connect(gain);
-            connectToEffectChain(gain, audioCtx, masterGain, effectChain);
+            // 2. 複数のオシレーター（メイン音 + 厚みを出すサブ音・倍音）の生成
+            const masterGroupGain = audioCtx.createGain();
+            masterGroupGain.gain.setValueAtTime(0.6, now);
+            masterGroupGain.gain.exponentialRampToValueAtTime(0.001, now + (duration / tempoVal));
 
-            osc.start(now);
-            osc.stop(now + (duration / tempoVal));
-            activeSources.push(osc);
+            const oscCount = (charCodeSum % 2 === 0) ? 3 : 2; // 2〜3重のレイヤー
+            const detuneValues = [0, 7, -11]; // 微妙なデチューンでシンセサイザーらしい厚みを作る
+
+            for (let j = 0; j < oscCount; j++) {
+                const osc = audioCtx.createOscillator();
+                const layerGain = audioCtx.createGain();
+
+                osc.type = (j === 0) ? chosenWave : (j === 1 ? 'sawtooth' : 'triangle');
+                
+                const finalFreq = baseFreq * Math.pow(2, (pitchVal + detuneValues[j]) / 12);
+                osc.frequency.setValueAtTime(finalFreq, now);
+
+                // 文字列の響き（母音の割合や長さ）に応じた周波数ベンド（音のうねり・グリッサンド）
+                if (vowelCount > 1) {
+                    osc.frequency.exponentialRampToValueAtTime(finalFreq * (0.4 + (j * 0.2)), now + (duration / tempoVal) * 0.8);
+                } else {
+                    osc.frequency.linearRampToValueAtTime(finalFreq * 1.5, now + (duration / tempoVal) * 0.5);
+                }
+
+                layerGain.gain.value = 1.0 / (j + 1); // レイヤーごとの音量バランス
+
+                osc.connect(layerGain);
+                layerGain.connect(masterGroupGain);
+
+                osc.start(now);
+                osc.stop(now + (duration / tempoVal));
+                activeSources.push(osc);
+            }
+
+            connectToEffectChain(masterGroupGain, audioCtx, masterGain, effectChain);
         });
 
         const btnRecordMic = document.getElementById('btnRecordMic');
@@ -558,7 +587,6 @@
             }
         });
 
-        // Pad Sample Recording Feature
         const btnRecordPadSample = document.getElementById('btnRecordPadSample');
         const padRecordLabel = document.getElementById('padRecordLabel');
 
@@ -917,8 +945,6 @@
 
         document.getElementById('btnPlayMaster').addEventListener('click', () => {
             initAudioContext();
-
-            // 試聴時にパッド用録音音声（padSampleBuffer）またはインポート音声があれば優先してマスター試聴に使用
             const targetBuffer = padSampleBuffer || importedAudioBuffer;
 
             if (targetBuffer) {
@@ -951,7 +977,6 @@
             }
         });
 
-        // 停止ボタンの不具合修正（すべての活きている音源ソース、および連続トーンを安全に停止）
         document.getElementById('btnStopMaster').addEventListener('click', () => {
             stopContinuousTone();
             activeSources.forEach(src => {
@@ -1020,7 +1045,6 @@
             return new Blob([out.buffer], { type: 'audio/wav' });
         }
 
-        // WAV書き出しボタン（パッド用録音・インポート音源の有無を正しく判定してエフェクト適用レンダリング）
         document.getElementById('btnExportWav').addEventListener('click', async () => {
             const exportStatusText = document.getElementById('exportStatusText');
             exportStatusText.textContent = "レンダリング中（書き出し処理バッファ生成）...";
