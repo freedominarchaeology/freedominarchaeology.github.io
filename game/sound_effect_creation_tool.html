@@ -273,7 +273,7 @@
     <script>
         let audioCtx = null;
         let masterGain = null;
-        let activeSourceNode = null;
+        let activeSources = []; // 複数のアクティブな音源ソースを管理
         let currentWaveform = 'sawtooth';
         let currentFreq = 220;
         let importedAudioBuffer = null;
@@ -344,7 +344,6 @@
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
-            if (activeSourceNode) { try { activeSourceNode.stop(); } catch(e){} }
             
             const text = document.getElementById('textSoundInput').value || "FX";
             let hash = 0;
@@ -376,7 +375,7 @@
 
             osc.start(now);
             osc.stop(now + (duration / tempoVal));
-            activeSourceNode = osc;
+            activeSources.push(osc);
         });
 
         // Mic Handling
@@ -420,14 +419,13 @@
         btnPlayMic.addEventListener('click', () => {
             if (!micAudioBuffer) return;
             initAudioContext();
-            if (activeSourceNode) { try { activeSourceNode.stop(); } catch(e){} }
 
             const source = audioCtx.createBufferSource();
             source.buffer = micAudioBuffer;
             source.playbackRate.value = parseFloat(document.getElementById('tempoSlider').value) * Math.pow(2, parseInt(document.getElementById('pitchSlider').value) / 12);
             connectToEffectChain(source, audioCtx, masterGain, effectChain);
             source.start(audioCtx.currentTime);
-            activeSourceNode = source;
+            activeSources.push(source);
         });
 
         // Frequency Slider & Tone
@@ -490,6 +488,7 @@
                 connectToEffectChain(continuousToneGain, audioCtx, masterGain, effectChain);
 
                 continuousToneOsc.start();
+                activeSources.push(continuousToneOsc);
                 btnPlayFreq.classList.remove('bg-cyan-600', 'hover:bg-cyan-500');
                 btnPlayFreq.classList.add('bg-red-600', 'hover:bg-red-500');
             }
@@ -531,6 +530,7 @@
 
                 osc.start(now);
                 osc.stop(now + 0.5);
+                activeSources.push(osc);
             };
 
             key.addEventListener('mousedown', playNote);
@@ -538,7 +538,7 @@
             virtualKeyboard.appendChild(key);
         });
 
-        // File Import & Sampler Pad Sampling
+        // File Import
         document.getElementById('audioFileInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -591,7 +591,7 @@
                 source.buffer = padSampleBuffer;
                 connectToEffectChain(source, audioCtx, masterGain, effectChain);
                 source.start(audioCtx.currentTime);
-                activeSourceNode = source;
+                activeSources.push(source);
             } else {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -605,6 +605,7 @@
                 connectToEffectChain(gain, audioCtx, masterGain, effectChain);
                 osc.start(now);
                 osc.stop(now + 0.3);
+                activeSources.push(osc);
             }
         });
 
@@ -856,10 +857,12 @@
         tempoSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             tempoValue.textContent = val.toFixed(2) + 'x';
-            if (activeSourceNode && activeSourceNode.playbackRate) {
-                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
-                activeSourceNode.playbackRate.setValueAtTime(val * Math.pow(2, pitchVal / 12), audioCtx.currentTime);
-            }
+            activeSources.forEach(src => {
+                if (src.playbackRate) {
+                    const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                    src.playbackRate.setValueAtTime(val * Math.pow(2, pitchVal / 12), audioCtx.currentTime);
+                }
+            });
         });
 
         const pitchSlider = document.getElementById('pitchSlider');
@@ -867,18 +870,17 @@
         pitchSlider.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             pitchValue.textContent = val + ' semitones';
-            if (activeSourceNode && activeSourceNode.playbackRate) {
-                const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
-                activeSourceNode.playbackRate.setValueAtTime(tempoVal * Math.pow(2, val / 12), audioCtx.currentTime);
-            }
+            activeSources.forEach(src => {
+                if (src.playbackRate) {
+                    const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
+                    src.playbackRate.setValueAtTime(tempoVal * Math.pow(2, val / 12), audioCtx.currentTime);
+                }
+            });
         });
 
-        // Master Play / Stop
+        // Master Play
         document.getElementById('btnPlayMaster').addEventListener('click', () => {
             initAudioContext();
-            if (activeSourceNode) {
-                try { activeSourceNode.stop(); } catch(e) {}
-            }
 
             if (importedAudioBuffer) {
                 const source = audioCtx.createBufferSource();
@@ -888,7 +890,7 @@
                 source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
                 connectToEffectChain(source, audioCtx, masterGain, effectChain);
                 source.start(audioCtx.currentTime);
-                activeSourceNode = source;
+                activeSources.push(source);
             } else {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -906,23 +908,24 @@
 
                 osc.start(now);
                 osc.stop(now + 2.0);
-                activeSourceNode = osc;
+                activeSources.push(osc);
             }
         });
 
+        // Master Stop (修正済み：アクティブなすべての音源と連続トーンを完全停止)
         document.getElementById('btnStopMaster').addEventListener('click', () => {
             stopContinuousTone();
-            if (activeSourceNode) {
+            activeSources.forEach(src => {
                 try {
-                    activeSourceNode.stop();
+                    src.stop();
                 } catch(e) {}
-                activeSourceNode = null;
-            }
+            });
+            activeSources = [];
         });
 
         // WAVエンコーダー用ヘルパー関数
         function bufferToWav(buffer) {
-            const numOfChan = buffer.numberofChannels || buffer.numberOfChannels;
+            const numOfChan = buffer.numberOfChannels;
             const length = buffer.length * numOfChan * 2 + 44;
             const out = new DataView(new ArrayBuffer(length));
             let channels = [];
@@ -946,18 +949,17 @@
                 pos += 4;
             }
 
-            // WAVヘッダー書き込み
             writeString('RIFF');
             setUint32(length - 8);
             writeString('WAVE');
             writeString('fmt ');
-            setUint32(16); // SubChunk1Size (16 for PCM)
-            setUint16(1);  // AudioFormat (1 for PCM)
+            setUint32(16);
+            setUint16(1);
             setUint16(numOfChan);
             setUint32(sampleRate);
-            setUint32(sampleRate * numOfChan * 2); // ByteRate
-            setUint16(numOfChan * 2); // BlockAlign
-            setUint16(16); // BitsPerSample
+            setUint32(sampleRate * numOfChan * 2);
+            setUint16(numOfChan * 2);
+            setUint16(16);
             writeString('data');
             setUint32(length - pos - 4);
 
@@ -968,7 +970,7 @@
             while (offset < buffer.length) {
                 for (let i = 0; i < numOfChan; i++) {
                     let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767);
+                    sample = (sample < 0 ? sample * 32768 : sample * 32767);
                     out.setInt16(pos, sample, true);
                     pos += 2;
                 }
@@ -978,7 +980,7 @@
             return new Blob([out.buffer], { type: 'audio/wav' });
         }
 
-        // WAV書き出しボタンの実装
+        // WAV書き出しボタン
         document.getElementById('btnExportWav').addEventListener('click', async () => {
             const exportStatusText = document.getElementById('exportStatusText');
             exportStatusText.textContent = "レンダリング中（書き出し処理バッファ生成）...";
