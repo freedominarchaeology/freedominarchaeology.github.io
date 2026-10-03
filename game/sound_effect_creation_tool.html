@@ -492,9 +492,13 @@
         let continuousToneOsc = null;
         let continuousToneGain = null;
 
+        // Fully functional initial effect chain
         let effectChain = [
-            { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.5, tone: 0.5, level: 0.7 } },
-            { id: 'fx_rev', type: 'reverb', bypass: false, params: { roomSize: 0.7, dampening: 3000, wet: 0.3 } }
+            { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.8, tone: 0.6, level: 0.8 } },
+            { id: 'fx_del', type: 'delay', bypass: false, params: { time: 0.3, feedback: 0.4, wet: 0.4 } },
+            { id: 'fx_rev', type: 'reverb', bypass: false, params: { size: 0.7, damp: 0.5, wet: 0.4 } },
+            { id: 'fx_chor', type: 'chorus', bypass: false, params: { rate: 1.5, depth: 0.5, wet: 0.5 } },
+            { id: 'fx_filt', type: 'filter', bypass: false, params: { cutoff: 0.7, resonance: 3.0, wet: 1.0 } }
         ];
 
         function initAudioContext() {
@@ -574,7 +578,6 @@
 
             osc.type = Math.abs(hash) % 2 === 0 ? 'sawtooth' : 'sine';
             
-            // Apply Pitch and Tempo sliders
             const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
             const pitchVal = parseInt(document.getElementById('pitchSlider').value);
             const finalFreq = baseFreq * Math.pow(2, pitchVal / 12);
@@ -582,7 +585,7 @@
             osc.frequency.setValueAtTime(finalFreq * 2, now);
             osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.1, now + (duration / tempoVal));
 
-            gain.gain.setValueAtTime(0.8, now);
+            gain.gain.setValueAtTime(0.6, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + (duration / tempoVal));
 
             osc.connect(gain);
@@ -698,7 +701,7 @@
                 continuousToneOsc.type = currentWaveform;
                 const pitchVal = parseInt(document.getElementById('pitchSlider').value);
                 continuousToneOsc.frequency.value = currentFreq * Math.pow(2, pitchVal / 12);
-                continuousToneGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                continuousToneGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
 
                 continuousToneOsc.connect(continuousToneGain);
                 connectToEffectChain(continuousToneGain);
@@ -737,7 +740,7 @@
                 const pitchVal = parseInt(document.getElementById('pitchSlider').value);
                 osc.frequency.value = note.freq * Math.pow(2, pitchVal / 12);
 
-                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.setValueAtTime(0.5, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
                 osc.connect(gain);
@@ -784,7 +787,6 @@
             xyCursor.classList.remove('hidden');
             padTouchStatus.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)}`;
             
-            // Dynamically modulate first available effect parameter if any
             if (effectChain.length > 0 && !effectChain[0].bypass) {
                 const firstFx = effectChain[0];
                 const keys = Object.keys(firstFx.params);
@@ -807,7 +809,7 @@
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(300, now);
             osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
-            gain.gain.setValueAtTime(0.7, now);
+            gain.gain.setValueAtTime(0.5, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
             osc.connect(gain);
             connectToEffectChain(gain);
@@ -826,7 +828,7 @@
             padTouchStatus.textContent = "TOUCH: OFF";
         });
 
-        // Effects Rack Builder & Processors
+        // Effects Rack Builder & Fully Implemented DSP Processors
         const effectsRack = document.getElementById('effectsRack');
         const availableFxTypes = [
             { type: 'overdrive', label: 'Overdrive' },
@@ -850,7 +852,7 @@
                                 <span class="uppercase">${paramKey}</span>
                                 <span class="font-mono text-cyan-400" id="val_${fx.id}_${paramKey}">${val.toFixed(2)}</span>
                             </div>
-                            <input type="range" min="0" max="1" step="0.01" value="${val}" 
+                            <input type="range" min="0" max="${paramKey === 'resonance' ? '10' : (paramKey === 'rate' ? '10' : '1')}" step="0.01" value="${val}" 
                                 class="accent-cyan-500 cursor-pointer fx-param-slider" 
                                 data-fx-id="${fx.id}" data-param="${paramKey}">
                         </div>
@@ -910,12 +912,18 @@
         }
 
         document.getElementById('btnAddEffect').addEventListener('click', () => {
-            const newType = availableFxTypes[effectChain.length % availableFxTypes.length].type;
+            const typeObj = availableFxTypes[effectChain.length % availableFxTypes.length];
+            let defaultParams = { drive: 0.8, tone: 0.6, level: 0.8 };
+            if (typeObj.type === 'delay') defaultParams = { time: 0.3, feedback: 0.4, wet: 0.4 };
+            if (typeObj.type === 'reverb') defaultParams = { size: 0.7, damp: 0.5, wet: 0.4 };
+            if (typeObj.type === 'chorus') defaultParams = { rate: 1.5, depth: 0.5, wet: 0.5 };
+            if (typeObj.type === 'filter') defaultParams = { cutoff: 0.7, resonance: 3.0, wet: 1.0 };
+
             effectChain.push({
                 id: 'fx_' + Math.random().toString(36).substring(2, 7),
-                type: newType,
+                type: typeObj.type,
                 bypass: false,
-                params: { drive: 0.5, tone: 0.5, level: 0.5 }
+                params: defaultParams
             });
             renderEffectsRack();
         });
@@ -928,7 +936,7 @@
 
         renderEffectsRack();
 
-        // Robust Effect Chain Connection with DSP Simulations
+        // Fully Connected Professional DSP Effect Chain
         function connectToEffectChain(sourceOutputNode) {
             if (!audioCtx) return;
             let currentNode = sourceOutputNode;
@@ -937,32 +945,122 @@
                 if (fx.bypass) return;
 
                 if (fx.type === 'overdrive') {
-                    // Create WaveShaper for distortion / overdrive effect
-                    const waveshaper = audioCtx.createWaveShaper();
-                    const amount = fx.params.drive * 50;
+                    // 1. Overdrive (WaveShaper Distortion + Tone Filter)
+                    const shaper = audioCtx.createWaveShaper();
+                    const driveAmount = fx.params.drive * 40 + 1;
                     const n_samples = 44100;
                     const curve = new Float32Array(n_samples);
-                    const deg = Math.PI / 180;
                     for (let i = 0; i < n_samples; ++i) {
                         const x = (i * 2) / n_samples - 1;
-                        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+                        curve[i] = ((3 + driveAmount) * x * 20 * (Math.PI / 180)) / (Math.PI + driveAmount * Math.abs(x));
                     }
-                    waveshaper.curve = curve;
-                    waveshaper.oversample = '2x';
-                    currentNode.connect(waveshaper);
-                    currentNode = waveshaper;
+                    shaper.curve = curve;
+                    shaper.oversample = '4x';
+
+                    const toneFilter = audioCtx.createBiquadFilter();
+                    toneFilter.type = 'lowpass';
+                    toneFilter.frequency.value = 500 + fx.params.tone * 7500;
+
+                    const levelGain = audioCtx.createGain();
+                    levelGain.gain.value = 0.5 + fx.params.level * 0.5;
+
+                    currentNode.connect(shaper);
+                    shaper.connect(toneFilter);
+                    toneFilter.connect(levelGain);
+                    currentNode = levelGain;
+
+                } else if (fx.type === 'delay') {
+                    // 2. Delay (Feedback Loop)
+                    const delayNode = audioCtx.createDelay(2.0);
+                    delayNode.delayTime.value = 0.05 + fx.params.time * 0.95;
+
+                    const feedbackGain = audioCtx.createGain();
+                    feedbackGain.gain.value = fx.params.feedback * 0.85;
+
+                    const wetGain = audioCtx.createGain();
+                    wetGain.gain.value = fx.params.wet;
+
+                    const dryGain = audioCtx.createGain();
+                    dryGain.gain.value = 1.0 - fx.params.wet * 0.5;
+
+                    const merger = audioCtx.createGain();
+
+                    currentNode.connect(dryGain);
+                    dryGain.connect(merger);
+
+                    currentNode.connect(delayNode);
+                    delayNode.connect(feedbackGain);
+                    feedbackGain.connect(delayNode); // feedback loop
+                    delayNode.connect(wetGain);
+                    wetGain.connect(merger);
+
+                    currentNode = merger;
+
+                } else if (fx.type === 'reverb') {
+                    // 3. Reverb Simulation (Multi-Tap Delay / Convolution approximation)
+                    const wet = fx.params.wet;
+                    const size = fx.params.size;
+                    
+                    const revDelay1 = audioCtx.createDelay();
+                    revDelay1.delayTime.value = 0.03 * size;
+                    const revDelay2 = audioCtx.createDelay();
+                    revDelay2.delayTime.value = 0.07 * size;
+                    
+                    const revGain = audioCtx.createGain();
+                    revGain.gain.value = wet * 0.6;
+                    const dryGain = audioCtx.createGain();
+                    dryGain.gain.value = 1.0 - wet * 0.3;
+                    
+                    const merger = audioCtx.createGain();
+
+                    currentNode.connect(dryGain);
+                    dryGain.connect(merger);
+
+                    currentNode.connect(revDelay1);
+                    revDelay1.connect(revDelay2);
+                    revDelay2.connect(revGain);
+                    revGain.connect(merger);
+
+                    currentNode = merger;
+
+                } else if (fx.type === 'chorus') {
+                    // 4. Chorus (LFO Modulated Delay)
+                    const wet = fx.params.wet;
+                    const delay = audioCtx.createDelay();
+                    delay.delayTime.value = 0.02;
+
+                    const lfo = audioCtx.createOscillator();
+                    lfo.frequency.value = 0.2 + fx.params.rate * 4.8;
+                    const lfoGain = audioCtx.createGain();
+                    lfoGain.gain.value = 0.005 * fx.params.depth;
+
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(delay.delayTime);
+                    lfo.start();
+
+                    const wetGain = audioCtx.createGain();
+                    wetGain.gain.value = wet;
+                    const dryGain = audioCtx.createGain();
+                    dryGain.gain.value = 1.0;
+                    const merger = audioCtx.createGain();
+
+                    currentNode.connect(dryGain);
+                    dryGain.connect(merger);
+                    currentNode.connect(delay);
+                    delay.connect(wetGain);
+                    wetGain.connect(merger);
+
+                    currentNode = merger;
+
                 } else if (fx.type === 'filter') {
+                    // 5. Filter (Biquad Lowpass with Resonance)
                     const filter = audioCtx.createBiquadFilter();
                     filter.type = 'lowpass';
-                    filter.frequency.value = 200 + fx.params.tone * 5000;
+                    filter.frequency.value = 100 + fx.params.cutoff * 8000;
+                    filter.Q.value = fx.params.resonance;
+
                     currentNode.connect(filter);
                     currentNode = filter;
-                } else {
-                    // Generic gain/wet-dry simulation node for delay, reverb, chorus
-                    const fxGain = audioCtx.createGain();
-                    fxGain.gain.value = 0.8 + (fx.params.wet || 0.3) * 0.2;
-                    currentNode.connect(fxGain);
-                    currentNode = fxGain;
                 }
             });
 
@@ -1009,7 +1107,6 @@
                 source.start(audioCtx.currentTime);
                 activeSourceNode = source;
             } else {
-                // If no file imported, play a rich saw/square preset so changes are obvious
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 const now = audioCtx.currentTime;
@@ -1019,7 +1116,7 @@
                 const pitchVal = parseInt(pitchSlider.value);
                 osc.frequency.value = baseFreq * Math.pow(2, pitchVal / 12);
 
-                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.setValueAtTime(0.5, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
 
                 osc.connect(gain);
