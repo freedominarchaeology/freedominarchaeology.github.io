@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Web Audio FX Synthesizer - Rhythm Text Edition (Fixed)</title>
+    <title>Advanced Web Audio FX Synthesizer - Ultimate Edition</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -61,21 +61,26 @@
             <div class="w-8 h-8 rounded bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-cyan-500/20">⚡</div>
             <div>
                 <h1 class="text-lg font-bold tracking-wider text-cyan-400">ADVANCED FX SYNTHESIZER</h1>
-                <p class="text-xs text-gray-400">Rhythm & Text-to-Sound Generator</p>
+                <p class="text-xs text-gray-400">Ultimate Edition with Visualizer & Presets</p>
             </div>
         </div>
 
         <div class="flex items-center space-x-4">
+            <!-- プリセット選択機能 -->
+            <div class="flex items-center space-x-2 bg-synth-dark px-3 py-1.5 rounded-lg border border-synth-border">
+                <span class="text-xs text-gray-400">PRESET</span>
+                <select id="presetSelect" class="bg-synth-dark text-xs text-cyan-400 focus:outline-none cursor-pointer">
+                    <option value="default">デフォルト (Rhythm)</option>
+                    <option value="ambient">アンビエント・パッド</option>
+                    <option value="chiptune">8bit チップチューン</option>
+                    <option value="heavy">ヘヴィ・ディストーション</option>
+                </select>
+            </div>
+
             <div class="flex items-center space-x-2 bg-synth-dark px-3 py-1.5 rounded-lg border border-synth-border">
                 <span class="text-xs text-gray-400">MASTER</span>
                 <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.8" class="w-20 accent-cyan-500 cursor-pointer">
                 <span id="masterVolumeVal" class="text-xs text-cyan-400 font-mono w-8 text-right">80%</span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <select id="languageSelect" class="bg-synth-dark border border-synth-border text-xs rounded px-2.5 py-1.5 text-gray-300 focus:outline-none focus:border-cyan-500 cursor-pointer">
-                    <option value="ja">日本語</option>
-                    <option value="en">English</option>
-                </select>
             </div>
         </div>
     </header>
@@ -83,9 +88,18 @@
     <!-- Main Container -->
     <main class="flex-1 p-4 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        <!-- Left Column: Source Generators -->
+        <!-- Left Column: Source Generators & Visualizer -->
         <div class="lg:col-span-5 flex flex-col space-y-4">
-            
+              
+            <!-- オシロスコープ・ビジュアライザーを追加 -->
+            <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow">
+                <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+                    <span>Visualizer (Oscilloscope)</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                </h2>
+                <canvas id="visualizerCanvas" class="w-full h-24 bg-synth-dark rounded-lg border border-synth-border"></canvas>
+            </div>
+
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow">
                 <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-3 flex items-center justify-between">
                     <span>1. Sound Source Generator</span>
@@ -108,6 +122,16 @@
                             <button id="btnTextSynth" class="bg-cyan-600 hover:bg-cyan-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-cyan-600/20 cursor-pointer">合成して再生</button>
                         </div>
                         <p class="text-[10px] text-gray-500">例: 「ドッ・カーン」「ちゃ・り・ー・ん」「ピッ・ピッ・ピーー」</p>
+                        <!-- レトロゲームSEプリセット用ボタン群 -->
+                         <div class="pt-2 border-t border-synth-border">
+                             <p class="text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">🎮 レトロゲームSE プリセット</p>
+                             <div class="grid grid-cols-2 gap-1.5">
+                                 <button id="presetCoin" class="bg-synth-dark border border-synth-border hover:border-cyan-500 text-cyan-400 text-[11px] py-1.5 rounded transition cursor-pointer">🟡 マリオ: コイン</button>
+                                 <button id="presetZelda" class="bg-synth-dark border border-synth-border hover:border-cyan-500 text-cyan-400 text-[11px] py-1.5 rounded transition cursor-pointer">✨ ゼルダ: アイテム</button>
+                                 <button id="presetFF" class="bg-synth-dark border border-synth-border hover:border-cyan-500 text-cyan-400 text-[11px] py-1.5 rounded transition cursor-pointer">💎 FF: アルペジオ</button>
+                                 <button id="presetDQ" class="bg-synth-dark border border-synth-border hover:border-cyan-500 text-cyan-400 text-[11px] py-1.5 rounded transition cursor-pointer">⚔️ ドラクエ: レベルUP</button>
+                             </div>
+                         </div>
                     </div>
 
                     <!-- Mic Panel -->
@@ -153,7 +177,7 @@
             <!-- Import & Touch Pad -->
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow flex-1 flex flex-col space-y-4">
                 <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest">2. 音声ファイル インポート & サンプラーパッド</h2>
-                
+                  
                 <div class="flex items-center space-x-2">
                     <div class="relative flex-1 border-2 border-dashed border-synth-border hover:border-cyan-500 rounded-lg p-2.5 text-center cursor-pointer transition bg-synth-dark group">
                         <input type="file" id="audioFileInput" accept="audio/*" class="absolute inset-0 opacity-0 cursor-pointer">
@@ -217,10 +241,10 @@
 
             <!-- Tempo, Pitch & Export -->
             <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow grid grid-cols-1 md:grid-cols-2 gap-4">
-                
+                  
                 <div class="space-y-3">
                     <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">4. テンポ & ピッチコントロール</h3>
-                    
+                      
                     <div class="bg-synth-dark p-3 rounded-lg border border-synth-border space-y-2">
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-400">テンポ倍率 (Tempo Stretch)</span>
@@ -240,7 +264,7 @@
 
                 <div class="flex flex-col justify-between space-y-3">
                     <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">5. 試聴 & 書き出し (Export)</h3>
-                    
+                      
                     <div class="grid grid-cols-2 gap-2">
                         <button id="btnPlayMaster" class="bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-black font-bold py-3 px-4 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 cursor-pointer">
                             <span>▶</span>
@@ -268,25 +292,26 @@
     </main>
 
     <footer class="bg-synth-panel border-t border-synth-border py-2 px-4 text-center text-xs text-gray-500">
-        Advanced Web Audio Synthesizer & FX Rack — Rhythm & Text Edition
+        Advanced Web Audio Synthesizer & FX Rack — Ultimate Edition
     </footer>
 
     <!-- JavaScript Application Logic -->
     <script>
         let audioCtx = null;
         let masterGain = null;
+        let analyser = null;
         let activeSources = [];
         let currentWaveform = 'sawtooth';
         let currentFreq = 220;
         let importedAudioBuffer = null;
         let micAudioBuffer = null;
         let padSampleBuffer = null;
-        
+          
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
         let micStream = null;
-        
+          
         let padRecorder = null;
         let padChunks = [];
         let isPadRecording = false;
@@ -314,9 +339,86 @@
             if (!masterGain) {
                 masterGain = audioCtx.createGain();
                 masterGain.gain.value = parseFloat(document.getElementById('masterVolume').value);
-                masterGain.connect(audioCtx.destination);
+                
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+
+                masterGain.connect(analyser);
+                analyser.connect(audioCtx.destination);
+                startVisualizer();
             }
         }
+
+        // ビジュアライザー描画処理
+        const canvas = document.getElementById('visualizerCanvas');
+        const canvasCtx = canvas.getContext('2d');
+
+        function startVisualizer() {
+            function draw() {
+                requestAnimationFrame(draw);
+                if (!analyser) return;
+
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                analyser.getByteTimeDomainData(dataArray);
+
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+
+                canvasCtx.fillStyle = '#121218';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeStyle = '#06b6d4';
+                canvasCtx.beginPath();
+
+                const sliceWidth = canvas.width * 1.0 / bufferLength;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * canvas.height / 2;
+
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+                canvasCtx.lineTo(canvas.width, canvas.height / 2);
+                canvasCtx.stroke();
+            }
+            draw();
+        }
+
+        // プリセット切り替え機能
+        const presets = {
+            default: [
+                { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.85, tone: 0.7, level: 0.8 } },
+                { id: 'fx_del', type: 'delay', bypass: false, params: { time: 0.4, feedback: 0.65, wet: 0.6 } }
+            ],
+            ambient: [
+                { id: 'fx_rev', type: 'reverb', bypass: false, params: { size: 0.95, damp: 0.2, wet: 0.9 } },
+                { id: 'fx_chor', type: 'chorus', bypass: false, params: { rate: 1.5, depth: 0.9, wet: 0.8 } },
+                { id: 'fx_del', type: 'delay', bypass: false, params: { time: 0.6, feedback: 0.7, wet: 0.5 } }
+            ],
+            chiptune: [
+                { id: 'fx_filt', type: 'filter', bypass: false, params: { cutoff: 0.8, resonance: 10.0, wet: 1.0 } }
+            ],
+            heavy: [
+                { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 1.0, tone: 0.9, level: 0.9 } },
+                { id: 'fx_rev', type: 'reverb', bypass: false, params: { size: 0.5, damp: 0.5, wet: 0.3 } }
+            ]
+        };
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (presets[val]) {
+                effectChain = JSON.parse(JSON.stringify(presets[val]));
+                renderEffectsRack();
+            }
+        });
 
         const masterVolumeSlider = document.getElementById('masterVolume');
         const masterVolumeVal = document.getElementById('masterVolumeVal');
@@ -350,7 +452,7 @@
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
-            
+              
             const rawText = document.getElementById('textSoundInput').value || "ドッ・カーン";
             const now = audioCtx.currentTime;
             const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
@@ -372,7 +474,7 @@
                 }
 
                 const isImpact = stepText.includes('ド') || stepText.includes('爆') || stepText.includes('バ') || stepText.includes('ど');
-                
+                  
                 let baseFreq = isImpact ? (50 + (charCodeSum % 40)) : (150 + (Math.abs(charCodeSum) % 600));
                 const duration = isImpact ? 0.6 : 0.4;
                 const chosenWave = isImpact ? 'sawtooth' : (charCodeSum % 2 === 0 ? 'square' : 'triangle');
@@ -553,7 +655,7 @@
             const key = document.createElement('button');
             key.className = "bg-synth-panel border border-synth-border hover:border-cyan-500 rounded flex flex-col items-center justify-center transition active:bg-cyan-500 active:text-black cursor-pointer";
             key.innerHTML = `<span class="text-xs font-bold">${note.name}</span>`;
-            
+              
             const playNote = () => {
                 initAudioContext();
                 const osc = audioCtx.createOscillator();
@@ -641,7 +743,7 @@
             xyCursor.style.left = `${x * 100}%`;
             xyCursor.style.top = `${y * 100}%`;
             xyCursor.classList.remove('hidden');
-            
+              
             if (effectChain.length > 0 && !effectChain[0].bypass) {
                 const firstFx = effectChain[0];
                 const keys = Object.keys(firstFx.params);
@@ -720,35 +822,35 @@
 
                 let paramsHtml = '';
                 for (let [paramKey, val] of Object.entries(fx.params)) {
-                    paramsHtml += `
-                        <div class="flex flex-col flex-1">
-                            <div class="flex justify-between text-[10px] text-gray-400 mb-1">
-                                <span class="uppercase">${paramKey}</span>
-                                <span class="font-mono text-cyan-400" id="val_${fx.id}_${paramKey}">${val.toFixed(2)}</span>
-                            </div>
-                            <input type="range" min="0" max="${paramKey === 'resonance' ? '15' : (paramKey === 'rate' ? '10' : '1')}" step="0.01" value="${val}" 
-                                class="accent-cyan-500 cursor-pointer fx-param-slider" 
-                                data-fx-id="${fx.id}" data-param="${paramKey}">
-                        </div>
+                    paramsHtml += `  
+                        <div class="flex flex-col flex-1">  
+                            <div class="flex justify-between text-[10px] text-gray-400 mb-1">  
+                                <span class="uppercase">${paramKey}</span>  
+                                <span class="font-mono text-cyan-400" id="val_${fx.id}_${paramKey}">${val.toFixed(2)}</span>  
+                            </div>  
+                            <input type="range" min="0" max="${paramKey === 'resonance' ? '15' : (paramKey === 'rate' ? '10' : '1')}" step="0.01" value="${val}"   
+                                class="accent-cyan-500 cursor-pointer fx-param-slider"   
+                                data-fx-id="${fx.id}" data-param="${paramKey}">  
+                        </div>  
                     `;
                 }
 
-                pedalDiv.innerHTML = `
-                    <div class="flex items-center justify-between border-b border-synth-border pb-2">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 rounded-full ${fx.bypass ? 'bg-gray-600' : 'bg-cyan-400'}"></span>
-                            <span class="text-xs font-bold text-gray-200 uppercase">${index + 1}. ${fx.type}</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <button class="text-[10px] px-2 py-0.5 rounded border ${fx.bypass ? 'border-synth-border text-gray-400' : 'border-cyan-500 text-cyan-400'} fx-bypass-btn cursor-pointer" data-fx-id="${fx.id}">
-                                ${fx.bypass ? 'BYPASS' : 'ACTIVE'}
-                            </button>
-                            <button class="text-xs text-red-400 hover:text-red-300 fx-delete-btn cursor-pointer" data-fx-id="${fx.id}">✕</button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 pt-1">
-                        ${paramsHtml}
-                    </div>
+                pedalDiv.innerHTML = `  
+                    <div class="flex items-center justify-between border-b border-synth-border pb-2">  
+                        <div class="flex items-center space-x-2">  
+                            <span class="w-2 h-2 rounded-full ${fx.bypass ? 'bg-gray-600' : 'bg-cyan-400'}"></span>  
+                            <span class="text-xs font-bold text-gray-200 uppercase">${index + 1}. ${fx.type}</span>  
+                        </div>  
+                        <div class="flex items-center space-x-2">  
+                            <button class="text-[10px] px-2 py-0.5 rounded border ${fx.bypass ? 'border-synth-border text-gray-400' : 'border-cyan-500 text-cyan-400'} fx-bypass-btn cursor-pointer" data-fx-id="${fx.id}">  
+                                ${fx.bypass ? 'BYPASS' : 'ACTIVE'}  
+                            </button>  
+                            <button class="text-xs text-red-400 hover:text-red-300 fx-delete-btn cursor-pointer" data-fx-id="${fx.id}">✕</button>  
+                        </div>  
+                    </div>  
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 pt-1">  
+                        ${paramsHtml}  
+                    </div>  
                 `;
                 effectsRack.appendChild(pedalDiv);
             });
@@ -922,6 +1024,132 @@
                 exportStatusText.textContent = "書き出し完了！";
             }, 1000);
         });
+        
+        // --- レトロゲーム風SEプリセットの再生関数 ---
+
+// 1. マリオ風コイン音
+document.getElementById('presetCoin').addEventListener('click', () => {
+    initAudioContext();
+    const now = audioCtx.currentTime;
+    const masterGroupGain = audioCtx.createGain();
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'square'; // ファミコンの矩形波
+    
+    // B5 (987.77Hz) から E6 (1318.51Hz) へ一瞬でジャンプ
+    osc.frequency.setValueAtTime(987.77, now);
+    osc.frequency.setValueAtTime(1318.51, now + 0.08);
+    
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    
+    osc.connect(gain);
+    gain.connect(masterGroupGain);
+    connectToEffectChain(masterGroupGain, audioCtx, masterGain, effectChain);
+    
+    osc.start(now);
+    osc.stop(now + 0.35);
+    activeSources.push(osc);
+});
+
+// 2. ゼルダ風アイテム取得音（きらびやかな連続音）
+document.getElementById('presetZelda').addEventListener('click', () => {
+    initAudioContext();
+    const now = audioCtx.currentTime;
+    const masterGroupGain = audioCtx.createGain();
+    
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const startTime = now + (idx * 0.08);
+        
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, startTime);
+        
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.2);
+        
+        osc.connect(gain);
+        gain.connect(masterGroupGain);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 0.2);
+        activeSources.push(osc);
+    });
+    connectToEffectChain(masterGroupGain, audioCtx, masterGain, effectChain);
+});
+
+// 3. ファイナルファンタジー風アルペジオ（ハープのきらめき）
+document.getElementById('presetFF').addEventListener('click', () => {
+    initAudioContext();
+    const now = audioCtx.currentTime;
+    const masterGroupGain = audioCtx.createGain();
+    
+    // 綺麗なコードの階段（トライアド）
+    const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51];
+    notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const startTime = now + (idx * 0.05);
+        
+        osc.type = 'triangle'; // 柔らかい三角形波でハープ感を演出
+        osc.frequency.setValueAtTime(freq, startTime);
+        
+        gain.gain.setValueAtTime(0.25, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(masterGroupGain);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+        activeSources.push(osc);
+    });
+    connectToEffectChain(masterGroupGain, audioCtx, masterGain, effectChain);
+});
+
+// 4. ドラゴンクエスト風レベルアップ音
+document.getElementById('presetDQ').addEventListener('click', () => {
+    initAudioContext();
+    const now = audioCtx.currentTime;
+    const masterGroupGain = audioCtx.createGain();
+    
+    // 力強いファンファーレの音程ステップ
+    const steps = [
+        { freq: 523.25, duration: 0.1 }, // C5
+        { freq: 659.25, duration: 0.1 }, // E5
+        { freq: 783.99, duration: 0.1 }, // G5
+        { freq: 1046.50, duration: 0.4 }  // C6 (ロング)
+    ];
+    
+    let cumulativeTime = 0;
+    steps.forEach((step) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const startTime = now + cumulativeTime;
+        
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(step.freq, startTime);
+        
+        gain.gain.setValueAtTime(0.35, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + step.duration);
+        
+        osc.connect(gain);
+        gain.connect(masterGroupGain);
+        
+        osc.start(startTime);
+        osc.stop(startTime + step.duration);
+        activeSources.push(osc);
+        
+        cumulativeTime += step.duration;
+    });
+    connectToEffectChain(masterGroupGain, audioCtx, masterGain, effectChain);
+});
+
+        
     </script>
 </body>
 </html>
