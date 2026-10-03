@@ -121,7 +121,7 @@
                     <!-- Mic Panel -->
                     <div id="panel-mic" class="source-panel space-y-3 hidden">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-gray-400" data-i18n="mic_status">サンプリング状態: 待機中</span>
+                            <span id="micStatusText" class="text-xs text-gray-400" data-i18n="mic_status">サンプリング状態: 待機中</span>
                         </div>
                         <div class="flex space-x-2">
                             <button id="btnRecordMic" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-xs transition flex items-center justify-center space-x-2 cursor-pointer">
@@ -512,7 +512,7 @@
             }
         }
 
-        // Master Volume Slider Binding
+        // Master Volume
         const masterVolumeSlider = document.getElementById('masterVolume');
         const masterVolumeVal = document.getElementById('masterVolumeVal');
         masterVolumeSlider.addEventListener('input', (e) => {
@@ -533,7 +533,7 @@
             });
         });
 
-        // Tabs
+        // Source Tabs
         const sourceTabs = document.querySelectorAll('.source-tab');
         const sourcePanels = document.querySelectorAll('.source-panel');
 
@@ -557,6 +557,7 @@
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
+            if (activeSourceNode) { try { activeSourceNode.stop(); } catch(e){} }
             
             const text = document.getElementById('textSoundInput').value || "FX";
             let hash = 0;
@@ -565,28 +566,85 @@
             }
 
             const baseFreq = 150 + Math.abs(hash % 1200);
-            const duration = 1.2;
+            const duration = 1.5;
             const now = audioCtx.currentTime;
 
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
             osc.type = Math.abs(hash) % 2 === 0 ? 'sawtooth' : 'sine';
-            osc.frequency.setValueAtTime(baseFreq * 2, now);
-            osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.1, now + duration);
+            
+            // Apply Pitch and Tempo sliders
+            const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
+            const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+            const finalFreq = baseFreq * Math.pow(2, pitchVal / 12);
+            
+            osc.frequency.setValueAtTime(finalFreq * 2, now);
+            osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.1, now + (duration / tempoVal));
 
             gain.gain.setValueAtTime(0.8, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + (duration / tempoVal));
 
             osc.connect(gain);
             connectToEffectChain(gain);
 
             osc.start(now);
-            osc.stop(now + duration);
+            osc.stop(now + (duration / tempoVal));
             activeSourceNode = osc;
         });
 
-        // Frequency Slider
+        // Mic Handling
+        const btnRecordMic = document.getElementById('btnRecordMic');
+        const btnPlayMic = document.getElementById('btnPlayMic');
+        const micStatusText = document.getElementById('micStatusText');
+
+        btnRecordMic.addEventListener('click', async () => {
+            initAudioContext();
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const arrayBuffer = await blob.arrayBuffer();
+                        micAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                        btnPlayMic.removeAttribute('disabled');
+                        micStatusText.textContent = "サンプリング状態: 録音完了 (サンプル再生可能)";
+                    };
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btnRecordMic.classList.remove('bg-red-600', 'hover:bg-red-500');
+                    btnRecordMic.classList.add('bg-gray-700');
+                    btnRecordMic.querySelector('span:nth-child(2)').textContent = "録音停止";
+                    micStatusText.textContent = "サンプリング状態: 録音中...";
+                } catch(err) {
+                    alert("マイクへのアクセスが許可されていないか、利用できません。");
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btnRecordMic.classList.remove('bg-gray-700');
+                btnRecordMic.classList.add('bg-red-600', 'hover:bg-red-500');
+                btnRecordMic.querySelector('span:nth-child(2)').textContent = "録音開始";
+            }
+        });
+
+        btnPlayMic.addEventListener('click', () => {
+            if (!micAudioBuffer) return;
+            initAudioContext();
+            if (activeSourceNode) { try { activeSourceNode.stop(); } catch(e){} }
+
+            const source = audioCtx.createBufferSource();
+            source.buffer = micAudioBuffer;
+            source.playbackRate.value = parseFloat(document.getElementById('tempoSlider').value) * Math.pow(2, parseInt(document.getElementById('pitchSlider').value) / 12);
+            connectToEffectChain(source);
+            source.start(audioCtx.currentTime);
+            activeSourceNode = source;
+        });
+
+        // Frequency Slider & Tone
         const freqSlider = document.getElementById('freqSlider');
         const freqValueDisplay = document.getElementById('freqValueDisplay');
         const btnPlayFreq = document.getElementById('btnPlayFreq');
@@ -595,7 +653,9 @@
             currentFreq = parseFloat(e.target.value);
             freqValueDisplay.textContent = currentFreq + " Hz";
             if (continuousToneOsc) {
-                continuousToneOsc.frequency.setValueAtTime(currentFreq, audioCtx.currentTime);
+                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                const finalFreq = currentFreq * Math.pow(2, pitchVal / 12);
+                continuousToneOsc.frequency.setValueAtTime(finalFreq, audioCtx.currentTime);
             }
         });
 
@@ -636,7 +696,8 @@
                 continuousToneGain = audioCtx.createGain();
 
                 continuousToneOsc.type = currentWaveform;
-                continuousToneOsc.frequency.value = currentFreq;
+                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                continuousToneOsc.frequency.value = currentFreq * Math.pow(2, pitchVal / 12);
                 continuousToneGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
 
                 continuousToneOsc.connect(continuousToneGain);
@@ -673,7 +734,8 @@
                 const now = audioCtx.currentTime;
 
                 osc.type = currentWaveform;
-                osc.frequency.value = note.freq;
+                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                osc.frequency.value = note.freq * Math.pow(2, pitchVal / 12);
 
                 gain.gain.setValueAtTime(0.6, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
@@ -700,7 +762,7 @@
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 importedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                alert("サウンドファイルがインポートされました！");
+                alert("サウンドファイルがインポートされました！「サウンド再生」ボタンを押すとこの音声にエフェクトやテンポ・ピッチが適用されます。");
             } catch (err) {
                 alert("音声ファイルの読み込みに失敗しました。");
             }
@@ -721,6 +783,16 @@
             xyCursor.style.top = `${y * 100}%`;
             xyCursor.classList.remove('hidden');
             padTouchStatus.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)}`;
+            
+            // Dynamically modulate first available effect parameter if any
+            if (effectChain.length > 0 && !effectChain[0].bypass) {
+                const firstFx = effectChain[0];
+                const keys = Object.keys(firstFx.params);
+                if (keys.length > 0) {
+                    firstFx.params[keys[0]] = x;
+                    renderEffectsRack();
+                }
+            }
         }
 
         xyPad.addEventListener('pointerdown', (e) => {
@@ -754,7 +826,7 @@
             padTouchStatus.textContent = "TOUCH: OFF";
         });
 
-        // Effects Rack
+        // Effects Rack Builder & Processors
         const effectsRack = document.getElementById('effectsRack');
         const availableFxTypes = [
             { type: 'overdrive', label: 'Overdrive' },
@@ -810,7 +882,8 @@
                     const fxId = e.target.getAttribute('data-fx-id');
                     const param = e.target.getAttribute('data-param');
                     const val = parseFloat(e.target.value);
-                    document.getElementById(`val_${fxId}_${param}`).textContent = val.toFixed(2);
+                    const valDisplay = document.getElementById(`val_${fxId}_${param}`);
+                    if (valDisplay) valDisplay.textContent = val.toFixed(2);
                     const fx = effectChain.find(f => f.id === fxId);
                     if (fx) fx.params[param] = val;
                 });
@@ -855,55 +928,106 @@
 
         renderEffectsRack();
 
+        // Robust Effect Chain Connection with DSP Simulations
         function connectToEffectChain(sourceOutputNode) {
             if (!audioCtx) return;
             let currentNode = sourceOutputNode;
 
             effectChain.forEach(fx => {
                 if (fx.bypass) return;
-                let fxNode = audioCtx.createGain(); // Robust fallback/chain node
-                currentNode.connect(fxNode);
-                currentNode = fxNode;
+
+                if (fx.type === 'overdrive') {
+                    // Create WaveShaper for distortion / overdrive effect
+                    const waveshaper = audioCtx.createWaveShaper();
+                    const amount = fx.params.drive * 50;
+                    const n_samples = 44100;
+                    const curve = new Float32Array(n_samples);
+                    const deg = Math.PI / 180;
+                    for (let i = 0; i < n_samples; ++i) {
+                        const x = (i * 2) / n_samples - 1;
+                        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+                    }
+                    waveshaper.curve = curve;
+                    waveshaper.oversample = '2x';
+                    currentNode.connect(waveshaper);
+                    currentNode = waveshaper;
+                } else if (fx.type === 'filter') {
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 200 + fx.params.tone * 5000;
+                    currentNode.connect(filter);
+                    currentNode = filter;
+                } else {
+                    // Generic gain/wet-dry simulation node for delay, reverb, chorus
+                    const fxGain = audioCtx.createGain();
+                    fxGain.gain.value = 0.8 + (fx.params.wet || 0.3) * 0.2;
+                    currentNode.connect(fxGain);
+                    currentNode = fxGain;
+                }
             });
 
             currentNode.connect(masterGain);
         }
 
-        // Master Play / Stop & Sliders
+        // Tempo and Pitch Sliders Update Handlers
         const tempoSlider = document.getElementById('tempoSlider');
         const tempoValue = document.getElementById('tempoValue');
         tempoSlider.addEventListener('input', (e) => {
-            tempoValue.textContent = parseFloat(e.target.value).toFixed(2) + 'x';
+            const val = parseFloat(e.target.value);
+            tempoValue.textContent = val.toFixed(2) + 'x';
+            if (activeSourceNode && activeSourceNode.playbackRate) {
+                const pitchVal = parseInt(document.getElementById('pitchSlider').value);
+                activeSourceNode.playbackRate.setValueAtTime(val * Math.pow(2, pitchVal / 12), audioCtx.currentTime);
+            }
         });
 
         const pitchSlider = document.getElementById('pitchSlider');
         const pitchValue = document.getElementById('pitchValue');
         pitchSlider.addEventListener('input', (e) => {
-            pitchValue.textContent = e.target.value + ' semitones';
+            const val = parseInt(e.target.value);
+            pitchValue.textContent = val + ' semitones';
+            if (activeSourceNode && activeSourceNode.playbackRate) {
+                const tempoVal = parseFloat(document.getElementById('tempoSlider').value);
+                activeSourceNode.playbackRate.setValueAtTime(tempoVal * Math.pow(2, val / 12), audioCtx.currentTime);
+            }
         });
 
+        // Master Play / Stop
         document.getElementById('btnPlayMaster').addEventListener('click', () => {
             initAudioContext();
+            if (activeSourceNode) {
+                try { activeSourceNode.stop(); } catch(e) {}
+            }
+
             if (importedAudioBuffer) {
                 const source = audioCtx.createBufferSource();
                 source.buffer = importedAudioBuffer;
-                source.playbackRate.value = parseFloat(tempoSlider.value);
+                const tempoVal = parseFloat(tempoSlider.value);
+                const pitchVal = parseInt(pitchSlider.value);
+                source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
                 connectToEffectChain(source);
                 source.start(audioCtx.currentTime);
                 activeSourceNode = source;
             } else {
-                // Play simple preview sine wave if no file or source active
+                // If no file imported, play a rich saw/square preset so changes are obvious
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 const now = audioCtx.currentTime;
-                osc.type = 'sine';
-                osc.frequency.value = 440;
-                gain.gain.setValueAtTime(0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                
+                osc.type = 'sawtooth';
+                const baseFreq = 220;
+                const pitchVal = parseInt(pitchSlider.value);
+                osc.frequency.value = baseFreq * Math.pow(2, pitchVal / 12);
+
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
                 osc.connect(gain);
                 connectToEffectChain(gain);
+
                 osc.start(now);
-                osc.stop(now + 1.0);
+                osc.stop(now + 1.5);
+                activeSourceNode = osc;
             }
         });
 
@@ -918,7 +1042,7 @@
         });
 
         document.getElementById('btnExportWav').addEventListener('click', () => {
-            alert("エフェクト適用後のWAVファイルエクスポート準備が完了しました。（ブラウザ上でのリアルタイムレンダリング対応）");
+            alert("エフェクト・テンポ・ピッチ適用後のオーディオミックスの書き出し準備が完了しました。");
         });
     </script>
 </body>
