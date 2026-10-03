@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>出勤日・機械集計・請求管理システム</title>
+<title>出勤日・機械管理・請求システム</title>
 <style>
 /* --- Pure CSS Base Styles --- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -187,7 +187,7 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   background: #fff;
   border: 2px solid #333;
   width: 90%;
-  max-width: 800px;
+  max-width: 850px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 20px;
@@ -237,10 +237,10 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   }
   .invoice-title {
     text-align: center;
-    font-size: 18pt;
+    font-size: 20pt;
     font-weight: bold;
     letter-spacing: 4px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     text-decoration: underline;
   }
 }
@@ -278,6 +278,7 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="switchTab('daily')" id="tab-btn-daily">日別入力・履歴</button>
     <button class="tab-btn" onclick="switchTab('monthly')" id="tab-btn-monthly">月別・複数月一括請求集計</button>
+    <button class="tab-btn" onclick="switchTab('invoice-profile')" id="tab-btn-invoice-profile">請求書情報設定 (宛名・発行元)</button>
     <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">項目・単価・現場マスター設定</button>
     <button class="tab-btn" onclick="switchTab('data')" id="tab-btn-data">データ管理・バックアップ</button>
   </div>
@@ -430,7 +431,78 @@ tr:nth-child(even) { background-color: #fcfcfc; }
     </div>
   </div>
 
-  <!-- Tab 3: Settings -->
+  <!-- Tab 3: Invoice Profile Settings (Client & Company Info) -->
+  <div id="tab-invoice-profile" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">請求書 宛名・発行元プロフ情報設定</div>
+      <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">ここで登録した内容が請求書・印刷帳票にそのまま印字されます。</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <!-- Client Info -->
+        <div style="border: 1px solid #ccc; padding: 12px; background: #fff;">
+          <h4 style="border-bottom: 2px solid #2b579a; padding-bottom: 4px; margin-bottom: 10px; color: #2b579a;">請求先（宛名）情報</h4>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>請求先会社名 / 屋号 *</label>
+            <input type="text" id="prof-client-name" placeholder="例: 株式会社〇〇建設">
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>敬称</label>
+            <input type="text" id="prof-client-honor" placeholder="御中 または 殿">
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>部署名 / 担当者名</label>
+            <input type="text" id="prof-client-dept" placeholder="例: 工事部 〇〇様">
+          </div>
+        </div>
+
+        <!-- My Company Info -->
+        <div style="border: 1px solid #ccc; padding: 12px; background: #fff;">
+          <h4 style="border-bottom: 2px solid #2b579a; padding-bottom: 4px; margin-bottom: 10px; color: #2b579a;">自社（請求元）情報</h4>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>自社名 / 屋号 *</label>
+            <input type="text" id="prof-my-company" placeholder="例: △△建設工業">
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>代表者名 / 担当者名</label>
+            <input type="text" id="prof-my-rep" placeholder="例: 代表取締役 〇〇 太郎">
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>郵便番号 & 住所</label>
+            <input type="text" id="prof-my-address" placeholder="例: 〒100-0001 東京都千代田区1-1-1">
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>電話番号 / FAX</label>
+            <input type="text" id="prof-my-tel" placeholder="例: TEL: 03-1234-5678">
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>適格請求書事業者 登録番号 (インボイス)</label>
+            <input type="text" id="prof-my-invoice-num" placeholder="例: T1234567890123">
+          </div>
+        </div>
+
+        <!-- Bank & Extra Info -->
+        <div style="border: 1px solid #ccc; padding: 12px; background: #fff; grid-column: 1 / -1;">
+          <h4 style="border-bottom: 2px solid #2b579a; padding-bottom: 4px; margin-bottom: 10px; color: #2b579a;">振込先金融機関情報 & 備考</h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>振込先口座情報</label>
+              <textarea id="prof-bank-info" rows="3" placeholder="例: 〇〇銀行 〇〇支店 普通 1234567 カ)△△ケンセツ"></textarea>
+            </div>
+            <div class="form-group">
+              <label>請求書注記・支払期日等</label>
+              <textarea id="prof-invoice-notes" rows="3" placeholder="例: お支払期日: 翌月末日振込。振込手数料は貴社にてご負担願います。"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <button onclick="saveInvoiceProfile()" class="primary" style="font-size: 1rem; padding: 8px 16px;">💾 請求書情報を保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Settings -->
   <div id="tab-settings" class="tab-content">
     <div class="panel">
       <div class="panel-title" id="txt-settings-machinery">項目および単価設定</div>
@@ -465,7 +537,7 @@ tr:nth-child(even) { background-color: #fcfcfc; }
     </div>
   </div>
 
-  <!-- Tab 4: Data Management & Export/Import -->
+  <!-- Tab 5: Data Management & Export/Import -->
   <div id="tab-data" class="tab-content">
     <div class="panel">
       <div class="panel-title" id="txt-data-title">データ管理・バックアップ・入出力</div>
@@ -523,10 +595,22 @@ tr:nth-child(even) { background-color: #fcfcfc; }
 /* ==========================================================================
    State & Global Configuration
    ========================================================================== */
-const APP_STORAGE_KEY = 'WORK_LOG_APP_DATA_V2';
+const APP_STORAGE_KEY = 'WORK_LOG_APP_DATA_V3';
 
 let appState = {
   lang: 'ja',
+  profile: {
+    clientName: '株式会社 〇〇建設',
+    clientHonor: '御中',
+    clientDept: '工事部 御担当者様',
+    myCompany: '△△建設工業',
+    myRep: '代表取締役 〇〇 太郎',
+    myAddress: '〒100-0001 東京都千代田区丸の内1-1-1',
+    myTel: 'TEL: 03-1234-5678 / FAX: 03-1234-5679',
+    myInvoiceNum: 'T1234567890123',
+    bankInfo: '〇〇銀行 〇〇支店 普通 1234567 カ)△△ケンセツ',
+    invoiceNotes: 'お支払期日: 翌月末日振込。振込手数料は貴社負担にてお願い申し上げます。'
+  },
   settings: {
     workerPrice: 15000,
     workerUnit: '人工',
@@ -628,7 +712,6 @@ const i18n = {
     edit: "Edit",
     delete: "Delete"
   }
-  // (Other language fallbacks route to English UI)
 };
 
 /* ==========================================================================
@@ -640,6 +723,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDynamicInputs();
   renderDailyTable();
   renderMasterSiteOptions();
+  renderProfileForm();
   renderSummary();
 });
 
@@ -649,6 +733,7 @@ function loadDataFromStorage() {
     if (raw) {
       const parsed = JSON.parse(raw);
       appState = Object.assign({}, appState, parsed);
+      if (parsed.profile) appState.profile = Object.assign({}, appState.profile, parsed.profile);
     }
   } catch (e) {
     console.error('Failed to load storage data:', e);
@@ -693,6 +778,7 @@ function switchTab(tabKey) {
 
   if (tabKey === 'daily') renderDailyTable();
   if (tabKey === 'monthly') renderSummary();
+  if (tabKey === 'invoice-profile') renderProfileForm();
   if (tabKey === 'settings') renderSettings();
 }
 
@@ -743,6 +829,41 @@ function changeLanguage(langKey) {
   renderDynamicInputs();
   renderDailyTable();
   renderSummary();
+}
+
+/* ==========================================================================
+   Profile Form (Client & Company Info)
+   ========================================================================== */
+function renderProfileForm() {
+  const p = appState.profile || {};
+  document.getElementById('prof-client-name').value = p.clientName || '';
+  document.getElementById('prof-client-honor').value = p.clientHonor || '御中';
+  document.getElementById('prof-client-dept').value = p.clientDept || '';
+  document.getElementById('prof-my-company').value = p.myCompany || '';
+  document.getElementById('prof-my-rep').value = p.myRep || '';
+  document.getElementById('prof-my-address').value = p.myAddress || '';
+  document.getElementById('prof-my-tel').value = p.myTel || '';
+  document.getElementById('prof-my-invoice-num').value = p.myInvoiceNum || '';
+  document.getElementById('prof-bank-info').value = p.bankInfo || '';
+  document.getElementById('prof-invoice-notes').value = p.invoiceNotes || '';
+}
+
+function saveInvoiceProfile() {
+  appState.profile = {
+    clientName: document.getElementById('prof-client-name').value.trim(),
+    clientHonor: document.getElementById('prof-client-honor').value.trim(),
+    clientDept: document.getElementById('prof-client-dept').value.trim(),
+    myCompany: document.getElementById('prof-my-company').value.trim(),
+    myRep: document.getElementById('prof-my-rep').value.trim(),
+    myAddress: document.getElementById('prof-my-address').value.trim(),
+    myTel: document.getElementById('prof-my-tel').value.trim(),
+    myInvoiceNum: document.getElementById('prof-my-invoice-num').value.trim(),
+    bankInfo: document.getElementById('prof-bank-info').value.trim(),
+    invoiceNotes: document.getElementById('prof-invoice-notes').value.trim()
+  };
+
+  saveDataToStorage();
+  alert('請求書の宛名・自社情報を保存しました。印刷プレビューに即時反映されます。');
 }
 
 /* ==========================================================================
@@ -808,7 +929,7 @@ function applyMasterSite(val) {
 }
 
 /* ==========================================================================
-   Daily Record Handling (No Default 0)
+   Daily Record Handling
    ========================================================================== */
 function onDateChange() {
   const dateVal = document.getElementById('input-date').value;
@@ -817,7 +938,6 @@ function onDateChange() {
   const rec = appState.records[dateVal];
   if (rec) {
     document.getElementById('input-site').value = rec.site || '';
-    // If value is 0 or empty, display empty string
     document.getElementById('input-workers').value = (rec.workers && rec.workers !== 0) ? rec.workers : '';
     
     appState.settings.machinery.forEach(m => {
@@ -829,7 +949,6 @@ function onDateChange() {
     });
     document.getElementById('input-note').value = rec.note || '';
   } else {
-    // Clear inputs (no default '0')
     document.getElementById('input-site').value = '';
     document.getElementById('input-workers').value = '';
     appState.settings.machinery.forEach(m => {
@@ -850,7 +969,6 @@ function saveDailyRecord(e) {
     return;
   }
 
-  // Treat blank values as 0
   const workers = parseFloat(document.getElementById('input-workers').value) || 0;
   
   const machinery = {};
@@ -913,7 +1031,6 @@ function renderDailyTable() {
   const headRow = document.getElementById('daily-table-head');
   const tbody = document.getElementById('daily-table-body');
 
-  // Render Table Header
   let headHtml = `<th>日付</th><th>現場名</th><th class="num">作業員(人)</th>`;
   appState.settings.machinery.forEach(m => {
     headHtml += `<th class="num">${escapeHtml(m.name)}</th>`;
@@ -923,10 +1040,9 @@ function renderDailyTable() {
 
   tbody.innerHTML = '';
 
-  // Filter & ASCENDING SORT (Newest at Bottom)
   const dates = Object.keys(appState.records)
     .filter(d => d.startsWith(targetMonth))
-    .sort((a, b) => a.localeCompare(b)); // ASCENDING
+    .sort((a, b) => a.localeCompare(b));
 
   if (dates.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${4 + appState.settings.machinery.length}" style="text-align:center; color:#888;">該当月の登録履歴はありません。</td></tr>`;
@@ -1023,7 +1139,6 @@ function renderSummary() {
 
   let grandSubtotalEx = 0;
 
-  // 1. Worker Row
   const dict = i18n[appState.lang] || i18n['en'];
   const workerPrice = appState.settings.workerPrice || 0;
   const workerSubtotal = totalWorkerQty * workerPrice;
@@ -1037,7 +1152,6 @@ function renderSummary() {
     <td class="num">${workerSubtotal.toLocaleString()}</td>
   </tr>`;
 
-  // 2. Machinery Rows
   appState.settings.machinery.forEach(m => {
     const qty = machineryTotals[m.id] || 0;
     const price = m.price || 0;
@@ -1055,7 +1169,6 @@ function renderSummary() {
 
   tbody.innerHTML = html;
 
-  // Financial calculations
   const taxRate = parseFloat(document.getElementById('tax-rate-select').value) || 0;
   const taxAmount = Math.floor(grandSubtotalEx * taxRate);
   const grandTotal = grandSubtotalEx + taxAmount;
@@ -1066,7 +1179,7 @@ function renderSummary() {
 }
 
 /* ==========================================================================
-   Print Preview & Execution (Fixing Duplicate Output Issues)
+   Print Preview & Execution with Configured Profile Info
    ========================================================================== */
 function triggerInvoicePrint() {
   const targetDates = getFilteredDatesForSummary();
@@ -1076,6 +1189,7 @@ function triggerInvoicePrint() {
     }
   }
 
+  const p = appState.profile || {};
   const mode = document.getElementById('calc-mode').value;
   let periodStr = '';
   if (mode === 'single') {
@@ -1084,7 +1198,6 @@ function triggerInvoicePrint() {
     periodStr = `${document.getElementById('target-month-from').value} ～ ${document.getElementById('target-month-to').value} 分`;
   }
 
-  // Calculate Subtotals
   let totalWorkerQty = 0;
   const machineryTotals = {};
   appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });
@@ -1135,36 +1248,45 @@ function triggerInvoicePrint() {
     <div class="invoice-print-container">
       <div class="invoice-title">御 請 求 書</div>
       
-      <table class="invoice-header-table" style="width:100%; margin-bottom:20px;">
+      <table class="invoice-header-table" style="width:100%; margin-bottom:20px; border:none;">
         <tr>
-          <td style="border:none; vertical-align:top; width:60%;">
-            <div style="font-size:14pt; font-weight:bold; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:10px;">
-              御中
+          <!-- Client Header Side -->
+          <td style="border:none; vertical-align:top; width:55%; padding-right:15px;">
+            <div style="font-size:15pt; font-weight:bold; border-bottom:2px solid #000; padding-bottom:5px; margin-bottom:8px;">
+              ${escapeHtml(p.clientName || '（請求先貴社名）')} ${escapeHtml(p.clientHonor || '御中')}
             </div>
-            <div>対象集計期間: <strong>${periodStr}</strong></div>
-            <div>発行日: ${new Date().toLocaleDateString('ja-JP')}</div>
+            ${p.clientDept ? `<div style="font-size:10pt; margin-bottom:8px;">${escapeHtml(p.clientDept)}</div>` : ''}
+            <div style="font-size:10pt; margin-top:10px;">下記のとおりご請求申し上げます。</div>
+            <div style="font-size:10pt; margin-top:5px;">対象集計期間: <strong>${periodStr}</strong></div>
           </td>
-          <td style="border:none; vertical-align:top; text-align:right;">
-            <div style="font-size:12pt; font-weight:bold;">自社情報 / 請求元</div>
-            <div>〇〇建設・作業管理部</div>
-            <div>〒000-0000 東京都〇〇区1-2-3</div>
-            <div>TEL: 03-0000-0000</div>
+
+          <!-- Company Issuer Side -->
+          <td style="border:none; vertical-align:top; text-align:right; font-size:9.5pt; line-height:1.4;">
+            <div style="font-size:10pt; margin-bottom:5px;">発行日: ${new Date().toLocaleDateString('ja-JP')}</div>
+            <div style="font-size:13pt; font-weight:bold; margin-bottom:3px;">${escapeHtml(p.myCompany || '（自社社名）')}</div>
+            ${p.myRep ? `<div>${escapeHtml(p.myRep)}</div>` : ''}
+            ${p.myAddress ? `<div>${escapeHtml(p.myAddress)}</div>` : ''}
+            ${p.myTel ? `<div>${escapeHtml(p.myTel)}</div>` : ''}
+            ${p.myInvoiceNum ? `<div style="margin-top:3px; font-weight:bold;">登録番号: ${escapeHtml(p.myInvoiceNum)}</div>` : ''}
           </td>
         </tr>
       </table>
 
-      <div style="font-size:13pt; font-weight:bold; background:#f0f0f0; border:2px solid #000; padding:8px 12px; margin-bottom:20px;">
-        ご請求金額 (税込): ￥${grandTotal.toLocaleString()} -
+      <!-- Total Amount Box -->
+      <div style="font-size:14pt; font-weight:bold; background:#f0f0f0; border:2px solid #000; padding:10px 15px; margin-bottom:20px; display:flex; justify-content:space-between;">
+        <span>ご請求金額 (税込):</span>
+        <span>￥${grandTotal.toLocaleString()} -</span>
       </div>
 
+      <!-- Items Table -->
       <table class="invoice-table">
         <thead>
           <tr style="background-color:#e6e6e6;">
             <th>品名・項目</th>
-            <th style="text-align:right;">数量</th>
-            <th>単位</th>
-            <th style="text-align:right;">単価</th>
-            <th style="text-align:right;">金額 (税抜)</th>
+            <th style="text-align:right; width:70px;">数量</th>
+            <th style="width:60px;">単位</th>
+            <th style="text-align:right; width:110px;">単価</th>
+            <th style="text-align:right; width:120px;">金額 (税抜)</th>
           </tr>
         </thead>
         <tbody>
@@ -1172,26 +1294,34 @@ function triggerInvoicePrint() {
         </tbody>
       </table>
 
-      <div style="width:300px; margin-left:auto; margin-top:20px;">
+      <!-- Calculation Breakdown -->
+      <div style="width:320px; margin-left:auto; margin-top:15px; margin-bottom:25px;">
         <table style="width:100%; border-collapse:collapse;">
           <tr>
-            <td style="border:none; padding:4px;">小計 (税抜):</td>
-            <td style="border:none; padding:4px; text-align:right;">￥${grandSubtotalEx.toLocaleString()}</td>
+            <td style="border:none; padding:3px 0;">小計 (税抜):</td>
+            <td style="border:none; padding:3px 0; text-align:right;">￥${grandSubtotalEx.toLocaleString()}</td>
           </tr>
           <tr>
-            <td style="border:none; padding:4px;">消費税 (${(taxRate * 100).toFixed(0)}%):</td>
-            <td style="border:none; padding:4px; text-align:right;">￥${taxAmount.toLocaleString()}</td>
+            <td style="border:none; padding:3px 0;">消費税 (${(taxRate * 100).toFixed(0)}%):</td>
+            <td style="border:none; padding:3px 0; text-align:right;">￥${taxAmount.toLocaleString()}</td>
           </tr>
           <tr style="font-weight:bold; border-top:2px solid #000;">
-            <td style="border:none; padding:6px 4px;">合計 (税込):</td>
-            <td style="border:none; padding:6px 4px; text-align:right;">￥${grandTotal.toLocaleString()}</td>
+            <td style="border:none; padding:6px 0;">合計 (税込):</td>
+            <td style="border:none; padding:6px 0; text-align:right; font-size:11pt;">￥${grandTotal.toLocaleString()}</td>
           </tr>
         </table>
       </div>
+
+      <!-- Bank & Notes Box -->
+      ${(p.bankInfo || p.invoiceNotes) ? `
+      <div style="border:1px solid #000; padding:10px; font-size:9pt; background:#fdfdfd;">
+        ${p.bankInfo ? `<div style="margin-bottom:5px;"><strong>【お振込先】:</strong><br>${escapeHtml(p.bankInfo).replace(/\n/g, '<br>')}</div>` : ''}
+        ${p.invoiceNotes ? `<div><strong>【備考】:</strong><br>${escapeHtml(p.invoiceNotes).replace(/\n/g, '<br>')}</div>` : ''}
+      </div>
+      ` : ''}
     </div>
   `;
 
-  // Inject into Preview Modal
   document.getElementById('modal-preview-content').innerHTML = invoiceHtml;
   document.getElementById('print-modal').classList.add('active');
 }
@@ -1204,26 +1334,21 @@ function executePrint() {
   const content = document.getElementById('modal-preview-content').innerHTML;
   const printArea = document.getElementById('print-area');
   
-  // Wipe cleanly to prevent duplicate appended documents
   printArea.innerHTML = content;
-
-  // Trigger print dialog
   window.print();
 
-  // Cleanup after print dialog completes
   setTimeout(() => {
     printArea.innerHTML = '';
   }, 1000);
 }
 
 /* ==========================================================================
-   Settings Management (Items, Rates, Sites)
+   Settings Management
    ========================================================================== */
 function renderSettings() {
   const tbody = document.getElementById('machinery-settings-body');
   tbody.innerHTML = '';
 
-  // Worker Setting Row
   let html = `<tr>
     <td><input type="text" value="作業員出勤 (人工)" disabled style="background:#eee;"></td>
     <td><input type="text" id="setting-worker-unit" value="${escapeHtml(appState.settings.workerUnit)}"></td>
@@ -1231,7 +1356,6 @@ function renderSettings() {
     <td>-</td>
   </tr>`;
 
-  // Machinery Setting Rows
   appState.settings.machinery.forEach((m, idx) => {
     html += `<tr id="setting-row-${m.id}">
       <td><input type="text" id="setting-name-${m.id}" value="${escapeHtml(m.name)}"></td>
@@ -1318,13 +1442,8 @@ function removeMasterSite(index) {
 /* ==========================================================================
    Data Backup, Import, Export
    ========================================================================== */
-function openExportModal() {
-  switchTab('data');
-}
-
-function openImportModal() {
-  switchTab('data');
-}
+function openExportModal() { switchTab('data'); }
+function openImportModal() { switchTab('data'); }
 
 function exportData(format) {
   const filename = `work_records_backup_${new Date().toISOString().split('T')[0]}`;
@@ -1348,7 +1467,7 @@ function exportData(format) {
       content += row;
     });
 
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
     const blob = new Blob([bom, content], { type: format === 'csv' ? 'text/csv;charset=utf-8;' : 'text/tab-separated-values;charset=utf-8;' });
     downloadBlob(blob, `${filename}.${format}`);
   } else if (format === 'excel') {
