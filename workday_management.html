@@ -1,2101 +1,1429 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>出勤日管理および請求集計システム</title>
-    <style>
-        :root {
-            --primary-color: #1e3a8a;
-            --primary-light: #3b82f6;
-            --secondary-color: #0f766e;
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-color: #1e293b;
-            --border-color: #cbd5e1;
-            --accent-color: #d97706;
-            --danger-color: #dc2626;
-            --success-color: #16a34a;
-            --font-main: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
-            --font-print: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出勤日・機械集計・請求管理システム</title>
+<style>
+/* --- Pure CSS Base Styles --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  background-color: #f0f2f5;
+  color: #1a1a1a;
+  line-height: 1.5;
+  padding: 10px;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+header {
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+h1 { font-size: 1.4rem; font-weight: bold; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+select, input, button, textarea {
+  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  font-size: 0.95rem;
+  padding: 5px 8px;
+  border: 1px solid #777;
+  border-radius: 2px;
+  background-color: #fff;
+}
+button {
+  background-color: #e1e1e1;
+  color: #000;
+  cursor: pointer;
+  border: 1px solid #666;
+  padding: 6px 12px;
+  font-weight: bold;
+}
+button:hover { background-color: #d0d0d0; }
+button.primary { background-color: #2b579a; color: #fff; border-color: #1b365d; }
+button.primary:hover { background-color: #1b365d; }
+button.danger { background-color: #a80000; color: #fff; border-color: #780000; }
+button.danger:hover { background-color: #780000; }
+button.success { background-color: #107c41; color: #fff; border-color: #0b502a; }
+button.success:hover { background-color: #0b502a; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+/* Tabs */
+.nav-tabs {
+  display: flex;
+  border-bottom: 1px solid #000;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  background-color: #eaeaea;
+  margin-right: 4px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+}
+.tab-btn.active {
+  background-color: #fff;
+  border-top: 3px solid #2b579a;
+  border-bottom: 1px solid #fff;
+  font-weight: bold;
+  margin-bottom: -1px;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
-        body {
-            font-family: var(--font-main);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.5;
-            padding-bottom: 40px;
-        }
+/* Forms & Grid */
+.panel {
+  border: 1px solid #ccc;
+  padding: 12px;
+  margin-bottom: 15px;
+  background-color: #fafafa;
+}
+.panel-title {
+  font-weight: bold;
+  border-bottom: 1px dashed #aaa;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  font-size: 1.05rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+.input-with-assist {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.input-with-assist input {
+  flex: 1;
+  min-width: 0;
+}
+.btn-assist {
+  padding: 3px 6px;
+  font-size: 0.8rem;
+  min-width: 30px;
+  background: #e6e6e6;
+}
 
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+/* Quick chips */
+.chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.chip {
+  font-size: 0.75rem;
+  background: #e1edf7;
+  border: 1px solid #a3c2e0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.chip:hover { background: #cce0f2; }
 
-        .header-title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* Tables */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 15px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background-color: #fff;
+}
+th, td {
+  border: 1px solid #888;
+  padding: 6px 8px;
+  text-align: left;
+}
+th { background-color: #f0f0f0; font-weight: bold; }
+td.num, th.num { text-align: right; }
+tr:nth-child(even) { background-color: #fcfcfc; }
 
-        .header-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: #fff;
+  border: 2px solid #333;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #333;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+}
 
-        select, input, button {
-            font-family: inherit;
-            font-size: 0.9rem;
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-
-        button {
-            cursor: pointer;
-            background-color: var(--primary-light);
-            color: white;
-            border: none;
-            font-weight: 600;
-            transition: background-color 0.2s, transform 0.1s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        button:hover {
-            opacity: 0.92;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        button.btn-secondary { background-color: var(--secondary-color); }
-        button.btn-accent { background-color: var(--accent-color); }
-        button.btn-danger { background-color: var(--danger-color); }
-        button.btn-success { background-color: var(--success-color); }
-
-        .tabs {
-            display: flex;
-            background-color: #e2e8f0;
-            padding: 0.5rem 1rem 0;
-            border-bottom: 2px solid var(--border-color);
-            overflow-x: auto;
-        }
-
-        .tab-btn {
-            background: #cbd5e1;
-            color: #475569;
-            border-radius: 6px 6px 0 0;
-            padding: 0.75rem 1.25rem;
-            margin-right: 4px;
-            font-weight: bold;
-            border: none;
-            white-space: nowrap;
-        }
-
-        .tab-btn.active {
-            background-color: var(--card-bg);
-            color: var(--primary-color);
-            border-top: 3px solid var(--primary-color);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 1.5rem auto;
-            padding: 0 1rem;
-        }
-
-        .tab-content {
-            display: none;
-            background-color: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .card {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.25rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            color: var(--primary-color);
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 0.5rem;
-        }
-
-        .grid-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-        }
-
-        .form-group label {
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: #64748b;
-        }
-
-        /* Site Selection Helpers */
-        .site-select-group {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
-        .site-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .site-chip {
-            background-color: #e2e8f0;
-            color: #334155;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            border: 1px solid #cbd5e1;
-            transition: all 0.15s ease;
-        }
-
-        .site-chip:hover {
-            background-color: var(--primary-light);
-            color: white;
-            border-color: var(--primary-light);
-        }
-
-        .data-table-container {
-            overflow-x: auto;
-            margin-top: 1rem;
-        }
-
-        table.data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-            text-align: left;
-        }
-
-        table.data-table th, table.data-table td {
-            border: 1px solid var(--border-color);
-            padding: 0.6rem 0.8rem;
-        }
-
-        table.data-table th {
-            background-color: #f1f5f9;
-            color: #334155;
-            font-weight: bold;
-        }
-
-        table.data-table tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-
-        .number-input {
-            width: 80px;
-            text-align: right;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .config-grid { grid-template-columns: 1fr; }
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-body {
-            background: white;
-            width: 90%;
-            max-width: 900px;
-            max-height: 90vh;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .modal-header {
-            padding: 1rem 1.5rem;
-            background-color: var(--primary-color);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-content-area {
-            padding: 1.5rem;
-            overflow-y: auto;
-            flex-grow: 1;
-            background: #e2e8f0;
-        }
-
-        .modal-footer {
-            padding: 1rem 1.5rem;
-            background: white;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .paper-preview {
-            background: white;
-            padding: 2.5rem;
-            margin: 0 auto 1.5rem auto;
-            max-width: 800px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            font-family: var(--font-print);
-            color: #000;
-        }
-
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #1e293b;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: none;
-            z-index: 2000;
-            font-weight: 500;
-        }
-
-        #print-area {
-            display: none;
-        }
-
-        /* Strict Print Rules */
-        @media print {
-            html, body {
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            body * {
-                visibility: hidden !important;
-                display: none !important;
-            }
-
-            #print-area, #print-area * {
-                visibility: visible !important;
-                display: block !important;
-            }
-
-            #print-area table {
-                display: table !important;
-                width: 100% !important;
-                border-collapse: collapse !important;
-                margin-bottom: 1.5rem !important;
-            }
-            #print-area thead { display: table-header-group !important; }
-            #print-area tbody { display: table-row-group !important; }
-            #print-area tr { display: table-row !important; }
-            #print-area th, #print-area td {
-                display: table-cell !important;
-                border: 1px solid #000 !important;
-                padding: 6px 8px !important;
-            }
-            #print-area th {
-                background-color: #f0f0f0 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                text-align: center !important;
-            }
-
-            #print-area .print-meta,
-            #print-area .print-summary-box,
-            #print-area .print-summary-row {
-                display: flex !important;
-                justify-content: space-between !important;
-            }
-
-            #print-area span, #print-area p, #print-area h1 {
-                display: inline-block !important;
-            }
-
-            #print-area {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 15mm !important;
-                background: white !important;
-                color: black !important;
-                font-family: var(--font-print) !important;
-            }
-
-            .print-document {
-                background: white;
-                width: 100%;
-                color: #000;
-                font-family: var(--font-print);
-            }
-
-            .print-header {
-                text-align: center;
-                margin-bottom: 2rem;
-                border-bottom: 2px solid #000;
-                padding-bottom: 0.5rem;
-            }
-
-            .print-header h1 {
-                font-size: 1.8rem;
-                font-weight: normal;
-                letter-spacing: 2px;
-            }
-
-            .print-meta {
-                margin-bottom: 1.5rem;
-                font-size: 0.95rem;
-            }
-
-            .print-summary-box {
-                border: 1px solid #000;
-                padding: 1rem;
-                margin-bottom: 1.5rem;
-                align-items: center;
-            }
-
-            .print-summary-amount {
-                font-size: 1.5rem;
-                font-weight: bold;
-                text-decoration: underline;
-            }
-
-            .text-right { text-align: right !important; }
-            .text-center { text-align: center !important; }
-        }
-    </style>
+/* Print Specific Rules */
+#print-area { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  .container, .modal-overlay { display: none !important; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area {
+    display: block !important;
+    position: absolute;
+    left: 0; top: 0; width: 100%;
+    margin: 0; padding: 0;
+    font-family: 'MS Mincho', 'MS 明朝', serif;
+  }
+  .invoice-print-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 15mm;
+    box-sizing: border-box;
+  }
+  .invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  .invoice-table th, .invoice-table td {
+    border: 1px solid #000;
+    padding: 5px 8px;
+    font-size: 10pt;
+  }
+  .invoice-header-table {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .invoice-title {
+    text-align: center;
+    font-size: 18pt;
+    font-weight: bold;
+    letter-spacing: 4px;
+    margin-bottom: 20px;
+    text-decoration: underline;
+  }
+}
+</style>
 </head>
 <body>
 
-    <header class="no-print">
-        <div class="header-title">
-            <span style="font-size:1.5rem;">📋</span> <span id="txt-app-title">出勤日管理・請求集計システム</span>
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div>
+      <h1 id="txt-app-title">出勤日・機械管理・請求システム</h1>
+      <span style="font-size: 0.8rem; color: #555;" id="txt-app-sub">完全オフライン動作版</span>
+    </div>
+    <div class="header-actions">
+      <!-- Quick Action Buttons -->
+      <button onclick="openExportModal()" class="success" id="btn-head-export">📥 データ出力</button>
+      <button onclick="openImportModal()" id="btn-head-import">📤 データ取込</button>
+      <button onclick="triggerInvoicePrint()" class="primary" id="btn-head-print">🖨️ 請求書印刷プレビュー</button>
+      
+      <!-- Language Selector -->
+      <select id="lang-select" onchange="changeLanguage(this.value)">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh-CN">中文 (简体)</option>
+        <option value="zh-TW">中文 (繁體)</option>
+        <option value="ko">한국어</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('daily')" id="tab-btn-daily">日別入力・履歴</button>
+    <button class="tab-btn" onclick="switchTab('monthly')" id="tab-btn-monthly">月別・複数月一括請求集計</button>
+    <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">項目・単価・現場マスター設定</button>
+    <button class="tab-btn" onclick="switchTab('data')" id="tab-btn-data">データ管理・バックアップ</button>
+  </div>
+
+  <!-- Tab 1: Daily Entry -->
+  <div id="tab-daily" class="tab-content active">
+    <div class="panel">
+      <div class="panel-title" id="txt-daily-title">日次出勤・機械稼働データ入力</div>
+      <form id="daily-form" onsubmit="saveDailyRecord(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label id="lbl-date">日付 *</label>
+            <input type="date" id="input-date" required onchange="onDateChange()">
+          </div>
+
+          <div class="form-group">
+            <label id="lbl-site">現場名 *</label>
+            <div class="input-with-assist">
+              <input type="text" id="input-site" list="site-history-list" placeholder="例: 〇〇作業所" required>
+              <select id="site-master-dropdown" onchange="applyMasterSite(this.value)" style="max-width: 120px;">
+                <option value="">(選択)</option>
+              </select>
+            </div>
+            <datalist id="site-history-list"></datalist>
+            <div class="chip-container" id="site-recents"></div>
+          </div>
+
+          <div class="form-group">
+            <label id="lbl-workers">作業員数 (人)</label>
+            <div class="input-with-assist">
+              <input type="number" id="input-workers" min="0" step="0.5" placeholder="未入力(0)">
+              <button type="button" class="btn-assist" onclick="addValue('input-workers', 1)">+1</button>
+              <button type="button" class="btn-assist" onclick="addValue('input-workers', 2)">+2</button>
+              <button type="button" class="btn-assist" onclick="addValue('input-workers', 5)">+5</button>
+            </div>
+          </div>
+
+          <!-- Dynamic Machinery Inputs Container -->
+          <div id="dynamic-machinery-inputs" style="grid-column: 1 / -1;" class="form-grid"></div>
+
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label id="lbl-note">備考・メモ</label>
+            <input type="text" id="input-note" placeholder="作業内容や連絡事項など">
+          </div>
         </div>
-        <div class="header-controls">
-            <label for="lang-select" style="font-size: 0.85rem;" id="txt-lang-label">言語/Language:</label>
-            <select id="lang-select" onchange="changeLanguage(this.value)">
-                <option value="ja" selected>日本語</option>
-                <option value="en">English</option>
-                <option value="zh-CN">简体中文</option>
-                <option value="zh-TW">繁體中文</option>
-                <option value="ko">한국어</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
+
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" class="primary" id="btn-save-record">保存 / 更新</button>
+          <button type="button" onclick="resetForm()" id="btn-clear-form">入力フォームクリア</button>
+          <button type="button" onclick="copyPreviousDayRecord()" id="btn-copy-prev">前日データを複製設定</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Daily Log List (Ascending Order) -->
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="panel-title" style="margin: 0;" id="txt-log-title">当月作業登録履歴（日付昇順：下が最新）</div>
+        <div>
+          <label id="lbl-filter-month">表示年月:</label>
+          <input type="month" id="filter-month" onchange="renderDailyTable()">
+        </div>
+      </div>
+      
+      <div class="table-wrapper">
+        <table id="daily-table">
+          <thead>
+            <tr id="daily-table-head">
+              <!-- Dynamically rendered -->
+            </tr>
+          </thead>
+          <tbody id="daily-table-body">
+            <!-- Dynamically rendered -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Monthly & Multi-Month Aggregation / Invoice -->
+  <div id="tab-monthly" class="tab-content">
+    <div class="panel">
+      <div class="panel-title" id="txt-summary-title">請求集計・対象期間指定</div>
+      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+        <div>
+          <label id="lbl-mode">集計モード:</label>
+          <select id="calc-mode" onchange="toggleCalcMode()">
+            <option value="single">単月締め集計</option>
+            <option value="range">複数月一括請求集計</option>
+          </select>
+        </div>
+
+        <div id="single-month-picker">
+          <label id="lbl-target-month">対象月:</label>
+          <input type="month" id="target-month" onchange="renderSummary()">
+        </div>
+
+        <div id="range-month-picker" style="display: none; gap: 5px; align-items: center;">
+          <label id="lbl-range-from">開始月:</label>
+          <input type="month" id="target-month-from" onchange="renderSummary()">
+          <span>～</span>
+          <label id="lbl-range-to">終了月:</label>
+          <input type="month" id="target-month-to" onchange="renderSummary()">
+        </div>
+
+        <button onclick="triggerInvoicePrint()" class="primary" id="btn-summary-print">🖨️ 請求書プレビュー・印刷</button>
+      </div>
+    </div>
+
+    <!-- Aggregation Summary Display -->
+    <div class="panel">
+      <div class="panel-title" id="txt-summary-result">集計・請求計算結果</div>
+      <div class="table-wrapper">
+        <table id="summary-table">
+          <thead>
+            <tr>
+              <th id="th-item">項目名</th>
+              <th class="num" id="th-quantity">数量 / 延べ日数</th>
+              <th id="th-unit">単位</th>
+              <th class="num" id="th-unitprice">単価 (円)</th>
+              <th class="num" id="th-subtotal">金額 (税抜)</th>
+            </tr>
+          </thead>
+          <tbody id="summary-table-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Financial Calculation -->
+      <div style="max-width: 400px; margin-left: auto; border: 1px solid #aaa; padding: 10px; background: #fff;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span id="lbl-subtotal-tax-ex">小計 (税抜):</span>
+          <span id="calc-subtotal-ex">￥0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
+          <span>
+            <span id="lbl-tax-rate">消費税率:</span>
+            <select id="tax-rate-select" onchange="renderSummary()">
+              <option value="0.10">10%</option>
+              <option value="0.08">8% (軽減税率)</option>
+              <option value="0.00">0% (非課税)</option>
             </select>
-            <button onclick="quickBackup()" class="btn-secondary">💾 <span id="txt-quick-backup">簡易保存</span></button>
+          </span>
+          <span id="calc-tax-amount">￥0</span>
         </div>
-    </header>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; border-top: 2px solid #000; padding-top: 5px;">
+          <span id="lbl-grand-total">合計請求金額 (税込):</span>
+          <span id="calc-grand-total">￥0</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <nav class="tabs no-print">
-        <button class="tab-btn active" onclick="switchTab('daily')" id="tab-daily-btn">📅 日別入力・集計</button>
-        <button class="tab-btn" onclick="switchTab('monthly')" id="tab-monthly-btn">📄 月別請求書・集計報告書</button>
-        <button class="tab-btn" onclick="switchTab('settings')" id="tab-settings-btn">⚙️ 項目/単価/現場設定</button>
-        <button class="tab-btn" onclick="switchTab('data')" id="tab-data-btn">💾 データ管理/入出力</button>
-    </nav>
-
-    <div class="container no-print">
-        <section id="tab-daily" class="tab-content active">
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem;">
-                    <div class="card-title" style="margin-bottom:0;" id="txt-daily-entry-title">日別出勤・稼働データの登録</div>
-                    <button onclick="openBatchModal()" class="btn-accent">⚡ <span id="txt-batch-open-btn">期間一括登録モーダル</span></button>
-                </div>
-                
-                <div class="grid-form">
-                    <div class="form-group">
-                        <label id="txt-date-label">日付</label>
-                        <input type="date" id="entry-date" onchange="onDateChanged()">
-                    </div>
-
-                    <div class="form-group" style="grid-column: span 2;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <label id="txt-site-label">現場・プロジェクト名</label>
-                            <button onclick="copyPreviousDayData()" class="btn-secondary" style="padding:2px 8px; font-size:0.75rem;" id="txt-copy-prev-btn">📋 前日のデータ(現場・数量)を完全コピー</button>
-                        </div>
-                        <div class="site-select-group">
-                            <!-- Datalist connected input for auto-complete -->
-                            <input type="text" id="entry-site" list="site-history-list" placeholder="現場名を選択または直接入力" style="flex-grow:1;">
-                            <datalist id="site-history-list"></datalist>
-
-                            <!-- Select dropdown from master sites -->
-                            <select id="site-master-dropdown" onchange="selectSiteFromMaster(this.value)" style="max-width:180px;">
-                                <option value="">マスターから選択</option>
-                            </select>
-                        </div>
-
-                        <!-- Quick select site chips (Recent 6 Sites) -->
-                        <div class="site-chips" id="recent-site-chips"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label id="txt-note-label">備考</label>
-                        <input type="text" id="entry-note" placeholder="特記事項">
-                    </div>
-                </div>
-
-                <div class="config-grid">
-                    <div>
-                        <h4 style="margin-bottom:0.5rem; color:var(--primary-color);" id="txt-workers-entry-title">👷 作業員 (人)</h4>
-                        <div id="worker-inputs-container" class="grid-form"></div>
-                    </div>
-                    <div>
-                        <h4 style="margin-bottom:0.5rem; color:var(--secondary-color);" id="txt-machines-entry-title">🚜 機械 (台)</h4>
-                        <div id="machine-inputs-container" class="grid-form"></div>
-                    </div>
-                </div>
-
-                <div style="margin-top:1rem; display:flex; gap:10px;">
-                    <button onclick="saveDailyEntry()" class="btn-success">💾 <span id="txt-save-entry-btn">出勤データを保存</span></button>
-                    <button onclick="resetDailyForm()" class="btn-secondary">🔄 <span id="txt-reset-btn">クリア</span></button>
-                </div>
-            </div>
-
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:10px;">
-                    <div class="card-title" style="margin-bottom:0;" id="txt-daily-list-title">登録済み日別一覧 (昇順)</div>
-                    <div class="form-group" style="flex-direction:row; align-items:center; gap:8px;">
-                        <label id="txt-filter-month-label">表示月:</label>
-                        <input type="month" id="filter-daily-month" onchange="renderDailyTable()">
-                    </div>
-                </div>
-                <div class="data-table-container">
-                    <table class="data-table" id="daily-table">
-                        <thead>
-                            <tr id="daily-table-header"></tr>
-                        </thead>
-                        <tbody id="daily-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <section id="tab-monthly" class="tab-content">
-            <div class="card">
-                <div class="card-title" id="txt-monthly-calc-title">請求書・集計報告書の設定と作成</div>
-                <div class="grid-form">
-                    <div class="form-group">
-                        <label id="txt-range-type-label">請求範囲:</label>
-                        <select id="monthly-range-type" onchange="toggleRangeType()">
-                            <option value="single" id="opt-single-month">単一月</option>
-                            <option value="multi" id="opt-multi-month">複数月（一括合算）</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="group-single-month">
-                        <label id="txt-target-month-label">対象月:</label>
-                        <input type="month" id="monthly-target-month" onchange="updateMonthlySummary()">
-                    </div>
-                    <div class="form-group" id="group-multi-start" style="display:none;">
-                        <label id="txt-start-month-label">開始月:</label>
-                        <input type="month" id="monthly-start-month" onchange="updateMonthlySummary()">
-                    </div>
-                    <div class="form-group" id="group-multi-end" style="display:none;">
-                        <label id="txt-end-month-label">終了月:</label>
-                        <input type="month" id="monthly-end-month" onchange="updateMonthlySummary()">
-                    </div>
-                    <div class="form-group">
-                        <label id="txt-tax-rate-label">消費税率:</label>
-                        <select id="monthly-tax-rate" onchange="updateMonthlySummary()">
-                            <option value="0.10">10%</option>
-                            <option value="0.08">8% (軽減税率)</option>
-                            <option value="0.00">免税 (0%)</option>
-                            <option value="custom">任意指定</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="group-custom-tax" style="display:none;">
-                        <label id="txt-custom-tax-label">任意税率 (%):</label>
-                        <input type="number" id="monthly-custom-tax" value="5" step="0.1" onchange="updateMonthlySummary()">
-                    </div>
-                    <div class="form-group">
-                        <label id="txt-tax-round-label">端数処理:</label>
-                        <select id="monthly-tax-round" onchange="updateMonthlySummary()">
-                            <option value="floor" id="opt-round-floor">切り捨て</option>
-                            <option value="round" id="opt-round-half">四捨五入</option>
-                            <option value="ceil" id="opt-round-ceil">切り上げ</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-form">
-                    <div class="form-group">
-                        <label id="txt-billing-to-label">請求先名:</label>
-                        <input type="text" id="billing-client-name" placeholder="例: 株式会社〇〇 建設事業部 御中">
-                    </div>
-                    <div class="form-group">
-                        <label id="txt-billing-from-label">発行元・自社名:</label>
-                        <input type="text" id="billing-issuer-name" placeholder="例: △△エンジニアリング株式会社">
-                    </div>
-                </div>
-
-                <div style="margin-top:1rem; display:flex; gap:10px;">
-                    <button onclick="openPrintPreview()" class="btn-accent">🖨️ <span id="txt-preview-print-btn">印刷プレビュー・出力</span></button>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title" id="txt-monthly-summary-title">集計プレビュー (税抜き / 税込計算)</div>
-                <div id="monthly-summary-preview" class="data-table-container"></div>
-            </div>
-        </section>
-
-        <section id="tab-settings" class="tab-content">
-            <div class="card">
-                <div class="card-title" id="txt-default-site-setting-title">🏢 現場マスター・デフォルト現場名の設定</div>
-                <p style="font-size:0.85rem; color:#64748b; margin-bottom:0.75rem;" id="txt-default-site-desc">デフォルト現場名を設定すると、新規日付を選択した際に自動で入力されます。マスター登録した現場は入力ドロップダウンリストから一発選択可能です。</p>
-                <div class="grid-form" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group">
-                        <label>デフォルト（基本）現場名</label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="default-site-name" placeholder="例: 本社第一作業現場" style="flex-grow:1;">
-                            <button onclick="saveDefaultSite()" class="btn-success">💾 保存</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>新規現場マスター追加</label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="new-master-site-name" placeholder="例: 港区再開発現場" style="flex-grow:1;">
-                            <button onclick="addSiteToMaster()" class="btn-success">＋ 追加</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-top:1rem;">
-                    <label style="font-weight:bold; font-size:0.85rem; color:#64748b;">登録済み現場マスター一覧</label>
-                    <div class="site-chips" id="master-site-chips" style="margin-top:6px;"></div>
-                </div>
-            </div>
-
-            <div class="config-grid">
-                <div class="card">
-                    <div class="card-title" id="txt-worker-setting-title">👷 作業員種別・単価設定</div>
-                    <div class="grid-form" style="grid-template-columns: 1fr 1fr auto;">
-                        <input type="text" id="new-worker-name" placeholder="種別名 (例: 鳶職)">
-                        <input type="number" id="new-worker-price" placeholder="日単価 (円)" min="0">
-                        <button onclick="addWorkerType()" class="btn-success">＋ <span id="txt-add-btn1">追加</span></button>
-                    </div>
-                    <div class="data-table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th id="txt-th-type-w">作業員種別</th>
-                                    <th id="txt-th-price-w">日単価 (円)</th>
-                                    <th id="txt-th-action-w">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="worker-config-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title" id="txt-machine-setting-title">🚜 機械種別・単価設定</div>
-                    <div class="grid-form" style="grid-template-columns: 1fr 1fr auto;">
-                        <input type="text" id="new-machine-name" placeholder="種別名 (例: 10tダンプ)">
-                        <input type="number" id="new-machine-price" placeholder="日単価 (円)" min="0">
-                        <button onclick="addMachineType()" class="btn-success">＋ <span id="txt-add-btn2">追加</span></button>
-                    </div>
-                    <div class="data-table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th id="txt-th-type-m">機械種別</th>
-                                    <th id="txt-th-price-m">日単価 (円)</th>
-                                    <th id="txt-th-action-m">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="machine-config-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="tab-data" class="tab-content">
-            <div class="card">
-                <div class="card-title" id="txt-export-title">📤 データ出力・エクスポート</div>
-                <p style="margin-bottom:1rem; font-size:0.9rem; color:#64748b;" id="txt-export-desc">登録された全出勤データおよび設定項目を各フォーマットでダウンロード・コピーします。</p>
-                <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                    <button onclick="exportData('json')" class="btn-primary">JSON保存</button>
-                    <button onclick="exportData('csv-utf8')" class="btn-primary">CSV (UTF-8)</button>
-                    <button onclick="exportData('csv-sjis')" class="btn-primary">CSV (Shift_JIS)</button>
-                    <button onclick="exportData('tsv')" class="btn-primary">TSV</button>
-                    <button onclick="exportData('excel')" class="btn-primary">Excel (XML)</button>
-                    <button onclick="exportData('html')" class="btn-primary">HTML Table</button>
-                    <button onclick="exportData('markdown')" class="btn-primary">Markdown</button>
-                    <button onclick="copyToClipboard()" class="btn-secondary">📋 クリップボード複製</button>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title" id="txt-import-title">📥 データ入力・インポート</div>
-                <p style="margin-bottom:1rem; font-size:0.9rem; color:#64748b;" id="txt-import-desc">バックアップファイル (JSON) を読み込んでデータを復元します。</p>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <input type="file" id="import-file" accept=".json">
-                    <button onclick="importJSONData()" class="btn-success">インポート実行</button>
-                </div>
-            </div>
-
-            <div class="card" style="border-color: #fca5a5;">
-                <div class="card-title" style="color:var(--danger-color);" id="txt-danger-title">⚠️ データ消去</div>
-                <p style="margin-bottom:1rem; font-size:0.9rem; color:#64748b;" id="txt-danger-desc">LocalStorageおよびIndexedDBに保存されているすべてのデータを完全に削除します。</p>
-                <button onclick="clearAllData()" class="btn-danger">全データ初期化</button>
-            </div>
-        </section>
+  <!-- Tab 3: Settings -->
+  <div id="tab-settings" class="tab-content">
+    <div class="panel">
+      <div class="panel-title" id="txt-settings-machinery">項目および単価設定</div>
+      <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;" id="txt-settings-desc">作業員および使用機械類の項目名称・単位・単価を自在に変更・追加できます。</p>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th id="th-set-item">項目名称</th>
+              <th id="th-set-unit">単位</th>
+              <th class="num" id="th-set-price">単価 (円)</th>
+              <th id="th-set-action">操作</th>
+            </tr>
+          </thead>
+          <tbody id="machinery-settings-body"></tbody>
+        </table>
+      </div>
+      <button onclick="addMachinerySettingRow()" id="btn-add-item">+ 新規項目を追加</button>
+      <button onclick="saveMachinerySettings()" class="primary" id="btn-save-settings">設定変更を保存</button>
     </div>
 
-    <!-- Batch Entry Modal -->
-    <div id="batch-modal" class="modal-overlay no-print">
-        <div class="modal-body" style="max-width:700px;">
-            <div class="modal-header">
-                <h3 id="txt-batch-modal-title">⚡ 期間一括登録・更新</h3>
-                <button onclick="closeBatchModal()" style="background:none; border:none; font-size:1.5rem; color:white; cursor:pointer;">&times;</button>
-            </div>
-            <div class="modal-content-area" style="background:#fff;">
-                <p style="font-size:0.85rem; color:#64748b; margin-bottom:1rem;" id="txt-batch-modal-desc">指定した期間（開始日～終了日）内のすべての日に同一の出勤データを一括で作成・更新します。</p>
-                <div class="grid-form">
-                    <div class="form-group">
-                        <label id="txt-batch-start-label">開始日</label>
-                        <input type="date" id="batch-start-date">
-                    </div>
-                    <div class="form-group">
-                        <label id="txt-batch-end-label">終了日</label>
-                        <input type="date" id="batch-end-date">
-                    </div>
-                </div>
-                <div class="form-group" style="margin-bottom:1rem;">
-                    <label id="txt-batch-site-label">現場名</label>
-                    <input type="text" id="batch-site" placeholder="一括設定する現場名" list="site-history-list">
-                </div>
-                <div class="config-grid">
-                    <div>
-                        <h5 style="margin-bottom:0.5rem; color:var(--primary-color);">👷 作業員 (人)</h5>
-                        <div id="batch-workers-container" class="grid-form"></div>
-                    </div>
-                    <div>
-                        <h5 style="margin-bottom:0.5rem; color:var(--secondary-color);">🚜 機械 (台)</h5>
-                        <div id="batch-machines-container" class="grid-form"></div>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-top:1rem;">
-                    <label id="txt-batch-note-label">備考</label>
-                    <input type="text" id="batch-note" placeholder="一括設定用備考">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeBatchModal()" class="btn-secondary">キャンセル</button>
-                <button onclick="executeBatchRegistration()" class="btn-success">⚡ 一括登録を実行</button>
-            </div>
+    <!-- Master Sites -->
+    <div class="panel">
+      <div class="panel-title" id="txt-site-master">現場名マスター管理</div>
+      <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;" id="txt-site-desc">よく使う現場名を登録しておくと、入力時にドロップダウンから1タップで選択可能になります。</p>
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="text" id="new-master-site" placeholder="新規現場名を入力" style="flex: 1;">
+        <button onclick="addMasterSite()" class="success" id="btn-add-site">追加</button>
+      </div>
+      <div id="master-sites-list" class="chip-container"></div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Data Management & Export/Import -->
+  <div id="tab-data" class="tab-content">
+    <div class="panel">
+      <div class="panel-title" id="txt-data-title">データ管理・バックアップ・入出力</div>
+      <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;" id="txt-data-desc">本アプリは完全オフラインで全てのデータをブラウザ内に保持します。定期的なバックアップを推奨します。</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">
+          <h4 style="margin-bottom: 8px;" id="txt-export-header">データ出力 (エクスポート)</h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button onclick="exportData('json')" class="primary">JSON形式 (完全バックアップ)</button>
+            <button onclick="exportData('csv')">CSV形式 (Excel互換 UTF-8 BOM)</button>
+            <button onclick="exportData('tsv')">TSV形式 (タブ区切り)</button>
+            <button onclick="exportData('excel')">Excel XML形式 (.xls)</button>
+          </div>
         </div>
+
+        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">
+          <h4 style="margin-bottom: 8px;" id="txt-import-header">データ取込 (インポート)</h4>
+          <input type="file" id="import-file-input" accept=".json,.csv,.tsv" style="margin-bottom: 10px; width: 100%;">
+          <button onclick="executeImport()" class="success" id="btn-import-exec">選択ファイルから復元/インポート</button>
+        </div>
+
+        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">
+          <h4 style="margin-bottom: 8px;" id="txt-reset-header">システムリセット</h4>
+          <p style="font-size: 0.8rem; color: #666; margin-bottom: 8px;">全ての履歴および設定情報を全削除します。</p>
+          <button onclick="clearAllData()" class="danger" id="btn-danger-reset">全データを完全初期化</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Invoice Print Preview -->
+<div id="print-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="txt-modal-preview-title">請求書印刷プレビュー</h3>
+      <button onclick="closePrintModal()">✕ 閉じる</button>
+    </div>
+    
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+      <button onclick="executePrint()" class="primary" style="font-size: 1.1rem; padding: 8px 16px;">🖨️ 印刷を確定実行 (A4)</button>
+      <span style="font-size: 0.85rem; color: #666;" id="txt-print-hint">※印刷用レイアウトが適用されます</span>
     </div>
 
-    <!-- Print Preview Modal -->
-    <div id="print-modal" class="modal-overlay no-print">
-        <div class="modal-body">
-            <div class="modal-header">
-                <h3 id="txt-modal-title">🖨 印刷プレビュー</h3>
-                <button onclick="closePrintPreview()" style="background:none; border:none; font-size:1.5rem; color:white; cursor:pointer;">&times;</button>
+    <!-- Preview Canvas Area -->
+    <div id="modal-preview-content" style="border: 1px solid #999; padding: 20px; background: #fff;"></div>
+  </div>
+</div>
+
+<!-- Hidden Container Dedicated to Print output -->
+<div id="print-area"></div>
+
+<script>
+/* ==========================================================================
+   State & Global Configuration
+   ========================================================================== */
+const APP_STORAGE_KEY = 'WORK_LOG_APP_DATA_V2';
+
+let appState = {
+  lang: 'ja',
+  settings: {
+    workerPrice: 15000,
+    workerUnit: '人工',
+    machinery: [
+      { id: 'm1', name: 'バックホウ (0.25m3)', unit: '台/日', price: 18000 },
+      { id: 'm2', name: '2tダンプトラック', unit: '台/日', price: 12000 },
+      { id: 'm3', name: '発電機 2.5kVA', unit: '台/日', price: 3000 }
+    ],
+    masterSites: ['本社ビル建設現場', '〇〇駅前道路工事', '△△邸外構工事']
+  },
+  records: {} // Format: { "YYYY-MM-DD": { site, workers, machinery: { m1: val, ... }, note } }
+};
+
+/* ==========================================================================
+   i18n Translations Dictionary
+   ========================================================================== */
+const i18n = {
+  ja: {
+    appTitle: "出勤日・機械管理・請求システム",
+    subTitle: "完全オフライン動作版",
+    headExport: "📥 データ出力",
+    headImport: "📤 データ取込",
+    headPrint: "🖨️ 請求書印刷プレビュー",
+    tabDaily: "日別入力・履歴",
+    tabMonthly: "月別・複数月一括請求集計",
+    tabSettings: "項目・単価・現場マスター設定",
+    tabData: "データ管理・バックアップ",
+    dailyTitle: "日次出勤・機械稼働データ入力",
+    date: "日付 *",
+    site: "現場名 *",
+    workers: "作業員数 (人)",
+    note: "備考・メモ",
+    saveRecord: "保存 / 更新",
+    clearForm: "入力フォームクリア",
+    copyPrev: "前日データを複製設定",
+    logTitle: "当月作業登録履歴（日付昇順：下が最新）",
+    filterMonth: "表示年月:",
+    summaryTitle: "請求集計・対象期間指定",
+    calcMode: "集計モード:",
+    singleMode: "単月締め集計",
+    rangeMode: "複数月一括請求集計",
+    targetMonth: "対象月:",
+    rangeFrom: "開始月:",
+    rangeTo: "終了月:",
+    summaryResult: "集計・請求計算結果",
+    thItem: "項目名",
+    thQty: "数量 / 延べ日数",
+    thUnit: "単位",
+    thPrice: "単価 (円)",
+    thSubtotal: "金額 (税抜)",
+    subtotalEx: "小計 (税抜):",
+    taxRate: "消費税率:",
+    grandTotal: "合計請求金額 (税込):",
+    workerLabel: "作業員出勤",
+    siteMasterTitle: "現場名マスター管理",
+    actions: "操作",
+    edit: "編集",
+    delete: "削除"
+  },
+  en: {
+    appTitle: "Attendance & Equipment Billing System",
+    subTitle: "Fully Offline Standard Edition",
+    headExport: "📥 Export Data",
+    headImport: "📤 Import Data",
+    headPrint: "🖨️ Print Invoice Preview",
+    tabDaily: "Daily Entry & Log",
+    tabMonthly: "Monthly / Range Summary",
+    tabSettings: "Items, Rates & Sites Master",
+    tabData: "Data & Backup",
+    dailyTitle: "Daily Work & Machinery Entry",
+    date: "Date *",
+    site: "Site Name *",
+    workers: "Worker Count",
+    note: "Notes",
+    saveRecord: "Save / Update",
+    clearForm: "Clear Form",
+    copyPrev: "Copy Previous Day",
+    logTitle: "Daily Log (Ascending Date Order)",
+    filterMonth: "Month:",
+    summaryTitle: "Billing Summary Period Settings",
+    calcMode: "Calculation Mode:",
+    singleMode: "Single Month",
+    rangeMode: "Multi-Month Range",
+    targetMonth: "Target Month:",
+    rangeFrom: "From:",
+    rangeTo: "To:",
+    summaryResult: "Aggregated Invoice Summary",
+    thItem: "Item Name",
+    thQty: "Quantity / Total Days",
+    thUnit: "Unit",
+    thPrice: "Unit Rate (JPY)",
+    thSubtotal: "Subtotal (Excl. Tax)",
+    subtotalEx: "Subtotal (Excl. Tax):",
+    taxRate: "Tax Rate:",
+    grandTotal: "Grand Total (Incl. Tax):",
+    workerLabel: "Worker Attendance",
+    siteMasterTitle: "Site Name Master Directory",
+    actions: "Actions",
+    edit: "Edit",
+    delete: "Delete"
+  }
+  // (Other language fallbacks route to English UI)
+};
+
+/* ==========================================================================
+   Initialization & Storage Management
+   ========================================================================== */
+window.addEventListener('DOMContentLoaded', () => {
+  loadDataFromStorage();
+  setCurrentDateDefault();
+  renderDynamicInputs();
+  renderDailyTable();
+  renderMasterSiteOptions();
+  renderSummary();
+});
+
+function loadDataFromStorage() {
+  try {
+    const raw = localStorage.getItem(APP_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      appState = Object.assign({}, appState, parsed);
+    }
+  } catch (e) {
+    console.error('Failed to load storage data:', e);
+  }
+}
+
+function saveDataToStorage() {
+  try {
+    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+  } catch (e) {
+    alert('ローカルストレージへの保存に失敗しました。');
+  }
+}
+
+function setCurrentDateDefault() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('input-date').value = today;
+  document.getElementById('filter-month').value = today.substring(0, 7);
+  document.getElementById('target-month').value = today.substring(0, 7);
+  document.getElementById('target-month-from').value = today.substring(0, 7);
+  document.getElementById('target-month-to').value = today.substring(0, 7);
+}
+
+/* UI Helper: Quick Value Add (+1, +2, etc.) */
+function addValue(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  let current = parseFloat(el.value);
+  if (isNaN(current)) current = 0;
+  el.value = (current + delta).toFixed(delta % 1 === 0 ? 0 : 1);
+}
+
+/* ==========================================================================
+   Tab Navigation & i18n
+   ========================================================================== */
+function switchTab(tabKey) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  
+  document.getElementById(`tab-btn-${tabKey}`).classList.add('active');
+  document.getElementById(`tab-${tabKey}`).classList.add('active');
+
+  if (tabKey === 'daily') renderDailyTable();
+  if (tabKey === 'monthly') renderSummary();
+  if (tabKey === 'settings') renderSettings();
+}
+
+function changeLanguage(langKey) {
+  appState.lang = langKey;
+  saveDataToStorage();
+  const dict = i18n[langKey] || i18n['en'];
+
+  document.getElementById('txt-app-title').textContent = dict.appTitle;
+  document.getElementById('txt-app-sub').textContent = dict.subTitle;
+  document.getElementById('btn-head-export').textContent = dict.headExport;
+  document.getElementById('btn-head-import').textContent = dict.headImport;
+  document.getElementById('btn-head-print').textContent = dict.headPrint;
+
+  document.getElementById('tab-btn-daily').textContent = dict.tabDaily;
+  document.getElementById('tab-btn-monthly').textContent = dict.tabMonthly;
+  document.getElementById('tab-btn-settings').textContent = dict.tabSettings;
+  document.getElementById('tab-btn-data').textContent = dict.tabData;
+
+  document.getElementById('txt-daily-title').textContent = dict.dailyTitle;
+  document.getElementById('lbl-date').textContent = dict.date;
+  document.getElementById('lbl-site').textContent = dict.site;
+  document.getElementById('lbl-workers').textContent = dict.workers;
+  document.getElementById('lbl-note').textContent = dict.note;
+  document.getElementById('btn-save-record').textContent = dict.saveRecord;
+  document.getElementById('btn-clear-form').textContent = dict.clearForm;
+  document.getElementById('btn-copy-prev').textContent = dict.copyPrev;
+
+  document.getElementById('txt-log-title').textContent = dict.logTitle;
+  document.getElementById('lbl-filter-month').textContent = dict.filterMonth;
+
+  document.getElementById('txt-summary-title').textContent = dict.summaryTitle;
+  document.getElementById('lbl-mode').textContent = dict.calcMode;
+  document.getElementById('lbl-target-month').textContent = dict.targetMonth;
+  document.getElementById('lbl-range-from').textContent = dict.rangeFrom;
+  document.getElementById('lbl-range-to').textContent = dict.rangeTo;
+
+  document.getElementById('txt-summary-result').textContent = dict.summaryResult;
+  document.getElementById('th-item').textContent = dict.thItem;
+  document.getElementById('th-quantity').textContent = dict.thQty;
+  document.getElementById('th-unit').textContent = dict.thUnit;
+  document.getElementById('th-unitprice').textContent = dict.thPrice;
+  document.getElementById('th-subtotal').textContent = dict.thSubtotal;
+  document.getElementById('lbl-subtotal-tax-ex').textContent = dict.subtotalEx;
+  document.getElementById('lbl-tax-rate').textContent = dict.taxRate;
+  document.getElementById('lbl-grand-total').textContent = dict.grandTotal;
+
+  renderDynamicInputs();
+  renderDailyTable();
+  renderSummary();
+}
+
+/* ==========================================================================
+   Dynamic Machinery Form Generation
+   ========================================================================== */
+function renderDynamicInputs() {
+  const container = document.getElementById('dynamic-machinery-inputs');
+  container.innerHTML = '';
+
+  appState.settings.machinery.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.innerHTML = `
+      <label>${escapeHtml(item.name)} (${escapeHtml(item.unit)})</label>
+      <div class="input-with-assist">
+        <input type="number" id="input-machinery-${item.id}" min="0" step="0.5" placeholder="未入力(0)">
+        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 0.5)">+0.5</button>
+        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 1)">+1</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function renderMasterSiteOptions() {
+  const dropdown = document.getElementById('site-master-dropdown');
+  dropdown.innerHTML = '<option value="">(選択)</option>';
+  appState.settings.masterSites.forEach(site => {
+    const opt = document.createElement('option');
+    opt.value = site;
+    opt.textContent = site;
+    dropdown.appendChild(opt);
+  });
+
+  const datalist = document.getElementById('site-history-list');
+  datalist.innerHTML = '';
+  const uniqueSites = [...new Set(Object.values(appState.records).map(r => r.site))];
+  uniqueSites.forEach(site => {
+    if (site) {
+      const opt = document.createElement('option');
+      opt.value = site;
+      datalist.appendChild(opt);
+    }
+  });
+
+  // Recent Site Chips
+  const recentContainer = document.getElementById('site-recents');
+  recentContainer.innerHTML = '';
+  const recentList = uniqueSites.slice(-4).reverse();
+  recentList.forEach(site => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = site;
+    chip.onclick = () => { document.getElementById('input-site').value = site; };
+    recentContainer.appendChild(chip);
+  });
+}
+
+function applyMasterSite(val) {
+  if (val) {
+    document.getElementById('input-site').value = val;
+  }
+}
+
+/* ==========================================================================
+   Daily Record Handling (No Default 0)
+   ========================================================================== */
+function onDateChange() {
+  const dateVal = document.getElementById('input-date').value;
+  if (!dateVal) return;
+
+  const rec = appState.records[dateVal];
+  if (rec) {
+    document.getElementById('input-site').value = rec.site || '';
+    // If value is 0 or empty, display empty string
+    document.getElementById('input-workers').value = (rec.workers && rec.workers !== 0) ? rec.workers : '';
+    
+    appState.settings.machinery.forEach(m => {
+      const el = document.getElementById(`input-machinery-${m.id}`);
+      if (el) {
+        const val = rec.machinery ? rec.machinery[m.id] : '';
+        el.value = (val && val !== 0) ? val : '';
+      }
+    });
+    document.getElementById('input-note').value = rec.note || '';
+  } else {
+    // Clear inputs (no default '0')
+    document.getElementById('input-site').value = '';
+    document.getElementById('input-workers').value = '';
+    appState.settings.machinery.forEach(m => {
+      const el = document.getElementById(`input-machinery-${m.id}`);
+      if (el) el.value = '';
+    });
+    document.getElementById('input-note').value = '';
+  }
+}
+
+function saveDailyRecord(e) {
+  e.preventDefault();
+  const dateVal = document.getElementById('input-date').value;
+  const siteVal = document.getElementById('input-site').value.trim();
+
+  if (!dateVal || !siteVal) {
+    alert('日付と現場名は必須項目です。');
+    return;
+  }
+
+  // Treat blank values as 0
+  const workers = parseFloat(document.getElementById('input-workers').value) || 0;
+  
+  const machinery = {};
+  appState.settings.machinery.forEach(m => {
+    const el = document.getElementById(`input-machinery-${m.id}`);
+    machinery[m.id] = el ? (parseFloat(el.value) || 0) : 0;
+  });
+
+  const noteVal = document.getElementById('input-note').value.trim();
+
+  appState.records[dateVal] = {
+    site: siteVal,
+    workers: workers,
+    machinery: machinery,
+    note: noteVal
+  };
+
+  saveDataToStorage();
+  renderMasterSiteOptions();
+  renderDailyTable();
+  alert(`${dateVal} のデータを保存しました。`);
+}
+
+function resetForm() {
+  document.getElementById('daily-form').reset();
+  setCurrentDateDefault();
+  onDateChange();
+}
+
+function copyPreviousDayRecord() {
+  const currentDate = document.getElementById('input-date').value;
+  if (!currentDate) return;
+
+  const curr = new Date(currentDate);
+  curr.setDate(curr.getDate() - 1);
+  const prevDateStr = curr.toISOString().split('T')[0];
+
+  const prevRec = appState.records[prevDateStr];
+  if (!prevRec) {
+    alert(`前日 (${prevDateStr}) の記録が存在しません。`);
+    return;
+  }
+
+  document.getElementById('input-site').value = prevRec.site || '';
+  document.getElementById('input-workers').value = (prevRec.workers && prevRec.workers !== 0) ? prevRec.workers : '';
+  appState.settings.machinery.forEach(m => {
+    const el = document.getElementById(`input-machinery-${m.id}`);
+    if (el) {
+      const val = prevRec.machinery ? prevRec.machinery[m.id] : '';
+      el.value = (val && val !== 0) ? val : '';
+    }
+  });
+  document.getElementById('input-note').value = prevRec.note || '';
+  alert(`前日 (${prevDateStr}) のデータをコピーしました。`);
+}
+
+/* Render Ascending Daily Table */
+function renderDailyTable() {
+  const targetMonth = document.getElementById('filter-month').value;
+  const headRow = document.getElementById('daily-table-head');
+  const tbody = document.getElementById('daily-table-body');
+
+  // Render Table Header
+  let headHtml = `<th>日付</th><th>現場名</th><th class="num">作業員(人)</th>`;
+  appState.settings.machinery.forEach(m => {
+    headHtml += `<th class="num">${escapeHtml(m.name)}</th>`;
+  });
+  headHtml += `<th>備考</th><th>操作</th>`;
+  headRow.innerHTML = headHtml;
+
+  tbody.innerHTML = '';
+
+  // Filter & ASCENDING SORT (Newest at Bottom)
+  const dates = Object.keys(appState.records)
+    .filter(d => d.startsWith(targetMonth))
+    .sort((a, b) => a.localeCompare(b)); // ASCENDING
+
+  if (dates.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${4 + appState.settings.machinery.length}" style="text-align:center; color:#888;">該当月の登録履歴はありません。</td></tr>`;
+    return;
+  }
+
+  dates.forEach(dateStr => {
+    const rec = appState.records[dateStr];
+    const tr = document.createElement('tr');
+    
+    let rowHtml = `<td>${dateStr}</td><td>${escapeHtml(rec.site)}</td><td class="num">${rec.workers || 0}</td>`;
+    appState.settings.machinery.forEach(m => {
+      const val = (rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0;
+      rowHtml += `<td class="num">${val}</td>`;
+    });
+    rowHtml += `<td>${escapeHtml(rec.note || '')}</td>`;
+    rowHtml += `<td>
+      <button onclick="loadRecordToForm('${dateStr}')" style="padding:2px 6px; font-size:0.8rem;">編集</button>
+      <button onclick="deleteRecord('${dateStr}')" class="danger" style="padding:2px 6px; font-size:0.8rem;">削除</button>
+    </td>`;
+
+    tr.innerHTML = rowHtml;
+    tbody.appendChild(tr);
+  });
+}
+
+function loadRecordToForm(dateStr) {
+  document.getElementById('input-date').value = dateStr;
+  onDateChange();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteRecord(dateStr) {
+  if (confirm(`${dateStr} のデータを削除しますか？`)) {
+    delete appState.records[dateStr];
+    saveDataToStorage();
+    renderDailyTable();
+    renderSummary();
+  }
+}
+
+/* ==========================================================================
+   Multi-Month & Single Aggregation Calculations
+   ========================================================================== */
+function toggleCalcMode() {
+  const mode = document.getElementById('calc-mode').value;
+  if (mode === 'single') {
+    document.getElementById('single-month-picker').style.display = 'block';
+    document.getElementById('range-month-picker').style.display = 'none';
+  } else {
+    document.getElementById('single-month-picker').style.display = 'none';
+    document.getElementById('range-month-picker').style.display = 'flex';
+  }
+  renderSummary();
+}
+
+function getFilteredDatesForSummary() {
+  const mode = document.getElementById('calc-mode').value;
+  const allDates = Object.keys(appState.records);
+
+  if (mode === 'single') {
+    const targetMonth = document.getElementById('target-month').value;
+    return allDates.filter(d => d.startsWith(targetMonth));
+  } else {
+    const fromMonth = document.getElementById('target-month-from').value;
+    const toMonth = document.getElementById('target-month-to').value;
+    if (!fromMonth || !toMonth) return [];
+
+    return allDates.filter(d => {
+      const m = d.substring(0, 7);
+      return m >= fromMonth && m <= toMonth;
+    });
+  }
+}
+
+function renderSummary() {
+  const targetDates = getFilteredDatesForSummary();
+  const tbody = document.getElementById('summary-table-body');
+  tbody.innerHTML = '';
+
+  let totalWorkerQty = 0;
+  const machineryTotals = {};
+  appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });
+
+  targetDates.forEach(d => {
+    const rec = appState.records[d];
+    totalWorkerQty += (parseFloat(rec.workers) || 0);
+    if (rec.machinery) {
+      appState.settings.machinery.forEach(m => {
+        machineryTotals[m.id] += (parseFloat(rec.machinery[m.id]) || 0);
+      });
+    }
+  });
+
+  let grandSubtotalEx = 0;
+
+  // 1. Worker Row
+  const dict = i18n[appState.lang] || i18n['en'];
+  const workerPrice = appState.settings.workerPrice || 0;
+  const workerSubtotal = totalWorkerQty * workerPrice;
+  grandSubtotalEx += workerSubtotal;
+
+  let html = `<tr>
+    <td>${dict.workerLabel || '作業員出勤'}</td>
+    <td class="num">${totalWorkerQty}</td>
+    <td>${escapeHtml(appState.settings.workerUnit)}</td>
+    <td class="num">${workerPrice.toLocaleString()}</td>
+    <td class="num">${workerSubtotal.toLocaleString()}</td>
+  </tr>`;
+
+  // 2. Machinery Rows
+  appState.settings.machinery.forEach(m => {
+    const qty = machineryTotals[m.id] || 0;
+    const price = m.price || 0;
+    const subtotal = qty * price;
+    grandSubtotalEx += subtotal;
+
+    html += `<tr>
+      <td>${escapeHtml(m.name)}</td>
+      <td class="num">${qty}</td>
+      <td>${escapeHtml(m.unit)}</td>
+      <td class="num">${price.toLocaleString()}</td>
+      <td class="num">${subtotal.toLocaleString()}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+
+  // Financial calculations
+  const taxRate = parseFloat(document.getElementById('tax-rate-select').value) || 0;
+  const taxAmount = Math.floor(grandSubtotalEx * taxRate);
+  const grandTotal = grandSubtotalEx + taxAmount;
+
+  document.getElementById('calc-subtotal-ex').textContent = `￥${grandSubtotalEx.toLocaleString()}`;
+  document.getElementById('calc-tax-amount').textContent = `￥${taxAmount.toLocaleString()}`;
+  document.getElementById('calc-grand-total').textContent = `￥${grandTotal.toLocaleString()}`;
+}
+
+/* ==========================================================================
+   Print Preview & Execution (Fixing Duplicate Output Issues)
+   ========================================================================== */
+function triggerInvoicePrint() {
+  const targetDates = getFilteredDatesForSummary();
+  if (targetDates.length === 0) {
+    if (!confirm('対象期間のデータが0件ですが、請求書プレビューを表示しますか？')) {
+      return;
+    }
+  }
+
+  const mode = document.getElementById('calc-mode').value;
+  let periodStr = '';
+  if (mode === 'single') {
+    periodStr = document.getElementById('target-month').value + ' 分';
+  } else {
+    periodStr = `${document.getElementById('target-month-from').value} ～ ${document.getElementById('target-month-to').value} 分`;
+  }
+
+  // Calculate Subtotals
+  let totalWorkerQty = 0;
+  const machineryTotals = {};
+  appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });
+
+  targetDates.forEach(d => {
+    const rec = appState.records[d];
+    totalWorkerQty += (parseFloat(rec.workers) || 0);
+    if (rec.machinery) {
+      appState.settings.machinery.forEach(m => {
+        machineryTotals[m.id] += (parseFloat(rec.machinery[m.id]) || 0);
+      });
+    }
+  });
+
+  let grandSubtotalEx = 0;
+  const workerPrice = appState.settings.workerPrice || 0;
+  const workerSubtotal = totalWorkerQty * workerPrice;
+  grandSubtotalEx += workerSubtotal;
+
+  let itemRowsHtml = `<tr>
+    <td>作業員人工 (常用出勤)</td>
+    <td style="text-align:right;">${totalWorkerQty}</td>
+    <td>${escapeHtml(appState.settings.workerUnit)}</td>
+    <td style="text-align:right;">￥${workerPrice.toLocaleString()}</td>
+    <td style="text-align:right;">￥${workerSubtotal.toLocaleString()}</td>
+  </tr>`;
+
+  appState.settings.machinery.forEach(m => {
+    const qty = machineryTotals[m.id] || 0;
+    const price = m.price || 0;
+    const subtotal = qty * price;
+    grandSubtotalEx += subtotal;
+
+    itemRowsHtml += `<tr>
+      <td>${escapeHtml(m.name)}</td>
+      <td style="text-align:right;">${qty}</td>
+      <td>${escapeHtml(m.unit)}</td>
+      <td style="text-align:right;">￥${price.toLocaleString()}</td>
+      <td style="text-align:right;">￥${subtotal.toLocaleString()}</td>
+    </tr>`;
+  });
+
+  const taxRate = parseFloat(document.getElementById('tax-rate-select').value) || 0;
+  const taxAmount = Math.floor(grandSubtotalEx * taxRate);
+  const grandTotal = grandSubtotalEx + taxAmount;
+
+  const invoiceHtml = `
+    <div class="invoice-print-container">
+      <div class="invoice-title">御 請 求 書</div>
+      
+      <table class="invoice-header-table" style="width:100%; margin-bottom:20px;">
+        <tr>
+          <td style="border:none; vertical-align:top; width:60%;">
+            <div style="font-size:14pt; font-weight:bold; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:10px;">
+              御中
             </div>
-            <div class="modal-content-area">
-                <div id="screen-preview-container" class="paper-preview"></div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closePrintPreview()" class="btn-secondary" id="txt-cancel-print">キャンセル</button>
-                <button onclick="triggerInvoicePrint()" class="btn-accent" id="txt-exec-print">🖨️ 印刷を確定実行 (window.print)</button>
-            </div>
-        </div>
+            <div>対象集計期間: <strong>${periodStr}</strong></div>
+            <div>発行日: ${new Date().toLocaleDateString('ja-JP')}</div>
+          </td>
+          <td style="border:none; vertical-align:top; text-align:right;">
+            <div style="font-size:12pt; font-weight:bold;">自社情報 / 請求元</div>
+            <div>〇〇建設・作業管理部</div>
+            <div>〒000-0000 東京都〇〇区1-2-3</div>
+            <div>TEL: 03-0000-0000</div>
+          </td>
+        </tr>
+      </table>
+
+      <div style="font-size:13pt; font-weight:bold; background:#f0f0f0; border:2px solid #000; padding:8px 12px; margin-bottom:20px;">
+        ご請求金額 (税込): ￥${grandTotal.toLocaleString()} -
+      </div>
+
+      <table class="invoice-table">
+        <thead>
+          <tr style="background-color:#e6e6e6;">
+            <th>品名・項目</th>
+            <th style="text-align:right;">数量</th>
+            <th>単位</th>
+            <th style="text-align:right;">単価</th>
+            <th style="text-align:right;">金額 (税抜)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRowsHtml}
+        </tbody>
+      </table>
+
+      <div style="width:300px; margin-left:auto; margin-top:20px;">
+        <table style="width:100%; border-collapse:collapse;">
+          <tr>
+            <td style="border:none; padding:4px;">小計 (税抜):</td>
+            <td style="border:none; padding:4px; text-align:right;">￥${grandSubtotalEx.toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td style="border:none; padding:4px;">消費税 (${(taxRate * 100).toFixed(0)}%):</td>
+            <td style="border:none; padding:4px; text-align:right;">￥${taxAmount.toLocaleString()}</td>
+          </tr>
+          <tr style="font-weight:bold; border-top:2px solid #000;">
+            <td style="border:none; padding:6px 4px;">合計 (税込):</td>
+            <td style="border:none; padding:6px 4px; text-align:right;">￥${grandTotal.toLocaleString()}</td>
+          </tr>
+        </table>
+      </div>
     </div>
+  `;
 
-    <!-- Print Area Document Container -->
-    <div id="print-area"></div>
+  // Inject into Preview Modal
+  document.getElementById('modal-preview-content').innerHTML = invoiceHtml;
+  document.getElementById('print-modal').classList.add('active');
+}
 
-    <div id="toast"></div>
+function closePrintModal() {
+  document.getElementById('print-modal').classList.remove('active');
+}
 
-    <script>
-        const DEFAULT_WORKERS = [
-            { id: 'w1', name: '一般作業員', price: 15000 },
-            { id: 'w2', name: '熟練作業員', price: 20000 },
-            { id: 'w3', name: '現場監督', price: 25000 }
-        ];
+function executePrint() {
+  const content = document.getElementById('modal-preview-content').innerHTML;
+  const printArea = document.getElementById('print-area');
+  
+  // Wipe cleanly to prevent duplicate appended documents
+  printArea.innerHTML = content;
 
-        const DEFAULT_MACHINES = [
-            { id: 'm1', name: 'バックホウ', price: 30000 },
-            { id: 'm2', name: '2tトラック', price: 12000 },
-            { id: 'm3', name: '高所作業車', price: 22000 }
-        ];
+  // Trigger print dialog
+  window.print();
 
-        let appState = {
-            lang: 'ja',
-            defaultSiteName: '',
-            masterSites: [],
-            workerTypes: [...DEFAULT_WORKERS],
-            machineTypes: [...DEFAULT_MACHINES],
-            dailyEntries: [],
-            clientName: '',
-            issuerName: ''
-        };
+  // Cleanup after print dialog completes
+  setTimeout(() => {
+    printArea.innerHTML = '';
+  }, 1000);
+}
 
-        const I18N = {
-            ja: {
-                title: "出勤日管理・請求集計システム",
-                dailyTab: "📅 日別入力・集計",
-                monthlyTab: "📄 月別請求書・集計報告書",
-                settingsTab: "⚙ 項目/単価/現場設定",
-                dataTab: "💾 データ管理/入出力",
-                dailyEntryTitle: "日別出勤・稼働データの登録",
-                dateLabel: "日付",
-                siteLabel: "現場・プロジェクト名",
-                noteLabel: "備考",
-                workersTitle: "👷 作業員 (人)",
-                machinesTitle: "🚜 機械 (台)",
-                saveBtn: "出勤データを保存",
-                resetBtn: "クリア",
-                dailyListTitle: "登録済み日別一覧 (昇順)",
-                monthlyCalcTitle: "請求書・集計報告書の設定と作成",
-                rangeTypeLabel: "請求範囲:",
-                singleMonth: "単一月",
-                multiMonth: "複数月（一括合算）",
-                targetMonth: "対象月:",
-                startMonth: "開始月:",
-                endMonth: "終了月:",
-                taxRateLabel: "消費税率:",
-                previewBtn: "印刷プレビュー・出力",
-                monthlySummaryTitle: "集計プレビュー (税抜き / 税込計算)",
-                workerSettingTitle: "👷 作業員種別・単価設定",
-                machineSettingTitle: "🚜 機械種別・単価設定",
-                exportTitle: "📤 データ出力・エクスポート",
-                importTitle: "📥 データ入力・インポート",
-                dangerTitle: "⚠️ データ消去",
-                previewModalTitle: "🖨️ 印刷プレビュー",
-                execPrintBtn: "🖨️ 印刷を確定実行",
-                invoiceTitle: "請求書および集計報告書",
-                totalBilling: "請求総額 (税込)",
-                subtotal: "小計 (税抜)",
-                taxAmount: "消費税額",
-                itemHeader: "項目・種別",
-                countHeader: "数量/稼働数",
-                unitHeader: "単位",
-                priceHeader: "単価 (円)",
-                amountHeader: "金額 (円)"
-            },
-            en: {
-                title: "Attendance & Billing System",
-                dailyTab: "📅 Daily Entry",
-                monthlyTab: "📄 Monthly Invoice",
-                settingsTab: "⚙️ Items & Sites",
-                dataTab: "💾 Data Management",
-                dailyEntryTitle: "Daily Attendance Entry",
-                dateLabel: "Date",
-                siteLabel: "Site / Project",
-                noteLabel: "Notes",
-                workersTitle: "👷 Workers (Count)",
-                machinesTitle: "🚜 Machinery (Units)",
-                saveBtn: "Save Entry",
-                resetBtn: "Clear",
-                dailyListTitle: "Registered Daily Records (Ascending)",
-                monthlyCalcTitle: "Invoice & Report Settings",
-                rangeTypeLabel: "Scope:",
-                singleMonth: "Single Month",
-                multiMonth: "Multiple Months",
-                targetMonth: "Month:",
-                startMonth: "Start Month:",
-                endMonth: "End Month:",
-                taxRateLabel: "Tax Rate:",
-                previewBtn: "Print Preview",
-                monthlySummaryTitle: "Summary Preview",
-                workerSettingTitle: "👷 Worker Category & Rate",
-                machineSettingTitle: "🚜 Machine Category & Rate",
-                exportTitle: "📤 Export Data",
-                importTitle: "📥 Import Data",
-                dangerTitle: "⚠️ Clear Data",
-                previewModalTitle: "🖨️ Print Preview",
-                execPrintBtn: "🖨️ Execute Print",
-                invoiceTitle: "INVOICE & SUMMARY REPORT",
-                totalBilling: "Total Amount (Tax Incl.)",
-                subtotal: "Subtotal (Excl. Tax)",
-                taxAmount: "Tax Amount",
-                itemHeader: "Description",
-                countHeader: "Qty",
-                unitHeader: "Unit",
-                priceHeader: "Unit Price",
-                amountHeader: "Amount"
-            },
-            'zh-CN': {
-                title: "考勤与出账汇总系统",
-                dailyTab: "📅 每日录入",
-                monthlyTab: "📄 月度账单報告",
-                settingsTab: "⚙️ 项目与工地",
-                dataTab: "💾 数据管理",
-                dailyEntryTitle: "每日出勤及机械使用录入",
-                dateLabel: "日期",
-                siteLabel: "工地/项目",
-                noteLabel: "备注",
-                workersTitle: "👷 工人 (人数)",
-                machinesTitle: "🚜 机械 (台数)",
-                saveBtn: "保存记录",
-                resetBtn: "重置",
-                dailyListTitle: "已登记每日明细 (升序)",
-                monthlyCalcTitle: "账单及报告生成",
-                rangeTypeLabel: "结算范围:",
-                singleMonth: "单月",
-                multiMonth: "多月汇总",
-                targetMonth: "目标月份:",
-                startMonth: "开始月份:",
-                endMonth: "结束月份:",
-                taxRateLabel: "税率:",
-                previewBtn: "打印预览",
-                monthlySummaryTitle: "汇总预览",
-                workerSettingTitle: "👷 工种与单价设置",
-                machineSettingTitle: "🚜 机械与单价设置",
-                exportTitle: "📤 数据导出",
-                importTitle: "📥 数据导入",
-                dangerTitle: "⚠️ 清空数据",
-                previewModalTitle: "🖨️ 打印预览",
-                execPrintBtn: "🖨 确认打印",
-                invoiceTitle: "请款单及汇总报告",
-                totalBilling: "请款总额 (含税)",
-                subtotal: "小计 (不含税)",
-                taxAmount: "税额",
-                itemHeader: "项目/种类",
-                countHeader: "数量",
-                unitHeader: "单位",
-                priceHeader: "单价",
-                amountHeader: "金额"
-            },
-            'zh-TW': {
-                title: "出勤與請款彙總系統",
-                dailyTab: "📅 每日登錄",
-                monthlyTab: "📄 月度帳單報告",
-                settingsTab: "⚙️ 項目與工地",
-                dataTab: "💾 資料管理",
-                dailyEntryTitle: "每日出勤及機械使用登錄",
-                dateLabel: "日期",
-                siteLabel: "工地/項目",
-                noteLabel: "備註",
-                workersTitle: "👷 工人 (人數)",
-                machinesTitle: "🚜 機械 (台數)",
-                saveBtn: "儲存紀錄",
-                resetBtn: "重設",
-                dailyListTitle: "已登記每日明細 (升序)",
-                monthlyCalcTitle: "帳單及報告生成",
-                rangeTypeLabel: "結算範圍:",
-                singleMonth: "單月",
-                multiMonth: "多月彙總",
-                targetMonth: "目標月份:",
-                startMonth: "開始月份:",
-                endMonth: "結束月份:",
-                taxRateLabel: "稅率:",
-                previewBtn: "列印預覽",
-                monthlySummaryTitle: "彙總預覽",
-                workerSettingTitle: "👷 工種與單價設定",
-                machineSettingTitle: "🚜 機械與單價設定",
-                exportTitle: "📤 資料匯出",
-                importTitle: "📥 資料匯入",
-                dangerTitle: "⚠️ 清除資料",
-                previewModalTitle: "🖨️ 列印預覽",
-                execPrintBtn: "🖨️ 確認列印",
-                invoiceTitle: "請款單及彙總報告",
-                totalBilling: "請款總額 (含稅)",
-                subtotal: "小計 (不含稅)",
-                taxAmount: "稅額",
-                itemHeader: "項目/種類",
-                countHeader: "數量",
-                unitHeader: "單位",
-                priceHeader: "單價",
-                amountHeader: "金額"
-            },
-            ko: {
-                title: "출근 및 청구 집계 시스템",
-                dailyTab: "📅 일별 입력",
-                monthlyTab: "📄 월별 청구서",
-                settingsTab: "⚙️ 단가 및 현장",
-                dataTab: "💾 데이터 관리",
-                dailyEntryTitle: "일별 출근 데이터 등록",
-                dateLabel: "날짜",
-                siteLabel: "현장명",
-                noteLabel: "비고",
-                workersTitle: "👷 작업자 (명)",
-                machinesTitle: "🚜 장비 (대)",
-                saveBtn: "저장",
-                resetBtn: "초기화",
-                dailyListTitle: "등록된 일별 내역 (오름차순)",
-                monthlyCalcTitle: "청구서 작성 설정",
-                rangeTypeLabel: "청구 범위:",
-                singleMonth: "단일 월",
-                multiMonth: "다중 월 통합",
-                targetMonth: "대상 월:",
-                startMonth: "시작 월:",
-                endMonth: "종료 월:",
-                taxRateLabel: "세율:",
-                previewBtn: "인쇄 미리보기",
-                monthlySummaryTitle: "집계 미리보기",
-                workerSettingTitle: "👷 작업자 단가",
-                machineSettingTitle: "🚜 장비 단가",
-                exportTitle: "📤 데이터 내보내기",
-                importTitle: "📥 데이터 가져오기",
-                dangerTitle: "⚠️ 데이터 삭제",
-                previewModalTitle: "🖨 인쇄 미리보기",
-                execPrintBtn: "🖨️ 인쇄 실행",
-                invoiceTitle: "청구서 및 집계 보고서",
-                totalBilling: "총 청구금액 (VAT포함)",
-                subtotal: "소계 (VAT별도)",
-                taxAmount: "부가가치세",
-                itemHeader: "항목",
-                countHeader: "수량",
-                unitHeader: "단위",
-                priceHeader: "단가",
-                amountHeader: "금액"
-            },
-            fr: {
-                title: "Gestion de Présence & Facturation",
-                dailyTab: "📅 Saisie Journalière",
-                monthlyTab: "📄 Facture Mensuelle",
-                settingsTab: "⚙️ Tarifs & Chantiers",
-                dataTab: "💾 Données",
-                dailyEntryTitle: "Saisie Quotidienne des Présences",
-                dateLabel: "Date",
-                siteLabel: "Chantier / Projet",
-                noteLabel: "Remarques",
-                workersTitle: "👷 Ouvriers (Nb)",
-                machinesTitle: "🚜 Machines (Unités)",
-                saveBtn: "Enregistrer",
-                resetBtn: "Réinitialiser",
-                dailyListTitle: "Historique Quotidien (Ordre Chronologique)",
-                monthlyCalcTitle: "Configuration de Facture",
-                rangeTypeLabel: "Période:",
-                singleMonth: "Mois Unique",
-                multiMonth: "Mois Multiples",
-                targetMonth: "Mois:",
-                startMonth: "Mois Début:",
-                endMonth: "Mois Fin:",
-                taxRateLabel: "Taux de TVA:",
-                previewBtn: "Aperçu / Imprimer",
-                monthlySummaryTitle: "Aperçu Récapitulatif",
-                workerSettingTitle: "👷 Catégories Ouvriers & Tarifs",
-                machineSettingTitle: "🚜 Catégories Machines & Tarifs",
-                exportTitle: "📤 Exporter Données",
-                importTitle: "📥 Importer Données",
-                dangerTitle: "⚠️ Effacer Données",
-                previewModalTitle: "🖨️️ Aperçu Avant Impression",
-                execPrintBtn: "🖨 Lancer l'impression",
-                invoiceTitle: "FACTURE ET RAPPORT DE SYNTHÈSE",
-                totalBilling: "Total Général (TTC)",
-                subtotal: "Sous-total (HT)",
-                taxAmount: "Montant TVA",
-                itemHeader: "Désignation",
-                countHeader: "Qté",
-                unitHeader: "Unité",
-                priceHeader: "Prix Unitaire",
-                amountHeader: "Montant"
-            },
-            es: {
-                title: "Control de Asistencia y Facturación",
-                dailyTab: "📅 Registro Diario",
-                monthlyTab: "📄 Factura Mensual",
-                settingsTab: "⚙️ Precios y Sitios",
-                dataTab: "💾 Gestión Datos",
-                dailyEntryTitle: "Registro Diario de Asistencia",
-                dateLabel: "Fecha",
-                siteLabel: "Obra / Proyecto",
-                noteLabel: "Notas",
-                workersTitle: "👷 Trabajadores (Cant)",
-                machinesTitle: "🚜 Maquinaria (Unid)",
-                saveBtn: "Guardar Datos",
-                resetBtn: "Limpiar",
-                dailyListTitle: "Registros Diarios (Ascendente)",
-                monthlyCalcTitle: "Configuración de Factura",
-                rangeTypeLabel: "Alcance:",
-                singleMonth: "Mes Único",
-                multiMonth: "Múltiples Meses",
-                targetMonth: "Mes Target:",
-                startMonth: "Mes Inicio:",
-                endMonth: "Mes Fin:",
-                taxRateLabel: "Tasa IVA:",
-                previewBtn: "Vista Previa / Imprimir",
-                monthlySummaryTitle: "Resumen de Totales",
-                workerSettingTitle: "👷 Trabajadores y Tarifas",
-                machineSettingTitle: "🚜 Maquinaria y Tarifas",
-                exportTitle: "📤 Exportar Datos",
-                importTitle: "📥 Importar Datos",
-                dangerTitle: "⚠️ Borrar Datos",
-                previewModalTitle: "🖨️ Vista Previa",
-                execPrintBtn: "🖨️ Ejecutar Impresión",
-                invoiceTitle: "FACTURA Y REPORTE RESUMEN",
-                totalBilling: "Total Factura (IVA Incl.)",
-                subtotal: "Subtotal (Sin IVA)",
-                taxAmount: "Monto IVA",
-                itemHeader: "Descripción",
-                countHeader: "Cant",
-                unitHeader: "Unidad",
-                priceHeader: "Precio Unit",
-                amountHeader: "Monto"
-            }
-        };
+/* ==========================================================================
+   Settings Management (Items, Rates, Sites)
+   ========================================================================== */
+function renderSettings() {
+  const tbody = document.getElementById('machinery-settings-body');
+  tbody.innerHTML = '';
 
-        let db = null;
-        function initDB() {
-            const request = indexedDB.open("AttendanceBillingDB", 2);
-            request.onupgradeneeded = function(e) {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains("appData")) {
-                    db.createObjectStore("appData", { keyPath: "id" });
-                }
-            };
-            request.onsuccess = function(e) {
-                db = e.target.result;
-                loadDataFromStorage();
-            };
-            request.onerror = function() {
-                loadDataFromStorage();
-            };
+  // Worker Setting Row
+  let html = `<tr>
+    <td><input type="text" value="作業員出勤 (人工)" disabled style="background:#eee;"></td>
+    <td><input type="text" id="setting-worker-unit" value="${escapeHtml(appState.settings.workerUnit)}"></td>
+    <td class="num"><input type="number" id="setting-worker-price" value="${appState.settings.workerPrice}" class="num"></td>
+    <td>-</td>
+  </tr>`;
+
+  // Machinery Setting Rows
+  appState.settings.machinery.forEach((m, idx) => {
+    html += `<tr id="setting-row-${m.id}">
+      <td><input type="text" id="setting-name-${m.id}" value="${escapeHtml(m.name)}"></td>
+      <td><input type="text" id="setting-unit-${m.id}" value="${escapeHtml(m.unit)}"></td>
+      <td class="num"><input type="number" id="setting-price-${m.id}" value="${m.price}" class="num"></td>
+      <td><button onclick="removeMachinerySettingRow('${m.id}')" class="danger" style="padding:2px 6px;">削除</button></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+  renderMasterSitesList();
+}
+
+function addMachinerySettingRow() {
+  const newId = 'm_' + Date.now();
+  appState.settings.machinery.push({
+    id: newId,
+    name: '新規機械項目',
+    unit: '台/日',
+    price: 10000
+  });
+  renderSettings();
+}
+
+function removeMachinerySettingRow(id) {
+  if (confirm('この項目を削除しますか？')) {
+    appState.settings.machinery = appState.settings.machinery.filter(m => m.id !== id);
+    renderSettings();
+  }
+}
+
+function saveMachinerySettings() {
+  appState.settings.workerUnit = document.getElementById('setting-worker-unit').value.trim();
+  appState.settings.workerPrice = parseFloat(document.getElementById('setting-worker-price').value) || 0;
+
+  appState.settings.machinery.forEach(m => {
+    const nameEl = document.getElementById(`setting-name-${m.id}`);
+    const unitEl = document.getElementById(`setting-unit-${m.id}`);
+    const priceEl = document.getElementById(`setting-price-${m.id}`);
+
+    if (nameEl) m.name = nameEl.value.trim();
+    if (unitEl) m.unit = unitEl.value.trim();
+    if (priceEl) m.price = parseFloat(priceEl.value) || 0;
+  });
+
+  saveDataToStorage();
+  renderDynamicInputs();
+  renderSummary();
+  alert('項目・単価設定を保存しました。');
+}
+
+function renderMasterSitesList() {
+  const container = document.getElementById('master-sites-list');
+  container.innerHTML = '';
+  appState.settings.masterSites.forEach((site, index) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.style.background = '#e2f0d9';
+    chip.style.borderColor = '#385723';
+    chip.innerHTML = `${escapeHtml(site)} <strong style="margin-left:5px; color:#a80000; cursor:pointer;">×</strong>`;
+    chip.onclick = () => removeMasterSite(index);
+    container.appendChild(chip);
+  });
+}
+
+function addMasterSite() {
+  const val = document.getElementById('new-master-site').value.trim();
+  if (val && !appState.settings.masterSites.includes(val)) {
+    appState.settings.masterSites.push(val);
+    document.getElementById('new-master-site').value = '';
+    saveDataToStorage();
+    renderMasterSitesList();
+    renderMasterSiteOptions();
+  }
+}
+
+function removeMasterSite(index) {
+  appState.settings.masterSites.splice(index, 1);
+  saveDataToStorage();
+  renderMasterSitesList();
+  renderMasterSiteOptions();
+}
+
+/* ==========================================================================
+   Data Backup, Import, Export
+   ========================================================================== */
+function openExportModal() {
+  switchTab('data');
+}
+
+function openImportModal() {
+  switchTab('data');
+}
+
+function exportData(format) {
+  const filename = `work_records_backup_${new Date().toISOString().split('T')[0]}`;
+
+  if (format === 'json') {
+    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `${filename}.json`);
+  } else if (format === 'csv' || format === 'tsv') {
+    const sep = format === 'csv' ? ',' : '\t';
+    let content = `日付${sep}現場名${sep}作業員数`;
+    appState.settings.machinery.forEach(m => { content += `${sep}${m.name}`; });
+    content += `${sep}備考\n`;
+
+    Object.keys(appState.records).sort().forEach(d => {
+      const rec = appState.records[d];
+      let row = `${d}${sep}"${rec.site}"${sep}${rec.workers || 0}`;
+      appState.settings.machinery.forEach(m => {
+        row += `${sep}${(rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0}`;
+      });
+      row += `${sep}"${rec.note || ''}"\n`;
+      content += row;
+    });
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const blob = new Blob([bom, content], { type: format === 'csv' ? 'text/csv;charset=utf-8;' : 'text/tab-separated-values;charset=utf-8;' });
+    downloadBlob(blob, `${filename}.${format}`);
+  } else if (format === 'excel') {
+    let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Records"><Table>`;
+    xml += `<Row><Cell><Data ss:Type="String">日付</Data></Cell><Cell><Data ss:Type="String">現場名</Data></Cell><Cell><Data ss:Type="String">作業員数</Data></Cell></Row>`;
+
+    Object.keys(appState.records).sort().forEach(d => {
+      const rec = appState.records[d];
+      xml += `<Row><Cell><Data ss:Type="String">${d}</Data></Cell><Cell><Data ss:Type="String">${escapeHtml(rec.site)}</Data></Cell><Cell><Data ss:Type="Number">${rec.workers || 0}</Data></Cell></Row>`;
+    });
+
+    xml += `</Table></Worksheet></Workbook>`;
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+    downloadBlob(blob, `${filename}.xls`);
+  }
+}
+
+function downloadBlob(blob, fileName) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function executeImport() {
+  const fileInput = document.getElementById('import-file-input');
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('インポートするファイルを選択してください。');
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = (e) => {
+    try {
+      if (file.name.endsWith('.json')) {
+        const imported = JSON.parse(e.target.result);
+        if (imported.settings && imported.records) {
+          appState = imported;
+          saveDataToStorage();
+          alert('JSONデータのインポートが正常に完了しました。');
+          location.reload();
+        } else {
+          alert('不正なJSONフォーマットです。');
         }
-
-        function saveDataToStorage() {
-            try {
-                localStorage.setItem("attendance_billing_state", JSON.stringify(appState));
-                if (db) {
-                    const tx = db.transaction("appData", "readwrite");
-                    tx.objectStore("appData").put({ id: "main_state", data: appState });
-                }
-            } catch (err) {
-                console.error("Save state error:", err);
-            }
-        }
-
-        function loadDataFromStorage() {
-            const localData = localStorage.getItem("attendance_billing_state");
-            if (localData) {
-                try {
-                    appState = Object.assign(appState, JSON.parse(localData));
-                    if (!appState.masterSites) appState.masterSites = [];
-                    initUI();
-                } catch (e) {
-                    console.error("Failed parsing localStorage", e);
-                }
-            } else if (db) {
-                const tx = db.transaction("appData", "readonly");
-                const req = tx.objectStore("appData").get("main_state");
-                req.onsuccess = function() {
-                    if (req.result && req.result.data) {
-                        appState = Object.assign(appState, req.result.data);
-                        if (!appState.masterSites) appState.masterSites = [];
-                    }
-                    initUI();
-                };
-            } else {
-                initUI();
-            }
-        }
-
-        function initUI() {
-            const today = new Date().toISOString().split('T')[0];
-            const currentMonth = today.substring(0, 7);
-            document.getElementById('entry-date').value = today;
-            document.getElementById('filter-daily-month').value = currentMonth;
-            document.getElementById('monthly-target-month').value = currentMonth;
-            document.getElementById('monthly-start-month').value = currentMonth;
-            document.getElementById('monthly-end-month').value = currentMonth;
-
-            if (appState.defaultSiteName) {
-                document.getElementById('default-site-name').value = appState.defaultSiteName;
-            }
-
-            if (appState.clientName) document.getElementById('billing-client-name').value = appState.clientName;
-            if (appState.issuerName) document.getElementById('billing-issuer-name').value = appState.issuerName;
-
-            applyLanguage(appState.lang || 'ja');
-            renderEntryInputFields();
-            updateSiteControls();
-            autoSetSiteForDate(today);
-            renderConfigTables();
-            renderDailyTable();
-            updateMonthlySummary();
-        }
-
-        /* --- Fast Site Selection Logic --- */
-        function updateSiteControls() {
-            // 1. Datalist (AutoComplete History)
-            const datalist = document.getElementById('site-history-list');
-            datalist.innerHTML = '';
-            
-            const allSites = [...new Set([
-                ...(appState.masterSites || []),
-                ...appState.dailyEntries.map(e => e.site)
-            ].filter(Boolean))];
-
-            allSites.forEach(site => {
-                const opt = document.createElement('option');
-                opt.value = site;
-                datalist.appendChild(opt);
-            });
-
-            // 2. Master Dropdown
-            const masterSelect = document.getElementById('site-master-dropdown');
-            masterSelect.innerHTML = '<option value="">マスターから選択</option>';
-            (appState.masterSites || []).forEach(site => {
-                const opt = document.createElement('option');
-                opt.value = site;
-                opt.textContent = site;
-                masterSelect.appendChild(opt);
-            });
-
-            // 3. Master Site Chips in Settings
-            const masterChips = document.getElementById('master-site-chips');
-            if (masterChips) {
-                masterChips.innerHTML = '';
-                if (!appState.masterSites || appState.masterSites.length === 0) {
-                    masterChips.innerHTML = '<span style="font-size:0.8rem; color:#94a3b8;">未登録</span>';
-                } else {
-                    appState.masterSites.forEach(site => {
-                        const chip = document.createElement('span');
-                        chip.className = 'site-chip';
-                        chip.style.backgroundColor = '#fef08a';
-                        chip.style.borderColor = '#fde047';
-                        chip.innerHTML = `${escapeHTML(site)} <span onclick="removeSiteFromMaster('${escapeHTML(site)}', event)" style="color:red; font-weight:bold; margin-left:4px;">&times;</span>`;
-                        chip.onclick = () => { document.getElementById('entry-site').value = site; };
-                        masterChips.appendChild(chip);
-                    });
-                }
-            }
-
-            // 4. Recent Sites Chips
-            renderRecentSiteChips();
-        }
-
-        function renderRecentSiteChips() {
-            const container = document.getElementById('recent-site-chips');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const recentSites = [...new Set(appState.dailyEntries.map(e => e.site).filter(Boolean))].slice(-6).reverse();
-
-            if (recentSites.length === 0) return;
-
-            recentSites.forEach(site => {
-                const chip = document.createElement('span');
-                chip.className = 'site-chip';
-                chip.innerText = site;
-                chip.onclick = () => {
-                    document.getElementById('entry-site').value = site;
-                };
-                container.appendChild(chip);
-            });
-        }
-
-        function selectSiteFromMaster(val) {
-            if (val) {
-                document.getElementById('entry-site').value = val;
-            }
-        }
-
-        function saveDefaultSite() {
-            const site = document.getElementById('default-site-name').value.trim();
-            appState.defaultSiteName = site;
-            saveDataToStorage();
-            showToast('デフォルト現場名を保存しました');
-            autoSetSiteForDate(document.getElementById('entry-date').value);
-        }
-
-        function addSiteToMaster() {
-            const name = document.getElementById('new-master-site-name').value.trim();
-            if (!name) return alert('現場名を入力してください');
-            if (!appState.masterSites) appState.masterSites = [];
-            if (!appState.masterSites.includes(name)) {
-                appState.masterSites.push(name);
-                saveDataToStorage();
-                updateSiteControls();
-                document.getElementById('new-master-site-name').value = '';
-                showToast('現場マスターに追加しました');
-            }
-        }
-
-        function removeSiteFromMaster(siteName, event) {
-            if (event) event.stopPropagation();
-            if (confirm(`現場マスター「${siteName}」を削除しますか？`)) {
-                appState.masterSites = appState.masterSites.filter(s => s !== siteName);
-                saveDataToStorage();
-                updateSiteControls();
-            }
-        }
-
-        function onDateChanged() {
-            const dateVal = document.getElementById('entry-date').value;
-            autoSetSiteForDate(dateVal);
-        }
-
-        function autoSetSiteForDate(dateVal) {
-            const siteInput = document.getElementById('entry-site');
-            // If already filled with user input, keep it. Otherwise load defaults.
-            const existingEntry = appState.dailyEntries.find(e => e.date === dateVal);
-            if (existingEntry && existingEntry.site) {
-                siteInput.value = existingEntry.site;
-            } else if (appState.defaultSiteName) {
-                siteInput.value = appState.defaultSiteName;
-            } else {
-                // Get the last recorded site if available
-                const lastEntry = appState.dailyEntries[appState.dailyEntries.length - 1];
-                if (lastEntry && lastEntry.site) {
-                    siteInput.value = lastEntry.site;
-                }
-            }
-        }
-
-        function copyPreviousDayData() {
-            const currentDateVal = document.getElementById('entry-date').value;
-            if (!currentDateVal) return alert('日付を指定してください');
-
-            const prevDateObj = new Date(currentDateVal);
-            prevDateObj.setDate(prevDateObj.getDate() - 1);
-            const prevDateStr = prevDateObj.toISOString().split('T')[0];
-
-            const prevEntry = appState.dailyEntries.find(e => e.date === prevDateStr);
-            if (!prevEntry) {
-                showToast(`前日 (${prevDateStr}) のデータが見つかりませんでした`);
-                return;
-            }
-
-            document.getElementById('entry-site').value = prevEntry.site || '';
-            document.getElementById('entry-note').value = prevEntry.note || '';
-
-            appState.workerTypes.forEach(w => {
-                const el = document.getElementById(`entry-w-${w.id}`);
-                if (el) el.value = (prevEntry.workers && prevEntry.workers[w.id]) || 0;
-            });
-
-            appState.machineTypes.forEach(m => {
-                const el = document.getElementById(`entry-m-${m.id}`);
-                if (el) el.value = (prevEntry.machines && prevEntry.machines[m.id]) || 0;
-            });
-
-            showToast(`前日 (${prevDateStr}) のデータを復元しました`);
-        }
-
-        /* --- Batch Registration --- */
-        function openBatchModal() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('batch-start-date').value = today;
-            document.getElementById('batch-end-date').value = today;
-            document.getElementById('batch-site').value = document.getElementById('entry-site').value || appState.defaultSiteName || '';
-
-            const wContainer = document.getElementById('batch-workers-container');
-            const mContainer = document.getElementById('batch-machines-container');
-
-            wContainer.innerHTML = '';
-            appState.workerTypes.forEach(w => {
-                wContainer.innerHTML += `<div class="form-group"><label>${w.name}</label><input type="number" id="batch-w-${w.id}" class="number-input" min="0" value="0"></div>`;
-            });
-
-            mContainer.innerHTML = '';
-            appState.machineTypes.forEach(m => {
-                mContainer.innerHTML += `<div class="form-group"><label>${m.name}</label><input type="number" id="batch-m-${m.id}" class="number-input" min="0" value="0"></div>`;
-            });
-
-            document.getElementById('batch-modal').classList.add('active');
-        }
-
-        function closeBatchModal() {
-            document.getElementById('batch-modal').classList.remove('active');
-        }
-
-        function executeBatchRegistration() {
-            const start = document.getElementById('batch-start-date').value;
-            const end = document.getElementById('batch-end-date').value;
-            const site = document.getElementById('batch-site').value.trim();
-            const note = document.getElementById('batch-note').value.trim();
-
-            if (!start || !end) return alert('開始日と終了日を正しく設定してください');
-            if (start > end) return alert('開始日は終了日以前に設定してください');
-
-            const workers = {};
-            appState.workerTypes.forEach(w => {
-                const val = parseInt(document.getElementById(`batch-w-${w.id}`).value) || 0;
-                if (val > 0) workers[w.id] = val;
-            });
-
-            const machines = {};
-            appState.machineTypes.forEach(m => {
-                const val = parseInt(document.getElementById(`batch-m-${m.id}`).value) || 0;
-                if (val > 0) machines[m.id] = val;
-            });
-
-            let curr = new Date(start);
-            const endDateObj = new Date(end);
-            let count = 0;
-
-            while (curr <= endDateObj) {
-                const dateStr = curr.toISOString().split('T')[0];
-                const existingIdx = appState.dailyEntries.findIndex(e => e.date === dateStr && e.site === site);
-
-                const entryObj = {
-                    id: existingIdx >= 0 ? appState.dailyEntries[existingIdx].id : 'e_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                    date: dateStr,
-                    site,
-                    note,
-                    workers,
-                    machines
-                };
-
-                if (existingIdx >= 0) {
-                    appState.dailyEntries[existingIdx] = entryObj;
-                } else {
-                    appState.dailyEntries.push(entryObj);
-                }
-
-                count++;
-                curr.setDate(curr.getDate() + 1);
-            }
-
-            appState.dailyEntries.sort((a, b) => a.date.localeCompare(b.date));
-            saveDataToStorage();
-            updateSiteControls();
-            renderDailyTable();
-            closeBatchModal();
-            showToast(`${count} 日分の一括登録が完了しました`);
-        }
-
-        /* --- I18n & Tab Navigation --- */
-        function changeLanguage(lang) {
-            appState.lang = lang;
-            saveDataToStorage();
-            applyLanguage(lang);
-        }
-
-        function applyLanguage(lang) {
-            const dict = I18N[lang] || I18N['ja'];
-            document.getElementById('txt-app-title').innerText = dict.title;
-            document.getElementById('tab-daily-btn').innerText = dict.dailyTab;
-            document.getElementById('tab-monthly-btn').innerText = dict.monthlyTab;
-            document.getElementById('tab-settings-btn').innerText = dict.settingsTab;
-            document.getElementById('tab-data-btn').innerText = dict.dataTab;
-            document.getElementById('txt-daily-entry-title').innerText = dict.dailyEntryTitle;
-            document.getElementById('txt-date-label').innerText = dict.dateLabel;
-            document.getElementById('txt-site-label').innerText = dict.siteLabel;
-            document.getElementById('txt-note-label').innerText = dict.noteLabel;
-            document.getElementById('txt-workers-entry-title').innerText = dict.workersTitle;
-            document.getElementById('txt-machines-entry-title').innerText = dict.machinesTitle;
-            document.getElementById('txt-save-entry-btn').innerText = dict.saveBtn;
-            document.getElementById('txt-reset-btn').innerText = dict.resetBtn;
-            document.getElementById('txt-daily-list-title').innerText = dict.dailyListTitle;
-            document.getElementById('txt-monthly-calc-title').innerText = dict.monthlyCalcTitle;
-            document.getElementById('txt-range-type-label').innerText = dict.rangeTypeLabel;
-            document.getElementById('opt-single-month').innerText = dict.singleMonth;
-            document.getElementById('opt-multi-month').innerText = dict.multiMonth;
-            document.getElementById('txt-target-month-label').innerText = dict.targetMonth;
-            document.getElementById('txt-start-month-label').innerText = dict.startMonth;
-            document.getElementById('txt-end-month-label').innerText = dict.endMonth;
-            document.getElementById('txt-tax-rate-label').innerText = dict.taxRateLabel;
-            document.getElementById('txt-preview-print-btn').innerText = dict.previewBtn;
-            document.getElementById('txt-monthly-summary-title').innerText = dict.monthlySummaryTitle;
-            document.getElementById('txt-worker-setting-title').innerText = dict.workerSettingTitle;
-            document.getElementById('txt-machine-setting-title').innerText = dict.machineSettingTitle;
-            document.getElementById('txt-export-title').innerText = dict.exportTitle;
-            document.getElementById('txt-import-title').innerText = dict.importTitle;
-            document.getElementById('txt-danger-title').innerText = dict.dangerTitle;
-            document.getElementById('txt-modal-title').innerText = dict.previewModalTitle;
-            document.getElementById('txt-exec-print').innerText = dict.execPrintBtn;
-            
-            document.getElementById('lang-select').value = lang;
-            renderDailyTable();
-            updateMonthlySummary();
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            document.getElementById(`tab-${tabId}-btn`).classList.add('active');
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 3000);
-        }
-
-        function renderEntryInputFields() {
-            const workerContainer = document.getElementById('worker-inputs-container');
-            const machineContainer = document.getElementById('machine-inputs-container');
-
-            workerContainer.innerHTML = '';
-            appState.workerTypes.forEach(w => {
-                const div = document.createElement('div');
-                div.className = 'form-group';
-                div.innerHTML = `<label>${w.name}</label>
-                                 <input type="number" id="entry-w-${w.id}" class="number-input" min="0" value="0">`;
-                workerContainer.appendChild(div);
-            });
-
-            machineContainer.innerHTML = '';
-            appState.machineTypes.forEach(m => {
-                const div = document.createElement('div');
-                div.className = 'form-group';
-                div.innerHTML = `<label>${m.name}</label>
-                                 <input type="number" id="entry-m-${m.id}" class="number-input" min="0" value="0">`;
-                machineContainer.appendChild(div);
-            });
-        }
-
-        function renderConfigTables() {
-            const workerTbody = document.getElementById('worker-config-tbody');
-            workerTbody.innerHTML = '';
-            appState.workerTypes.forEach(w => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><input type="text" value="${w.name}" onchange="updateWorkerName('${w.id}', this.value)"></td>
-                                <td><input type="number" class="number-input" value="${w.price}" onchange="updateWorkerPrice('${w.id}', this.value)"></td>
-                                <td><button onclick="removeWorkerType('${w.id}')" class="btn-danger">削除</button></td>`;
-                workerTbody.appendChild(tr);
-            });
-
-            const machineTbody = document.getElementById('machine-config-tbody');
-            machineTbody.innerHTML = '';
-            appState.machineTypes.forEach(m => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><input type="text" value="${m.name}" onchange="updateMachineName('${m.id}', this.value)"></td>
-                                <td><input type="number" class="number-input" value="${m.price}" onchange="updateMachinePrice('${m.id}', this.value)"></td>
-                                <td><button onclick="removeMachineType('${m.id}')" class="btn-danger">削除</button></td>`;
-                machineTbody.appendChild(tr);
-            });
-        }
-
-        function addWorkerType() {
-            const name = document.getElementById('new-worker-name').value.trim();
-            const price = parseInt(document.getElementById('new-worker-price').value) || 0;
-            if (!name) return alert('名称を入力してください');
-            const id = 'w_' + Date.now();
-            appState.workerTypes.push({ id, name, price });
-            document.getElementById('new-worker-name').value = '';
-            document.getElementById('new-worker-price').value = '';
-            saveDataToStorage();
-            renderEntryInputFields();
-            renderConfigTables();
-            showToast('作業員種別を追加しました');
-        }
-
-        function removeWorkerType(id) {
-            if (confirm('この項目を削除しますか？')) {
-                appState.workerTypes = appState.workerTypes.filter(w => w.id !== id);
-                saveDataToStorage();
-                renderEntryInputFields();
-                renderConfigTables();
-            }
-        }
-
-        function updateWorkerName(id, val) {
-            const item = appState.workerTypes.find(w => w.id === id);
-            if (item) { item.name = val; saveDataToStorage(); renderEntryInputFields(); }
-        }
-
-        function updateWorkerPrice(id, val) {
-            const item = appState.workerTypes.find(w => w.id === id);
-            if (item) { item.price = parseInt(val) || 0; saveDataToStorage(); }
-        }
-
-        function addMachineType() {
-            const name = document.getElementById('new-machine-name').value.trim();
-            const price = parseInt(document.getElementById('new-machine-price').value) || 0;
-            if (!name) return alert('名称を入力してください');
-            const id = 'm_' + Date.now();
-            appState.machineTypes.push({ id, name, price });
-            document.getElementById('new-machine-name').value = '';
-            document.getElementById('new-machine-price').value = '';
-            saveDataToStorage();
-            renderEntryInputFields();
-            renderConfigTables();
-            showToast('機械種別を追加しました');
-        }
-
-        function removeMachineType(id) {
-            if (confirm('この項目を削除しますか？')) {
-                appState.machineTypes = appState.machineTypes.filter(m => m.id !== id);
-                saveDataToStorage();
-                renderEntryInputFields();
-                renderConfigTables();
-            }
-        }
-
-        function updateMachineName(id, val) {
-            const item = appState.machineTypes.find(m => m.id === id);
-            if (item) { item.name = val; saveDataToStorage(); renderEntryInputFields(); }
-        }
-
-        function updateMachinePrice(id, val) {
-            const item = appState.machineTypes.find(m => m.id === id);
-            if (item) { item.price = parseInt(val) || 0; saveDataToStorage(); }
-        }
-
-        function saveDailyEntry() {
-            const date = document.getElementById('entry-date').value;
-            const site = document.getElementById('entry-site').value.trim();
-            const note = document.getElementById('entry-note').value.trim();
-
-            if (!date) return alert('日付を入力してください');
-
-            const workers = {};
-            appState.workerTypes.forEach(w => {
-                const val = parseInt(document.getElementById(`entry-w-${w.id}`).value) || 0;
-                if (val > 0) workers[w.id] = val;
-            });
-
-            const machines = {};
-            appState.machineTypes.forEach(m => {
-                const val = parseInt(document.getElementById(`entry-m-${m.id}`).value) || 0;
-                if (val > 0) machines[m.id] = val;
-            });
-
-            const existingIdx = appState.dailyEntries.findIndex(e => e.date === date && e.site === site);
-            const entryObj = { id: existingIdx >= 0 ? appState.dailyEntries[existingIdx].id : 'e_' + Date.now(), date, site, note, workers, machines };
-
-            if (existingIdx >= 0) {
-                appState.dailyEntries[existingIdx] = entryObj;
-            } else {
-                appState.dailyEntries.push(entryObj);
-            }
-
-            appState.dailyEntries.sort((a, b) => a.date.localeCompare(b.date));
-
-            saveDataToStorage();
-            updateSiteControls();
-            renderDailyTable();
-            resetDailyForm();
-            showToast('出勤データを保存しました');
-        }
-
-        function resetDailyForm() {
-            document.getElementById('entry-note').value = '';
-            autoSetSiteForDate(document.getElementById('entry-date').value);
-            appState.workerTypes.forEach(w => {
-                const el = document.getElementById(`entry-w-${w.id}`);
-                if (el) el.value = '0';
-            });
-            appState.machineTypes.forEach(m => {
-                const el = document.getElementById(`entry-m-${m.id}`);
-                if (el) el.value = '0';
-            });
-        }
-
-        function renderDailyTable() {
-            const filterMonth = document.getElementById('filter-daily-month').value;
-            const headerTr = document.getElementById('daily-table-header');
-            const tbody = document.getElementById('daily-table-body');
-
-            let headerHTML = `<th>日付</th><th>現場名</th>`;
-            appState.workerTypes.forEach(w => headerHTML += `<th>${w.name}</th>`);
-            appState.machineTypes.forEach(m => headerHTML += `<th>${m.name}</th>`);
-            headerHTML += `<th>備考</th><th>操作</th>`;
-            headerTr.innerHTML = headerHTML;
-
-            const filtered = appState.dailyEntries
-                .filter(e => !filterMonth || e.date.startsWith(filterMonth))
-                .sort((a, b) => a.date.localeCompare(b.date));
-
-            tbody.innerHTML = '';
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${4 + appState.workerTypes.length + appState.machineTypes.length}" style="text-align:center; color:#94a3b8;">データがありません</td></tr>`;
-                return;
-            }
-
-            filtered.forEach(e => {
-                const tr = document.createElement('tr');
-                let rowHTML = `<td>${e.date}</td><td>${escapeHTML(e.site || '-')}</td>`;
-                
-                appState.workerTypes.forEach(w => {
-                    rowHTML += `<td class="text-right">${e.workers[w.id] || 0}</td>`;
-                });
-                appState.machineTypes.forEach(m => {
-                    rowHTML += `<td class="text-right">${e.machines[m.id] || 0}</td>`;
-                });
-
-                rowHTML += `<td>${escapeHTML(e.note || '-')}</td>
-                            <td><button onclick="deleteDailyEntry('${e.id}')" class="btn-danger" style="padding:2px 6px; font-size:0.75rem;">削除</button></td>`;
-                tr.innerHTML = rowHTML;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function deleteDailyEntry(id) {
-            if (confirm('このログを削除しますか？')) {
-                appState.dailyEntries = appState.dailyEntries.filter(e => e.id !== id);
-                saveDataToStorage();
-                updateSiteControls();
-                renderDailyTable();
-                updateMonthlySummary();
-            }
-        }
-
-        function toggleRangeType() {
-            const mode = document.getElementById('monthly-range-type').value;
-            if (mode === 'single') {
-                document.getElementById('group-single-month').style.display = 'flex';
-                document.getElementById('group-multi-start').style.display = 'none';
-                document.getElementById('group-multi-end').style.display = 'none';
-            } else {
-                document.getElementById('group-single-month').style.display = 'none';
-                document.getElementById('group-multi-start').style.display = 'flex';
-                document.getElementById('group-multi-end').style.display = 'flex';
-            }
-            updateMonthlySummary();
-        }
-
-        function getCalculatedInvoiceData() {
-            const rangeType = document.getElementById('monthly-range-type').value;
-            let filteredEntries = [];
-            let periodText = '';
-
-            if (rangeType === 'single') {
-                const targetMonth = document.getElementById('monthly-target-month').value;
-                periodText = targetMonth ? `${targetMonth}` : '全期間';
-                filteredEntries = appState.dailyEntries.filter(e => !targetMonth || e.date.startsWith(targetMonth));
-            } else {
-                const startM = document.getElementById('monthly-start-month').value;
-                const endM = document.getElementById('monthly-end-month').value;
-                periodText = `${startM || '始'} ～ ${endM || '終'}`;
-                filteredEntries = appState.dailyEntries.filter(e => {
-                    const m = e.date.substring(0, 7);
-                    if (startM && m < startM) return false;
-                    if (endM && m > endM) return false;
-                    return true;
-                });
-            }
-
-            const workerTotals = {};
-            appState.workerTypes.forEach(w => workerTotals[w.id] = 0);
-            const machineTotals = {};
-            appState.machineTypes.forEach(m => machineTotals[m.id] = 0);
-
-            filteredEntries.forEach(e => {
-                appState.workerTypes.forEach(w => {
-                    if (e.workers && e.workers[w.id]) workerTotals[w.id] += e.workers[w.id];
-                });
-                appState.machineTypes.forEach(m => {
-                    if (e.machines && e.machines[m.id]) machineTotals[m.id] += e.machines[m.id];
-                });
-            });
-
-            let items = [];
-            let subtotal = 0;
-
-            appState.workerTypes.forEach(w => {
-                const count = workerTotals[w.id];
-                if (count > 0) {
-                    const amount = count * w.price;
-                    subtotal += amount;
-                    items.push({ type: 'worker', name: w.name, count, unit: '人日', price: w.price, amount });
-                }
-            });
-
-            appState.machineTypes.forEach(m => {
-                const count = machineTotals[m.id];
-                if (count > 0) {
-                    const amount = count * m.price;
-                    subtotal += amount;
-                    items.push({ type: 'machine', name: m.name, count, unit: '台日', price: m.price, amount });
-                }
-            });
-
-            let taxRate = parseFloat(document.getElementById('monthly-tax-rate').value);
-            if (document.getElementById('monthly-tax-rate').value === 'custom') {
-                document.getElementById('group-custom-tax').style.display = 'flex';
-                taxRate = (parseFloat(document.getElementById('monthly-custom-tax').value) || 0) / 100;
-            } else {
-                document.getElementById('group-custom-tax').style.display = 'none';
-            }
-
-            const rawTax = subtotal * taxRate;
-            const roundMode = document.getElementById('monthly-tax-round').value;
-            let tax = 0;
-            if (roundMode === 'floor') tax = Math.floor(rawTax);
-            else if (roundMode === 'ceil') tax = Math.ceil(rawTax);
-            else tax = Math.round(rawTax);
-
-            const total = subtotal + tax;
-
-            return {
-                periodText,
-                items,
-                subtotal,
-                taxRate,
-                tax,
-                total,
-                clientName: document.getElementById('billing-client-name').value || '御中',
-                issuerName: document.getElementById('billing-issuer-name').value || '自社名'
-            };
-        }
-
-        function updateMonthlySummary() {
-            const data = getCalculatedInvoiceData();
-            const container = document.getElementById('monthly-summary-preview');
-
-            let html = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>区分</th>
-                            <th>項目・種別</th>
-                            <th>数量</th>
-                            <th>単位</th>
-                            <th>単価 (円)</th>
-                            <th>金額 (円)</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-
-            if (data.items.length === 0) {
-                html += `<tr><td colspan="6" style="text-align:center;">指定期間のデータが存在しません</td></tr>`;
-            } else {
-                data.items.forEach(item => {
-                    html += `<tr>
-                        <td>${item.type === 'worker' ? '作業員' : '機械'}</td>
-                        <td>${escapeHTML(item.name)}</td>
-                        <td class="text-right">${item.count}</td>
-                        <td>${item.unit}</td>
-                        <td class="text-right">${item.price.toLocaleString()}</td>
-                        <td class="text-right">${item.amount.toLocaleString()}</td>
-                    </tr>`;
-                });
-            }
-
-            html += `
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="5" class="text-right" style="font-weight:bold;">小計 (税抜):</td>
-                            <td class="text-right" style="font-weight:bold;">¥${data.subtotal.toLocaleString()}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" class="text-right" style="font-weight:bold;">消費税 (${(data.taxRate * 100).toFixed(1)}%):</td>
-                            <td class="text-right" style="font-weight:bold;">¥${data.tax.toLocaleString()}</td>
-                        </tr>
-                        <tr style="background:#f1f5f9; font-size:1.05rem;">
-                            <td colspan="5" class="text-right" style="font-weight:bold; color:var(--primary-color);">合計請求額 (税込):</td>
-                            <td class="text-right" style="font-weight:bold; color:var(--primary-color);">¥${data.total.toLocaleString()}</td>
-                        </tr>
-                    </tfoot>
-                </table>`;
-
-            container.innerHTML = html;
-            
-            appState.clientName = document.getElementById('billing-client-name').value;
-            appState.issuerName = document.getElementById('billing-issuer-name').value;
-            saveDataToStorage();
-        }
-
-        function generatePrintHTML(data) {
-            const dict = I18N[appState.lang] || I18N['ja'];
-            const todayStr = new Date().toLocaleDateString();
-
-            let itemsRows = '';
-            data.items.forEach(item => {
-                itemsRows += `
-                    <tr>
-                        <td>${escapeHTML(item.name)} (${item.type === 'worker' ? '作業員' : '機械'})</td>
-                        <td class="text-right">${item.count}</td>
-                        <td class="text-center">${item.unit}</td>
-                        <td class="text-right">¥${item.price.toLocaleString()}</td>
-                        <td class="text-right">¥${item.amount.toLocaleString()}</td>
-                    </tr>`;
-            });
-
-            return `
-                <div class="print-document">
-                    <div class="print-header">
-                        <h1>${dict.invoiceTitle}</h1>
-                    </div>
-
-                    <div class="print-meta">
-                        <div>
-                            <p style="font-size:1.2rem; font-weight:bold; border-bottom:1px solid #000; padding-bottom:4px; display:inline-block; margin-bottom:8px;">
-                                ${escapeHTML(data.clientName)}
-                            </p>
-                            <p>対象期間: ${escapeHTML(data.periodText)}</p>
-                        </div>
-                        <div style="text-align:right;">
-                            <p>発行日: ${todayStr}</p>
-                            <p style="font-weight:bold; margin-top:6px;">${escapeHTML(data.issuerName)}</p>
-                        </div>
-                    </div>
-
-                    <div class="print-summary-box">
-                        <span style="font-size:1.1rem; font-weight:bold;">${dict.totalBilling}:</span>
-                        <span class="print-summary-amount">¥${data.total.toLocaleString()} -</span>
-                    </div>
-
-                    <table class="print-table">
-                        <thead>
-                            <tr>
-                                <th>${dict.itemHeader}</th>
-                                <th>${dict.countHeader}</th>
-                                <th>${dict.unitHeader}</th>
-                                <th>${dict.priceHeader}</th>
-                                <th>${dict.amountHeader}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${itemsRows || '<tr><td colspan="5" class="text-center">該当データがありません</td></tr>'}
-                        </tbody>
-                    </table>
-
-                    <div style="width:50%; margin-left:auto; font-size:0.9rem;">
-                        <div class="print-summary-row" style="padding:4px 0;">
-                            <span>${dict.subtotal}:</span>
-                            <span>¥${data.subtotal.toLocaleString()}</span>
-                        </div>
-                        <div class="print-summary-row" style="padding:4px 0; border-bottom:1px solid #000;">
-                            <span>${dict.taxAmount} (${(data.taxRate * 100).toFixed(1)}%):</span>
-                            <span>¥${data.tax.toLocaleString()}</span>
-                        </div>
-                        <div class="print-summary-row" style="padding:6px 0; font-weight:bold; font-size:1.05rem;">
-                            <span>${dict.totalBilling}:</span>
-                            <span>¥${data.total.toLocaleString()}</span>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        function openPrintPreview() {
-            const data = getCalculatedInvoiceData();
-            const htmlContent = generatePrintHTML(data);
-            document.getElementById('screen-preview-container').innerHTML = htmlContent;
-            document.getElementById('print-modal').classList.add('active');
-        }
-
-        function closePrintPreview() {
-            document.getElementById('print-modal').classList.remove('active');
-        }
-
-        function triggerInvoicePrint() {
-            const data = getCalculatedInvoiceData();
-            const htmlContent = generatePrintHTML(data);
-
-            const printArea = document.getElementById('print-area');
-            printArea.innerHTML = '';
-            printArea.innerHTML = htmlContent;
-
-            closePrintPreview();
-            
-            setTimeout(() => {
-                window.print();
-            }, 150);
-        }
-
-        /* --- Export / Import Utilities --- */
-        function exportData(format) {
-            const dataStr = JSON.stringify(appState, null, 2);
-            const dateStr = new Date().toISOString().split('T')[0];
-
-            if (format === 'json') {
-                downloadFile(dataStr, `attendance_backup_${dateStr}.json`, 'application/json');
-            } else if (format === 'csv-utf8' || format === 'csv-sjis' || format === 'tsv') {
-                const sep = format === 'tsv' ? '\t' : ',';
-                let csv = `日付${sep}現場名${sep}`;
-                appState.workerTypes.forEach(w => csv += `${w.name}${sep}`);
-                appState.machineTypes.forEach(m => csv += `${m.name}${sep}`);
-                csv += `備考\n`;
-
-                appState.dailyEntries.forEach(e => {
-                    csv += `"${e.date}"${sep}"${e.site || ''}"${sep}`;
-                    appState.workerTypes.forEach(w => csv += `${e.workers[w.id] || 0}${sep}`);
-                    appState.machineTypes.forEach(m => csv += `${e.machines[m.id] || 0}${sep}`);
-                    csv += `"${e.note || ''}"\n`;
-                });
-
-                const ext = format === 'tsv' ? 'tsv' : 'csv';
-                downloadFile(csv, `attendance_export_${dateStr}.${ext}`, 'text/csv;charset=utf-8;');
-            } else if (format === 'excel') {
-                let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Attendance"><Table>`;
-                xml += `<Row><Cell><Data ss:Type="String">日付</Data></Cell><Cell><Data ss:Type="String">現場名</Data></Cell>`;
-                appState.workerTypes.forEach(w => xml += `<Cell><Data ss:Type="String">${w.name}</Data></Cell>`);
-                appState.machineTypes.forEach(m => xml += `<Cell><Data ss:Type="String">${m.name}</Data></Cell>`);
-                xml += `<Cell><Data ss:Type="String">備考</Data></Cell></Row>`;
-
-                appState.dailyEntries.forEach(e => {
-                    xml += `<Row><Cell><Data ss:Type="String">${e.date}</Data></Cell><Cell><Data ss:Type="String">${e.site || ''}</Data></Cell>`;
-                    appState.workerTypes.forEach(w => xml += `<Cell><Data ss:Type="Number">${e.workers[w.id] || 0}</Data></Cell>`);
-                    appState.machineTypes.forEach(m => xml += `<Cell><Data ss:Type="Number">${e.machines[m.id] || 0}</Data></Cell>`);
-                    xml += `<Cell><Data ss:Type="String">${e.note || ''}</Data></Cell></Row>`;
-                });
-
-                xml += `</Table></Worksheet></Workbook>`;
-                downloadFile(xml, `attendance_export_${dateStr}.xml`, 'application/vnd.ms-excel');
-            } else if (format === 'html') {
-                let html = `<table border="1"><thead><tr><th>日付</th><th>現場名</th>`;
-                appState.workerTypes.forEach(w => html += `<th>${w.name}</th>`);
-                appState.machineTypes.forEach(m => html += `<th>${m.name}</th>`);
-                html += `<th>備考</th></tr></thead><tbody>`;
-
-                appState.dailyEntries.forEach(e => {
-                    html += `<tr><td>${e.date}</td><td>${e.site || ''}</td>`;
-                    appState.workerTypes.forEach(w => html += `<td>${e.workers[w.id] || 0}</td>`);
-                    appState.machineTypes.forEach(m => html += `<td>${e.machines[m.id] || 0}</td>`);
-                    html += `<td>${e.note || ''}</td></tr>`;
-                });
-                html += `</tbody></table>`;
-                downloadFile(html, `attendance_export_${dateStr}.html`, 'text/html');
-            } else if (format === 'markdown') {
-                let md = `| 日付 | 現場名 |`;
-                appState.workerTypes.forEach(w => md += ` ${w.name} |`);
-                appState.machineTypes.forEach(m => md += ` ${m.name} |`);
-                md += ` 備考 |\n|---|---|`;
-                appState.workerTypes.forEach(() => md += `---|`);
-                appState.machineTypes.forEach(() => md += `---|`);
-                md += `---|\n`;
-
-                appState.dailyEntries.forEach(e => {
-                    md += `| ${e.date} | ${e.site || ''} |`;
-                    appState.workerTypes.forEach(w => md += ` ${e.workers[w.id] || 0} |`);
-                    appState.machineTypes.forEach(m => md += ` ${e.machines[m.id] || 0} |`);
-                    md += ` ${e.note || ''} |\n`;
-                });
-                downloadFile(md, `attendance_export_${dateStr}.md`, 'text/markdown');
-            }
-        }
-
-        function copyToClipboard() {
-            const dataStr = JSON.stringify(appState, null, 2);
-            const textarea = document.createElement('textarea');
-            textarea.value = dataStr;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast('JSONデータをクリップボードにコピーしました');
-        }
-
-        function downloadFile(content, fileName, contentType) {
-            const a = document.createElement('a');
-            const file = new Blob([content], { type: contentType });
-            a.href = URL.createObjectURL(file);
-            a.download = fileName;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        }
-
-        function importJSONData() {
-            const fileInput = document.getElementById('import-file');
-            if (!fileInput.files || fileInput.files.length === 0) {
-                return alert('インポートするJSONファイルを選択してください');
-            }
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedState = JSON.parse(e.target.result);
-                    if (importedState.dailyEntries && importedState.workerTypes) {
-                        appState = importedState;
-                        if (!appState.masterSites) appState.masterSites = [];
-                        saveDataToStorage();
-                        initUI();
-                        showToast('データのインポートが完了しました');
-                    } else {
-                        alert('無効なデータフォーマットです');
-                    }
-                } catch (err) {
-                    alert('JSONの解析に失敗しました: ' + err.message);
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function quickBackup() {
-            exportData('json');
-        }
-
-        function clearAllData() {
-            if (confirm('本当にすべてのデータを初期化しますか？この操作は取り消せません。')) {
-                localStorage.removeItem('attendance_billing_state');
-                appState = {
-                    lang: 'ja',
-                    defaultSiteName: '',
-                    masterSites: [],
-                    workerTypes: [...DEFAULT_WORKERS],
-                    machineTypes: [...DEFAULT_MACHINES],
-                    dailyEntries: [],
-                    clientName: '',
-                    issuerName: ''
-                };
-                saveDataToStorage();
-                initUI();
-                showToast('全データを初期化しました');
-            }
-        }
-
-        function escapeHTML(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        window.onload = function() {
-            initDB();
-        };
-    </script>
+      } else {
+        alert('現在、完全な自動復帰にはJSON形式のファイルに対応しています。');
+      }
+    } catch (err) {
+      alert('ファイルの解析に失敗しました: ' + err.message);
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (confirm('【警告】すべての登録履歴・設定データが消去されます。本当に初期化しますか？')) {
+    localStorage.removeItem(APP_STORAGE_KEY);
+    location.reload();
+  }
+}
+
+/* Helper Utilities */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+</script>
 </body>
 </html>
