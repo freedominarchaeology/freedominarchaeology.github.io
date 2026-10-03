@@ -60,7 +60,7 @@
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 rounded bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-cyan-500/20">⚡</div>
             <div>
-                <h1 class="text-lg font-bold tracking-wider text-cyan-450 text-cyan-400">ADVANCED FX SYNTHESIZER</h1>
+                <h1 class="text-lg font-bold tracking-wider text-cyan-400">ADVANCED FX SYNTHESIZER</h1>
                 <p class="text-xs text-gray-400">Professional Web Audio Effect & Sound Generator</p>
             </div>
         </div>
@@ -253,7 +253,7 @@
                     <div class="bg-synth-dark p-3 rounded-lg border border-synth-border flex items-center justify-between">
                         <div>
                             <p class="text-xs text-gray-300 font-medium">WAVファイルとして書き出し</p>
-                            <p class="text-[10px] text-gray-500">エフェクト適用後の音源をダウンロード</p>
+                            <p id="exportStatusText" class="text-[10px] text-gray-500">エフェクト適用後の音源をダウンロード</p>
                         </div>
                         <button id="btnExportWav" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-emerald-600/20 cursor-pointer">ダウンロード</button>
                     </div>
@@ -285,7 +285,7 @@
         let continuousToneOsc = null;
         let continuousToneGain = null;
 
-        // 初期エフェクトチェーン（効果量を実機レベルに大幅アップした設定）
+        // 初期エフェクトチェーン
         let effectChain = [
             { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.85, tone: 0.7, level: 0.8 } },
             { id: 'fx_del', type: 'delay', bypass: false, params: { time: 0.4, feedback: 0.65, wet: 0.6 } },
@@ -372,7 +372,7 @@
             gain.gain.exponentialRampToValueAtTime(0.001, now + (duration / tempoVal));
 
             osc.connect(gain);
-            connectToEffectChain(gain);
+            connectToEffectChain(gain, audioCtx, masterGain, effectChain);
 
             osc.start(now);
             osc.stop(now + (duration / tempoVal));
@@ -425,7 +425,7 @@
             const source = audioCtx.createBufferSource();
             source.buffer = micAudioBuffer;
             source.playbackRate.value = parseFloat(document.getElementById('tempoSlider').value) * Math.pow(2, parseInt(document.getElementById('pitchSlider').value) / 12);
-            connectToEffectChain(source);
+            connectToEffectChain(source, audioCtx, masterGain, effectChain);
             source.start(audioCtx.currentTime);
             activeSourceNode = source;
         });
@@ -487,7 +487,7 @@
                 continuousToneGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
 
                 continuousToneOsc.connect(continuousToneGain);
-                connectToEffectChain(continuousToneGain);
+                connectToEffectChain(continuousToneGain, audioCtx, masterGain, effectChain);
 
                 continuousToneOsc.start();
                 btnPlayFreq.classList.remove('bg-cyan-600', 'hover:bg-cyan-500');
@@ -527,7 +527,7 @@
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
 
                 osc.connect(gain);
-                connectToEffectChain(gain);
+                connectToEffectChain(gain, audioCtx, masterGain, effectChain);
 
                 osc.start(now);
                 osc.stop(now + 0.5);
@@ -548,14 +548,13 @@
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 importedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                padSampleBuffer = importedAudioBuffer; // パッドでもインポート音声を使えるようにする
-                alert("サウンドファイルがインポートされました！");
+                padSampleBuffer = importedAudioBuffer;
             } catch (err) {
                 alert("音声ファイルの読み込みに失敗しました。");
             }
         });
 
-        // XY Pad (Sampler & FX Modulation)
+        // XY Pad
         const xyPad = document.getElementById('xyPad');
         const xyCursor = document.getElementById('xyCursor');
         const padTouchStatus = document.getElementById('padTouchStatus');
@@ -588,14 +587,12 @@
             
             initAudioContext();
             if (padSampleBuffer) {
-                // サンプリングされたバッファがある場合はそれを再生
                 const source = audioCtx.createBufferSource();
                 source.buffer = padSampleBuffer;
-                connectToEffectChain(source);
+                connectToEffectChain(source, audioCtx, masterGain, effectChain);
                 source.start(audioCtx.currentTime);
                 activeSourceNode = source;
             } else {
-                // ない場合はパンチのあるパーカッシブ・サウンドを生成してサンプリング代わりにする
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 const now = audioCtx.currentTime;
@@ -605,7 +602,7 @@
                 gain.gain.setValueAtTime(0.7, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
                 osc.connect(gain);
-                connectToEffectChain(gain);
+                connectToEffectChain(gain, audioCtx, masterGain, effectChain);
                 osc.start(now);
                 osc.stop(now + 0.3);
             }
@@ -622,7 +619,7 @@
             padTouchStatus.textContent = "STATUS: READY";
         });
 
-        // 選択式エフェクト追加のハンドリング
+        // 選択式エフェクト追加
         const addEffectSelect = document.getElementById('addEffectSelect');
         addEffectSelect.addEventListener('change', (e) => {
             const selectedType = e.target.value;
@@ -641,10 +638,10 @@
                 params: defaultParams
             });
             renderEffectsRack();
-            addEffectSelect.value = ""; // リセット
+            addEffectSelect.value = "";
         });
 
-        // Effects Rack Builder & Fully Implemented DSP Processors
+        // Effects Rack Builder & DSP Chain Function
         const effectsRack = document.getElementById('effectsRack');
 
         function renderEffectsRack() {
@@ -728,33 +725,30 @@
 
         renderEffectsRack();
 
-        // 劇的に変化する強力なギターペダルDSPエフェクトチェーン
-        function connectToEffectChain(sourceOutputNode) {
-            if (!audioCtx) return;
+        // DSPエフェクト接続用共通関数
+        function connectToEffectChain(sourceOutputNode, context, destinationNode, chain) {
             let currentNode = sourceOutputNode;
 
-            effectChain.forEach(fx => {
+            chain.forEach(fx => {
                 if (fx.bypass) return;
 
                 if (fx.type === 'overdrive') {
-                    // 1. Overdrive (ハード/ソフトクリッピングを組み合わせた本格歪みペダル)
-                    const shaper = audioCtx.createWaveShaper();
-                    const drive = fx.params.drive * 80 + 1; // 歪み量を大幅強化
+                    const shaper = context.createWaveShaper();
+                    const drive = fx.params.drive * 80 + 1;
                     const n_samples = 44100;
                     const curve = new Float32Array(n_samples);
                     for (let i = 0; i < n_samples; ++i) {
                         const x = (i * 2) / n_samples - 1;
-                        // 非対称なアンプ風歪みカーブ
                         curve[i] = ((Math.PI + drive * 3) * x) / (Math.PI + drive * Math.abs(x));
                     }
                     shaper.curve = curve;
                     shaper.oversample = '4x';
 
-                    const toneFilter = audioCtx.createBiquadFilter();
+                    const toneFilter = context.createBiquadFilter();
                     toneFilter.type = 'lowpass';
                     toneFilter.frequency.value = 300 + fx.params.tone * 9700;
 
-                    const levelGain = audioCtx.createGain();
+                    const levelGain = context.createGain();
                     levelGain.gain.value = 0.3 + fx.params.level * 1.2;
 
                     currentNode.connect(shaper);
@@ -763,20 +757,19 @@
                     currentNode = levelGain;
 
                 } else if (fx.type === 'delay') {
-                    // 2. Delay (ディレイ・エコー)
-                    const delayNode = audioCtx.createDelay(2.0);
+                    const delayNode = context.createDelay(2.0);
                     delayNode.delayTime.value = 0.05 + fx.params.time * 0.95;
 
-                    const feedbackGain = audioCtx.createGain();
+                    const feedbackGain = context.createGain();
                     feedbackGain.gain.value = fx.params.feedback * 0.92;
 
-                    const wetGain = audioCtx.createGain();
+                    const wetGain = context.createGain();
                     wetGain.gain.value = fx.params.wet * 1.2;
 
-                    const dryGain = audioCtx.createGain();
+                    const dryGain = context.createGain();
                     dryGain.gain.value = 1.0;
 
-                    const merger = audioCtx.createGain();
+                    const merger = context.createGain();
 
                     currentNode.connect(dryGain);
                     dryGain.connect(merger);
@@ -790,21 +783,20 @@
                     currentNode = merger;
 
                 } else if (fx.type === 'reverb') {
-                    // 3. Reverb (リバーブ)
                     const wet = fx.params.wet * 1.5;
                     const size = fx.params.size;
                     
-                    const revDelay1 = audioCtx.createDelay();
+                    const revDelay1 = context.createDelay();
                     revDelay1.delayTime.value = 0.04 * size;
-                    const revDelay2 = audioCtx.createDelay();
+                    const revDelay2 = context.createDelay();
                     revDelay2.delayTime.value = 0.09 * size;
                     
-                    const revGain = audioCtx.createGain();
+                    const revGain = context.createGain();
                     revGain.gain.value = wet * 0.8;
-                    const dryGain = audioCtx.createGain();
+                    const dryGain = context.createGain();
                     dryGain.gain.value = 1.0;
                     
-                    const merger = audioCtx.createGain();
+                    const merger = context.createGain();
 
                     currentNode.connect(dryGain);
                     dryGain.connect(merger);
@@ -817,25 +809,24 @@
                     currentNode = merger;
 
                 } else if (fx.type === 'chorus') {
-                    // 4. Chorus (コーラス)
                     const wet = fx.params.wet;
-                    const delay = audioCtx.createDelay();
+                    const delay = context.createDelay();
                     delay.delayTime.value = 0.025;
 
-                    const lfo = audioCtx.createOscillator();
+                    const lfo = context.createOscillator();
                     lfo.frequency.value = 0.5 + fx.params.rate * 6.0;
-                    const lfoGain = audioCtx.createGain();
+                    const lfoGain = context.createGain();
                     lfoGain.gain.value = 0.012 * fx.params.depth;
 
                     lfo.connect(lfoGain);
                     lfoGain.connect(delay.delayTime);
-                    lfo.start();
+                    lfo.start(0);
 
-                    const wetGain = audioCtx.createGain();
+                    const wetGain = context.createGain();
                     wetGain.gain.value = wet * 1.2;
-                    const dryGain = audioCtx.createGain();
+                    const dryGain = context.createGain();
                     dryGain.gain.value = 1.0;
-                    const merger = audioCtx.createGain();
+                    const merger = context.createGain();
 
                     currentNode.connect(dryGain);
                     dryGain.connect(merger);
@@ -846,8 +837,7 @@
                     currentNode = merger;
 
                 } else if (fx.type === 'filter') {
-                    // 5. Filter (フィルター)
-                    const filter = audioCtx.createBiquadFilter();
+                    const filter = context.createBiquadFilter();
                     filter.type = 'lowpass';
                     filter.frequency.value = 80 + fx.params.cutoff * 11000;
                     filter.Q.value = fx.params.resonance * 1.5;
@@ -857,10 +847,10 @@
                 }
             });
 
-            currentNode.connect(masterGain);
+            currentNode.connect(destinationNode);
         }
 
-        // Tempo and Pitch Sliders Update Handlers
+        // Tempo & Pitch Sliders
         const tempoSlider = document.getElementById('tempoSlider');
         const tempoValue = document.getElementById('tempoValue');
         tempoSlider.addEventListener('input', (e) => {
@@ -896,7 +886,7 @@
                 const tempoVal = parseFloat(tempoSlider.value);
                 const pitchVal = parseInt(pitchSlider.value);
                 source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
-                connectToEffectChain(source);
+                connectToEffectChain(source, audioCtx, masterGain, effectChain);
                 source.start(audioCtx.currentTime);
                 activeSourceNode = source;
             } else {
@@ -912,7 +902,7 @@
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
 
                 osc.connect(gain);
-                connectToEffectChain(gain);
+                connectToEffectChain(gain, audioCtx, masterGain, effectChain);
 
                 osc.start(now);
                 osc.stop(now + 2.0);
@@ -930,8 +920,114 @@
             }
         });
 
-        document.getElementById('btnExportWav').addEventListener('click', () => {
-            alert("エフェクト・テンポ・ピッチ適用後のオーディオミックスの書き出し準備が完了しました。");
+        // WAVエンコーダー用ヘルパー関数
+        function bufferToWav(buffer) {
+            const numOfChan = buffer.numberofChannels || buffer.numberOfChannels;
+            const length = buffer.length * numOfChan * 2 + 44;
+            const out = new DataView(new ArrayBuffer(length));
+            let channels = [];
+            let sampleRate = buffer.sampleRate;
+            let offset = 0;
+            let pos = 0;
+
+            function writeString(str) {
+                for (let i = 0; i < str.length; i++) {
+                    out.setUint8(pos++, str.charCodeAt(i));
+                }
+            }
+
+            function setUint16(data) {
+                out.setUint16(pos, data, true);
+                pos += 2;
+            }
+
+            function setUint32(data) {
+                out.setUint32(pos, data, true);
+                pos += 4;
+            }
+
+            // WAVヘッダー書き込み
+            writeString('RIFF');
+            setUint32(length - 8);
+            writeString('WAVE');
+            writeString('fmt ');
+            setUint32(16); // SubChunk1Size (16 for PCM)
+            setUint16(1);  // AudioFormat (1 for PCM)
+            setUint16(numOfChan);
+            setUint32(sampleRate);
+            setUint32(sampleRate * numOfChan * 2); // ByteRate
+            setUint16(numOfChan * 2); // BlockAlign
+            setUint16(16); // BitsPerSample
+            writeString('data');
+            setUint32(length - pos - 4);
+
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            while (offset < buffer.length) {
+                for (let i = 0; i < numOfChan; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767);
+                    out.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+
+            return new Blob([out.buffer], { type: 'audio/wav' });
+        }
+
+        // WAV書き出しボタンの実装
+        document.getElementById('btnExportWav').addEventListener('click', async () => {
+            const exportStatusText = document.getElementById('exportStatusText');
+            exportStatusText.textContent = "レンダリング中（書き出し処理バッファ生成）...";
+
+            const duration = importedAudioBuffer ? (importedAudioBuffer.duration / parseFloat(tempoSlider.value)) + 2.0 : 3.0;
+            const sampleRate = 44100;
+            const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
+
+            let source;
+            if (importedAudioBuffer) {
+                source = offlineCtx.createBufferSource();
+                source.buffer = importedAudioBuffer;
+                const tempoVal = parseFloat(tempoSlider.value);
+                const pitchVal = parseInt(pitchSlider.value);
+                source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
+            } else {
+                source = offlineCtx.createOscillator();
+                source.type = currentWaveform;
+                const pitchVal = parseInt(pitchSlider.value);
+                source.frequency.value = currentFreq * Math.pow(2, pitchVal / 12);
+                source.start(0);
+                source.stop(2.0);
+            }
+
+            const offlineGain = offlineCtx.createGain();
+            offlineGain.gain.value = parseFloat(masterVolumeSlider.value);
+
+            connectToEffectChain(source, offlineCtx, offlineGain, effectChain);
+            if (importedAudioBuffer) {
+                source.start(0);
+            }
+
+            try {
+                const renderedBuffer = await offlineCtx.startRendering();
+                const wavBlob = bufferToWav(renderedBuffer);
+                const url = URL.createObjectURL(wavBlob);
+
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = url;
+                downloadAnchor.download = 'synth-fx-export.wav';
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                document.body.removeChild(downloadAnchor);
+
+                exportStatusText.textContent = "書き出し完了！ファイルがダウンロードされました。";
+            } catch (err) {
+                console.error(err);
+                exportStatusText.textContent = "書き出し中にエラーが発生しました。";
+            }
         });
     </script>
 </body>
