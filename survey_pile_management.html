@@ -1,923 +1,940 @@
-<!DOCTYPE html>
-<html lang="ja" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>現場測量杭管理アプリ | Site Survey Stake Management App</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                        serif: ['"MS Mincho"', '"MS 明朝"', '"Hiragino Mincho ProN"', 'serif'],
-                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- SheetJS (xlsx) for Excel/CSV import/export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- jsPDF for PDF export -->
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @media print {
-            body { background: white !important; color: black !important; }
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-        }
-    </style>
-</head>
-<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
-
-    <!-- Header -->
-    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 no-print">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg shadow">
-                    <i data-lucide="compass" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold tracking-tight" data-i18n="appTitle">現場測量杭管理アプリ</h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400" data-i18n="appSubtitle">Site Survey Stake Management System</p>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-                <!-- Language Selector -->
-                <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600">
-                    <i data-lucide="globe" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
-                    <select id="langSelect" class="bg-transparent text-sm font-medium focus:outline-none cursor-pointer">
-                        <option value="ja">日本語</option>
-                        <option value="en">English</option>
-                        <option value="zh">中文</option>
-                        <option value="ko">한국어</option>
-                        <option value="fr">Français</option>
-                        <option value="es">Español</option>
-                    </select>
-                </div>
-
-                <!-- Dark Mode Toggle -->
-                <button id="themeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition" title="Toggle Theme">
-                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block text-amber-400"></i>
-                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden text-slate-600"></i>
-                </button>
-
-                <!-- Quick Action Buttons -->
-                <button onclick="window.print()" class="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-600 transition">
-                    <i data-lucide="printer" class="w-4 h-4"></i>
-                    <span data-i18n="printBtn">印刷</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
-
-        <!-- Toolbar / Action Bar -->
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4 no-print">
-            <div class="flex flex-wrap items-center gap-2">
-                <button onclick="openModal()" class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm shadow transition">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span data-i18n="addStake">杭を追加</span>
-                </button>
-                <button onclick="triggerImport()" class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-3 py-2 rounded-lg font-medium text-sm border border-slate-200 dark:border-slate-600 transition">
-                    <i data-lucide="upload" class="w-4 h-4"></i>
-                    <span data-i18n="importBtn">インポート</span>
-                </button>
-                <input type="file" id="importFile" class="hidden" accept=".csv, .xlsx, .xls, .json" onchange="handleImport(event)">
-                
-                <div class="relative group">
-                    <button class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-3 py-2 rounded-lg font-medium text-sm border border-slate-200 dark:border-slate-600 transition">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        <span data-i18n="exportBtn">エクスポート</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-70"></i>
-                    </button>
-                    <div class="absolute left-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 hidden group-hover:block z-20">
-                        <button onclick="exportData('csv')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">
-                            <i data-lucide="file-text" class="w-4 h-4 text-emerald-600"></i><span>CSV (.csv)</span>
-                        </button>
-                        <button onclick="exportData('xlsx')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">
-                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-green-600"></i><span>Excel (.xlsx)</span>
-                        </button>
-                        <button onclick="exportData('json')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">
-                            <i data-lucide="code" class="w-4 h-4 text-blue-600"></i><span>JSON (.json)</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-3">
-                <button onclick="saveData()" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm shadow transition">
-                    <i data-lucide="save" class="w-4 h-4"></i>
-                    <span data-i18n="saveBtn">保存</span>
-                </button>
-                <button onclick="clearAllData()" class="text-rose-600 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition" title="すべてクリア">
-                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Main Workspace Grid (Table & Map) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- Stake Table Section (7 cols on lg) -->
-            <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                    <h2 class="font-bold flex items-center space-x-2">
-                        <i data-lucide="table" class="w-5 h-5 text-blue-500"></i>
-                        <span data-i18n="tableTitle">杭一覧リスト</span>
-                    </h2>
-                    <span id="stakeCount" class="text-xs bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-full font-medium">0 杭</span>
-                </div>
-                <div class="overflow-x-auto flex-grow max-h-[500px]">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700 font-serif">
-                            <tr>
-                                <th class="p-3 w-12 text-center" data-i18n="colNo">No</th>
-                                <th class="p-3" data-i18n="colName">杭名称</th>
-                                <th class="p-3 text-right">X (N)</th>
-                                <th class="p-3 text-right">Y (E)</th>
-                                <th class="p-3 text-right">Z (H)</th>
-                                <th class="p-3 text-center" data-i18n="colPhoto">写真</th>
-                                <th class="p-3 text-center no-print" data-i18n="colOrder">順序</th>
-                                <th class="p-3 text-center no-print" data-i18n="colAction">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stakeTableBody" class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                            <!-- Dynamic Rows -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Map / Layout Drawing Section (5 cols on lg) -->
-            <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
-                    <h2 class="font-bold flex items-center space-x-2">
-                        <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>
-                        <span data-i18n="mapTitle">配置図 (XY方眼ベクター)</span>
-                    </h2>
-                    <div class="flex items-center space-x-2">
-                        <select id="mapScale" onchange="renderMap()" class="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs rounded-lg px-2 py-1 font-medium focus:outline-none cursor-pointer">
-                            <option value="auto" data-i18n="scaleAuto">自動縮尺 (Auto)</option>
-                            <option value="100">1:100</option>
-                            <option value="500">1:500</option>
-                            <option value="1000">1:1000</option>
-                            <option value="2500">1:2500</option>
-                            <option value="5000">1:5000</option>
-                        </select>
-                        <div class="relative group no-print">
-                            <button class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-1.5 rounded-lg border border-slate-200 dark:border-slate-600 transition" title="Vector Export">
-                                <i data-lucide="download-cloud" class="w-4 h-4"></i>
-                            </button>
-                            <div class="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 hidden group-hover:block z-20">
-                                <button onclick="exportVector('svg')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">
-                                    <i data-lucide="file-code" class="w-4 h-4 text-amber-500"></i><span>SVG 形式</span>
-                                </button>
-                                <button onclick="exportVector('eps')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">
-                                    <i data-lucide="file" class="w-4 h-4 text-purple-500"></i><span>EPS 形式</span>
-                                </button>
-                                <button onclick="exportVector('pdf')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i><span>PDF 形式</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 flex-grow flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 relative min-h-[400px]">
-                    <!-- Vector Canvas Container -->
-                    <div id="vectorMapContainer" class="w-full h-full flex items-center justify-center overflow-auto border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 p-2 shadow-inner">
-                        <svg id="vectorMapSvg" class="w-full h-[380px] font-mono" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
-                            <!-- Rendered dynamically -->
-                        </svg>
-                    </div>
-                    <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 flex justify-between w-full px-1">
-                        <span id="mapScaleIndicator">Scale: Auto</span>
-                        <span data-i18n="vectorNote">※Adobe Illustrator互換ベクター出力対応</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- Modal Form (Add/Edit Stake) -->
-    <div id="stakeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 overflow-hidden transform transition-all">
-            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-700/50">
-                <h3 id="modalTitle" class="font-bold text-lg flex items-center space-x-2">
-                    <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i>
-                    <span data-i18n="modalAddTitle">杭の追加</span>
-                </h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <form id="stakeForm" onsubmit="saveStakeForm(event)" class="p-6 space-y-4">
-                <input type="hidden" id="editIndex" value="-1">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1" data-i18n="formName">杭名称 (英数字推奨)</label>
-                    <input type="text" id="stakeName" required placeholder="例: P-101" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">X (N) 座標</label>
-                        <input type="number" step="0.001" id="stakeX" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Y (E) 座標</label>
-                        <input type="number" step="0.001" id="stakeY" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Z (H) 標高</label>
-                        <input type="number" step="0.001" id="stakeZ" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1" data-i18n="formPhoto">備考写真添付</label>
-                    <input type="file" id="stakePhoto" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-slate-700 dark:file:text-slate-200 hover:file:bg-blue-100 cursor-pointer">
-                    <div id="photoPreviewContainer" class="mt-2 hidden">
-                        <img id="photoPreview" src="" alt="Preview" class="h-24 rounded-lg border border-slate-200 dark:border-slate-700 object-cover">
-                    </div>
-                </div>
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-sm font-medium rounded-lg transition" data-i18n="cancelBtn">キャンセル</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow transition" data-i18n="saveBtnModal">保存する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Photo View Modal -->
-    <div id="photoModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closePhotoModal()">
-        <div class="relative max-w-3xl max-h-[90vh]">
-            <img id="modalFullPhoto" src="" alt="Enlarged Photo" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain">
-            <button class="absolute -top-4 -right-4 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 rounded-full shadow-lg hover:bg-slate-100 transition">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-3 text-center text-xs text-slate-500 dark:text-slate-400 no-print">
-        <p>&copy; 2026 現場測量杭管理アプリ. All rights reserved. | MS Mincho Font & Vector Support</p>
-    </footer>
-
-    <!-- JavaScript Application Logic -->
-    <script>
-        // --- i18n Translations Dictionary ---
-        const translations = {
-            ja: {
-                appTitle: "現場測量杭管理アプリ",
-                appSubtitle: "Site Survey Stake Management System",
-                printBtn: "印刷",
-                addStake: "杭を追加",
-                importBtn: "インポート",
-                exportBtn: "エクスポート",
-                saveBtn: "保存",
-                tableTitle: "杭一覧リスト",
-                colNo: "No",
-                colName: "杭名称",
-                colPhoto: "写真",
-                colOrder: "順序",
-                colAction: "操作",
-                mapTitle: "配置図 (XY方眼ベクター)",
-                scaleAuto: "自動縮尺 (Auto)",
-                vectorNote: "※Adobe Illustrator互換ベクター出力対応",
-                modalAddTitle: "杭の追加",
-                modalEditTitle: "杭の編集",
-                formName: "杭名称 (英数字推奨)",
-                formPhoto: "備考写真添付",
-                cancelBtn: "キャンセル",
-                saveBtnModal: "保存する",
-                noStakes: "杭データが登録されていません。"
-            },
-            en: {
-                appTitle: "Site Survey Stake Manager",
-                appSubtitle: "Precision Stake & Coordinate System",
-                printBtn: "Print",
-                addStake: "Add Stake",
-                importBtn: "Import",
-                exportBtn: "Export",
-                saveBtn: "Save",
-                tableTitle: "Stake List",
-                colNo: "No",
-                colName: "Stake Name",
-                colPhoto: "Photo",
-                colOrder: "Order",
-                colAction: "Action",
-                mapTitle: "Layout Map (XY Vector Grid)",
-                scaleAuto: "Auto Scale",
-                vectorNote: "*Adobe Illustrator compatible vector export",
-                modalAddTitle: "Add New Stake",
-                modalEditTitle: "Edit Stake",
-                formName: "Stake Name (Alphanumeric recommended)",
-                formPhoto: "Attach Photo",
-                cancelBtn: "Cancel",
-                saveBtnModal: "Save Stake",
-                noStakes: "No stakes registered yet."
-            },
-            zh: {
-                appTitle: "现场测量桩管理系统",
-                appSubtitle: "测量桩与坐标高效管理",
-                printBtn: "打印",
-                addStake: "添加测量桩",
-                importBtn: "导入",
-                exportBtn: "导出",
-                saveBtn: "保存",
-                tableTitle: "测量桩一览",
-                colNo: "编号",
-                colName: "桩名",
-                colPhoto: "照片",
-                colOrder: "排序",
-                colAction: "操作",
-                mapTitle: "布置图 (XY矢量网格)",
-                scaleAuto: "自动比例尺",
-                vectorNote: "*支持Adobe Illustrator兼容矢量导出",
-                modalAddTitle: "添加测量桩",
-                modalEditTitle: "编辑测量桩",
-                formName: "桩名称 (推荐使用英数字)",
-                formPhoto: "备注照片",
-                cancelBtn: "取消",
-                saveBtnModal: "保存",
-                noStakes: "暂无测量桩数据。"
-            },
-            ko: {
-                appTitle: "현장 측량 말뚝 관리 앱",
-                appSubtitle: "정밀 측량 말뚝 및 좌표 관리",
-                printBtn: "인쇄",
-                addStake: "말뚝 추가",
-                importBtn: "가져오기",
-                exportBtn: "내보내기",
-                saveBtn: "저장",
-                tableTitle: "말뚝 목록",
-                colNo: "No",
-                colName: "말뚝 명칭",
-                colPhoto: "사진",
-                colOrder: "순서",
-                colAction: "작업",
-                mapTitle: "배치도 (XY 벡터 그리드)",
-                scaleAuto: "자동 축척",
-                vectorNote: "*Adobe Illustrator 호환 벡터 내보내기",
-                modalAddTitle: "말뚝 추가",
-                modalEditTitle: "말뚝 편집",
-                formName: "말뚝 명칭 (영숫자 권장)",
-                formPhoto: "참고 사진 첨부",
-                cancelBtn: "취소",
-                saveBtnModal: "저장하기",
-                noStakes: "등록된 말뚝 데이터가 없습니다."
-            },
-            fr: {
-                appTitle: "Gestionnaire de Piquets",
-                appSubtitle: "Système de Gestion Topographique",
-                printBtn: "Imprimer",
-                addStake: "Ajouter Piquet",
-                importBtn: "Importer",
-                exportBtn: "Exporter",
-                saveBtn: "Enregistrer",
-                tableTitle: "Liste des Piquets",
-                colNo: "No",
-                colName: "Nom",
-                colPhoto: "Photo",
-                colOrder: "Ordre",
-                colAction: "Action",
-                mapTitle: "Plan (Grille Vectorielle XY)",
-                scaleAuto: "Échelle Auto",
-                vectorNote: "*Compatible Adobe Illustrator",
-                modalAddTitle: "Ajouter un Piquet",
-                modalEditTitle: "Modifier le Piquet",
-                formName: "Nom du piquet (Alphanumérique)",
-                formPhoto: "Photo (optionnelle)",
-                cancelBtn: "Annuler",
-                saveBtnModal: "Enregistrer",
-                noStakes: "Aucun piquet enregistré."
-            },
-            es: {
-                appTitle: "Gestor de Estacas Topográficas",
-                appSubtitle: "Sistema de Control de Estacas",
-                printBtn: "Imprimir",
-                addStake: "Añadir Estaca",
-                importBtn: "Importar",
-                exportBtn: "Exportar",
-                saveBtn: "Guardar",
-                tableTitle: "Lista de Estacas",
-                colNo: "No",
-                colName: "Nombre",
-                colPhoto: "Foto",
-                colOrder: "Orden",
-                colAction: "Acción",
-                mapTitle: "Plano (Cuadrícula Vectorial XY)",
-                scaleAuto: "Escala Automática",
-                vectorNote: "*Compatible con Adobe Illustrator",
-                modalAddTitle: "Añadir Estaca",
-                modalEditTitle: "Editar Estaca",
-                formName: "Nombre de estaca (Alfanumérico)",
-                formPhoto: "Adjuntar Foto",
-                cancelBtn: "Cancelar",
-                saveBtnModal: "Guardar",
-                noStakes: "No hay estacas registradas."
-            }
-        };
-
-        // --- Application State ---
-        let currentLang = 'ja';
-        let stakes = [];
-
-        // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDataFromStorage();
-            initTheme();
-            renderTable();
-            renderMap();
-            lucide.createIcons();
-
-            // Language event listener
-            document.getElementById('langSelect').addEventListener('change', (e) => {
-                currentLang = e.target.value;
-                updateLanguage();
-            });
-
-            // Photo preview listener
-            document.getElementById('stakePhoto').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        const preview = document.getElementById('photoPreview');
-                        preview.src = evt.target.result;
-                        document.getElementById('photoPreviewContainer').classList.remove('hidden');
-                    }
-                    reader.readAsDataURL(file);
-                }
-            });
-        });
-
-        // --- Theme Management ---
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            if (savedTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-            document.getElementById('themeToggle').addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                const isDark = document.documentElement.classList.contains('dark');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                renderMap();
-            });
-        }
-
-        // --- i18n Updater ---
-        function updateLanguage() {
-            const t = translations[currentLang] || translations.ja;
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (t[key]) {
-                    el.textContent = t[key];
-                }
-            });
-            renderTable();
-        }
-
-        // --- Data Management & LocalStorage ---
-        function saveData() {
-            try {
-                localStorage.setItem('survey_stakes_data', JSON.stringify(stakes));
-                alert(currentLang === 'ja' ? 'データを保存しました。' : 'Data saved successfully.');
-            } catch (err) {
-                console.error(err);
-                alert('Failed to save data.');
-            }
-        }
-
-        function loadDataFromStorage() {
-            try {
-                const saved = localStorage.getItem('survey_stakes_data');
-                if (saved) {
-                    stakes = JSON.parse(saved);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function clearAllData() {
-            if (confirm(currentLang === 'ja' ? 'すべてのデータを削除してもよろしいですか？' : 'Are you sure to clear all data?')) {
-                stakes = [];
-                renderTable();
-                renderMap();
-                localStorage.removeItem('survey_stakes_data');
-            }
-        }
-
-        // --- Table Rendering & Manipulation ---
-        function renderTable() {
-            const tbody = document.getElementById('stakeTableBody');
-            tbody.innerHTML = '';
-            document.getElementById('stakeCount').textContent = `${stakes.length} 杭`;
-
-            if (stakes.length === 0) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="8" class="text-center py-8 text-slate-400 font-serif" data-i18n="noStakes">${translations[currentLang].noStakes}</td>`;
-                tbody.appendChild(tr);
-                return;
-            }
-
-            stakes.forEach((stake, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition font-mono";
-                
-                const hasPhoto = stake.photo && stake.photo.length > 0;
-                
-                tr.innerHTML = `
-                    <td class="p-3 text-center font-bold text-slate-500">${index + 1}</td>
-                    <td class="p-3 font-semibold font-sans">${escapeHtml(stake.name)}</td>
-                    <td class="p-3 text-right">${Number(stake.x).toFixed(3)}</td>
-                    <td class="p-3 text-right">${Number(stake.y).toFixed(3)}</td>
-                    <td class="p-3 text-right">${Number(stake.z).toFixed(3)}</td>
-                    <td class="p-3 text-center">
-                        ${hasPhoto ? `<button onclick="viewPhoto('${stake.photo}')" class="text-blue-600 hover:text-blue-800 underline text-xs font-sans">表示</button>` : '<span class="text-slate-300 dark:text-slate-600">-</span>'}
-                    </td>
-                    <td class="p-3 text-center no-print space-x-1">
-                        <button onclick="moveStake(${index}, -1)" ${index === 0 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition" title="Up">
-                            <i data-lucide="chevron-up" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="moveStake(${index}, 1)" ${index === stakes.length - 1 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition" title="Down">
-                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                    <td class="p-3 text-center no-print space-x-1">
-                        <button onclick="editStake(${index})" class="p-1 rounded text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition" title="Edit">
-                            <i data-lucide="edit-3" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="deleteStake(${index})" class="p-1 rounded text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition" title="Delete">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
-        }
-
-        function moveStake(index, direction) {
-            const newIndex = index + direction;
-            if (newIndex < 0 || newIndex >= stakes.length) return;
-            const temp = stakes[index];
-            stakes[index] = stakes[newIndex];
-            stakes[newIndex] = temp;
-            renderTable();
-            renderMap();
-        }
-
-        function deleteStake(index) {
-            if (confirm(currentLang === 'ja' ? 'この杭を削除しますか？' : 'Delete this stake?')) {
-                stakes.splice(index, 1);
-                renderTable();
-                renderMap();
-            }
-        }
-
-        // --- Modal Handling ---
-        function openModal(editIdx = -1) {
-            document.getElementById('stakeModal').classList.remove('hidden');
-            document.getElementById('editIndex').value = editIdx;
-            const titleEl = document.getElementById('modalTitle');
-            
-            if (editIdx >= 0) {
-                titleEl.innerHTML = `<i data-lucide="edit" class="w-5 h-5 text-blue-600"></i><span>${translations[currentLang].modalEditTitle}</span>`;
-                const s = stakes[editIdx];
-                document.getElementById('stakeName').value = s.name;
-                document.getElementById('stakeX').value = s.x;
-                document.getElementById('stakeY').value = s.y;
-                document.getElementById('stakeZ').value = s.z;
-                if (s.photo) {
-                    document.getElementById('photoPreview').src = s.photo;
-                    document.getElementById('photoPreviewContainer').classList.remove('hidden');
-                } else {
-                    document.getElementById('photoPreviewContainer').classList.add('hidden');
-                }
-            } else {
-                titleEl.innerHTML = `<i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i><span>${translations[currentLang].modalAddTitle}</span>`;
-                document.getElementById('stakeForm').reset();
-                document.getElementById('photoPreviewContainer').classList.add('hidden');
-            }
-            lucide.createIcons();
-        }
-
-        function closeModal() {
-            document.getElementById('stakeModal').classList.add('hidden');
-        }
-
-        function editStake(index) {
-            openModal(index);
-        }
-
-        function saveStakeForm(e) {
-            e.preventDefault();
-            try {
-                const editIdx = parseInt(document.getElementById('editIndex').value);
-                const name = document.getElementById('stakeName').value.trim();
-                const x = parseFloat(document.getElementById('stakeX').value);
-                const y = parseFloat(document.getElementById('stakeY').value);
-                const z = parseFloat(document.getElementById('stakeZ').value);
-                const previewSrc = document.getElementById('photoPreview').src;
-                const hasNewPhoto = !document.getElementById('photoPreviewContainer').classList.contains('hidden') && previewSrc;
-
-                const stakeData = {
-                    name,
-                    x,
-                    y,
-                    z,
-                    photo: hasNewPhoto ? previewSrc : (editIdx >= 0 ? stakes[editIdx].photo : '')
-                };
-
-                if (editIdx >= 0) {
-                    stakes[editIdx] = stakeData;
-                } else {
-                    stakes.push(stakeData);
-                }
-
-                closeModal();
-                renderTable();
-                renderMap();
-            } catch (err) {
-                console.error(err);
-                alert('Error saving stake.');
-            }
-        }
-
-        function viewPhoto(src) {
-            document.getElementById('modalFullPhoto').src = src;
-            document.getElementById('photoModal').classList.remove('hidden');
-        }
-
-        function closePhotoModal() {
-            document.getElementById('photoModal').classList.add('hidden');
-        }
-
-        // --- Vector Map Rendering (SVG) ---
-        function renderMap() {
-            const svg = document.getElementById('vectorMapSvg');
-            svg.innerHTML = '';
-
-            if (stakes.length === 0) {
-                svg.innerHTML = `<text x="300" y="200" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">No Coordinate Data to Render</text>`;
-                document.getElementById('mapScaleIndicator').textContent = 'Scale: -';
-                return;
-            }
-
-            const isDark = document.documentElement.classList.contains('dark');
-            const gridColor = isDark ? '#334155' : '#e2e8f0';
-            const axisColor = isDark ? '#64748b' : '#94a3b8';
-            const textColor = isDark ? '#cbd5e1' : '#475569';
-            const pointColor = '#2563eb';
-
-            // SVG ViewBox dimensions
-            const width = 600;
-            const height = 400;
-            const padding = 50;
-
-            // Find min/max coordinates (X: North, Y: East)
-            let xs = stakes.map(s => s.x);
-            let ys = stakes.map(s => s.y);
-
-            let minX = Math.min(...xs);
-            let maxX = Math.max(...xs);
-            let minY = Math.min(...ys);
-            let maxY = Math.max(...ys);
-
-            let dx = maxX - minX || 10;
-            let dy = maxY - minY || 10;
-
-            // Add margin
-            const marginRatio = 0.2;
-            minX -= dx * marginRatio;
-            maxX += dx * marginRatio;
-            minY -= dy * marginRatio;
-            maxY += dy * marginRatio;
-
-            dx = maxX - minX;
-            dy = maxY - minY;
-
-            const drawWidth = width - padding * 2;
-            const drawHeight = height - padding * 2;
-
-            const scaleX = drawWidth / dx;
-            const scaleY = drawHeight / dy;
-            const scale = Math.min(scaleX, scaleY);
-
-            // Scale indicator text
-            const selectedScaleOption = document.getElementById('mapScale').value;
-            document.getElementById('mapScaleIndicator').textContent = selectedScaleOption === 'auto' ? `Scale: Auto (~1:${Math.round(1000/scale)})` : `Scale: 1:${selectedScaleOption}`;
-
-            // Transform coordinates to SVG space (Note: X is North (Up), Y is East (Right))
-            function toSvgCoords(x, y) {
-                const px = padding + (y - minY) * scale + (drawWidth - dy * scale) / 2;
-                const py = height - padding - (x - minX) * scale - (drawHeight - dx * scale) / 2;
-                return { x: px, y: py };
-            }
-
-            // Draw Grid Lines (Vector)
-            const gridSteps = 5;
-            for (let i = 0; i <= gridSteps; i++) {
-                const gx = minX + (dx / gridSteps) * i;
-                const gy = minY + (dy / gridSteps) * i;
-
-                // Vertical grid (Constant Y)
-                const p1 = toSvgCoords(minX, gy);
-                const p2 = toSvgCoords(maxX, gy);
-                svg.innerHTML += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 4" />`;
-
-                // Horizontal grid (Constant X)
-                const q1 = toSvgCoords(gx, minY);
-                const q2 = toSvgCoords(gx, maxY);
-                svg.innerHTML += `<line x1="${q1.x}" y1="${q1.y}" x2="${q2.x}" y2="${q2.y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 4" />`;
-
-                // Grid Labels (Alphanumeric only to prevent garbled text in CAD/Illustrator)
-                svg.innerHTML += `<text x="${p1.x}" y="${height - 15}" font-size="9" fill="${axisColor}" text-anchor="middle" font-family="monospace">Y:${gy.toFixed(1)}</text>`;
-                svg.innerHTML += `<text x="15" y="${q1.y + 3}" font-size="9" fill="${axisColor}" text-anchor="middle" font-family="monospace">X:${gx.toFixed(1)}</text>`;
-            }
-
-            // Draw Axis Border Box
-            svg.innerHTML += `<rect x="${padding}" y="${padding}" width="${drawWidth}" height="${drawHeight}" fill="none" stroke="${axisColor}" stroke-width="1.5" />`;
-
-            // Draw Stakes (Points and Labels in pure vector)
-            stakes.forEach((stake, idx) => {
-                const pt = toSvgCoords(stake.x, stake.y);
-                
-                // Vector Point (Circle + Crosshair)
-                svg.innerHTML += `
-                    <g class="stake-node" data-index="${idx}">
-                        <circle cx="${pt.x}" cy="${pt.y}" r="5" fill="${pointColor}" stroke="#ffffff" stroke-width="1.5" />
-                        <line x1="${pt.x - 8}" y1="${pt.y}" x2="${pt.x + 8}" y2="${pt.y}" stroke="${pointColor}" stroke-width="1" />
-                        <line x1="${pt.x}" y1="${pt.y - 8}" x2="${pt.x}" y2="${pt.y + 8}" stroke="${pointColor}" stroke-width="1" />
-                        <!-- Vector Label with No. and XYZ (Alphanumeric safe for MS Mincho / Sans) -->
-                        <text x="${pt.x + 10}" y="${pt.y - 5}" font-family="serif" font-size="11" font-weight="bold" fill="${textColor}">[No.${idx + 1}] ${escapeHtml(stake.name)}</text>
-                        <text x="${pt.x + 10}" y="${pt.y + 8}" font-family="monospace" font-size="9" fill="${axisColor}">X:${Number(stake.x).toFixed(2)}</text>
-                        <text x="${pt.x + 10}" y="${pt.y + 18}" font-family="monospace" font-size="9" fill="${axisColor}">Y:${Number(stake.y).toFixed(2)}</text>
-                    </g>
-                `;
-            });
-        }
-
-        // --- Import / Export Functions ---
-        function triggerImport() {
-            document.getElementById('importFile').click();
-        }
-
-        function handleImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            const fileName = file.name.toLowerCase();
-
-            if (fileName.endsWith('.json')) {
-                reader.onload = function(e) {
-                    try {
-                        const parsed = JSON.parse(e.target.result);
-                        if (Array.isArray(parsed)) {
-                            stakes = parsed;
-                            renderTable();
-                            renderMap();
-                            alert('JSON import successful.');
-                        }
-                    } catch (err) {
-                        alert('Invalid JSON file format.');
-                    }
-                };
-                reader.readAsText(file);
-            } else if (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        const json = XLSX.utils.sheet_to_json(worksheet);
-
-                        if (json && json.length > 0) {
-                            stakes = json.map((row, i) => ({
-                                name: String(row.Name || row.name || row['杭名称'] || `P-${i+1}`),
-                                x: parseFloat(row.X || row.x || row['X座標'] || 0),
-                                y: parseFloat(row.Y || row.y || row['Y座標'] || 0),
-                                z: parseFloat(row.Z || row.z || row['Z座標'] || 0),
-                                photo: row.Photo || row.photo || ''
-                            }));
-                            renderTable();
-                            renderMap();
-                            alert('Spreadsheet import successful.');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Failed to parse spreadsheet file.');
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            }
-            event.target.value = '';
-        }
-
-        function exportData(format) {
-            if (stakes.length === 0) {
-                alert('No data to export.');
-                return;
-            }
-
-            if (format === 'json') {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stakes, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", "survey_stakes.json");
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-            } else if (format === 'csv' || format === 'xlsx') {
-                const worksheetData = stakes.map((s, i) => ({
-                    No: i + 1,
-                    Name: s.name,
-                    X: s.x,
-                    Y: s.y,
-                    Z: s.z,
-                    PhotoAttached: s.photo ? 'Yes' : 'No'
-                }));
-                const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Stakes");
-                
-                if (format === 'csv') {
-                    XLSX.writeFile(workbook, "survey_stakes.csv");
-                } else {
-                    XLSX.writeFile(workbook, "survey_stakes.xlsx");
-                }
-            }
-        }
-
-        // --- Vector Export (SVG, EPS, PDF) ---
-        function exportVector(type) {
-            const svgElement = document.getElementById('vectorMapSvg');
-            const svgString = new XMLSerializer().serializeToString(svgElement);
-
-            if (type === 'svg') {
-                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'survey_layout_vector.svg';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            } else if (type === 'eps') {
-                const epsContent = `%PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 600 400\n%%Title: Survey Layout Vector\n%%Creator: Site Survey Stake Manager\n%%EndComments\n${svgString}`;
-                const blob = new Blob([epsContent], { type: 'application/postscript;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'survey_layout_vector.eps';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            } else if (type === 'pdf') {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-                pdf.text("Site Survey Stake Layout Plan", 40, 40);
-                pdf.text("Vector Grid & Coordinates (MS Mincho / Alphanumeric)", 40, 60);
-                
-                let yPos = 90;
-                pdf.setFontSize(10);
-                stakes.forEach((s, i) => {
-                    if (yPos > 520) {
-                        pdf.addPage();
-                        yPos = 40;
-                    }
-                    pdf.text(`[No.${i+1}] Name: ${s.name} | X: ${s.x} | Y: ${s.y} | Z: ${s.z}`, 40, yPos);
-                    yPos += 20;
-                });
-                
-                pdf.save('survey_layout_report.pdf');
-            }
-        }
-
-        // --- Utility ---
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-    </script>
-</body>
-</html>
+<!DOCTYPE html>  
+<html lang="ja" class="light">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>現場測量杭管理アプリ | Site Survey Stake Management App</title>  
+    <!-- Tailwind CSS CDN -->  
+    <script src="https://cdn.tailwindcss.com"></script>  
+    <script>  
+        tailwind.config = {  
+            darkMode: 'class',  
+            theme: {  
+                extend: {  
+                    fontFamily: {  
+                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],  
+                        serif: ['"MS Mincho"', '"MS 明朝"', '"Hiragino Mincho ProN"', 'serif'],  
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']  
+                    }  
+                }  
+            }  
+        }  
+    </script>  
+    <!-- SheetJS (xlsx) for Excel/CSV import/export -->  
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>  
+    <!-- jsPDF for PDF export -->  
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>  
+    <!-- Lucide Icons -->  
+    <script src="https://unpkg.com/lucide@latest"></script>  
+    <style>  
+        @media print {  
+            body { background: white !important; color: black !important; }  
+            .no-print { display: none !important; }  
+            .print-only { display: block !important; }  
+        }  
+    </style>  
+</head>  
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">  
+  
+    <!-- Header -->  
+    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 no-print">  
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">  
+            <div class="flex items-center space-x-3">  
+                <div class="bg-blue-600 text-white p-2 rounded-lg shadow">  
+                    <i data-lucide="compass" class="w-6 h-6"></i>  
+                </div>  
+                <div>  
+                    <h1 class="text-lg font-bold tracking-tight" data-i18n="appTitle">現場測量杭管理アプリ</h1>  
+                    <p class="text-xs text-slate-500 dark:text-slate-400" data-i18n="appSubtitle">Site Survey Stake Management System</p>  
+                </div>  
+            </div>  
+  
+            <div class="flex flex-wrap items-center gap-3">  
+                <!-- Language Selector -->  
+                <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600">  
+                    <i data-lucide="globe" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>  
+                    <select id="langSelect" class="bg-transparent text-sm font-medium focus:outline-none cursor-pointer">  
+                        <option value="ja">日本語</option>  
+                        <option value="en">English</option>  
+                        <option value="zh">中文</option>  
+                        <option value="ko">한국어</option>  
+                        <option value="fr">Français</option>  
+                        <option value="es">Español</option>  
+                    </select>  
+                </div>  
+  
+                <!-- Dark Mode Toggle -->  
+                <button id="themeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition" title="Toggle Theme">  
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block text-amber-400"></i>  
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden text-slate-600"></i>  
+                </button>  
+  
+                <!-- Quick Action Buttons -->  
+                <button onclick="window.print()" class="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-600 transition">  
+                    <i data-lucide="printer" class="w-4 h-4"></i>  
+                    <span data-i18n="printBtn">印刷</span>  
+                </button>  
+            </div>  
+        </div>  
+    </header>  
+  
+    <!-- Main Content -->  
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">  
+  
+        <!-- Toolbar / Action Bar -->  
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4 no-print">  
+            <div class="flex flex-wrap items-center gap-2">  
+                <button onclick="openModal()" class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm shadow transition">  
+                    <i data-lucide="plus" class="w-4 h-4"></i>  
+                    <span data-i18n="addStake">杭を追加</span>  
+                </button>  
+                <button onclick="triggerImport()" class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-3 py-2 rounded-lg font-medium text-sm border border-slate-200 dark:border-slate-600 transition">  
+                    <i data-lucide="upload" class="w-4 h-4"></i>  
+                    <span data-i18n="importBtn">インポート</span>  
+                </button>  
+                <input type="file" id="importFile" class="hidden" accept=".csv, .xlsx, .xls, .json" onchange="handleImport(event)">  
+                  
+                <div class="relative group">  
+                    <button class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-3 py-2 rounded-lg font-medium text-sm border border-slate-200 dark:border-slate-600 transition">  
+                        <i data-lucide="download" class="w-4 h-4"></i>  
+                        <span data-i18n="exportBtn">エクスポート</span>  
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-70"></i>  
+                    </button>  
+                    <div class="absolute left-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 hidden group-hover:block z-20">  
+                        <button onclick="exportData('csv')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
+                            <i data-lucide="file-text" class="w-4 h-4 text-emerald-600"></i><span>CSV (.csv)</span>  
+                        </button>  
+                        <button onclick="exportData('xlsx')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-green-600"></i><span>Excel (.xlsx)</span>  
+                        </button>  
+                        <button onclick="exportData('json')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
+                            <i data-lucide="code" class="w-4 h-4 text-blue-600"></i><span>JSON (.json)</span>  
+                        </button>  
+                    </div>  
+                </div>  
+            </div>  
+  
+            <div class="flex items-center space-x-3">  
+                <button onclick="saveData()" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm shadow transition">  
+                    <i data-lucide="save" class="w-4 h-4"></i>  
+                    <span data-i18n="saveBtn">保存</span>  
+                </button>  
+                <button onclick="clearAllData()" class="text-rose-600 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition" title="すべてクリア">  
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>  
+                </button>  
+            </div>  
+        </div>  
+  
+        <!-- Main Workspace Grid (Table & Map) -->  
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">  
+  
+            <!-- Stake Table Section (7 cols on lg) -->  
+            <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">  
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">  
+                    <h2 class="font-bold flex items-center space-x-2">  
+                        <i data-lucide="table" class="w-5 h-5 text-blue-500"></i>  
+                        <span data-i18n="tableTitle">杭一覧リスト</span>  
+                    </h2>  
+                    <span id="stakeCount" class="text-xs bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-full font-medium">0 杭</span>  
+                </div>  
+                <div class="overflow-x-auto flex-grow max-h-[500px]">  
+                    <table class="w-full text-left border-collapse">  
+                        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700 font-serif">  
+                            <tr>  
+                                <th class="p-3 w-12 text-center" data-i18n="colNo">No</th>  
+                                <th class="p-3" data-i18n="colName">杭名称</th>  
+                                <th class="p-3 text-right">X (N) [m]</th>  
+                                <th class="p-3 text-right">Y (E) [m]</th>  
+                                <th class="p-3 text-right">Z (H) [m]</th>  
+                                <th class="p-3 text-center" data-i18n="colPhoto">写真</th>  
+                                <th class="p-3 text-center no-print" data-i18n="colOrder">順序</th>  
+                                <th class="p-3 text-center no-print" data-i18n="colAction">操作</th>  
+                            </tr>  
+                        </thead>  
+                        <tbody id="stakeTableBody" class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">  
+                            <!-- Dynamic Rows -->  
+                        </tbody>  
+                    </table>  
+                </div>  
+            </div>  
+  
+            <!-- Map / Layout Drawing Section (5 cols on lg) -->  
+            <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">  
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">  
+                    <h2 class="font-bold flex items-center space-x-2">  
+                        <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>  
+                        <span data-i18n="mapTitle">配置図 (XY方眼ベクター / m単位)</span>  
+                    </h2>  
+                    <div class="flex items-center space-x-2">  
+                        <select id="mapScale" onchange="renderMap()" class="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs rounded-lg px-2 py-1 font-medium focus:outline-none cursor-pointer">  
+                            <option value="auto" data-i18n="scaleAuto">自動縮尺 (枠内最適化)</option>  
+                            <option value="100">1:100</option>  
+                            <option value="500">1:500</option>  
+                            <option value="1000">1:1000</option>  
+                            <option value="2500">1:2500</option>  
+                            <option value="5000">1:5000</option>  
+                        </select>  
+                        <div class="relative group no-print">  
+                            <button class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-1.5 rounded-lg border border-slate-200 dark:border-slate-600 transition" title="Vector Export">  
+                                <i data-lucide="download-cloud" class="w-4 h-4"></i>  
+                            </button>  
+                            <div class="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 hidden group-hover:block z-20">  
+                                <button onclick="exportVector('svg')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
+                                    <i data-lucide="file-code" class="w-4 h-4 text-amber-500"></i><span>SVG 形式</span>  
+                                </button>  
+                                <button onclick="exportVector('eps')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
+                                    <i data-lucide="file" class="w-4 h-4 text-purple-500"></i><span>EPS 形式</span>  
+                                </button>  
+                                <button onclick="exportVector('pdf')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center space-x-2">  
+                                    <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i><span>PDF 形式</span>  
+                                </button>  
+                            </div>  
+                        </div>  
+                    </div>  
+                </div>  
+                <div class="p-4 flex-grow flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 relative min-h-[400px]">  
+                    <!-- Vector Canvas Container -->  
+                    <div id="vectorMapContainer" class="w-full h-full flex items-center justify-center overflow-auto border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 p-2 shadow-inner">  
+                        <svg id="vectorMapSvg" class="w-full h-[380px] font-mono" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">  
+                            <!-- Rendered dynamically -->  
+                        </svg>  
+                    </div>  
+                    <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 flex justify-between w-full px-1">  
+                        <span id="mapScaleIndicator">Scale: Auto</span>  
+                        <span data-i18n="vectorNote">※m単位・枠内自動収縮対応</span>  
+                    </div>  
+                </div>  
+            </div>  
+  
+        </div>  
+  
+    </main>  
+  
+    <!-- Modal Form (Add/Edit Stake) -->  
+    <div id="stakeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">  
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 overflow-hidden transform transition-all">  
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-700/50">  
+                <h3 id="modalTitle" class="font-bold text-lg flex items-center space-x-2">  
+                    <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i>  
+                    <span data-i18n="modalAddTitle">杭の追加</span>  
+                </h3>  
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">  
+                    <i data-lucide="x" class="w-5 h-5"></i>  
+                </button>  
+            </div>  
+            <form id="stakeForm" onsubmit="saveStakeForm(event)" class="p-6 space-y-4">  
+                <input type="hidden" id="editIndex" value="-1">  
+                <div>  
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1" data-i18n="formName">杭名称 (英数字推奨)</label>  
+                    <input type="text" id="stakeName" required placeholder="例: P-101" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
+                </div>  
+                <div class="grid grid-cols-3 gap-3">  
+                    <div>  
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">X (N) [m]</label>  
+                        <input type="number" step="0.001" id="stakeX" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
+                    </div>  
+                    <div>  
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Y (E) [m]</label>  
+                        <input type="number" step="0.001" id="stakeY" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
+                    </div>  
+                    <div>  
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Z (H) [m]</label>  
+                        <input type="number" step="0.001" id="stakeZ" required placeholder="0.000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">  
+                    </div>  
+                </div>  
+                <div>  
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1" data-i18n="formPhoto">備考写真添付</label>  
+                    <input type="file" id="stakePhoto" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-slate-700 dark:file:text-slate-200 hover:file:bg-blue-100 cursor-pointer">  
+                    <div id="photoPreviewContainer" class="mt-2 hidden">  
+                        <img id="photoPreview" src="" alt="Preview" class="h-24 rounded-lg border border-slate-200 dark:border-slate-700 object-cover">  
+                    </div>  
+                </div>  
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">  
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-sm font-medium rounded-lg transition" data-i18n="cancelBtn">キャンセル</button>  
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow transition" data-i18n="saveBtnModal">保存する</button>  
+                </div>  
+            </form>  
+        </div>  
+    </div>  
+  
+    <!-- Photo View Modal -->  
+    <div id="photoModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closePhotoModal()">  
+        <div class="relative max-w-3xl max-h-[90vh]">  
+            <img id="modalFullPhoto" src="" alt="Enlarged Photo" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain">  
+            <button class="absolute -top-4 -right-4 bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 rounded-full shadow-lg hover:bg-slate-100 transition">  
+                <i data-lucide="x" class="w-5 h-5"></i>  
+            </button>  
+        </div>  
+    </div>  
+  
+    <!-- Footer -->  
+    <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-3 text-center text-xs text-slate-500 dark:text-slate-400 no-print">  
+        <p>&copy; 2026 現場測量杭管理アプリ. All rights reserved. | MS Mincho Font & Vector Support</p>  
+    </footer>  
+  
+    <!-- JavaScript Application Logic -->  
+    <script>  
+        // --- i18n Translations Dictionary ---  
+        const translations = {  
+            ja: {  
+                appTitle: "現場測量杭管理アプリ",  
+                appSubtitle: "Site Survey Stake Management System",  
+                printBtn: "印刷",  
+                addStake: "杭を追加",  
+                importBtn: "インポート",  
+                exportBtn: "エクスポート",  
+                saveBtn: "保存",  
+                tableTitle: "杭一覧リスト",  
+                colNo: "No",  
+                colName: "杭名称",  
+                colPhoto: "写真",  
+                colOrder: "順序",  
+                colAction: "操作",  
+                mapTitle: "配置図 (XY方眼ベクター / m単位)",  
+                scaleAuto: "自動縮尺 (枠内最適化)",  
+                vectorNote: "※m単位・枠内自動収縮対応",  
+                modalAddTitle: "杭の追加",  
+                modalEditTitle: "杭の編集",  
+                formName: "杭名称 (英数字推奨)",  
+                formPhoto: "備考写真添付",  
+                cancelBtn: "キャンセル",  
+                saveBtnModal: "保存する",  
+                noStakes: "杭データが登録されていません。"  
+            },  
+            en: {  
+                appTitle: "Site Survey Stake Manager",  
+                appSubtitle: "Precision Stake & Coordinate System",  
+                printBtn: "Print",  
+                addStake: "Add Stake",  
+                importBtn: "Import",  
+                exportBtn: "Export",  
+                saveBtn: "Save",  
+                tableTitle: "Stake List",  
+                colNo: "No",  
+                colName: "Stake Name",  
+                colPhoto: "Photo",  
+                colOrder: "Order",  
+                colAction: "Action",  
+                mapTitle: "Layout Map (XY Vector / Meters)",  
+                scaleAuto: "Auto Scale (Fit to Frame)",  
+                vectorNote: "*Meters unit & auto-fit frame supported",  
+                modalAddTitle: "Add New Stake",  
+                modalEditTitle: "Edit Stake",  
+                formName: "Stake Name (Alphanumeric recommended)",  
+                formPhoto: "Attach Photo",  
+                cancelBtn: "Cancel",  
+                saveBtnModal: "Save Stake",  
+                noStakes: "No stakes registered yet."  
+            },  
+            zh: {  
+                appTitle: "现场测量桩管理系统",  
+                appSubtitle: "测量桩与坐标高效管理",  
+                printBtn: "打印",  
+                addStake: "添加测量桩",  
+                importBtn: "导入",  
+                exportBtn: "导出",  
+                saveBtn: "保存",  
+                tableTitle: "测量桩一览",  
+                colNo: "编号",  
+                colName: "桩名",  
+                colPhoto: "照片",  
+                colOrder: "排序",  
+                colAction: "操作",  
+                mapTitle: "布置图 (XY矢量网格 / 米)",  
+                scaleAuto: "自动比例尺 (自适应)",  
+                vectorNote: "*支持以米为单位及自适应防溢出",  
+                modalAddTitle: "添加测量桩",  
+                modalEditTitle: "编辑测量桩",  
+                formName: "桩名称 (推荐使用英数字)",  
+                formPhoto: "备注照片",  
+                cancelBtn: "取消",  
+                saveBtnModal: "保存",  
+                noStakes: "暂无测量桩数据。"  
+            },  
+            ko: {  
+                appTitle: "현장 측량 말뚝 관리 앱",  
+                appSubtitle: "정밀 측량 말뚝 및 좌표 관리",  
+                printBtn: "인쇄",  
+                addStake: "말뚝 추가",  
+                importBtn: "가져오기",  
+                exportBtn: "내보내기",  
+                saveBtn: "저장",  
+                tableTitle: "말뚝 목록",  
+                colNo: "No",  
+                colName: "말뚝 명칭",  
+                colPhoto: "사진",  
+                colOrder: "순서",  
+                colAction: "작업",  
+                mapTitle: "배치도 (XY 벡터 / 미터)",  
+                scaleAuto: "자동 축척 (틀 맞춤)",  
+                vectorNote: "*미터 단위 및 프레임 이탈 방지",  
+                modalAddTitle: "말뚝 추가",  
+                modalEditTitle: "말뚝 편집",  
+                formName: "말뚝 명칭 (영숫자 권장)",  
+                formPhoto: "참고 사진 첨부",  
+                cancelBtn: "취소",  
+                saveBtnModal: "저장하기",  
+                noStakes: "등록된 말뚝 데이터가 없습니다."  
+            },  
+            fr: {  
+                appTitle: "Gestionnaire de Piquets",  
+                appSubtitle: "Système de Gestion Topographique",  
+                printBtn: "Imprimer",  
+                addStake: "Ajouter Piquet",  
+                importBtn: "Importer",  
+                exportBtn: "Exporter",  
+                saveBtn: "Enregistrer",  
+                tableTitle: "Liste des Piquets",  
+                colNo: "No",  
+                colName: "Nom",  
+                colPhoto: "Photo",  
+                colOrder: "Ordre",  
+                colAction: "Action",  
+                mapTitle: "Plan (Grille XY / Mètres)",  
+                scaleAuto: "Échelle Auto (Ajustée)",  
+                vectorNote: "*Unité en mètres et anti-débordement",  
+                modalAddTitle: "Ajouter un Piquet",  
+                modalEditTitle: "Modifier le Piquet",  
+                formName: "Nom du piquet (Alphanumérique)",  
+                formPhoto: "Photo (optionnelle)",  
+                cancelBtn: "Annuler",  
+                saveBtnModal: "Enregistrer",  
+                noStakes: "Aucun piquet enregistré."  
+            },  
+            es: {  
+                appTitle: "Gestor de Estacas Topográficas",  
+                appSubtitle: "Sistema de Control de Estacas",  
+                printBtn: "Imprimir",  
+                addStake: "Añadir Estaca",  
+                importBtn: "Importar",  
+                exportBtn: "Exportar",  
+                saveBtn: "Guardar",  
+                tableTitle: "Lista de Estacas",  
+                colNo: "No",  
+                colName: "Nombre",  
+                colPhoto: "Foto",  
+                colOrder: "Orden",  
+                colAction: "Acción",  
+                mapTitle: "Plano (Cuadrícula XY / Metros)",  
+                scaleAuto: "Escala Automática (Ajustada)",  
+                vectorNote: "*Unidad en metros y anti-desbordamiento",  
+                modalAddTitle: "Añadir Estaca",  
+                modalEditTitle: "Editar Estaca",  
+                formName: "Nombre de estaca (Alfanumérico)",  
+                formPhoto: "Adjuntar Foto",  
+                cancelBtn: "Cancelar",  
+                saveBtnModal: "Guardar",  
+                noStakes: "No hay estacas registradas."  
+            }  
+        };  
+  
+        // --- Application State ---  
+        let currentLang = 'ja';  
+        let stakes = [];  
+  
+        // --- Initialization ---  
+        document.addEventListener('DOMContentLoaded', () => {  
+            loadDataFromStorage();  
+            initTheme();  
+            renderTable();  
+            renderMap();  
+            lucide.createIcons();  
+  
+            // Language event listener  
+            document.getElementById('langSelect').addEventListener('change', (e) => {  
+                currentLang = e.target.value;  
+                updateLanguage();  
+            });  
+  
+            // Photo preview listener  
+            document.getElementById('stakePhoto').addEventListener('change', function(e) {  
+                const file = e.target.files[0];  
+                if (file) {  
+                    const reader = new FileReader();  
+                    reader.onload = function(evt) {  
+                        const preview = document.getElementById('photoPreview');  
+                        preview.src = evt.target.result;  
+                        document.getElementById('photoPreviewContainer').classList.remove('hidden');  
+                    }  
+                    reader.readAsDataURL(file);  
+                }  
+            });  
+        });  
+  
+        // --- Theme Management ---  
+        function initTheme() {  
+            const savedTheme = localStorage.getItem('theme') || 'light';  
+            if (savedTheme === 'dark') {  
+                document.documentElement.classList.add('dark');  
+            } else {  
+                document.documentElement.classList.remove('dark');  
+            }  
+            document.getElementById('themeToggle').addEventListener('click', () => {  
+                document.documentElement.classList.toggle('dark');  
+                const isDark = document.documentElement.classList.contains('dark');  
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');  
+                renderMap();  
+            });  
+        }  
+  
+        // --- i18n Updater ---  
+        function updateLanguage() {  
+            const t = translations[currentLang] || translations.ja;  
+            document.querySelectorAll('[data-i18n]').forEach(el => {  
+                const key = el.getAttribute('data-i18n');  
+                if (t[key]) {  
+                    el.textContent = t[key];  
+                }  
+            });  
+            renderTable();  
+        }  
+  
+        // --- Data Management & LocalStorage ---  
+        function saveData() {  
+            try {  
+                localStorage.setItem('survey_stakes_data', JSON.stringify(stakes));  
+                alert(currentLang === 'ja' ? 'データを保存しました。' : 'Data saved successfully.');  
+            } catch (err) {  
+                console.error(err);  
+                alert('Failed to save data.');  
+            }  
+        }  
+  
+        function loadDataFromStorage() {  
+            try {  
+                const saved = localStorage.getItem('survey_stakes_data');  
+                if (saved) {  
+                    stakes = JSON.parse(saved);  
+                }  
+            } catch (err) {  
+                console.error(err);  
+            }  
+        }  
+  
+        function clearAllData() {  
+            if (confirm(currentLang === 'ja' ? 'すべてのデータを削除してもよろしいですか？' : 'Are you sure to clear all data?')) {  
+                stakes = [];  
+                renderTable();  
+                renderMap();  
+                localStorage.removeItem('survey_stakes_data');  
+            }  
+        }  
+  
+        // --- Table Rendering & Manipulation ---  
+        function renderTable() {  
+            const tbody = document.getElementById('stakeTableBody');  
+            tbody.innerHTML = '';  
+            document.getElementById('stakeCount').textContent = `${stakes.length} 杭`;  
+  
+            if (stakes.length === 0) {  
+                const tr = document.createElement('tr');  
+                tr.innerHTML = `<td colspan="8" class="text-center py-8 text-slate-400 font-serif" data-i18n="noStakes">${translations[currentLang].noStakes}</td>`;  
+                tbody.appendChild(tr);  
+                return;  
+            }  
+  
+            stakes.forEach((stake, index) => {  
+                const tr = document.createElement('tr');  
+                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition font-mono";  
+                  
+                const hasPhoto = stake.photo && stake.photo.length > 0;  
+                  
+                tr.innerHTML = `  
+                    <td class="p-3 text-center font-bold text-slate-500">${index + 1}</td>  
+                    <td class="p-3 font-semibold font-sans">${escapeHtml(stake.name)}</td>  
+                    <td class="p-3 text-right">${Number(stake.x).toFixed(3)}</td>  
+                    <td class="p-3 text-right">${Number(stake.y).toFixed(3)}</td>  
+                    <td class="p-3 text-right">${Number(stake.z).toFixed(3)}</td>  
+                    <td class="p-3 text-center">  
+                        ${hasPhoto ? `<button onclick="viewPhoto('${stake.photo}')" class="text-blue-600 hover:text-blue-800 underline text-xs font-sans">表示</button>` : '<span class="text-slate-300 dark:text-slate-600">-</span>'}  
+                    </td>  
+                    <td class="p-3 text-center no-print space-x-1">  
+                        <button onclick="moveStake(${index}, -1)" ${index === 0 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition" title="Up">  
+                            <i data-lucide="chevron-up" class="w-4 h-4"></i>  
+                        </button>  
+                        <button onclick="moveStake(${index}, 1)" ${index === stakes.length - 1 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition" title="Down">  
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>  
+                        </button>  
+                    </td>  
+                    <td class="p-3 text-center no-print space-x-1">  
+                        <button onclick="editStake(${index})" class="p-1 rounded text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition" title="Edit">  
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>  
+                        </button>  
+                        <button onclick="deleteStake(${index})" class="p-1 rounded text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition" title="Delete">  
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>  
+                        </button>  
+                    </td>  
+                `;  
+                tbody.appendChild(tr);  
+            });  
+            lucide.createIcons();  
+        }  
+  
+        function moveStake(index, direction) {  
+            const newIndex = index + direction;  
+            if (newIndex < 0 || newIndex >= stakes.length) return;  
+            const temp = stakes[index];  
+            stakes[index] = stakes[newIndex];  
+            stakes[newIndex] = temp;  
+            renderTable();  
+            renderMap();  
+        }  
+  
+        function deleteStake(index) {  
+            if (confirm(currentLang === 'ja' ? 'この杭を削除しますか？' : 'Delete this stake?')) {  
+                stakes.splice(index, 1);  
+                renderTable();  
+                renderMap();  
+            }  
+        }  
+  
+        // --- Modal Handling ---  
+        function openModal(editIdx = -1) {  
+            document.getElementById('stakeModal').classList.remove('hidden');  
+            document.getElementById('editIndex').value = editIdx;  
+            const titleEl = document.getElementById('modalTitle');  
+              
+            if (editIdx >= 0) {  
+                titleEl.innerHTML = `<i data-lucide="edit" class="w-5 h-5 text-blue-600"></i><span>${translations[currentLang].modalEditTitle}</span>`;  
+                const s = stakes[editIdx];  
+                document.getElementById('stakeName').value = s.name;  
+                document.getElementById('stakeX').value = s.x;  
+                document.getElementById('stakeY').value = s.y;  
+                document.getElementById('stakeZ').value = s.z;  
+                if (s.photo) {  
+                    document.getElementById('photoPreview').src = s.photo;  
+                    document.getElementById('photoPreviewContainer').classList.remove('hidden');  
+                } else {  
+                    document.getElementById('photoPreviewContainer').classList.add('hidden');  
+                }  
+            } else {  
+                titleEl.innerHTML = `<i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i><span>${translations[currentLang].modalAddTitle}</span>`;  
+                document.getElementById('stakeForm').reset();  
+                document.getElementById('photoPreviewContainer').classList.add('hidden');  
+            }  
+            lucide.createIcons();  
+        }  
+  
+        function closeModal() {  
+            document.getElementById('stakeModal').classList.add('hidden');  
+        }  
+  
+        function editStake(index) {  
+            openModal(index);  
+        }  
+  
+        function saveStakeForm(e) {  
+            e.preventDefault();  
+            try {  
+                const editIdx = parseInt(document.getElementById('editIndex').value);  
+                const name = document.getElementById('stakeName').value.trim();  
+                const x = parseFloat(document.getElementById('stakeX').value);  
+                const y = parseFloat(document.getElementById('stakeY').value);  
+                const z = parseFloat(document.getElementById('stakeZ').value);  
+                const previewSrc = document.getElementById('photoPreview').src;  
+                const hasNewPhoto = !document.getElementById('photoPreviewContainer').classList.contains('hidden') && previewSrc;  
+  
+                const stakeData = {  
+                    name,  
+                    x,  
+                    y,  
+                    z,  
+                    photo: hasNewPhoto ? previewSrc : (editIdx >= 0 ? stakes[editIdx].photo : '')  
+                };  
+  
+                if (editIdx >= 0) {  
+                    stakes[editIdx] = stakeData;  
+                } else {  
+                    stakes.push(stakeData);  
+                }  
+  
+                closeModal();  
+                renderTable();  
+                renderMap();  
+            } catch (err) {  
+                console.error(err);  
+                alert('Error saving stake.');  
+            }  
+        }  
+  
+        function viewPhoto(src) {  
+            document.getElementById('modalFullPhoto').src = src;  
+            document.getElementById('photoModal').classList.remove('hidden');  
+        }  
+  
+        function closePhotoModal() {  
+            document.getElementById('photoModal').classList.add('hidden');  
+        }  
+  
+        // --- Vector Map Rendering (m単位対応・枠内自動収縮) ---  
+        function renderMap() {  
+            const svg = document.getElementById('vectorMapSvg');  
+            svg.innerHTML = '';  
+  
+            if (stakes.length === 0) {  
+                svg.innerHTML = `<text x="300" y="200" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">No Coordinate Data to Render</text>`;  
+                document.getElementById('mapScaleIndicator').textContent = 'Scale: -';  
+                return;  
+            }  
+  
+            const isDark = document.documentElement.classList.contains('dark');  
+            const gridColor = isDark ? '#334155' : '#e2e8f0';  
+            const axisColor = isDark ? '#64748b' : '#94a3b8';  
+            const textColor = isDark ? '#cbd5e1' : '#475569';  
+            const pointColor = '#2563eb';  
+  
+            // SVG 描画領域の固定解像度  
+            const width = 600;  
+            const height = 400;  
+            const padding = 60; // ラベルやテキストがはみ出ないためのマージン（px）  
+  
+            // 全登録杭のX（N), Y（E）座標配列を取得  
+            const xs = stakes.map(s => s.x);  
+            const ys = stakes.map(s => s.y);  
+  
+            const minX = Math.min(...xs);  
+            const maxX = Math.max(...xs);  
+            const minY = Math.min(...ys);  
+            const maxY = Math.max(...ys);  
+  
+            // m単位でのスパン（幅と高さ）を算出  
+            let dx = maxX - minX;  
+            let dy = maxY - minY;  
+  
+            // 杭が1本だけの場合や、同一座標線上にある場合のゼロ除算・縮尺崩れ防止（最小1mを確保）  
+            if (dx < 1) dx = 1;  
+            if (dy < 1) dy = 1;  
+  
+            // 杭群の中心座標 (m単位)  
+            const centerX = (minX + maxX) / 2;  
+            const centerY = (minY + maxY) / 2;  
+  
+            // 有効描画ピクセル領域  
+            const drawWidth = width - padding * 2;  
+            const drawHeight = height - padding * 2;  
+  
+            // 縮尺の適用（自動または固定）  
+            const scaleOption = document.getElementById('mapScale').value;  
+            let scale; // 1メートルあたりの描画ピクセル数 (px / m)  
+  
+            if (scaleOption === 'auto') {  
+                // 自動縮尺：プレビュー枠（padding含む）に必ず収まるようにスケールを自動計算  
+                // 枠の縦横比に対して杭の広がりが収まるよう余裕を持たせる（1.2倍マージン）  
+                const marginFactor = 1.25;  
+                const requiredWidthSpan = dx * marginFactor;  
+                const requiredHeightSpan = dy * marginFactor;  
+  
+                const scaleX = drawWidth / requiredWidthSpan;  
+                const scaleY = drawHeight / requiredHeightSpan;  
+                scale = Math.min(scaleX, scaleY);  
+  
+                document.getElementById('mapScaleIndicator').textContent = `Scale: Auto (1:${Math.round(100/scale) * 10 || 100} 相当)`;  
+            } else {  
+                // 固定縮尺が選択された場合  
+                const targetScaleRatio = parseInt(scaleOption);  
+                // 1:S の場合のm単位換算スケール（見やすいように調整）  
+                scale = 1000 / targetScaleRatio;  
+                document.getElementById('mapScaleIndicator').textContent = `Scale: 1:${targetScaleRatio}`;  
+            }  
+  
+            // m単位座標をSVGピクセル座標に変換する関数  
+            // X: North (縦軸 / 上がプラス), Y: East (横軸 / 右がプラス)  
+            function toSvgCoords(x, y) {  
+                const px = (width / 2) + (y - centerY) * scale;  
+                const py = (height / 2) - (x - centerX) * scale; // SVGのY軸は下向きのため反転  
+                return { x: px, y: py };  
+            }  
+  
+            // グリッド線（方眼）の描画 (m単位で等間隔に配置)  
+            const gridSteps = 5;  
+            for (let i = 0; i <= gridSteps; i++) {  
+                const ratio = i / gridSteps;  
+                const gx = minX + dx * ratio;  
+                const gy = minY + dy * ratio;  
+  
+                // 縦方向・横方向のグリッド線  
+                const p1 = toSvgCoords(minX, gy);  
+                const p2 = toSvgCoords(maxX, gy);  
+                svg.innerHTML += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 4" />`;  
+  
+                const q1 = toSvgCoords(gx, minY);  
+                const q2 = toSvgCoords(gx, maxY);  
+                svg.innerHTML += `<line x1="${q1.x}" y1="${q1.y}" x2="${q2.x}" y2="${q2.y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 4" />`;  
+  
+                // 座標軸の数値ラベル (m単位)  
+                svg.innerHTML += `<text x="${p1.x}" y="${height - 12}" font-size="8" fill="${axisColor}" text-anchor="middle" font-family="monospace">Y:${gy.toFixed(1)}m</text>`;  
+                svg.innerHTML += `<text x="25" y="${q1.y + 3}" font-size="8" fill="${axisColor}" text-anchor="middle" font-family="monospace">X:${gx.toFixed(1)}m</text>`;  
+            }  
+  
+            // 外枠ボーダーライン  
+            svg.innerHTML += `<rect x="${padding * 0.6}" y="${padding * 0.6}" width="${width - padding * 1.2}" height="${height - padding * 1.2}" fill="none" stroke="${axisColor}" stroke-width="1.5" />`;  
+  
+            // 各登録杭の描画 (枠外に飛び出ない位置に正確にプロット)  
+            stakes.forEach((stake, idx) => {  
+                const pt = toSvgCoords(stake.x, stake.y);  
+                  
+                // 杭のポイント（十字＆円）およびラベル  
+                svg.innerHTML += `  
+                    <g class="stake-node" data-index="${idx}">  
+                        <circle cx="${pt.x}" cy="${pt.y}" r="4.5" fill="${pointColor}" stroke="#ffffff" stroke-width="1.5" />  
+                        <line x1="${pt.x - 7}" y1="${pt.y}" x2="${pt.x + 7}" y2="${pt.y}" stroke="${pointColor}" stroke-width="1" />  
+                        <line x1="${pt.x}" y1="${pt.y - 7}" x2="${pt.x}" y2="${pt.y + 7}" stroke="${pointColor}" stroke-width="1" />  
+                        <!-- 杭名称とXY座標 (m単位) -->  
+                        <text x="${pt.x + 8}" y="${pt.y - 4}" font-family="serif" font-size="10" font-weight="bold" fill="${textColor}">[No.${idx + 1}] ${escapeHtml(stake.name)}</text>  
+                        <text x="${pt.x + 8}" y="${pt.y + 7}" font-family="monospace" font-size="8" fill="${axisColor}">X:${Number(stake.x).toFixed(2)}m</text>  
+                        <text x="${pt.x + 8}" y="${pt.y + 16}" font-family="monospace" font-size="8" fill="${axisColor}">Y:${Number(stake.y).toFixed(2)}m</text>  
+                    </g>  
+                `;  
+            });  
+        }  
+  
+        // --- Import / Export Functions ---  
+        function triggerImport() {  
+            document.getElementById('importFile').click();  
+        }  
+  
+        function handleImport(event) {  
+            const file = event.target.files[0];  
+            if (!file) return;  
+  
+            const reader = new FileReader();  
+            const fileName = file.name.toLowerCase();  
+  
+            if (fileName.endsWith('.json')) {  
+                reader.onload = function(e) {  
+                    try {  
+                        const parsed = JSON.parse(e.target.result);  
+                        if (Array.isArray(parsed)) {  
+                            stakes = parsed;  
+                            renderTable();  
+                            renderMap();  
+                            alert('JSON import successful.');  
+                        }  
+                    } catch (err) {  
+                        alert('Invalid JSON file format.');  
+                    }  
+                };  
+                reader.readAsText(file);  
+            } else if (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {  
+                reader.onload = function(e) {  
+                    try {  
+                        const data = new Uint8Array(e.target.result);  
+                        const workbook = XLSX.read(data, { type: 'array' });  
+                        const firstSheetName = workbook.SheetNames[0];  
+                        const worksheet = workbook.Sheets[firstSheetName];  
+                        const json = XLSX.utils.sheet_to_json(worksheet);  
+  
+                        if (json && json.length > 0) {  
+                            stakes = json.map((row, i) => ({  
+                                name: String(row.Name || row.name || row['杭名称'] || `P-${i+1}`),  
+                                x: parseFloat(row.X || row.x || row['X座標'] || 0),  
+                                y: parseFloat(row.Y || row.y || row['Y座標'] || 0),  
+                                z: parseFloat(row.Z || row.z || row['Z座標'] || 0),  
+                                photo: row.Photo || row.photo || ''  
+                            }));  
+                            renderTable();  
+                            renderMap();  
+                            alert('Spreadsheet import successful.');  
+                        }  
+                    } catch (err) {  
+                        console.error(err);  
+                        alert('Failed to parse spreadsheet file.');  
+                    }  
+                };  
+                reader.readAsArrayBuffer(file);  
+            }  
+            event.target.value = '';  
+        }  
+  
+        function exportData(format) {  
+            if (stakes.length === 0) {  
+                alert('No data to export.');  
+                return;  
+            }  
+  
+            if (format === 'json') {  
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stakes, null, 2));  
+                const downloadAnchor = document.createElement('a');  
+                downloadAnchor.setAttribute("href", dataStr);  
+                downloadAnchor.setAttribute("download", "survey_stakes.json");  
+                document.body.appendChild(downloadAnchor);  
+                downloadAnchor.click();  
+                downloadAnchor.remove();  
+            } else if (format === 'csv' || format === 'xlsx') {  
+                const worksheetData = stakes.map((s, i) => ({  
+                    No: i + 1,  
+                    Name: s.name,  
+                    'X(m)': s.x,  
+                    'Y(m)': s.y,  
+                    'Z(m)': s.z,  
+                    PhotoAttached: s.photo ? 'Yes' : 'No'  
+                }));  
+                const worksheet = XLSX.utils.json_to_sheet(worksheetData);  
+                const workbook = XLSX.utils.book_new();  
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Stakes");  
+                  
+                if (format === 'csv') {  
+                    XLSX.writeFile(workbook, "survey_stakes.csv");  
+                } else {  
+                    XLSX.writeFile(workbook, "survey_stakes.xlsx");  
+                }  
+            }  
+        }  
+  
+        // --- Vector Export (SVG, EPS, PDF) ---  
+        function exportVector(type) {  
+            const svgElement = document.getElementById('vectorMapSvg');  
+            const svgString = new XMLSerializer().serializeToString(svgElement);  
+  
+            if (type === 'svg') {  
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });  
+                const url = URL.createObjectURL(blob);  
+                const a = document.createElement('a');  
+                a.href = url;  
+                a.download = 'survey_layout_vector.svg';  
+                document.body.appendChild(a);  
+                a.click();  
+                a.remove();  
+            } else if (type === 'eps') {  
+                const epsContent = `%PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 600 400\n%%Title: Survey Layout Vector\n%%Creator: Site Survey Stake Manager\n%%EndComments\n${svgString}`;  
+                const blob = new Blob([epsContent], { type: 'application/postscript;charset=utf-8' });  
+                const url = URL.createObjectURL(blob);  
+                const a = document.createElement('a');  
+                a.href = url;  
+                a.download = 'survey_layout_vector.eps';  
+                document.body.appendChild(a);  
+                a.click();  
+                a.remove();  
+            } else if (type === 'pdf') {  
+                const { jsPDF } = window.jspdf;  
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });  
+                pdf.text("Site Survey Stake Layout Plan (Meters)", 40, 40);  
+                pdf.text("Vector Grid & Coordinates", 40, 60);  
+                  
+                let yPos = 90;  
+                pdf.setFontSize(10);  
+                stakes.forEach((s, i) => {  
+                    if (yPos > 520) {  
+                        pdf.addPage();  
+                        yPos = 40;  
+                    }  
+                    pdf.text(`[No.${i+1}] Name: ${s.name} | X: ${s.x}m | Y: ${s.y}m | Z: ${s.z}m`, 40, yPos);  
+                    yPos += 20;  
+                });  
+                  
+                pdf.save('survey_layout_report.pdf');  
+            }  
+        }  
+  
+        // --- Utility ---  
+        function escapeHtml(str) {  
+            return String(str)  
+                .replace(/&/g, '&amp;')  
+                .replace(/</g, '&lt;')  
+                .replace(/>/g, '&gt;')  
+                .replace(/"/g, '&quot;')  
+                .replace(/'/g, '&#039;');  
+        }  
+    </script>  
+</body>  
+</html>  
