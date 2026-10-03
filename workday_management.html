@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>出勤日管理および請求集計システム</title>
     <style>
-        /* Base Styling & Design Tokens */
         :root {
             --primary-color: #1e3a8a;
             --primary-light: #3b82f6;
@@ -95,7 +94,6 @@
         button.btn-danger { background-color: var(--danger-color); }
         button.btn-success { background-color: var(--success-color); }
 
-        /* Navigation Tabs */
         .tabs {
             display: flex;
             background-color: #e2e8f0;
@@ -121,7 +119,6 @@
             border-top: 3px solid var(--primary-color);
         }
 
-        /* Container Layout */
         .container {
             max-width: 1200px;
             margin: 1.5rem auto;
@@ -140,7 +137,6 @@
             display: block;
         }
 
-        /* Form Controls & Tables */
         .card {
             background: #ffffff;
             border: 1px solid var(--border-color);
@@ -178,6 +174,37 @@
             color: #64748b;
         }
 
+        /* Site Selection Helpers */
+        .site-select-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .site-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .site-chip {
+            background-color: #e2e8f0;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            transition: all 0.15s ease;
+        }
+
+        .site-chip:hover {
+            background-color: var(--primary-light);
+            color: white;
+            border-color: var(--primary-light);
+        }
+
         .data-table-container {
             overflow-x: auto;
             margin-top: 1rem;
@@ -210,7 +237,6 @@
             text-align: right;
         }
 
-        /* Dynamic Item Configuration Grid */
         .config-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -221,7 +247,6 @@
             .config-grid { grid-template-columns: 1fr; }
         }
 
-        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -273,7 +298,6 @@
             gap: 10px;
         }
 
-        /* Screen Preview Paper Mockup */
         .paper-preview {
             background: white;
             padding: 2.5rem;
@@ -284,7 +308,6 @@
             color: #000;
         }
 
-        /* Toast Notifications */
         #toast {
             position: fixed;
             bottom: 20px;
@@ -299,13 +322,12 @@
             font-weight: 500;
         }
 
-        /* STRICT SINGLE PRINT ISOLATION RULES */
         #print-area {
             display: none;
         }
 
+        /* Strict Print Rules */
         @media print {
-            /* Hide absolutely everything on the page by default */
             html, body {
                 background: white !important;
                 margin: 0 !important;
@@ -317,28 +339,20 @@
                 display: none !important;
             }
 
-            /* Unhide ONLY the print area and its internal components */
             #print-area, #print-area * {
                 visibility: visible !important;
                 display: block !important;
             }
 
-            /* Inline display override for table rows/cells in print mode */
             #print-area table {
                 display: table !important;
                 width: 100% !important;
                 border-collapse: collapse !important;
                 margin-bottom: 1.5rem !important;
             }
-            #print-area thead {
-                display: table-header-group !important;
-            }
-            #print-area tbody {
-                display: table-row-group !important;
-            }
-            #print-area tr {
-                display: table-row !important;
-            }
+            #print-area thead { display: table-header-group !important; }
+            #print-area tbody { display: table-row-group !important; }
+            #print-area tr { display: table-row !important; }
             #print-area th, #print-area td {
                 display: table-cell !important;
                 border: 1px solid #000 !important;
@@ -351,7 +365,6 @@
                 text-align: center !important;
             }
 
-            /* Display inline spans or flex containers inside print area */
             #print-area .print-meta,
             #print-area .print-summary-box,
             #print-area .print-summary-row {
@@ -439,28 +452,47 @@
         </div>
     </header>
 
-    <!-- Navigation Tabs -->
     <nav class="tabs no-print">
         <button class="tab-btn active" onclick="switchTab('daily')" id="tab-daily-btn">📅 日別入力・集計</button>
         <button class="tab-btn" onclick="switchTab('monthly')" id="tab-monthly-btn">📄 月別請求書・集計報告書</button>
-        <button class="tab-btn" onclick="switchTab('settings')" id="tab-settings-btn">⚙️ 項目/単価設定</button>
+        <button class="tab-btn" onclick="switchTab('settings')" id="tab-settings-btn">⚙️ 項目/単価/現場設定</button>
         <button class="tab-btn" onclick="switchTab('data')" id="tab-data-btn">💾 データ管理/入出力</button>
     </nav>
 
     <div class="container no-print">
-        <!-- TAB 1: DAILY ENTRY -->
         <section id="tab-daily" class="tab-content active">
             <div class="card">
-                <div class="card-title" id="txt-daily-entry-title">日別出勤・稼働データの登録</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem;">
+                    <div class="card-title" style="margin-bottom:0;" id="txt-daily-entry-title">日別出勤・稼働データの登録</div>
+                    <button onclick="openBatchModal()" class="btn-accent">⚡ <span id="txt-batch-open-btn">期間一括登録モーダル</span></button>
+                </div>
+                
                 <div class="grid-form">
                     <div class="form-group">
                         <label id="txt-date-label">日付</label>
-                        <input type="date" id="entry-date">
+                        <input type="date" id="entry-date" onchange="onDateChanged()">
                     </div>
-                    <div class="form-group">
-                        <label id="txt-site-label">現場・プロジェクト名</label>
-                        <input type="text" id="entry-site" placeholder="例: 第1ビル建設現場">
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <label id="txt-site-label">現場・プロジェクト名</label>
+                            <button onclick="copyPreviousDayData()" class="btn-secondary" style="padding:2px 8px; font-size:0.75rem;" id="txt-copy-prev-btn">📋 前日のデータ(現場・数量)を完全コピー</button>
+                        </div>
+                        <div class="site-select-group">
+                            <!-- Datalist connected input for auto-complete -->
+                            <input type="text" id="entry-site" list="site-history-list" placeholder="現場名を選択または直接入力" style="flex-grow:1;">
+                            <datalist id="site-history-list"></datalist>
+
+                            <!-- Select dropdown from master sites -->
+                            <select id="site-master-dropdown" onchange="selectSiteFromMaster(this.value)" style="max-width:180px;">
+                                <option value="">マスターから選択</option>
+                            </select>
+                        </div>
+
+                        <!-- Quick select site chips (Recent 6 Sites) -->
+                        <div class="site-chips" id="recent-site-chips"></div>
                     </div>
+
                     <div class="form-group">
                         <label id="txt-note-label">備考</label>
                         <input type="text" id="entry-note" placeholder="特記事項">
@@ -485,7 +517,7 @@
             </div>
 
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:10px;">
                     <div class="card-title" style="margin-bottom:0;" id="txt-daily-list-title">登録済み日別一覧 (昇順)</div>
                     <div class="form-group" style="flex-direction:row; align-items:center; gap:8px;">
                         <label id="txt-filter-month-label">表示月:</label>
@@ -503,7 +535,6 @@
             </div>
         </section>
 
-        <!-- TAB 2: MONTHLY INVOICE & REPORT -->
         <section id="tab-monthly" class="tab-content">
             <div class="card">
                 <div class="card-title" id="txt-monthly-calc-title">請求書・集計報告書の設定と作成</div>
@@ -572,10 +603,34 @@
             </div>
         </section>
 
-        <!-- TAB 3: SETTINGS & PRICING -->
         <section id="tab-settings" class="tab-content">
+            <div class="card">
+                <div class="card-title" id="txt-default-site-setting-title">🏢 現場マスター・デフォルト現場名の設定</div>
+                <p style="font-size:0.85rem; color:#64748b; margin-bottom:0.75rem;" id="txt-default-site-desc">デフォルト現場名を設定すると、新規日付を選択した際に自動で入力されます。マスター登録した現場は入力ドロップダウンリストから一発選択可能です。</p>
+                <div class="grid-form" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label>デフォルト（基本）現場名</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="default-site-name" placeholder="例: 本社第一作業現場" style="flex-grow:1;">
+                            <button onclick="saveDefaultSite()" class="btn-success">💾 保存</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>新規現場マスター追加</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="new-master-site-name" placeholder="例: 港区再開発現場" style="flex-grow:1;">
+                            <button onclick="addSiteToMaster()" class="btn-success">＋ 追加</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:1rem;">
+                    <label style="font-weight:bold; font-size:0.85rem; color:#64748b;">登録済み現場マスター一覧</label>
+                    <div class="site-chips" id="master-site-chips" style="margin-top:6px;"></div>
+                </div>
+            </div>
+
             <div class="config-grid">
-                <!-- Worker Config -->
                 <div class="card">
                     <div class="card-title" id="txt-worker-setting-title">👷 作業員種別・単価設定</div>
                     <div class="grid-form" style="grid-template-columns: 1fr 1fr auto;">
@@ -597,7 +652,6 @@
                     </div>
                 </div>
 
-                <!-- Machine Config -->
                 <div class="card">
                     <div class="card-title" id="txt-machine-setting-title">🚜 機械種別・単価設定</div>
                     <div class="grid-form" style="grid-template-columns: 1fr 1fr auto;">
@@ -621,7 +675,6 @@
             </div>
         </section>
 
-        <!-- TAB 4: DATA MANAGEMENT & EXPORT/IMPORT -->
         <section id="tab-data" class="tab-content">
             <div class="card">
                 <div class="card-title" id="txt-export-title">📤 データ出力・エクスポート</div>
@@ -655,11 +708,56 @@
         </section>
     </div>
 
-    <!-- PRINT PREVIEW MODAL -->
+    <!-- Batch Entry Modal -->
+    <div id="batch-modal" class="modal-overlay no-print">
+        <div class="modal-body" style="max-width:700px;">
+            <div class="modal-header">
+                <h3 id="txt-batch-modal-title">⚡ 期間一括登録・更新</h3>
+                <button onclick="closeBatchModal()" style="background:none; border:none; font-size:1.5rem; color:white; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-content-area" style="background:#fff;">
+                <p style="font-size:0.85rem; color:#64748b; margin-bottom:1rem;" id="txt-batch-modal-desc">指定した期間（開始日～終了日）内のすべての日に同一の出勤データを一括で作成・更新します。</p>
+                <div class="grid-form">
+                    <div class="form-group">
+                        <label id="txt-batch-start-label">開始日</label>
+                        <input type="date" id="batch-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label id="txt-batch-end-label">終了日</label>
+                        <input type="date" id="batch-end-date">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label id="txt-batch-site-label">現場名</label>
+                    <input type="text" id="batch-site" placeholder="一括設定する現場名" list="site-history-list">
+                </div>
+                <div class="config-grid">
+                    <div>
+                        <h5 style="margin-bottom:0.5rem; color:var(--primary-color);">👷 作業員 (人)</h5>
+                        <div id="batch-workers-container" class="grid-form"></div>
+                    </div>
+                    <div>
+                        <h5 style="margin-bottom:0.5rem; color:var(--secondary-color);">🚜 機械 (台)</h5>
+                        <div id="batch-machines-container" class="grid-form"></div>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label id="txt-batch-note-label">備考</label>
+                    <input type="text" id="batch-note" placeholder="一括設定用備考">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeBatchModal()" class="btn-secondary">キャンセル</button>
+                <button onclick="executeBatchRegistration()" class="btn-success">⚡ 一括登録を実行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Preview Modal -->
     <div id="print-modal" class="modal-overlay no-print">
         <div class="modal-body">
             <div class="modal-header">
-                <h3 id="txt-modal-title">🖨️ 印刷プレビュー</h3>
+                <h3 id="txt-modal-title">🖨 印刷プレビュー</h3>
                 <button onclick="closePrintPreview()" style="background:none; border:none; font-size:1.5rem; color:white; cursor:pointer;">&times;</button>
             </div>
             <div class="modal-content-area">
@@ -672,14 +770,12 @@
         </div>
     </div>
 
-    <!-- PRINT AREA CONTAINER (Strictly 1 Set Single Document DOM node) -->
+    <!-- Print Area Document Container -->
     <div id="print-area"></div>
 
-    <!-- TOAST NOTIFICATION -->
     <div id="toast"></div>
 
     <script>
-        // Default Master Items Configuration
         const DEFAULT_WORKERS = [
             { id: 'w1', name: '一般作業員', price: 15000 },
             { id: 'w2', name: '熟練作業員', price: 20000 },
@@ -692,23 +788,23 @@
             { id: 'm3', name: '高所作業車', price: 22000 }
         ];
 
-        // Application State
         let appState = {
             lang: 'ja',
+            defaultSiteName: '',
+            masterSites: [],
             workerTypes: [...DEFAULT_WORKERS],
             machineTypes: [...DEFAULT_MACHINES],
-            dailyEntries: [], // { id, date, site, note, workers: {w1: 2}, machines: {m1: 1} }
+            dailyEntries: [],
             clientName: '',
             issuerName: ''
         };
 
-        // Translations Dictionary
         const I18N = {
             ja: {
                 title: "出勤日管理・請求集計システム",
                 dailyTab: "📅 日別入力・集計",
                 monthlyTab: "📄 月別請求書・集計報告書",
-                settingsTab: "⚙ 項目/単価設定",
+                settingsTab: "⚙ 項目/単価/現場設定",
                 dataTab: "💾 データ管理/入出力",
                 dailyEntryTitle: "日別出勤・稼働データの登録",
                 dateLabel: "日付",
@@ -750,7 +846,7 @@
                 title: "Attendance & Billing System",
                 dailyTab: "📅 Daily Entry",
                 monthlyTab: "📄 Monthly Invoice",
-                settingsTab: "⚙️ Items & Prices",
+                settingsTab: "⚙️ Items & Sites",
                 dataTab: "💾 Data Management",
                 dailyEntryTitle: "Daily Attendance Entry",
                 dateLabel: "Date",
@@ -792,7 +888,7 @@
                 title: "考勤与出账汇总系统",
                 dailyTab: "📅 每日录入",
                 monthlyTab: "📄 月度账单報告",
-                settingsTab: "⚙️ 项目与单价",
+                settingsTab: "⚙️ 项目与工地",
                 dataTab: "💾 数据管理",
                 dailyEntryTitle: "每日出勤及机械使用录入",
                 dateLabel: "日期",
@@ -834,7 +930,7 @@
                 title: "出勤與請款彙總系統",
                 dailyTab: "📅 每日登錄",
                 monthlyTab: "📄 月度帳單報告",
-                settingsTab: "⚙️ 項目與單價",
+                settingsTab: "⚙️ 項目與工地",
                 dataTab: "💾 資料管理",
                 dailyEntryTitle: "每日出勤及機械使用登錄",
                 dateLabel: "日期",
@@ -876,7 +972,7 @@
                 title: "출근 및 청구 집계 시스템",
                 dailyTab: "📅 일별 입력",
                 monthlyTab: "📄 월별 청구서",
-                settingsTab: "⚙️ 단가 설정",
+                settingsTab: "⚙️ 단가 및 현장",
                 dataTab: "💾 데이터 관리",
                 dailyEntryTitle: "일별 출근 데이터 등록",
                 dateLabel: "날짜",
@@ -902,7 +998,7 @@
                 exportTitle: "📤 데이터 내보내기",
                 importTitle: "📥 데이터 가져오기",
                 dangerTitle: "⚠️ 데이터 삭제",
-                previewModalTitle: "🖨️️ 인쇄 미리보기",
+                previewModalTitle: "🖨 인쇄 미리보기",
                 execPrintBtn: "🖨️ 인쇄 실행",
                 invoiceTitle: "청구서 및 집계 보고서",
                 totalBilling: "총 청구금액 (VAT포함)",
@@ -918,7 +1014,7 @@
                 title: "Gestion de Présence & Facturation",
                 dailyTab: "📅 Saisie Journalière",
                 monthlyTab: "📄 Facture Mensuelle",
-                settingsTab: "⚙️ Tarifs & Articles",
+                settingsTab: "⚙️ Tarifs & Chantiers",
                 dataTab: "💾 Données",
                 dailyEntryTitle: "Saisie Quotidienne des Présences",
                 dateLabel: "Date",
@@ -944,8 +1040,8 @@
                 exportTitle: "📤 Exporter Données",
                 importTitle: "📥 Importer Données",
                 dangerTitle: "⚠️ Effacer Données",
-                previewModalTitle: "🖨️ Aperçu Avant Impression",
-                execPrintBtn: "🖨️️ Lancer l'impression",
+                previewModalTitle: "🖨️️ Aperçu Avant Impression",
+                execPrintBtn: "🖨 Lancer l'impression",
                 invoiceTitle: "FACTURE ET RAPPORT DE SYNTHÈSE",
                 totalBilling: "Total Général (TTC)",
                 subtotal: "Sous-total (HT)",
@@ -960,7 +1056,7 @@
                 title: "Control de Asistencia y Facturación",
                 dailyTab: "📅 Registro Diario",
                 monthlyTab: "📄 Factura Mensual",
-                settingsTab: "⚙️ Precios y Rubros",
+                settingsTab: "⚙️ Precios y Sitios",
                 dataTab: "💾 Gestión Datos",
                 dailyEntryTitle: "Registro Diario de Asistencia",
                 dateLabel: "Fecha",
@@ -1000,10 +1096,9 @@
             }
         };
 
-        // IndexedDB Secondary Sync
         let db = null;
         function initDB() {
-            const request = indexedDB.open("AttendanceBillingDB", 1);
+            const request = indexedDB.open("AttendanceBillingDB", 2);
             request.onupgradeneeded = function(e) {
                 db = e.target.result;
                 if (!db.objectStoreNames.contains("appData")) {
@@ -1036,6 +1131,7 @@
             if (localData) {
                 try {
                     appState = Object.assign(appState, JSON.parse(localData));
+                    if (!appState.masterSites) appState.masterSites = [];
                     initUI();
                 } catch (e) {
                     console.error("Failed parsing localStorage", e);
@@ -1046,6 +1142,7 @@
                 req.onsuccess = function() {
                     if (req.result && req.result.data) {
                         appState = Object.assign(appState, req.result.data);
+                        if (!appState.masterSites) appState.masterSites = [];
                     }
                     initUI();
                 };
@@ -1063,16 +1160,264 @@
             document.getElementById('monthly-start-month').value = currentMonth;
             document.getElementById('monthly-end-month').value = currentMonth;
 
+            if (appState.defaultSiteName) {
+                document.getElementById('default-site-name').value = appState.defaultSiteName;
+            }
+
             if (appState.clientName) document.getElementById('billing-client-name').value = appState.clientName;
             if (appState.issuerName) document.getElementById('billing-issuer-name').value = appState.issuerName;
 
             applyLanguage(appState.lang || 'ja');
             renderEntryInputFields();
+            updateSiteControls();
+            autoSetSiteForDate(today);
             renderConfigTables();
             renderDailyTable();
             updateMonthlySummary();
         }
 
+        /* --- Fast Site Selection Logic --- */
+        function updateSiteControls() {
+            // 1. Datalist (AutoComplete History)
+            const datalist = document.getElementById('site-history-list');
+            datalist.innerHTML = '';
+            
+            const allSites = [...new Set([
+                ...(appState.masterSites || []),
+                ...appState.dailyEntries.map(e => e.site)
+            ].filter(Boolean))];
+
+            allSites.forEach(site => {
+                const opt = document.createElement('option');
+                opt.value = site;
+                datalist.appendChild(opt);
+            });
+
+            // 2. Master Dropdown
+            const masterSelect = document.getElementById('site-master-dropdown');
+            masterSelect.innerHTML = '<option value="">マスターから選択</option>';
+            (appState.masterSites || []).forEach(site => {
+                const opt = document.createElement('option');
+                opt.value = site;
+                opt.textContent = site;
+                masterSelect.appendChild(opt);
+            });
+
+            // 3. Master Site Chips in Settings
+            const masterChips = document.getElementById('master-site-chips');
+            if (masterChips) {
+                masterChips.innerHTML = '';
+                if (!appState.masterSites || appState.masterSites.length === 0) {
+                    masterChips.innerHTML = '<span style="font-size:0.8rem; color:#94a3b8;">未登録</span>';
+                } else {
+                    appState.masterSites.forEach(site => {
+                        const chip = document.createElement('span');
+                        chip.className = 'site-chip';
+                        chip.style.backgroundColor = '#fef08a';
+                        chip.style.borderColor = '#fde047';
+                        chip.innerHTML = `${escapeHTML(site)} <span onclick="removeSiteFromMaster('${escapeHTML(site)}', event)" style="color:red; font-weight:bold; margin-left:4px;">&times;</span>`;
+                        chip.onclick = () => { document.getElementById('entry-site').value = site; };
+                        masterChips.appendChild(chip);
+                    });
+                }
+            }
+
+            // 4. Recent Sites Chips
+            renderRecentSiteChips();
+        }
+
+        function renderRecentSiteChips() {
+            const container = document.getElementById('recent-site-chips');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const recentSites = [...new Set(appState.dailyEntries.map(e => e.site).filter(Boolean))].slice(-6).reverse();
+
+            if (recentSites.length === 0) return;
+
+            recentSites.forEach(site => {
+                const chip = document.createElement('span');
+                chip.className = 'site-chip';
+                chip.innerText = site;
+                chip.onclick = () => {
+                    document.getElementById('entry-site').value = site;
+                };
+                container.appendChild(chip);
+            });
+        }
+
+        function selectSiteFromMaster(val) {
+            if (val) {
+                document.getElementById('entry-site').value = val;
+            }
+        }
+
+        function saveDefaultSite() {
+            const site = document.getElementById('default-site-name').value.trim();
+            appState.defaultSiteName = site;
+            saveDataToStorage();
+            showToast('デフォルト現場名を保存しました');
+            autoSetSiteForDate(document.getElementById('entry-date').value);
+        }
+
+        function addSiteToMaster() {
+            const name = document.getElementById('new-master-site-name').value.trim();
+            if (!name) return alert('現場名を入力してください');
+            if (!appState.masterSites) appState.masterSites = [];
+            if (!appState.masterSites.includes(name)) {
+                appState.masterSites.push(name);
+                saveDataToStorage();
+                updateSiteControls();
+                document.getElementById('new-master-site-name').value = '';
+                showToast('現場マスターに追加しました');
+            }
+        }
+
+        function removeSiteFromMaster(siteName, event) {
+            if (event) event.stopPropagation();
+            if (confirm(`現場マスター「${siteName}」を削除しますか？`)) {
+                appState.masterSites = appState.masterSites.filter(s => s !== siteName);
+                saveDataToStorage();
+                updateSiteControls();
+            }
+        }
+
+        function onDateChanged() {
+            const dateVal = document.getElementById('entry-date').value;
+            autoSetSiteForDate(dateVal);
+        }
+
+        function autoSetSiteForDate(dateVal) {
+            const siteInput = document.getElementById('entry-site');
+            // If already filled with user input, keep it. Otherwise load defaults.
+            const existingEntry = appState.dailyEntries.find(e => e.date === dateVal);
+            if (existingEntry && existingEntry.site) {
+                siteInput.value = existingEntry.site;
+            } else if (appState.defaultSiteName) {
+                siteInput.value = appState.defaultSiteName;
+            } else {
+                // Get the last recorded site if available
+                const lastEntry = appState.dailyEntries[appState.dailyEntries.length - 1];
+                if (lastEntry && lastEntry.site) {
+                    siteInput.value = lastEntry.site;
+                }
+            }
+        }
+
+        function copyPreviousDayData() {
+            const currentDateVal = document.getElementById('entry-date').value;
+            if (!currentDateVal) return alert('日付を指定してください');
+
+            const prevDateObj = new Date(currentDateVal);
+            prevDateObj.setDate(prevDateObj.getDate() - 1);
+            const prevDateStr = prevDateObj.toISOString().split('T')[0];
+
+            const prevEntry = appState.dailyEntries.find(e => e.date === prevDateStr);
+            if (!prevEntry) {
+                showToast(`前日 (${prevDateStr}) のデータが見つかりませんでした`);
+                return;
+            }
+
+            document.getElementById('entry-site').value = prevEntry.site || '';
+            document.getElementById('entry-note').value = prevEntry.note || '';
+
+            appState.workerTypes.forEach(w => {
+                const el = document.getElementById(`entry-w-${w.id}`);
+                if (el) el.value = (prevEntry.workers && prevEntry.workers[w.id]) || 0;
+            });
+
+            appState.machineTypes.forEach(m => {
+                const el = document.getElementById(`entry-m-${m.id}`);
+                if (el) el.value = (prevEntry.machines && prevEntry.machines[m.id]) || 0;
+            });
+
+            showToast(`前日 (${prevDateStr}) のデータを復元しました`);
+        }
+
+        /* --- Batch Registration --- */
+        function openBatchModal() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('batch-start-date').value = today;
+            document.getElementById('batch-end-date').value = today;
+            document.getElementById('batch-site').value = document.getElementById('entry-site').value || appState.defaultSiteName || '';
+
+            const wContainer = document.getElementById('batch-workers-container');
+            const mContainer = document.getElementById('batch-machines-container');
+
+            wContainer.innerHTML = '';
+            appState.workerTypes.forEach(w => {
+                wContainer.innerHTML += `<div class="form-group"><label>${w.name}</label><input type="number" id="batch-w-${w.id}" class="number-input" min="0" value="0"></div>`;
+            });
+
+            mContainer.innerHTML = '';
+            appState.machineTypes.forEach(m => {
+                mContainer.innerHTML += `<div class="form-group"><label>${m.name}</label><input type="number" id="batch-m-${m.id}" class="number-input" min="0" value="0"></div>`;
+            });
+
+            document.getElementById('batch-modal').classList.add('active');
+        }
+
+        function closeBatchModal() {
+            document.getElementById('batch-modal').classList.remove('active');
+        }
+
+        function executeBatchRegistration() {
+            const start = document.getElementById('batch-start-date').value;
+            const end = document.getElementById('batch-end-date').value;
+            const site = document.getElementById('batch-site').value.trim();
+            const note = document.getElementById('batch-note').value.trim();
+
+            if (!start || !end) return alert('開始日と終了日を正しく設定してください');
+            if (start > end) return alert('開始日は終了日以前に設定してください');
+
+            const workers = {};
+            appState.workerTypes.forEach(w => {
+                const val = parseInt(document.getElementById(`batch-w-${w.id}`).value) || 0;
+                if (val > 0) workers[w.id] = val;
+            });
+
+            const machines = {};
+            appState.machineTypes.forEach(m => {
+                const val = parseInt(document.getElementById(`batch-m-${m.id}`).value) || 0;
+                if (val > 0) machines[m.id] = val;
+            });
+
+            let curr = new Date(start);
+            const endDateObj = new Date(end);
+            let count = 0;
+
+            while (curr <= endDateObj) {
+                const dateStr = curr.toISOString().split('T')[0];
+                const existingIdx = appState.dailyEntries.findIndex(e => e.date === dateStr && e.site === site);
+
+                const entryObj = {
+                    id: existingIdx >= 0 ? appState.dailyEntries[existingIdx].id : 'e_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    date: dateStr,
+                    site,
+                    note,
+                    workers,
+                    machines
+                };
+
+                if (existingIdx >= 0) {
+                    appState.dailyEntries[existingIdx] = entryObj;
+                } else {
+                    appState.dailyEntries.push(entryObj);
+                }
+
+                count++;
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            appState.dailyEntries.sort((a, b) => a.date.localeCompare(b.date));
+            saveDataToStorage();
+            updateSiteControls();
+            renderDailyTable();
+            closeBatchModal();
+            showToast(`${count} 日分の一括登録が完了しました`);
+        }
+
+        /* --- I18n & Tab Navigation --- */
         function changeLanguage(lang) {
             appState.lang = lang;
             saveDataToStorage();
@@ -1272,18 +1617,18 @@
                 appState.dailyEntries.push(entryObj);
             }
 
-            // Ascending Date Order Sorting
             appState.dailyEntries.sort((a, b) => a.date.localeCompare(b.date));
 
             saveDataToStorage();
+            updateSiteControls();
             renderDailyTable();
             resetDailyForm();
             showToast('出勤データを保存しました');
         }
 
         function resetDailyForm() {
-            document.getElementById('entry-site').value = '';
             document.getElementById('entry-note').value = '';
+            autoSetSiteForDate(document.getElementById('entry-date').value);
             appState.workerTypes.forEach(w => {
                 const el = document.getElementById(`entry-w-${w.id}`);
                 if (el) el.value = '0';
@@ -1337,6 +1682,7 @@
             if (confirm('このログを削除しますか？')) {
                 appState.dailyEntries = appState.dailyEntries.filter(e => e.id !== id);
                 saveDataToStorage();
+                updateSiteControls();
                 renderDailyTable();
                 updateMonthlySummary();
             }
@@ -1582,17 +1928,13 @@
             document.getElementById('print-modal').classList.remove('active');
         }
 
-        /**
-         * STRICT SINGLE PRINT EXECUTION FIX
-         * Clears #print-area entirely and mounts ONLY 1 instance of generated print document.
-         */
         function triggerInvoicePrint() {
             const data = getCalculatedInvoiceData();
             const htmlContent = generatePrintHTML(data);
 
             const printArea = document.getElementById('print-area');
-            printArea.innerHTML = ''; // Absolute purge
-            printArea.innerHTML = htmlContent; // Single injection
+            printArea.innerHTML = '';
+            printArea.innerHTML = htmlContent;
 
             closePrintPreview();
             
@@ -1601,6 +1943,7 @@
             }, 150);
         }
 
+        /* --- Export / Import Utilities --- */
         function exportData(format) {
             const dataStr = JSON.stringify(appState, null, 2);
             const dateStr = new Date().toISOString().split('T')[0];
@@ -1704,6 +2047,7 @@
                     const importedState = JSON.parse(e.target.result);
                     if (importedState.dailyEntries && importedState.workerTypes) {
                         appState = importedState;
+                        if (!appState.masterSites) appState.masterSites = [];
                         saveDataToStorage();
                         initUI();
                         showToast('データのインポートが完了しました');
@@ -1726,6 +2070,8 @@
                 localStorage.removeItem('attendance_billing_state');
                 appState = {
                     lang: 'ja',
+                    defaultSiteName: '',
+                    masterSites: [],
                     workerTypes: [...DEFAULT_WORKERS],
                     machineTypes: [...DEFAULT_MACHINES],
                     dailyEntries: [],
