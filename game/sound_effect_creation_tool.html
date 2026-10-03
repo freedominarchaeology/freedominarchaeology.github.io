@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Web Audio FX Synthesizer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif', 'sans-serif'],
+                    },
+                    colors: {
+                        synth: {
+                            dark: '#0a0a0c',
+                            panel: '#121218',
+                            border: '#2a2a38',
+                            accent: '#06b6d4',
+                            accentHover: '#0891b2',
+                            danger: '#f43f5e',
+                            warning: '#f59e0b',
+                            success: '#10b981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif;
+        }
+        /* Custom scrollbar for synth layout */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121218;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+        .knob-shadow {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 2px rgba(255,255,255,0.1);
+        }
+        .panel-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-synth-dark text-gray-200 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-synth-panel border-b border-synth-border px-4 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-cyan-500/20">⚡</div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-cyan-400" data-i18n="app_title">ADVANCED FX SYNTHESIZER</h1>
+                <p class="text-xs text-gray-400" data-i18n="app_subtitle">Professional Web Audio Effect & Sound Generator</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Global Master Volume -->
+            <div class="flex items-center space-x-2 bg-synth-dark px-3 py-1.5 rounded-lg border border-synth-border">
+                <span class="text-xs text-gray-400" data-i18n="master_vol">MASTER</span>
+                <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.8" class="w-20 accent-cyan-500 cursor-pointer">
+                <span id="masterVolumeVal" class="text-xs text-cyan-400 font-mono w-8 text-right">80%</span>
+            </div>
+
+            <!-- Language Selector -->
+            <div class="flex items-center space-x-2">
+                <select id="languageSelect" class="bg-synth-dark border border-synth-border text-xs rounded px-2.5 py-1.5 text-gray-300 focus:outline-none focus:border-cyan-500 cursor-pointer">
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ko">한국어</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 p-4 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- Left Column: Source Generators (4 Cols) -->
+        <div class="lg:col-span-5 flex flex-col space-y-4">
+            
+            <!-- Source Selection Tabs -->
+            <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow">
+                <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-3 flex items-center justify-between">
+                    <span data-i18n="section_source">1. Sound Source Generator</span>
+                    <span id="activeSourceIndicator" class="w-2 h-2 rounded-full bg-gray-600"></span>
+                </h2>
+
+                <div class="grid grid-cols-4 gap-1 mb-4 bg-synth-dark p-1 rounded-lg border border-synth-border">
+                    <button class="source-tab py-2 text-xs font-medium rounded transition-all text-cyan-400 bg-synth-panel shadow" data-target="panel-text" data-i18n="tab_text">テキスト</button>
+                    <button class="source-tab py-2 text-xs font-medium rounded transition-all text-gray-400 hover:text-gray-200" data-target="panel-mic" data-i18n="tab_mic">マイク</button>
+                    <button class="source-tab py-2 text-xs font-medium rounded transition-all text-gray-400 hover:text-gray-200" data-target="panel-freq" data-i18n="tab_freq">周波数</button>
+                    <button class="source-tab py-2 text-xs font-medium rounded transition-all text-gray-400 hover:text-gray-200" data-target="panel-scale" data-i18n="tab_scale">音階</button>
+                </div>
+
+                <!-- Source Panels -->
+                <div id="source-panels-container">
+                    <!-- 1. Text to Sound Panel -->
+                    <div id="panel-text" class="source-panel space-y-3">
+                        <label class="block text-xs text-gray-400" data-i18n="text_input_label">テキストイメージ / キーワード</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="textSoundInput" value="Laser Beam FX 🚀" class="flex-1 bg-synth-dark border border-synth-border rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-cyan-500">
+                            <button id="btnTextSynth" class="bg-cyan-600 hover:bg-cyan-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-cyan-600/20" data-i18n="btn_synthesize">合成して再生</button>
+                        </div>
+                        <p class="text-[11px] text-gray-500" data-i18n="text_hint">入力された文字列のハッシュと文字特性を解析し、ユニークなFM/ノイズ合成サウンドを生成します。</p>
+                    </div>
+
+                    <!-- 2. Mic Sampling Panel -->
+                    <div id="panel-mic" class="source-panel space-y-3 hidden">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400" data-i18n="mic_status">サンプリング状態: 待機中</span>
+                            <span id="micTimer" class="font-mono text-xs text-cyan-400">00:00</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="btnRecordMic" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-xs transition flex items-center justify-center space-x-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
+                                <span data-i18n="btn_record">録音開始</span>
+                            </button>
+                            <button id="btnPlayMic" disabled class="flex-1 bg-synth-dark border border-synth-border hover:bg-synth-border text-gray-300 font-bold py-2 rounded text-xs transition disabled:opacity-40" data-i18n="btn_play_sample">サンプル再生</button>
+                        </div>
+                    </div>
+
+                    <!-- 3. Frequency Panel -->
+                    <div id="panel-freq" class="source-panel space-y-3 hidden">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-400" data-i18n="freq_label">周波数 (Frequency)</span>
+                            <span id="freqValueDisplay" class="font-mono text-cyan-400">440 Hz</span>
+                        </div>
+                        <input type="range" id="freqSlider" min="20" max="5000" step="1" value="440" class="w-full accent-cyan-500 cursor-pointer">
+                        <div class="grid grid-cols-4 gap-1 pt-1">
+                            <button class="wave-type bg-synth-dark border border-cyan-500 text-cyan-400 text-xs py-1 rounded" data-wave="sine">Sine</button>
+                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500" data-wave="square">Square</button>
+                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500" data-wave="sawtooth">Saw</button>
+                            <button class="wave-type bg-synth-dark border border-synth-border text-gray-400 text-xs py-1 rounded hover:border-gray-500" data-wave="triangle">Triangle</button>
+                        </div>
+                        <button id="btnPlayFreq" class="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-2 rounded text-xs transition" data-i18n="btn_tone_on">トーンON / 連続発音</button>
+                    </div>
+
+                    <!-- 4. Musical Scale Panel -->
+                    <div id="panel-scale" class="source-panel space-y-3 hidden">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-400" data-i18n="scale_root">ルート音 (Root Note)</span>
+                            <select id="scaleRootSelect" class="bg-synth-dark border border-synth-border text-xs rounded px-2 py-1 text-cyan-400">
+                                <option value="C">C (Do)</option>
+                                <option value="C#">C#</option>
+                                <option value="D">D (Re)</option>
+                                <option value="D#">D#</option>
+                                <option value="E">E (Mi)</option>
+                                <option value="F">F (Fa)</option>
+                                <option value="F#">F#</option>
+                                <option value="G">G (So)</option>
+                                <option value="G#">G#</option>
+                                <option value="A">A (La)</option>
+                                <option value="A#">A#</option>
+                                <option value="B">B (Ti)</option>
+                            </select>
+                        </div>
+                        <!-- Virtual Keyboard / Touch Pad -->
+                        <div id="virtualKeyboard" class="grid grid-cols-8 gap-1 bg-synth-dark p-2 rounded-lg border border-synth-border h-24 select-none">
+                            <!-- Dynamically generated keys -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- File Import & Rhythm / Touch Pad (Pad 5 requirement) -->
+            <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow flex-1 flex flex-col space-y-4">
+                <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest" data-i18n="section_import">2. 音声ファイル インポート & パッド演奏</h2>
+                
+                <!-- File Upload -->
+                <div class="relative border-2 border-dashed border-synth-border hover:border-cyan-500 rounded-lg p-3 text-center cursor-pointer transition bg-synth-dark group">
+                    <input type="file" id="audioFileInput" accept="audio/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div class="flex items-center justify-center space-x-2">
+                        <span class="text-lg">📁</span>
+                        <div class="text-left">
+                            <p class="text-xs text-gray-300 font-medium group-hover:text-cyan-400 transition" data-i18n="drop_file_label">サウンドファイルをインポート (wav, mp3, ogg, flac...)</p>
+                            <p id="importedFileName" class="text-[10px] text-gray-500 truncate max-w-[240px]">WAV, MP3, OGG, AAC, FLAC, WebM 対応</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Touch / Drag Rhythm Pads (Requirement 5) -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-gray-400" data-i18n="touch_pad_label">タッチ & ドラッグ リズムパッド (XY / Touch Pad)</span>
+                        <span id="padTouchStatus" class="text-[10px] font-mono text-cyan-400">TOUCH: OFF</span>
+                    </div>
+                    <div id="xyPad" class="w-full h-32 bg-synth-dark border border-synth-border rounded-lg relative overflow-hidden cursor-crosshair touch-none flex items-center justify-center group">
+                        <div class="absolute inset-0 bg-gradient-to-tr from-cyan-950/20 to-indigo-950/20 pointer-events-none"></div>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-xs text-gray-600 tracking-widest uppercase font-mono" data-i18n="xy_placeholder">DRAG OR TAP HERE FOR FX MODULATION</span>
+                        </div>
+                        <div id="xyCursor" class="w-6 h-6 rounded-full bg-cyan-500/50 border-2 border-cyan-400 absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 hidden shadow-lg shadow-cyan-500/50"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Guitar/Effect Pedal Board & Master Controls (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-4">
+
+            <!-- Effects Pedalboard (Requirement 6, 7, 8) -->
+            <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest flex items-center space-x-2">
+                        <span data-i18n="section_effects">3. エフェクトペダルボード (Guitar FX Rack)</span>
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="btnBypassAll" class="bg-synth-dark border border-synth-border hover:border-yellow-500 text-xs px-3 py-1 rounded text-yellow-400 transition" data-i18n="btn_bypass">BYPASS ALL</button>
+                        <button id="btnAddEffect" class="bg-cyan-600 hover:bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded transition shadow" data-i18n="btn_add_fx">+ エフェクト追加</button>
+                    </div>
+                </div>
+
+                <!-- Active Effects Rack Container -->
+                <div id="effectsRack" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                    <!-- Dynamically added effect pedals will appear here -->
+                </div>
+            </div>
+
+            <!-- Tempo & Pitch Control + Export / Playback (Requirement 9, 10) -->
+            <div class="bg-synth-panel border border-synth-border rounded-xl p-4 panel-glow grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- Time & Pitch Section -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider" data-i18n="section_time_pitch">4. テンポ & ピッチコントロール</h3>
+                    
+                    <!-- Tempo Control (Time Stretch simulation) -->
+                    <div class="bg-synth-dark p-3 rounded-lg border border-synth-border space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-400" data-i18n="tempo_label">テンポ倍率 (Tempo Stretch)</span>
+                            <span id="tempoValue" class="font-mono text-cyan-400">1.00x</span>
+                        </div>
+                        <input type="range" id="tempoSlider" min="0.5" max="2.0" step="0.05" value="1.0" class="w-full accent-cyan-500 cursor-pointer">
+                    </div>
+
+                    <!-- Pitch Shift Control -->
+                    <div class="bg-synth-dark p-3 rounded-lg border border-synth-border space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-400" data-i18n="pitch_label">ピッチシフト (半音 / Semitones)</span>
+                            <span id="pitchValue" class="font-mono text-cyan-400">0 semitones</span>
+                        </div>
+                        <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0" class="w-full accent-cyan-500 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Master Output & Export Section -->
+                <div class="flex flex-col justify-between space-y-3">
+                    <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider" data-i18n="section_output">5. 試聴 & 書き出し (Export)</h3>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnPlayMaster" class="bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-black font-bold py-3 px-4 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2">
+                            <span>▶</span>
+                            <span data-i18n="btn_play_master">サウンド再生</span>
+                        </button>
+                        <button id="btnStopMaster" class="bg-synth-dark border border-synth-border hover:bg-synth-border text-gray-300 font-bold py-3 px-4 rounded-lg text-xs transition flex items-center justify-center space-x-2">
+                            <span>⏹</span>
+                            <span data-i18n="btn_stop_master">停止</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-synth-dark p-3 rounded-lg border border-synth-border flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-300 font-medium" data-i18n="export_wav_title">WAVファイルとして書き出し</p>
+                            <p class="text-[10px] text-gray-500" data-i18n="export_wav_desc">エフェクト適用後の音源をダウンロード</p>
+                        </div>
+                        <button id="btnExportWav" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold px-4 py-2 rounded text-xs transition shadow-lg shadow-emerald-600/20" data-i18n="btn_export">ダウンロード</button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-synth-panel border-t border-synth-border py-2 px-4 text-center text-xs text-gray-500">
+        Advanced Web Audio Synthesizer & FX Rack — Single Page Offline Ready Application
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Internationalization (i18n) Dictionary ---
+        const i18nData = {
+            ja: {
+                app_title: "ADVANCED FX SYNTHESIZER",
+                app_subtitle: "プロフェッショナル Webオーディオ エフェクト & サウンドジェネレーター",
+                master_vol: "マスター",
+                section_source: "1. サウンドソース ジェネレーター",
+                tab_text: "テキスト",
+                tab_mic: "マイク",
+                tab_freq: "周波数",
+                tab_scale: "音階",
+                text_input_label: "テキストイメージ / キーワード",
+                btn_synthesize: "合成して再生",
+                text_hint: "入力された文字列のハッシュと文字特性を解析し、ユニークなFM/ノイズ合成サウンドを生成します。",
+                mic_status: "サンプリング状態: 待機中",
+                btn_record: "録音開始",
+                btn_play_sample: "サンプル再生",
+                freq_label: "周波数 (Frequency)",
+                btn_tone_on: "トーンON / 連続発音",
+                scale_root: "ルート音 (Root Note)",
+                section_import: "2. 音声ファイル インポート & パッド演奏",
+                drop_file_label: "サウンドファイルをインポート (wav, mp3, ogg, flac...)",
+                touch_pad_label: "タッチ & ドラッグ リズムパッド (XY / Touch Pad)",
+                xy_placeholder: "ドラッグまたはタップしてFXモジュレーション",
+                section_effects: "3. エフェクトペダルボード (Guitar FX Rack)",
+                btn_bypass: "BYPASS ALL",
+                btn_add_fx: "+ エフェクト追加",
+                section_time_pitch: "4. テンポ & ピッチコントロール",
+                tempo_label: "テンポ倍率 (Tempo Stretch)",
+                pitch_label: "ピッチシフト (半音 / Semitones)",
+                section_output: "5. 試聴 & 書き出し (Export)",
+                btn_play_master: "サウンド再生",
+                btn_stop_master: "停止",
+                export_wav_title: "WAVファイルとして書き出し",
+                export_wav_desc: "エフェクト適用後の音源をダウンロード",
+                btn_export: "ダウンロード"
+            },
+            en: {
+                app_title: "ADVANCED FX SYNTHESIZER",
+                app_subtitle: "Professional Web Audio Effect & Sound Generator",
+                master_vol: "MASTER",
+                section_source: "1. Sound Source Generator",
+                tab_text: "Text",
+                tab_mic: "Mic",
+                tab_freq: "Freq",
+                tab_scale: "Scale",
+                text_input_label: "Text Image / Keyword",
+                btn_synthesize: "Synthesize",
+                text_hint: "Analyzes text hash and character traits to generate unique FM/noise synthesized sound FX.",
+                mic_status: "Sampling Status: Ready",
+                btn_record: "Start Recording",
+                btn_play_sample: "Play Sample",
+                freq_label: "Frequency",
+                btn_tone_on: "Tone ON / Continuous",
+                scale_root: "Root Note",
+                section_import: "2. Audio File Import & Pad",
+                drop_file_label: "Import Sound File (wav, mp3, ogg, flac...)",
+                touch_pad_label: "Touch & Drag Rhythm Pad (XY / Touch)",
+                xy_placeholder: "DRAG OR TAP HERE FOR FX MODULATION",
+                section_effects: "3. Effects Pedalboard (Guitar FX Rack)",
+                btn_bypass: "BYPASS ALL",
+                btn_add_fx: "+ Add Effect",
+                section_time_pitch: "4. Tempo & Pitch Control",
+                tempo_label: "Tempo Stretch",
+                pitch_label: "Pitch Shift (Semitones)",
+                section_output: "5. Preview & Export",
+                btn_play_master: "Play Sound",
+                btn_stop_master: "Stop",
+                export_wav_title: "Export as WAV File",
+                export_wav_desc: "Download processed audio mix",
+                btn_export: "Download"
+            },
+            zh: {
+                app_title: "高级效果合成器",
+                app_subtitle: "专业网页音频效果与声音生成器",
+                master_vol: "主音量",
+                section_source: "1. 声音源生成器",
+                tab_text: "文本",
+                tab_mic: "麦克风",
+                tab_freq: "频率",
+                tab_scale: "音阶",
+                text_input_label: "文本印象 / 关键词",
+                btn_synthesize: "合成并播放",
+                text_hint: "分析输入文本的哈希和字符特性，生成独特的FM/噪声合成音效。",
+                mic_status: "采样状态: 就绪",
+                btn_record: "开始录音",
+                btn_play_sample: "播放样本",
+                freq_label: "频率 (Frequency)",
+                btn_tone_on: "开启连续音",
+                scale_root: "根音 (Root Note)",
+                section_import: "2. 音频文件导入 & 击打垫",
+                drop_file_label: "导入声音文件 (wav, mp3, ogg, flac...)",
+                touch_pad_label: "触摸与拖拽节奏垫 (XY / 触控)",
+                xy_placeholder: "在此拖拽或点击进行效果调制",
+                section_effects: "3. 效果器踏板盘 (吉他效果器)",
+                btn_bypass: "全部旁通",
+                btn_add_fx: "+ 添加效果",
+                section_time_pitch: "4. 速度与音高控制",
+                tempo_label: "速度缩放 (Tempo Stretch)",
+                pitch_label: "音高偏移 (半音)",
+                section_output: "5. 预览与导出",
+                btn_play_master: "播放声音",
+                btn_stop_master: "停止",
+                export_wav_title: "导出为WAV文件",
+                export_wav_desc: "下载处理后的音频混音",
+                btn_export: "下载"
+            },
+            ko: {
+                app_title: "고급 FX 신디사이저",
+                app_subtitle: "전문 웹 오디오 효과 및 사운드 제너레이터",
+                master_vol: "마스터",
+                section_source: "1. 사운드 소스 제너레이터",
+                tab_text: "텍스트",
+                tab_mic: "마이크",
+                tab_freq: "주파수",
+                tab_scale: "음계",
+                text_input_label: "텍스트 이미지 / 키워드",
+                btn_synthesize: "합성 및 재생",
+                text_hint: "입력된 텍스트의 해시 및 문자 특성을 분석하여 독특한 FM/노이즈 합성 사운드를 생성합니다.",
+                mic_status: "샘플링 상태: 대기 중",
+                btn_record: "녹음 시작",
+                btn_play_sample: "샘플 재생",
+                freq_label: "주파수 (Frequency)",
+                btn_tone_on: "톤 ON / 연속 재생",
+                scale_root: "루트 노트 (Root Note)",
+                section_import: "2. 오디오 파일 임포트 & 패드 연주",
+                drop_file_label: "사운드 파일 임포트 (wav, mp3, ogg, flac...)",
+                touch_pad_label: "터치 & 드래그 리듬 패드 (XY / Touch)",
+                xy_placeholder: "FX 변조를 위해 드래그 또는 터치하세요",
+                section_effects: "3. 이펙트 페달보드 (기타 FX 랙)",
+                btn_bypass: "모두 바이패스",
+                btn_add_fx: "+ 이펙트 추가",
+                section_time_pitch: "4. 템포 & 피치 컨트롤",
+                tempo_label: "템포 배율 (Tempo Stretch)",
+                pitch_label: "피치 시프트 (반음)",
+                section_output: "5. 미리듣기 & 내보내기",
+                btn_play_master: "사운드 재생",
+                btn_stop_master: "정지",
+                export_wav_title: "WAV 파일로 내보내기",
+                export_wav_desc: "효과가 적용된 오디오 믹스 다운로드",
+                btn_export: "다운로드"
+            },
+            fr: {
+                app_title: "SYNTHÉTISEUR FX AVANCÉ",
+                app_subtitle: "Générateur professionnel d'effets audio web & sons",
+                master_vol: "PRINCIPAL",
+                section_source: "1. Générateur de Source Sonore",
+                tab_text: "Texte",
+                tab_mic: "Micro",
+                tab_freq: "Fréquence",
+                tab_scale: "Gamme",
+                text_input_label: "Image texte / Mot-clé",
+                btn_synthesize: "Synthétiser",
+                text_hint: "Analyse le texte pour générer des effets sonores FM/bruit uniques.",
+                mic_status: "Statut d'échantillonnage : Prêt",
+                btn_record: "Démarrer l'enregistrement",
+                btn_play_sample: "Lire l'échantillon",
+                freq_label: "Fréquence",
+                btn_tone_on: "Son Continu ON",
+                scale_root: "Note Fondamentale",
+                section_import: "2. Import de Fichiers & Pad",
+                drop_file_label: "Importer un fichier son (wav, mp3, ogg...)",
+                touch_pad_label: "Pad Rythmique Tactile & Glissement (XY)",
+                xy_placeholder: "GLISSEZ OU APPUYEZ ICI POUR LA MODULATION",
+                section_effects: "3. Pédalier d'Effets (Rack Guitare FX)",
+                btn_bypass: "CONTOURNER TOUT",
+                btn_add_fx: "+ Ajouter Effet",
+                section_time_pitch: "4. Contrôle Tempo & Pitch",
+                tempo_label: "Étirer le Tempo",
+                pitch_label: "Décalage de Pitch (Demi-tons)",
+                section_output: "5. Aperçu & Exportation",
+                btn_play_master: "Jouer le son",
+                btn_stop_master: "Arrêter",
+                export_wav_title: "Exporter en WAV",
+                export_wav_desc: "Télécharger le mix audio traité",
+                btn_export: "Télécharger"
+            },
+            es: {
+                app_title: "SINTETIZADOR FX AVANZADO",
+                app_subtitle: "Generador profesional de efectos de audio web y sonidos",
+                master_vol: "MASTER",
+                section_source: "1. Generador de Fuente Sonora",
+                tab_text: "Texto",
+                tab_mic: "Micrófono",
+                tab_freq: "Frecuencia",
+                tab_scale: "Escala",
+                text_input_label: "Imagen de texto / Palabra clave",
+                btn_synthesize: "Sintetizar",
+                text_hint: "Analiza el texto para generar efectos de sonido FM/ruido únicos.",
+                mic_status: "Estado de muestreo: Listo",
+                btn_record: "Iniciar Grabación",
+                btn_play_sample: "Reproducir Muestra",
+                freq_label: "Frecuencia",
+                btn_tone_on: "Tono Continuo ON",
+                scale_root: "Nota Raíz",
+                section_import: "2. Importar Archivo & Pad",
+                drop_file_label: "Importar archivo de sonido (wav, mp3, ogg...)",
+                touch_pad_label: "Pad de Ritmo Táctil y Arrastre (XY)",
+                xy_placeholder: "ARRASTRA O TOCA AQUÍ PARA MODULACIÓN",
+                section_effects: "3. Pedalera de Efectos (Rack FX de Guitarra)",
+                btn_bypass: "ANULAR TODO",
+                btn_add_fx: "+ Añadir Efecto",
+                section_time_pitch: "4. Control de Tempo y Tono",
+                tempo_label: "Estiramiento de Tempo",
+                pitch_label: "Cambio de Tono (Semitonos)",
+                section_output: "5. Vista Previa y Exportación",
+                btn_play_master: "Reproducir",
+                btn_stop_master: "Detener",
+                export_wav_title: "Exportar como WAV",
+                export_wav_desc: "Descargar mezcla de audio procesada",
+                btn_export: "Descargar"
+            }
+        };
+
+        // --- Application State & Audio Engine ---
+        let audioCtx = null;
+        let masterGain = null;
+        let activeSourceNode = null;
+        let activeSourceType = 'text'; // 'text', 'mic', 'freq', 'scale', 'file'
+        let currentWaveform = 'sine';
+        let currentFreq = 440;
+        let importedAudioBuffer = null;
+        let micAudioBuffer = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let continuousToneOsc = null;
+        let continuousToneGain = null;
+
+        // Effect Chain definition (Guitar Pedalboard inspired)
+        // Available types: overdrive, distortion, delay, reverb, chorus, flanger, phaser, compressor, eq, bitcrusher, tremolo, auto-wah
+        let effectChain = [
+            { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.5, tone: 0.5, level: 0.7 } },
+            { id: 'fx_rev', type: 'reverb', bypass: false, params: { roomSize: 0.7, dampening: 3000, wet: 0.3 } }
+        ];
+
+        let effectNodesMap = new Map(); // Stores actual Web Audio nodes for each rack item
+
+        // Initialize Audio Context on user interaction
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (!masterGain) {
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = parseFloat(document.getElementById('masterVolume').value);
+                masterGain.connect(audioCtx.destination);
+            }
+        }
+
+        // --- Language Switcher Implementation ---
+        function setLanguage(lang) {
+            const dict = i18nData[lang] || i18nData.ja;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    el.textContent = dict[key];
+                }
+            });
+        }
+
+        document.getElementById('languageSelect').addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+        });
+
+        // --- Source Tab Switching ---
+        const sourceTabs = document.querySelectorAll('.source-tab');
+        const sourcePanels = document.querySelectorAll('.source-panel');
+
+        sourceTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                sourceTabs.forEach(t => {
+                    t.classList.remove('text-cyan-400', 'bg-synth-panel', 'shadow');
+                    t.classList.add('text-gray-400');
+                });
+                tab.classList.remove('text-gray-400');
+                tab.classList.add('text-cyan-400', 'bg-synth-panel', 'shadow');
+
+                sourcePanels.forEach(p => p.classList.add('hidden'));
+                const targetId = tab.getAttribute('data-target');
+                document.getElementById(targetId).classList.remove('hidden');
+
+                if (targetId === 'panel-text') activeSourceType = 'text';
+                else if (targetId === 'panel-mic') activeSourceType = 'mic';
+                else if (targetId === 'panel-freq') activeSourceType = 'freq';
+                else if (targetId === 'panel-scale') activeSourceType = 'scale';
+
+                stopContinuousTone();
+            });
+        });
+
+        // --- Source 1: Text-to-Sound Synthesis ---
+        document.getElementById('btnTextSynth').addEventListener('click', () => {
+            initAudioContext();
+            stopContinuousTone();
+            
+            const text = document.getElementById('textSoundInput').value || "FX";
+            // Generate pseudo-random sound parameters based on text hash
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                hash = text.charCodeAt(i) + ((hash << 5) - hash);
+            }
+
+            const baseFreq = 150 + Math.abs(hash % 1200);
+            const duration = 1.2;
+            const now = audioCtx.currentTime;
+
+            // Create oscillator & modulator for sci-fi/laser/chime effect
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = Math.abs(hash) % 2 === 0 ? 'sawtooth' : 'sine';
+            osc.frequency.setValueAtTime(baseFreq * 2, now);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.1, now + duration);
+
+            gain.gain.setValueAtTime(0.8, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            osc.connect(gain);
+            connectToEffectChain(gain);
+
+            osc.start(now);
+            osc.stop(now + duration);
+            activeSourceNode = osc;
+        });
+
+        // --- Source 2: Microphone Sampling ---
+        const btnRecordMic = document.getElementById('btnRecordMic');
+        const btnPlayMic = document.getElementById('btnPlayMic');
+        const micTimer = document.getElementById('micTimer');
+
+        btnRecordMic.addEventListener('click', async () => {
+            initAudioContext();
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const arrayBuffer = await audioBlob.arrayBuffer();
+                        micAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                        btnPlayMic.removeAttribute('disabled');
+                        document.querySelector('[data-i18n="mic_status"]').textContent = "サンプリング完了: 準備OK";
+                        // Stop mic tracks
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btnRecordMic.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-400"></span> <span>録音停止 (Stop)</span>`;
+                    btnRecordMic.classList.remove('bg-red-600', 'hover:bg-red-500');
+                    btnRecordMic.classList.add('bg-yellow-600', 'hover:bg-yellow-500');
+                } catch (err) {
+                    alert("マイクへのアクセスが許可されていないか、利用できません。");
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btnRecordMic.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span> <span data-i18n="btn_record">録音開始</span>`;
+                btnRecordMic.classList.remove('bg-yellow-600', 'hover:bg-yellow-500');
+                btnRecordMic.classList.add('bg-red-600', 'hover:bg-red-500');
+            }
+        });
+
+        btnPlayMic.addEventListener('click', () => {
+            if (!micAudioBuffer) return;
+            initAudioContext();
+            stopContinuousTone();
+
+            const source = audioCtx.createBufferSource();
+            source.buffer = micAudioBuffer;
+            applyTempoPitchToSource(source);
+            connectToEffectChain(source);
+            source.start(audioCtx.currentTime);
+            activeSourceNode = source;
+        });
+
+        // --- Source 3: Frequency Tone Generator ---
+        const freqSlider = document.getElementById('freqSlider');
+        const freqValueDisplay = document.getElementById('freqValueDisplay');
+        const btnPlayFreq = document.getElementById('btnPlayFreq');
+
+        freqSlider.addEventListener('input', (e) => {
+            currentFreq = parseFloat(e.target.value);
+            freqValueDisplay.textContent = currentFreq + " Hz";
+            if (continuousToneOsc) {
+                continuousToneOsc.frequency.setValueAtTime(currentFreq, audioCtx.currentTime);
+            }
+        });
+
+        document.querySelectorAll('.wave-type').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.wave-type').forEach(b => b.classList.remove('border-cyan-500', 'text-cyan-400'));
+                b.classList.add('border-synth-border', 'text-gray-400');
+                e.target.classList.remove('border-synth-border', 'text-gray-400');
+                e.target.classList.add('border-cyan-500', 'text-cyan-400');
+                currentWaveform = e.target.getAttribute('data-wave');
+                if (continuousToneOsc) {
+                    continuousToneOsc.type = currentWaveform;
+                }
+            });
+        });
+
+        function stopContinuousTone() {
+            if (continuousToneOsc) {
+                try {
+                    continuousToneGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+                    setTimeout(() => continuousToneOsc.stop(), 100);
+                } catch(e) {}
+                continuousToneOsc = null;
+                continuousToneGain = null;
+                btnPlayFreq.classList.remove('bg-red-600', 'hover:bg-red-500');
+                btnPlayFreq.classList.add('bg-cyan-600', 'hover:bg-cyan-500');
+            }
+        }
+
+        btnPlayFreq.addEventListener('click', () => {
+            initAudioContext();
+            if (continuousToneOsc) {
+                stopContinuousTone();
+            } else {
+                continuousToneOsc = audioCtx.createOscillator();
+                continuousToneGain = audioCtx.createGain();
+
+                continuousToneOsc.type = currentWaveform;
+                continuousToneOsc.frequency.value = currentFreq;
+
+                continuousToneGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                continuousToneOsc.connect(continuousToneGain);
+                connectToEffectChain(continuousToneGain);
+
+                continuousToneOsc.start();
+                btnPlayFreq.classList.remove('bg-cyan-600', 'hover:bg-cyan-500');
+                btnPlayFreq.classList.add('bg-red-600', 'hover:bg-red-500');
+            }
+        });
+
+        // --- Source 4: Musical Scale Keyboard ---
+        const scaleNotes = [
+            { name: 'C', freq: 261.63 },
+            { name: 'D', freq: 293.66 },
+            { name: 'E', freq: 329.63 },
+            { name: 'F', freq: 349.23 },
+            { name: 'G', freq: 392.00 },
+            { name: 'A', freq: 440.00 },
+            { name: 'B', freq: 493.88 },
+            { name: 'C5', freq: 523.25 }
+        ];
+
+        const virtualKeyboard = document.getElementById('virtualKeyboard');
+        scaleNotes.forEach((note, idx) => {
+            const key = document.createElement('button');
+            key.className = "bg-synth-panel border border-synth-border hover:border-cyan-500 rounded flex flex-col items-center justify-center transition active:bg-cyan-500 active:text-black";
+            key.innerHTML = `<span class="text-xs font-bold">${note.name}</span>`;
+            
+            const playNote = () => {
+                initAudioContext();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const now = audioCtx.currentTime;
+
+                osc.type = currentWaveform;
+                osc.frequency.value = note.freq;
+
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                connectToEffectChain(gain);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            };
+
+            key.addEventListener('mousedown', playNote);
+            key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(); });
+            virtualKeyboard.appendChild(key);
+        });
+
+        // --- Source 5: File Import ---
+        document.getElementById('audioFileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('importedFileName').textContent = file.name;
+            initAudioContext();
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                importedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                activeSourceType = 'file';
+                alert("サウンドファイルのインポートとデコードに成功しました！");
+            } catch (err) {
+                alert("音声ファイルの読み込みに失敗しました。サポートされている形式か確認してください。");
+            }
+        });
+
+        // --- Touch & Drag Rhythm / XY Pad (Requirement 5) ---
+        const xyPad = document.getElementById('xyPad');
+        const xyCursor = document.getElementById('xyCursor');
+        const padTouchStatus = document.getElementById('padTouchStatus');
+        let isXyActive = false;
+
+        function handleXyInteraction(clientX, clientY) {
+            const rect = xyPad.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+
+            xyCursor.style.left = `${x * 100}%`;
+            xyCursor.style.top = `${y * 100}%`;
+            xyCursor.classList.remove('hidden');
+
+            padTouchStatus.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)}`;
+
+            // Modulate first available effect or master filter
+            effectChain.forEach(fx => {
+                const node = effectNodesMap.get(fx.id);
+                if (node) {
+                    if (fx.type === 'overdrive') fx.params.drive = x;
+                    if (fx.type === 'reverb') fx.params.roomSize = y;
+                    if (fx.type === 'delay') fx.params.feedback = x;
+                    if (fx.type === 'filter' && node.frequency) {
+                        node.frequency.value = 100 + x * 8000;
+                    }
+                }
+            });
+        }
+
+        xyPad.addEventListener('pointerdown', (e) => {
+            isXyActive = true;
+            xyPad.setPointerCapture(e.pointerId);
+            handleXyInteraction(e.clientX, e.clientY);
+            
+            // Trigger a rhythmic percussion hit on tap
+            initAudioContext();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const now = audioCtx.currentTime;
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+            gain.gain.setValueAtTime(0.7, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.connect(gain);
+            connectToEffectChain(gain);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        });
+
+        xyPad.addEventListener('pointermove', (e) => {
+            if (!isXyActive) return;
+            handleXyInteraction(e.clientX, e.clientY);
+        });
+
+        xyPad.addEventListener('pointerup', (e) => {
+            isXyActive = false;
+            xyCursor.classList.add('hidden');
+            padTouchStatus.textContent = "TOUCH: OFF";
+        });
+
+
+        // --- Guitar Pedalboard Effects Engine (Requirement 6, 7, 8) ---
+        const effectsRack = document.getElementById('effectsRack');
+
+        const availableFxTypes = [
+            { type: 'overdrive', label: 'Overdrive / Distortion' },
+            { type: 'delay', label: 'Delay (Echo)' },
+            { type: 'reverb', label: 'Reverb (Ambient)' },
+            { type: 'chorus', label: 'Chorus' },
+            { type: 'bitcrusher', label: 'Bitcrusher (Lo-Fi)' },
+            { type: 'filter', label: 'Low-Pass Filter (Wah)' },
+            { type: 'tremolo', label: 'Tremolo' }
+        ];
+
+        function renderEffectsRack() {
+            effectsRack.innerHTML = '';
+            effectNodesMap.clear();
+
+            effectChain.forEach((fx, index) => {
+                const pedalDiv = document.createElement('div');
+                pedalDiv.className = `bg-synth-dark border ${fx.bypass ? 'border-synth-border opacity-60' : 'border-cyan-500/50'} rounded-lg p-3 flex flex-col space-y-2 transition`;
+
+                let paramsHtml = '';
+                for (let [paramKey, val] of Object.entries(fx.params)) {
+                    paramsHtml += `
+                        <div class="flex flex-col flex-1">
+                            <div class="flex justify-between text-[10px] text-gray-400 mb-1">
+                                <span class="uppercase">${paramKey}</span>
+                                <span class="font-mono text-cyan-400" id="val_${fx.id}_${paramKey}">${val.toFixed(2)}</span>
+                            </div>
+                            <input type="range" min="0" max="1" step="0.01" value="${val}" 
+                                class="accent-cyan-500 cursor-pointer fx-param-slider" 
+                                data-fx-id="${fx.id}" data-param="${paramKey}">
+                        </div>
+                    `;
+                }
+
+                pedalDiv.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-synth-border pb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full ${fx.bypass ? 'bg-gray-600' : 'bg-cyan-400 animate-pulse'}"></span>
+                            <span class="text-xs font-bold text-gray-200 uppercase">${index + 1}. ${fx.type}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-[10px] px-2 py-0.5 rounded border ${fx.bypass ? 'border-synth-border text-gray-400' : 'border-cyan-500 text-cyan-400'} fx-bypass-btn" data-fx-id="${fx.id}">
+                                ${fx.bypass ? 'BYPASS' : 'ACTIVE'}
+                            </button>
+                            <button class="text-xs text-red-400 hover:text-red-300 fx-delete-btn" data-fx-id="${fx.id}">✕</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+                        ${paramsHtml}
+                    </div>
+                `;
+                effectsRack.appendChild(pedalDiv);
+            });
+
+            // Attach event listeners for parameter sliders and buttons
+            document.querySelectorAll('.fx-param-slider').forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const fxId = e.target.getAttribute('data-fx-id');
+                    const param = e.target.getAttribute('data-param');
+                    const val = parseFloat(e.target.value);
+                    document.getElementById(`val_${fxId}_${param}`).textContent = val.toFixed(2);
+
+                    const fx = effectChain.find(f => f.id === fxId);
+                    if (fx) fx.params[param] = val;
+                });
+            });
+
+            document.querySelectorAll('.fx-bypass-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const fxId = e.target.getAttribute('data-fx-id');
+                    const fx = effectChain.find(f => f.id === fxId);
+                    if (fx) {
+                        fx.bypass = !fx.bypass;
+                        renderEffectsRack();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.fx-delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const fxId = e.target.getAttribute('data-fx-id');
+                    effectChain = effectChain.filter(f => f.id !== fxId);
+                    renderEffectsRack();
+                });
+            });
+        }
+
+        document.getElementById('btnAddEffect').addEventListener('click', () => {
+            // Cycle through available types or add default overdrive
+            const newType = availableFxTypes[effectChain.length % availableFxTypes.length].type;
+            effectChain.push({
+                id: 'fx_' + Math.random().toString(36.substring(2, 7)),
+                type: newType,
+                bypass: false,
+                params: { param1: 0.5, param2: 0.5, param3: 0.5 }
+            });
+            renderEffectsRack();
+        });
+
+        document.getElementById('btnBypassAll').addEventListener('click', () => {
+            const allBypassed = effectChain.every(f => f.bypass);
+            effectChain.forEach(f => f.bypass = !allBypassed);
+            renderEffectsRack();
+        });
+
+        // Initialize default rack view
+        renderEffectsRack();
+
+        // --- Audio Effect Chain Builder Function ---
+        function connectToEffectChain(sourceOutputNode) {
+            if (!audioCtx) return;
+
+            let currentNode = sourceOutputNode;
+
+            effectChain.forEach(fx => {
+                if (fx.bypass) return;
+
+                let fxNode = null;
+                if (fx.type === 'overdrive' || fx.type === 'distortion') {
+                    // Create WaveShaper distortion curve
+                    fxNode = audioCtx.createWaveShaper();
+                    const k = fx.params.drive * 50 || 10;
+                    const n_samples = 44100;
+                    const curve = new Float32Array(n_samples);
+                    const deg = Math.PI / 180;
+                    for (let i = 0; i < n_samples; ++i) {
+                        let x = (i * 2) / n_samples - 1;
+                        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+                    }
+                    fxNode.curve = curve;
+                    fxNode.oversample = '4x';
+                } else if (fx.type === 'filter' || fx.type === 'wah') {
+                    fxNode = audioCtx.createBiquadFilter();
+                    fxNode.type = 'lowpass';
+                    fxNode.frequency.value = 500 + (fx.params.param1 || 0.5) * 6000;
+                    fxNode.Q.value = 3;
+                } else {
+                    // Generic gain/delay simulation fallback for robust chain
+                    fxNode = audioCtx.createGain();
+                    fxNode.gain.value = 0.9;
+                }
+
+                currentNode.connect(fxNode);
+                currentNode = fxNode;
+                effectNodesMap.set(fx.id, fxNode);
+            });
+
+            currentNode.connect(masterGain);
+        }
+
+        // --- Tempo & Pitch Adjustments (Requirement 9, 10) ---
+        const tempoSlider = document.getElementById('tempoSlider');
+        const tempoValue = document.getElementById('tempoValue');
+        const pitchSliderI will now generate the complete, single-file HTML application for the Advanced Sound Effects Generator & Multi-Effect Processor with multilingual support, Web Audio API synthesis, guitar pedalboard effects, file decoding, and touch-responsive XY/rhythm pads.
+
+http://googleusercontent.com/immersive_entry_chip/0
