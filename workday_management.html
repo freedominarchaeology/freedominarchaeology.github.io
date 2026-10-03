@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>出勤日・機械稼働管理システム（発注者・現場提出用）</title>
+<title>出勤日・機械稼働管理システム（多言語・金額対応版）</title>
 <style>
 /* --- Pure CSS Base Styles --- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background-color: #f0f2f5;
   color: #1a1a1a;
   line-height: 1.5;
@@ -32,20 +32,27 @@ header {
   flex-wrap: wrap;
   gap: 10px;
 }
-h1 { font-size: 1.4rem; font-weight: bold; }
+h1 { font-size: 1.3rem; font-weight: bold; }
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 select, input, button, textarea {
-  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  font-size: 0.95rem;
+  font-family: inherit;
+  font-size: 0.9rem;
   padding: 5px 8px;
   border: 1px solid #777;
-  border-radius: 2px;
+  border-radius: 3px;
   background-color: #fff;
+}
+.lang-select {
+  border: 2px solid #2b579a;
+  font-weight: bold;
+  background-color: #eef4ff;
+  color: #1b365d;
+  padding: 5px 10px;
 }
 button {
   background-color: #e1e1e1;
@@ -72,7 +79,7 @@ button.success:hover { background-color: #0b502a; }
   flex-wrap: wrap;
 }
 .tab-btn {
-  padding: 8px 16px;
+  padding: 8px 14px;
   border: 1px solid #ccc;
   border-bottom: none;
   background-color: #eaeaea;
@@ -90,7 +97,7 @@ button.success:hover { background-color: #0b502a; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-/* Forms & Grid */
+/* Panels & Grid */
 .panel {
   border: 1px solid #ccc;
   padding: 12px;
@@ -123,24 +130,11 @@ button.success:hover { background-color: #0b502a; }
   gap: 3px;
   align-items: center;
 }
-.input-with-assist input {
-  flex: 1;
-  min-width: 0;
-}
-.btn-assist {
-  padding: 3px 6px;
-  font-size: 0.8rem;
-  min-width: 30px;
-  background: #e6e6e6;
-}
+.input-with-assist input { flex: 1; min-width: 0; }
+.btn-assist { padding: 3px 6px; font-size: 0.8rem; background: #e6e6e6; }
 
-/* Quick chips */
-.chip-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 4px;
-}
+/* Chips */
+.chip-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .chip {
   font-size: 0.75rem;
   background: #e1edf7;
@@ -149,25 +143,16 @@ button.success:hover { background-color: #0b502a; }
   border-radius: 3px;
   cursor: pointer;
 }
-.chip:hover { background: #cce0f2; }
 
 /* Tables */
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  margin-bottom: 15px;
-}
+.table-wrapper { width: 100%; overflow-x: auto; margin-bottom: 15px; }
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
   background-color: #fff;
 }
-th, td {
-  border: 1px solid #888;
-  padding: 6px 8px;
-  text-align: left;
-}
+th, td { border: 1px solid #888; padding: 6px 8px; text-align: left; }
 th { background-color: #f0f0f0; font-weight: bold; }
 td.num, th.num { text-align: right; }
 tr:nth-child(even) { background-color: #fcfcfc; }
@@ -187,11 +172,10 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   background: #fff;
   border: 2px solid #333;
   width: 90%;
-  max-width: 850px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 20px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 .modal-header {
   display: flex;
@@ -213,32 +197,13 @@ tr:nth-child(even) { background-color: #fcfcfc; }
     position: absolute;
     left: 0; top: 0; width: 100%;
     margin: 0; padding: 0;
-    font-family: 'MS Mincho', 'MS 明朝', serif;
   }
-  .report-print-container {
-    width: 100%;
-    max-width: 100%;
-    padding: 12mm;
-    box-sizing: border-box;
-  }
-  .report-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-  .report-table th, .report-table td {
-    border: 1px solid #000;
-    padding: 6px 8px;
-    font-size: 10pt;
-  }
+  .report-print-container { width: 100%; padding: 10mm; box-sizing: border-box; }
+  .report-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .report-table th, .report-table td { border: 1px solid #000; padding: 5px 7px; font-size: 9pt; }
   .report-title {
-    text-align: center;
-    font-size: 18pt;
-    font-weight: bold;
-    letter-spacing: 2px;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #000;
-    padding-bottom: 5px;
+    text-align: center; font-size: 16pt; font-weight: bold;
+    margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 4px;
   }
 }
 </style>
@@ -249,39 +214,49 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   <!-- Header -->
   <header>
     <div>
-      <h1>出勤日・機械稼働管理システム</h1>
-      <span style="font-size: 0.8rem; color: #555;">発注者提出・現場集計対応版</span>
+      <h1 data-i18n="appTitle">出勤日・機械稼働管理システム</h1>
+      <span style="font-size: 0.8rem; color: #555;" data-i18n="subTitle">発注者・現場提出用（稼働・単価・金額対応）</span>
     </div>
     <div class="header-actions">
-      <button onclick="openExportModal()" class="success">📥 データ出力</button>
-      <button onclick="openImportModal()">📤 データ取込</button>
-      <button onclick="triggerPrintPreview()" class="primary">🖨️ 集計表 印刷プレビュー</button>
+      <!-- Multilingual Selector -->
+      <select id="lang-select" class="lang-select" onchange="changeLanguage(this.value)">
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="es">🇪🇸 Español</option>
+      </select>
+      
+      <button onclick="openExportModal()" class="success" data-i18n="export">📥 データ出力</button>
+      <button onclick="openImportModal()" data-i18n="import">📤 データ取込</button>
+      <button onclick="triggerPrintPreview()" class="primary" data-i18n="print">🖨️ 集計表 印刷プレビュー</button>
     </div>
   </header>
 
   <!-- Navigation Tabs -->
   <div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('daily')" id="tab-btn-daily">日別稼働入力</button>
-    <button class="tab-btn" onclick="switchTab('monthly')" id="tab-btn-monthly">稼働集計表（提出・報告用）</button>
-    <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">機械・項目マスター設定</button>
-    <button class="tab-btn" onclick="switchTab('data')" id="tab-btn-data">バックアップ・管理</button>
+    <button class="tab-btn active" onclick="switchTab('daily')" id="tab-btn-daily" data-i18n="tabDaily">日別稼働入力</button>
+    <button class="tab-btn" onclick="switchTab('monthly')" id="tab-btn-monthly" data-i18n="tabMonthly">稼働集計表（提出・報告用）</button>
+    <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings" data-i18n="tabSettings">機械・単価・マスター設定</button>
+    <button class="tab-btn" onclick="switchTab('data')" id="tab-btn-data" data-i18n="tabData">データ管理・バックアップ</button>
   </div>
 
   <!-- Tab 1: Daily Entry -->
   <div id="tab-daily" class="tab-content active">
     <div class="panel">
-      <div class="panel-title">日次出勤・機械稼働データ入力</div>
+      <div class="panel-title" data-i18n="dailyEntryTitle">日次出勤・機械稼働データ入力</div>
       <form id="daily-form" onsubmit="saveDailyRecord(event)">
         <div class="form-grid">
           <div class="form-group">
-            <label>日付 *</label>
+            <label><span data-i18n="date">日付</span> *</label>
             <input type="date" id="input-date" required onchange="onDateChange()">
           </div>
 
           <div class="form-group">
-            <label>現場名 *</label>
+            <label><span data-i18n="site">現場名</span> *</label>
             <div class="input-with-assist">
-              <input type="text" id="input-site" list="site-history-list" placeholder="例: 〇〇作業所" required>
+              <input type="text" id="input-site" list="site-history-list" required>
               <select id="site-master-dropdown" onchange="applyMasterSite(this.value)" style="max-width: 120px;">
                 <option value="">(選択)</option>
               </select>
@@ -291,9 +266,9 @@ tr:nth-child(even) { background-color: #fcfcfc; }
           </div>
 
           <div class="form-group">
-            <label>作業員数 (人工)</label>
+            <label data-i18n="workers">作業員数 (人工)</label>
             <div class="input-with-assist">
-              <input type="number" id="input-workers" min="0" step="0.5" placeholder="未入力(0)">
+              <input type="number" id="input-workers" min="0" step="0.5" placeholder="0">
               <button type="button" class="btn-assist" onclick="addValue('input-workers', 1)">+1</button>
               <button type="button" class="btn-assist" onclick="addValue('input-workers', 2)">+2</button>
             </div>
@@ -303,25 +278,24 @@ tr:nth-child(even) { background-color: #fcfcfc; }
           <div id="dynamic-machinery-inputs" style="grid-column: 1 / -1;" class="form-grid"></div>
 
           <div class="form-group" style="grid-column: 1 / -1;">
-            <label>作業メモ・備考</label>
-            <input type="text" id="input-note" placeholder="作業内容や連絡事項など">
+            <label data-i18n="note">作業メモ・備考</label>
+            <input type="text" id="input-note">
           </div>
         </div>
 
         <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="submit" class="primary">保存 / 更新</button>
-          <button type="button" onclick="resetForm()">フォームクリア</button>
-          <button type="button" onclick="copyPreviousDayRecord()">前日データを複製</button>
+          <button type="submit" class="primary" data-i18n="save">保存 / 更新</button>
+          <button type="button" onclick="resetForm()" data-i18n="clear">フォームクリア</button>
+          <button type="button" onclick="copyPreviousDayRecord()" data-i18n="copyPrev">前日データを複製</button>
         </div>
       </form>
     </div>
 
-    <!-- Daily Log List (Ascending Order) -->
+    <!-- Daily Log List -->
     <div class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <div class="panel-title" style="margin: 0;">当月作業登録履歴（日付昇順）</div>
+        <div class="panel-title" style="margin: 0;" data-i18n="dailyHistoryTitle">当月作業登録履歴（日付昇順）</div>
         <div>
-          <label>表示年月:</label>
           <input type="month" id="filter-month" onchange="renderDailyTable()">
         </div>
       </div>
@@ -340,51 +314,52 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   <!-- Tab 2: Aggregation Summary -->
   <div id="tab-monthly" class="tab-content">
     <div class="panel">
-      <div class="panel-title">報告・提出用 集計期間設定</div>
+      <div class="panel-title" data-i18n="summaryTitle">報告・提出用 集計期間設定</div>
       <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
         <div>
-          <label>集計モード:</label>
+          <label data-i18n="calcMode">集計モード:</label>
           <select id="calc-mode" onchange="toggleCalcMode()">
-            <option value="single">単月集計</option>
-            <option value="range">複数月一括集計</option>
+            <option value="single" data-i18n="singleMonth">単月集計</option>
+            <option value="range" data-i18n="rangeMonth">複数月一括集計</option>
           </select>
         </div>
 
         <div id="single-month-picker">
-          <label>対象月:</label>
           <input type="month" id="target-month" onchange="renderSummary()">
         </div>
 
         <div id="range-month-picker" style="display: none; gap: 5px; align-items: center;">
-          <label>開始月:</label>
           <input type="month" id="target-month-from" onchange="renderSummary()">
           <span>～</span>
-          <label>終了月:</label>
           <input type="month" id="target-month-to" onchange="renderSummary()">
         </div>
 
         <div>
-          <label>現場絞り込み:</label>
+          <label data-i18n="filterSite">現場絞り込み:</label>
           <select id="filter-site-select" onchange="renderSummary()">
-            <option value="ALL">全現場を対象</option>
+            <option value="ALL" data-i18n="allSites">全現場を対象</option>
           </select>
         </div>
 
-        <button onclick="triggerPrintPreview()" class="primary">🖨️ 集計表プレビュー・印刷</button>
+        <!-- Amount Toggle Checkbox -->
+        <div style="background: #eef4ff; padding: 4px 10px; border: 1px solid #a3c2e0; border-radius: 4px;">
+          <label style="cursor: pointer; font-weight: bold; color: #1b365d;">
+            <input type="checkbox" id="toggle-show-amount" onchange="toggleAmountDisplay(this.checked)">
+            <span data-i18n="showAmount">金額（単価・合計）を表示する</span>
+          </label>
+        </div>
+
+        <button onclick="triggerPrintPreview()" class="primary" data-i18n="print">🖨️ 集計表プレビュー・印刷</button>
       </div>
     </div>
 
     <!-- Aggregation Summary Display -->
     <div class="panel">
-      <div class="panel-title">出勤・機械稼働 集計結果</div>
+      <div class="panel-title" data-i18n="summaryResultTitle">出勤・機械稼働 集計結果</div>
       <div class="table-wrapper">
         <table>
           <thead>
-            <tr>
-              <th>項目名</th>
-              <th class="num">数量 / 延べ日数</th>
-              <th>単位</th>
-            </tr>
+            <tr id="summary-table-head"></tr>
           </thead>
           <tbody id="summary-table-body"></tbody>
         </table>
@@ -395,31 +370,32 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   <!-- Tab 3: Settings -->
   <div id="tab-settings" class="tab-content">
     <div class="panel">
-      <div class="panel-title">管理・稼働項目設定</div>
-      <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">作業員および現場で使用する機械・重機・車両の名称・単位を設定できます。</p>
+      <div class="panel-title" data-i18n="tabSettings">機械・単価・マスター設定</div>
+      <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;" data-i18n="settingsHelp">作業員および使用機器の名称・単位・単価を設定できます。</p>
       
       <div class="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>項目名称</th>
-              <th>単位</th>
-              <th>操作</th>
+              <th data-i18n="item">項目名称</th>
+              <th data-i18n="unit">単位</th>
+              <th data-i18n="unitPrice">単価</th>
+              <th data-i18n="actions">操作</th>
             </tr>
           </thead>
           <tbody id="machinery-settings-body"></tbody>
         </table>
       </div>
-      <button onclick="addMachinerySettingRow()">+ 新規項目を追加</button>
-      <button onclick="saveMachinerySettings()" class="primary">設定変更を保存</button>
+      <button onclick="addMachinerySettingRow()" data-i18n="addMachinery">+ 新規項目を追加</button>
+      <button onclick="saveMachinerySettings()" class="primary" data-i18n="saveSettings">設定変更を保存</button>
     </div>
 
     <!-- Master Sites -->
     <div class="panel">
-      <div class="panel-title">現場名マスター管理</div>
+      <div class="panel-title" data-i18n="masterSite">現場名マスター</div>
       <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <input type="text" id="new-master-site" placeholder="新規現場名を入力" style="flex: 1;">
-        <button onclick="addMasterSite()" class="success">追加</button>
+        <input type="text" id="new-master-site" placeholder="新規現場名" style="flex: 1;">
+        <button onclick="addMasterSite()" class="success" data-i18n="addSite">追加</button>
       </div>
       <div id="master-sites-list" class="chip-container"></div>
     </div>
@@ -428,25 +404,25 @@ tr:nth-child(even) { background-color: #fcfcfc; }
   <!-- Tab 4: Data Management & Backup -->
   <div id="tab-data" class="tab-content">
     <div class="panel">
-      <div class="panel-title">データバックアップ・各種ファイル出力</div>
+      <div class="panel-title" data-i18n="tabData">データ管理・バックアップ</div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
         <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">
-          <h4 style="margin-bottom: 8px;">データ出力</h4>
+          <h4 style="margin-bottom: 8px;" data-i18n="export">📥 データ出力</h4>
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            <button onclick="exportData('json')" class="primary">JSON形式 (完全バックアップ)</button>
-            <button onclick="exportData('csv')">CSV形式 (Excel等で閲覧可能)</button>
+            <button onclick="exportData('json')" class="primary" data-i18n="jsonExport">JSON形式 (完全バックアップ)</button>
+            <button onclick="exportData('csv')" data-i18n="csvExport">CSV形式 (Excel等で閲覧可能)</button>
           </div>
         </div>
 
         <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">
-          <h4 style="margin-bottom: 8px;">データ取込</h4>
+          <h4 style="margin-bottom: 8px;" data-i18n="import">📤 データ取込</h4>
           <input type="file" id="import-file-input" accept=".json" style="margin-bottom: 10px; width: 100%;">
-          <button onclick="executeImport()" class="success">JSONから復元</button>
+          <button onclick="executeImport()" class="success" data-i18n="jsonImport">JSONから復元</button>
         </div>
 
         <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">
-          <h4 style="margin-bottom: 8px;">データ全消去</h4>
-          <button onclick="clearAllData()" class="danger">全ての登録データを初期化</button>
+          <h4 style="margin-bottom: 8px;" data-i18n="clearAll">全ての登録データを初期化</h4>
+          <button onclick="clearAllData()" class="danger" data-i18n="clearAll">実行する</button>
         </div>
       </div>
     </div>
@@ -457,13 +433,12 @@ tr:nth-child(even) { background-color: #fcfcfc; }
 <div id="print-modal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>集計報告書 印刷プレビュー</h3>
-      <button onclick="closePrintModal()">✕ 閉じる</button>
+      <h3 data-i18n="print">🖨️ 集計表 印刷プレビュー</h3>
+      <button onclick="closePrintModal()">✕</button>
     </div>
     
     <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
-      <button onclick="executePrint()" class="primary" style="font-size: 1.1rem; padding: 8px 16px;">🖨️ 印刷実行 (A4)</button>
-      <span style="font-size: 0.85rem; color: #666;">※発注者・監督へ提出できる無駄な表記のない集計レイアウトです</span>
+      <button onclick="executePrint()" class="primary" style="font-size: 1.1rem; padding: 8px 16px;" data-i18n="print">🖨️ 印刷実行 (A4)</button>
     </div>
 
     <!-- Preview Canvas Area -->
@@ -476,30 +451,361 @@ tr:nth-child(even) { background-color: #fcfcfc; }
 
 <script>
 /* ==========================================================================
+   i18n Translations Dictionary (6 Languages)
+   ========================================================================== */
+const i18n = {
+  ja: {
+    appTitle: "出勤日・機械稼働管理システム",
+    subTitle: "発注者・現場提出用（稼働・単価・金額対応）",
+    tabDaily: "日別稼働入力",
+    tabMonthly: "稼働集計表（提出・報告用）",
+    tabSettings: "機械・単価・マスター設定",
+    tabData: "データ管理・バックアップ",
+    dailyEntryTitle: "日次出勤・機械稼働データ入力",
+    dailyHistoryTitle: "当月作業登録履歴（日付昇順）",
+    summaryTitle: "報告・提出用 集計期間設定",
+    summaryResultTitle: "出勤・機械稼働 集計結果",
+    settingsHelp: "作業員および使用機器の名称・単位・単価を設定できます。",
+    showAmount: "金額（単価・合計）を表示する",
+    date: "日付",
+    site: "現場名",
+    workers: "作業員数 (人工)",
+    workerName: "作業員出勤 (常用人工)",
+    unitPrice: "単価",
+    amount: "金額",
+    total: "合計",
+    note: "備考",
+    actions: "操作",
+    export: "📥 データ出力",
+    import: "📤 データ取込",
+    print: "🖨️ 集計表 印刷プレビュー",
+    save: "保存 / 更新",
+    clear: "フォームクリア",
+    copyPrev: "前日データを複製",
+    unit: "単位",
+    qty: "数量 / 延べ日数",
+    item: "項目名称",
+    masterSite: "現場名マスター",
+    calcMode: "集計モード:",
+    singleMonth: "単月集計",
+    rangeMonth: "複数月一括集計",
+    filterSite: "現場絞り込み:",
+    allSites: "全現場を対象",
+    printTitle: "作業出勤・機械稼働 状況集計表",
+    printDate: "出力日",
+    period: "対象期間",
+    secSummary: "1. 稼働項目別 累計集計表",
+    secDetail: "2. 日別稼働明細 内訳",
+    noData: "登録されたデータはありません。",
+    edit: "編集",
+    delete: "削除",
+    addMachinery: "+ 新規項目を追加",
+    saveSettings: "設定変更を保存",
+    addSite: "追加",
+    jsonExport: "JSON形式 (完全バックアップ)",
+    csvExport: "CSV形式 (Excel等で閲覧可能)",
+    jsonImport: "JSONから復元",
+    clearAll: "全ての登録データを初期化"
+  },
+  en: {
+    appTitle: "Work & Equipment Management System",
+    subTitle: "Client & Site Report (Qty, Rates & Amounts)",
+    tabDaily: "Daily Entry",
+    tabMonthly: "Aggregation Report",
+    tabSettings: "Master & Unit Rates",
+    tabData: "Data & Backup",
+    dailyEntryTitle: "Daily Labor & Equipment Entry",
+    dailyHistoryTitle: "Monthly Log History (Ascending)",
+    summaryTitle: "Report Period Settings",
+    summaryResultTitle: "Aggregation Summary Results",
+    settingsHelp: "Configure names, units, and rates for labor and machinery.",
+    showAmount: "Show Unit Rates & Amounts",
+    date: "Date",
+    site: "Site Name",
+    workers: "Workers (Man-days)",
+    workerName: "Labor Work (Man-days)",
+    unitPrice: "Unit Rate",
+    amount: "Amount",
+    total: "Total",
+    note: "Notes",
+    actions: "Actions",
+    export: "📥 Export Data",
+    import: "📤 Import Data",
+    print: "🖨️ Print Preview",
+    save: "Save / Update",
+    clear: "Clear Form",
+    copyPrev: "Copy Previous Day",
+    unit: "Unit",
+    qty: "Qty / Days",
+    item: "Item Name",
+    masterSite: "Master Sites",
+    calcMode: "Calculation Mode:",
+    singleMonth: "Single Month",
+    rangeMonth: "Date Range",
+    filterSite: "Filter by Site:",
+    allSites: "All Sites",
+    printTitle: "Labor & Equipment Summary Report",
+    printDate: "Issued Date",
+    period: "Period",
+    secSummary: "1. Summary by Item",
+    secDetail: "2. Daily Log Details",
+    noData: "No records found.",
+    edit: "Edit",
+    delete: "Delete",
+    addMachinery: "+ Add New Item",
+    saveSettings: "Save Settings",
+    addSite: "Add Site",
+    jsonExport: "JSON Format (Full Backup)",
+    csvExport: "CSV Format (Excel Compatible)",
+    jsonImport: "Restore from JSON",
+    clearAll: "Clear All Data"
+  },
+  zh: {
+    appTitle: "考勤与机械使用管理系统",
+    subTitle: "发包方·现场提交专用（工作量·单价·金额）",
+    tabDaily: "每日打卡输入",
+    tabMonthly: "汇总报告表",
+    tabSettings: "机械·单价设置",
+    tabData: "数据管理与备份",
+    dailyEntryTitle: "每日出勤及机械运转输入",
+    dailyHistoryTitle: "当月工作记录（按日期升序）",
+    summaryTitle: "报告汇总期间设置",
+    summaryResultTitle: "出勤及机械运转汇总结果",
+    settingsHelp: "设置工人及机械设备的名称、单位和单价。",
+    showAmount: "显示单价及总金额",
+    date: "日期",
+    site: "工地名称",
+    workers: "工人数量 (工日)",
+    workerName: "工人考勤 (工日)",
+    unitPrice: "单价",
+    amount: "金额",
+    total: "合计",
+    note: "备注",
+    actions: "操作",
+    export: "📥 导出数据",
+    import: "📤 导入数据",
+    print: "🖨️ 打印预览",
+    save: "保存 / 更新",
+    clear: "清空表单",
+    copyPrev: "复制前一天",
+    unit: "单位",
+    qty: "数量 / 累计天数",
+    item: "项目名称",
+    masterSite: "工地名称主表",
+    calcMode: "汇总模式:",
+    singleMonth: "单月汇总",
+    rangeMonth: "多月联合汇总",
+    filterSite: "筛选工地:",
+    allSites: "所有工地",
+    printTitle: "工作考勤及机械运转汇总表",
+    printDate: "导出日期",
+    period: "统计期间",
+    secSummary: "1. 各项目累计汇总表",
+    secDetail: "2. 每日打卡明细表",
+    noData: "暂无登记数据。",
+    edit: "编辑",
+    delete: "删除",
+    addMachinery: "+ 添加新项目",
+    saveSettings: "保存设置",
+    addSite: "添加",
+    jsonExport: "JSON格式 (完全备份)",
+    csvExport: "CSV格式 (Excel可打开)",
+    jsonImport: "从JSON恢复",
+    clearAll: "清空所有保存数据"
+  },
+  ko: {
+    appTitle: "출근 및 장비 가동 관리 시스템",
+    subTitle: "발주처·현장 제출용 (가동·단가·금액)",
+    tabDaily: "일일 가동 입력",
+    tabMonthly: "가동 집계표",
+    tabSettings: "장비·단가 마스터 설정",
+    tabData: "데이터 관리 및 백업",
+    dailyEntryTitle: "일일 출근 및 장비 가동 입력",
+    dailyHistoryTitle: "당월 작업 등록 내역 (날짜 오름차순)",
+    summaryTitle: "보고 집계 기간 설정",
+    summaryResultTitle: "출근 및 장비 가동 집계 결과",
+    settingsHelp: "작업원 및 사용 장비의 명칭, 단위, 단가를 설정합니다.",
+    showAmount: "금액(단가·합계) 표시",
+    date: "날짜",
+    site: "현장명",
+    workers: "작업원 수 (인공)",
+    workerName: "작업원 출근 (인공)",
+    unitPrice: "단가",
+    amount: "금액",
+    total: "합계",
+    note: "비고",
+    actions: "작업",
+    export: "📥 데이터 내보내기",
+    import: "📤 데이터 가져오기",
+    print: "🖨️ 인쇄 미리보기",
+    save: "저장 / 수정",
+    clear: "양식 초기화",
+    copyPrev: "전일 데이터 복사",
+    unit: "단위",
+    qty: "수량 / 누적일",
+    item: "항목명",
+    masterSite: "현장명 마스터",
+    calcMode: "집계 모드:",
+    singleMonth: "단월 집계",
+    rangeMonth: "기간 지정 집계",
+    filterSite: "현장 필터:",
+    allSites: "전체 현장",
+    printTitle: "작업 출근 및 장비 가동 현황 집계표",
+    printDate: "출력일",
+    period: "대상 기간",
+    secSummary: "1. 항목별 누적 집계표",
+    secDetail: "2. 일별 가동 내역",
+    noData: "등록된 데이터가 없습니다.",
+    edit: "수정",
+    delete: "삭제",
+    addMachinery: "+ 새 항목 추가",
+    saveSettings: "설정 저장",
+    addSite: "추가",
+    jsonExport: "JSON 형식 (전체 백업)",
+    csvExport: "CSV 형식 (엑셀 호환)",
+    jsonImport: "JSON 복원",
+    clearAll: "모든 데이터 초기화"
+  },
+  fr: {
+    appTitle: "Gestion du Personnel et des Équipements",
+    subTitle: "Rapport Client & Chantier (Qté, Tarifs & Montants)",
+    tabDaily: "Saisie Quotidienne",
+    tabMonthly: "Rapport de Synthèse",
+    tabSettings: "Équipements & Tarifs",
+    tabData: "Gestion des Données",
+    dailyEntryTitle: "Saisie Quotidienne Main-d'œuvre & Machines",
+    dailyHistoryTitle: "Historique du Mois (Ordre Chronologique)",
+    summaryTitle: "Configuration de la Période du Rapport",
+    summaryResultTitle: "Résultats du Rapport de Synthèse",
+    settingsHelp: "Définissez les noms, unités et prix unitaires.",
+    showAmount: "Afficher Tarifs & Montants",
+    date: "Date",
+    site: "Nom du Chantier",
+    workers: "Ouvriers (H/J)",
+    workerName: "Main-d'œuvre (H/J)",
+    unitPrice: "Prix Unitaire",
+    amount: "Montant",
+    total: "Total",
+    note: "Remarques",
+    actions: "Actions",
+    export: "📥 Exporter",
+    import: "📤 Importer",
+    print: "🖨️ Aperçu Impression",
+    save: "Enregistrer",
+    clear: "Effacer",
+    copyPrev: "Copier Jour Précédent",
+    unit: "Unité",
+    qty: "Qté / Jours",
+    item: "Nom de l'Élément",
+    masterSite: "Chantiers Principaux",
+    calcMode: "Mode de Calcul:",
+    singleMonth: "Mois Unique",
+    rangeMonth: "Plage de Dates",
+    filterSite: "Filtrer par Chantier:",
+    allSites: "Tous les Chantiers",
+    printTitle: "Rapport d'Activité et d'Équipement",
+    printDate: "Date d'Émission",
+    period: "Période",
+    secSummary: "1. Synthèse par Élément",
+    secDetail: "2. Détail Quotidien",
+    noData: "Aucune donnée enregistrée.",
+    edit: "Modifier",
+    delete: "Supprimer",
+    addMachinery: "+ Ajouter un Élément",
+    saveSettings: "Enregistrer Paramètres",
+    addSite: "Ajouter",
+    jsonExport: "Format JSON (Sauvegarde)",
+    csvExport: "Format CSV (Compatible Excel)",
+    jsonImport: "Restaurer depuis JSON",
+    clearAll: "Effacer Toutes les Données"
+  },
+  es: {
+    appTitle: "Sistema de Control de Personal y Maquinaria",
+    subTitle: "Informe Cliente y Obra (Cant., Tarifas y Montos)",
+    tabDaily: "Entrada Diaria",
+    tabMonthly: "Informe Resumen",
+    tabSettings: "Maquinaria y Tarifas",
+    tabData: "Gestión de Datos",
+    dailyEntryTitle: "Entrada Diaria de Personal y Maquinaria",
+    dailyHistoryTitle: "Historial del Mes (Orden Cronológico)",
+    summaryTitle: "Configuración del Período del Informe",
+    summaryResultTitle: "Resultados del Resumen General",
+    settingsHelp: "Configure nombres, unidades y precios unitarios.",
+    showAmount: "Mostrar Tarifas y Montos",
+    date: "Fecha",
+    site: "Nombre de Obra",
+    workers: "Trabajadores (Jornales)",
+    workerName: "Mano de Obra (Jornales)",
+    unitPrice: "Precio Unitario",
+    amount: "Monto",
+    total: "Total",
+    note: "Notas",
+    actions: "Acciones",
+    export: "📥 Exportar",
+    import: "📤 Importar",
+    print: "🖨️ Vista Previa",
+    save: "Guardar",
+    clear: "Limpiar Formulario",
+    copyPrev: "Copiar Día Anterior",
+    unit: "Unidad",
+    qty: "Cant. / Días",
+    item: "Nombre del Ítem",
+    masterSite: "Obras Principales",
+    calcMode: "Modo de Cálculo:",
+    singleMonth: "Mes Único",
+    rangeMonth: "Rango de Fechas",
+    filterSite: "Filtrar por Obra:",
+    allSites: "Todas las Obras",
+    printTitle: "Reporte de Asistencia y Uso de Maquinaria",
+    printDate: "Fecha de Emisión",
+    period: "Período",
+    secSummary: "1. Resumen por Ítem",
+    secDetail: "2. Detalle Diario",
+    noData: "No hay datos registrados.",
+    edit: "Editar",
+    delete: "Eliminar",
+    addMachinery: "+ Agregar Ítem",
+    saveSettings: "Guardar Configuración",
+    addSite: "Agregar",
+    jsonExport: "Formato JSON (Respaldo)",
+    csvExport: "Formato CSV (Excel)",
+    jsonImport: "Restaurar de JSON",
+    clearAll: "Borrar Todos los Datos"
+  }
+};
+
+/* ==========================================================================
    State & Storage Management
    ========================================================================== */
-const APP_STORAGE_KEY = 'WORK_LOG_REPORTS_V1';
+const APP_STORAGE_KEY = 'WORK_LOG_SYSTEM_V2';
 
 let appState = {
+  currentLang: 'ja',
+  showAmount: false,
   settings: {
     workerUnit: '人工',
+    workerUnitPrice: 20000,
     machinery: [
-      { id: 'm1', name: 'バックホウ (0.25m3)', unit: '日/台' },
-      { id: 'm2', name: '2tダンプトラック', unit: '日/台' },
-      { id: 'm3', name: '発電機 2.5kVA', unit: '日/台' }
+      { id: 'm1', name: 'バックホウ (0.25m3)', unit: '日/台', unitPrice: 35000 },
+      { id: 'm2', name: '2tダンプトラック', unit: '日/台', unitPrice: 18000 },
+      { id: 'm3', name: '発電機 2.5kVA', unit: '日/台', unitPrice: 5000 }
     ],
     masterSites: ['本社ビル現場', '〇〇駅前道路工事', '△△邸外構工事']
   },
-  records: {} // Format: { "YYYY-MM-DD": { site, workers, machinery: { m1: val, ... }, note } }
+  records: {}
 };
+
+function t(key) {
+  const lang = appState.currentLang || 'ja';
+  return (i18n[lang] && i18n[lang][key]) ? i18n[lang][key] : i18n['ja'][key] || key;
+}
 
 window.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
+  document.getElementById('lang-select').value = appState.currentLang;
+  document.getElementById('toggle-show-amount').checked = appState.showAmount;
   setCurrentDateDefault();
-  renderDynamicInputs();
-  renderDailyTable();
-  renderMasterSiteOptions();
-  renderSummary();
+  applyLanguage();
 });
 
 function loadDataFromStorage() {
@@ -509,17 +815,38 @@ function loadDataFromStorage() {
       const parsed = JSON.parse(raw);
       appState = Object.assign({}, appState, parsed);
     }
-  } catch (e) {
-    console.error('Failed to load storage data:', e);
-  }
+  } catch (e) { console.error('Failed to load storage:', e); }
 }
 
 function saveDataToStorage() {
   try {
     localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
-  } catch (e) {
-    alert('データ保存に失敗しました。');
-  }
+  } catch (e) { alert('Data save failed.'); }
+}
+
+function changeLanguage(lang) {
+  appState.currentLang = lang;
+  saveDataToStorage();
+  applyLanguage();
+}
+
+function applyLanguage() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+
+  renderDynamicInputs();
+  renderDailyTable();
+  renderMasterSiteOptions();
+  renderSummary();
+  renderSettings();
+}
+
+function toggleAmountDisplay(checked) {
+  appState.showAmount = checked;
+  saveDataToStorage();
+  renderSummary();
 }
 
 function setCurrentDateDefault() {
@@ -564,7 +891,7 @@ function renderDynamicInputs() {
     div.innerHTML = `
       <label>${escapeHtml(item.name)} (${escapeHtml(item.unit)})</label>
       <div class="input-with-assist">
-        <input type="number" id="input-machinery-${item.id}" min="0" step="0.5" placeholder="未入力(0)">
+        <input type="number" id="input-machinery-${item.id}" min="0" step="0.5" placeholder="0">
         <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 0.5)">+0.5</button>
         <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 1)">+1</button>
       </div>
@@ -578,8 +905,7 @@ function renderMasterSiteOptions() {
   dropdown.innerHTML = '<option value="">(選択)</option>';
   appState.settings.masterSites.forEach(site => {
     const opt = document.createElement('option');
-    opt.value = site;
-    opt.textContent = site;
+    opt.value = site; opt.textContent = site;
     dropdown.appendChild(opt);
   });
 
@@ -587,18 +913,13 @@ function renderMasterSiteOptions() {
   datalist.innerHTML = '';
   const siteSelect = document.getElementById('filter-site-select');
   const currentSiteVal = siteSelect.value;
-  siteSelect.innerHTML = '<option value="ALL">全現場を対象</option>';
+  siteSelect.innerHTML = `<option value="ALL">${escapeHtml(t('allSites'))}</option>`;
 
   const uniqueSites = [...new Set(Object.values(appState.records).map(r => r.site))];
   uniqueSites.forEach(site => {
     if (site) {
-      const opt = document.createElement('option');
-      opt.value = site;
-      datalist.appendChild(opt);
-
-      const opt2 = document.createElement('option');
-      opt2.value = site;
-      opt2.textContent = site;
+      const opt = document.createElement('option'); opt.value = site; datalist.appendChild(opt);
+      const opt2 = document.createElement('option'); opt2.value = site; opt2.textContent = site;
       siteSelect.appendChild(opt2);
     }
   });
@@ -608,8 +929,7 @@ function renderMasterSiteOptions() {
   recentContainer.innerHTML = '';
   uniqueSites.slice(-4).reverse().forEach(site => {
     const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.textContent = site;
+    chip.className = 'chip'; chip.textContent = site;
     chip.onclick = () => { document.getElementById('input-site').value = site; };
     recentContainer.appendChild(chip);
   });
@@ -648,10 +968,7 @@ function saveDailyRecord(e) {
   const dateVal = document.getElementById('input-date').value;
   const siteVal = document.getElementById('input-site').value.trim();
 
-  if (!dateVal || !siteVal) {
-    alert('日付と現場名は必須です。');
-    return;
-  }
+  if (!dateVal || !siteVal) return;
 
   const workers = parseFloat(document.getElementById('input-workers').value) || 0;
   const machinery = {};
@@ -670,7 +987,6 @@ function saveDailyRecord(e) {
   saveDataToStorage();
   renderMasterSiteOptions();
   renderDailyTable();
-  alert(`${dateVal} の実績を保存しました。`);
 }
 
 function resetForm() {
@@ -688,10 +1004,7 @@ function copyPreviousDayRecord() {
   const prevDateStr = curr.toISOString().split('T')[0];
 
   const prevRec = appState.records[prevDateStr];
-  if (!prevRec) {
-    alert(`前日 (${prevDateStr}) のデータが見つかりません。`);
-    return;
-  }
+  if (!prevRec) return;
 
   document.getElementById('input-site').value = prevRec.site || '';
   document.getElementById('input-workers').value = prevRec.workers || '';
@@ -707,11 +1020,11 @@ function renderDailyTable() {
   const headRow = document.getElementById('daily-table-head');
   const tbody = document.getElementById('daily-table-body');
 
-  let headHtml = `<th>日付</th><th>現場名</th><th class="num">作業員(人工)</th>`;
+  let headHtml = `<th>${escapeHtml(t('date'))}</th><th>${escapeHtml(t('site'))}</th><th class="num">${escapeHtml(t('workers'))}</th>`;
   appState.settings.machinery.forEach(m => {
     headHtml += `<th class="num">${escapeHtml(m.name)}</th>`;
   });
-  headHtml += `<th>備考</th><th>操作</th>`;
+  headHtml += `<th>${escapeHtml(t('note'))}</th><th>${escapeHtml(t('actions'))}</th>`;
   headRow.innerHTML = headHtml;
 
   tbody.innerHTML = '';
@@ -721,7 +1034,7 @@ function renderDailyTable() {
     .sort((a, b) => a.localeCompare(b));
 
   if (dates.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${4 + appState.settings.machinery.length}" style="text-align:center; color:#888;">データが登録されていません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${4 + appState.settings.machinery.length}" style="text-align:center; color:#888;">${escapeHtml(t('noData'))}</td></tr>`;
     return;
   }
 
@@ -736,8 +1049,8 @@ function renderDailyTable() {
     });
     rowHtml += `<td>${escapeHtml(rec.note || '')}</td>`;
     rowHtml += `<td>
-      <button onclick="loadRecordToForm('${dateStr}')" style="padding:2px 6px;">編集</button>
-      <button onclick="deleteRecord('${dateStr}')" class="danger" style="padding:2px 6px;">削除</button>
+      <button onclick="loadRecordToForm('${dateStr}')" style="padding:2px 6px;">${escapeHtml(t('edit'))}</button>
+      <button onclick="deleteRecord('${dateStr}')" class="danger" style="padding:2px 6px;">${escapeHtml(t('delete'))}</button>
     </td>`;
 
     tr.innerHTML = rowHtml;
@@ -752,7 +1065,7 @@ function loadRecordToForm(dateStr) {
 }
 
 function deleteRecord(dateStr) {
-  if (confirm(`${dateStr} のデータを削除しますか？`)) {
+  if (confirm(`Delete record for ${dateStr}?`)) {
     delete appState.records[dateStr];
     saveDataToStorage();
     renderDailyTable();
@@ -761,7 +1074,7 @@ function deleteRecord(dateStr) {
 }
 
 /* ==========================================================================
-   Summary Calculations
+   Summary Calculations & Amount Display
    ========================================================================== */
 function toggleCalcMode() {
   const mode = document.getElementById('calc-mode').value;
@@ -798,7 +1111,16 @@ function getFilteredDatesForSummary() {
 
 function renderSummary() {
   const targetDates = getFilteredDatesForSummary();
+  const showAmount = appState.showAmount;
+  
+  const headRow = document.getElementById('summary-table-head');
   const tbody = document.getElementById('summary-table-body');
+
+  let headHtml = `<th>${escapeHtml(t('item'))}</th><th class="num">${escapeHtml(t('qty'))}</th><th>${escapeHtml(t('unit'))}</th>`;
+  if (showAmount) {
+    headHtml += `<th class="num">${escapeHtml(t('unitPrice'))}</th><th class="num">${escapeHtml(t('amount'))}</th>`;
+  }
+  headRow.innerHTML = headHtml;
   tbody.innerHTML = '';
 
   let totalWorkers = 0;
@@ -815,39 +1137,59 @@ function renderSummary() {
     }
   });
 
+  let grandTotal = 0;
+
+  // Worker Row
+  const workerUnitPrice = parseFloat(appState.settings.workerUnitPrice) || 0;
+  const workerAmount = totalWorkers * workerUnitPrice;
+  grandTotal += workerAmount;
+
   let html = `<tr>
-    <td>作業員出勤 (人工)</td>
+    <td>${escapeHtml(t('workerName'))}</td>
     <td class="num">${totalWorkers}</td>
     <td>${escapeHtml(appState.settings.workerUnit)}</td>
+    ${showAmount ? `<td class="num">${workerUnitPrice.toLocaleString()}</td><td class="num">${workerAmount.toLocaleString()}</td>` : ''}
   </tr>`;
 
+  // Machinery Rows
   appState.settings.machinery.forEach(m => {
+    const qty = machineryTotals[m.id] || 0;
+    const uPrice = parseFloat(m.unitPrice) || 0;
+    const amt = qty * uPrice;
+    grandTotal += amt;
+
     html += `<tr>
       <td>${escapeHtml(m.name)}</td>
-      <td class="num">${machineryTotals[m.id] || 0}</td>
+      <td class="num">${qty}</td>
       <td>${escapeHtml(m.unit)}</td>
+      ${showAmount ? `<td class="num">${uPrice.toLocaleString()}</td><td class="num">${amt.toLocaleString()}</td>` : ''}
     </tr>`;
   });
+
+  if (showAmount) {
+    html += `<tr style="background:#eef4ff; font-weight:bold;">
+      <td colspan="4" style="text-align:right;">${escapeHtml(t('total'))}:</td>
+      <td class="num" style="color:#1b365d; font-size:1.05rem;">${grandTotal.toLocaleString()}</td>
+    </tr>`;
+  }
 
   tbody.innerHTML = html;
 }
 
 /* ==========================================================================
-   Clean Print Output (For Client / Inspector Submission)
+   Print Output Generation
    ========================================================================== */
 function triggerPrintPreview() {
   const targetDates = getFilteredDatesForSummary();
   const mode = document.getElementById('calc-mode').value;
   const selectedSite = document.getElementById('filter-site-select').value;
+  const showAmount = appState.showAmount;
 
-  let periodStr = '';
-  if (mode === 'single') {
-    periodStr = document.getElementById('target-month').value + ' 分';
-  } else {
-    periodStr = `${document.getElementById('target-month-from').value} ～ ${document.getElementById('target-month-to').value} 分`;
-  }
+  let periodStr = mode === 'single'
+    ? document.getElementById('target-month').value
+    : `${document.getElementById('target-month-from').value} ～ ${document.getElementById('target-month-to').value}`;
 
-  const siteLabel = selectedSite === 'ALL' ? '全現場対象' : `現場: ${selectedSite}`;
+  const siteLabel = selectedSite === 'ALL' ? t('allSites') : selectedSite;
 
   let totalWorkers = 0;
   const machineryTotals = {};
@@ -863,21 +1205,40 @@ function triggerPrintPreview() {
     }
   });
 
+  let grandTotal = 0;
+  const workerUnitPrice = parseFloat(appState.settings.workerUnitPrice) || 0;
+  const workerAmount = totalWorkers * workerUnitPrice;
+  grandTotal += workerAmount;
+
   let summaryRows = `<tr>
-    <td>作業員出勤 (常用人工)</td>
+    <td>${escapeHtml(t('workerName'))}</td>
     <td style="text-align:right;">${totalWorkers}</td>
     <td>${escapeHtml(appState.settings.workerUnit)}</td>
+    ${showAmount ? `<td style="text-align:right;">${workerUnitPrice.toLocaleString()}</td><td style="text-align:right;">${workerAmount.toLocaleString()}</td>` : ''}
   </tr>`;
 
   appState.settings.machinery.forEach(m => {
+    const qty = machineryTotals[m.id] || 0;
+    const uPrice = parseFloat(m.unitPrice) || 0;
+    const amt = qty * uPrice;
+    grandTotal += amt;
+
     summaryRows += `<tr>
       <td>${escapeHtml(m.name)}</td>
-      <td style="text-align:right;">${machineryTotals[m.id] || 0}</td>
+      <td style="text-align:right;">${qty}</td>
       <td>${escapeHtml(m.unit)}</td>
+      ${showAmount ? `<td style="text-align:right;">${uPrice.toLocaleString()}</td><td style="text-align:right;">${amt.toLocaleString()}</td>` : ''}
     </tr>`;
   });
 
-  // Daily Detail Rows for Audit
+  if (showAmount) {
+    summaryRows += `<tr style="background:#f0f0f0; font-weight:bold;">
+      <td colspan="4" style="text-align:right;">${escapeHtml(t('total'))}:</td>
+      <td style="text-align:right;">${grandTotal.toLocaleString()}</td>
+    </tr>`;
+  }
+
+  // Daily Details
   let detailRows = '';
   targetDates.sort().forEach(d => {
     const rec = appState.records[d];
@@ -893,20 +1254,21 @@ function triggerPrintPreview() {
 
   const printHtml = `
     <div class="report-print-container">
-      <div class="report-title">作業出勤・機械稼働 状況集計表</div>
+      <div class="report-title">${escapeHtml(t('printTitle'))}</div>
       
-      <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:10pt;">
-        <div><strong>【対象期間】:</strong> ${periodStr} (${siteLabel})</div>
-        <div><strong>出力日:</strong> ${new Date().toLocaleDateString('ja-JP')}</div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:9pt;">
+        <div><strong>【${escapeHtml(t('period'))}】:</strong> ${periodStr} (${escapeHtml(siteLabel)})</div>
+        <div><strong>${escapeHtml(t('printDate'))}:</strong> ${new Date().toLocaleDateString()}</div>
       </div>
 
-      <h4 style="font-size:11pt; margin-bottom:5px; border-left:4px solid #333; padding-left:6px;">1. 稼働項目別 累計集計表</h4>
-      <table class="report-table" style="margin-bottom:20px;">
+      <h4 style="font-size:10pt; margin-bottom:4px; border-left:3px solid #333; padding-left:5px;">${escapeHtml(t('secSummary'))}</h4>
+      <table class="report-table" style="margin-bottom:15px;">
         <thead>
           <tr style="background:#f0f0f0;">
-            <th>項目名称</th>
-            <th style="text-align:right; width:120px;">数量 / 累計日</th>
-            <th style="width:80px;">単位</th>
+            <th>${escapeHtml(t('item'))}</th>
+            <th style="text-align:right;">${escapeHtml(t('qty'))}</th>
+            <th>${escapeHtml(t('unit'))}</th>
+            ${showAmount ? `<th style="text-align:right;">${escapeHtml(t('unitPrice'))}</th><th style="text-align:right;">${escapeHtml(t('amount'))}</th>` : ''}
           </tr>
         </thead>
         <tbody>
@@ -914,19 +1276,19 @@ function triggerPrintPreview() {
         </tbody>
       </table>
 
-      <h4 style="font-size:11pt; margin-bottom:5px; border-left:4px solid #333; padding-left:6px;">2. 日別稼働明細 内訳</h4>
+      <h4 style="font-size:10pt; margin-bottom:4px; border-left:3px solid #333; padding-left:5px;">${escapeHtml(t('secDetail'))}</h4>
       <table class="report-table">
         <thead>
           <tr style="background:#f0f0f0;">
-            <th style="width:90px;">日付</th>
-            <th>現場名</th>
-            <th style="text-align:right; width:60px;">人工</th>
+            <th>${escapeHtml(t('date'))}</th>
+            <th>${escapeHtml(t('site'))}</th>
+            <th style="text-align:right;">${escapeHtml(t('workers'))}</th>
             ${appState.settings.machinery.map(m => `<th style="text-align:right;">${escapeHtml(m.name)}</th>`).join('')}
-            <th>備考</th>
+            <th>${escapeHtml(t('note'))}</th>
           </tr>
         </thead>
         <tbody>
-          ${detailRows || '<tr><td colspan="10" style="text-align:center;">期間中の記録はありません。</td></tr>'}
+          ${detailRows || `<tr><td colspan="10" style="text-align:center;">${escapeHtml(t('noData'))}</td></tr>`}
         </tbody>
       </table>
     </div>
@@ -956,8 +1318,9 @@ function renderSettings() {
   tbody.innerHTML = '';
 
   let html = `<tr>
-    <td><input type="text" value="作業員出勤 (人工)" disabled style="background:#eee;"></td>
+    <td><input type="text" value="${escapeHtml(t('workerName'))}" disabled style="background:#eee;"></td>
     <td><input type="text" id="setting-worker-unit" value="${escapeHtml(appState.settings.workerUnit)}"></td>
+    <td><input type="number" id="setting-worker-price" value="${appState.settings.workerUnitPrice || 0}"></td>
     <td>-</td>
   </tr>`;
 
@@ -965,7 +1328,8 @@ function renderSettings() {
     html += `<tr>
       <td><input type="text" id="setting-name-${m.id}" value="${escapeHtml(m.name)}"></td>
       <td><input type="text" id="setting-unit-${m.id}" value="${escapeHtml(m.unit)}"></td>
-      <td><button onclick="removeMachinerySettingRow('${m.id}')" class="danger" style="padding:2px 6px;">削除</button></td>
+      <td><input type="number" id="setting-price-${m.id}" value="${m.unitPrice || 0}"></td>
+      <td><button onclick="removeMachinerySettingRow('${m.id}')" class="danger" style="padding:2px 6px;">${escapeHtml(t('delete'))}</button></td>
     </tr>`;
   });
 
@@ -975,12 +1339,12 @@ function renderSettings() {
 
 function addMachinerySettingRow() {
   const newId = 'm_' + Date.now();
-  appState.settings.machinery.push({ id: newId, name: '新規項目', unit: '日/台' });
+  appState.settings.machinery.push({ id: newId, name: '新規項目', unit: '日/台', unitPrice: 0 });
   renderSettings();
 }
 
 function removeMachinerySettingRow(id) {
-  if (confirm('この項目を削除しますか？')) {
+  if (confirm('Delete this item?')) {
     appState.settings.machinery = appState.settings.machinery.filter(m => m.id !== id);
     renderSettings();
   }
@@ -988,17 +1352,21 @@ function removeMachinerySettingRow(id) {
 
 function saveMachinerySettings() {
   appState.settings.workerUnit = document.getElementById('setting-worker-unit').value.trim();
+  appState.settings.workerUnitPrice = parseFloat(document.getElementById('setting-worker-price').value) || 0;
+
   appState.settings.machinery.forEach(m => {
     const nameEl = document.getElementById(`setting-name-${m.id}`);
     const unitEl = document.getElementById(`setting-unit-${m.id}`);
+    const priceEl = document.getElementById(`setting-price-${m.id}`);
     if (nameEl) m.name = nameEl.value.trim();
     if (unitEl) m.unit = unitEl.value.trim();
+    if (priceEl) m.unitPrice = parseFloat(priceEl.value) || 0;
   });
 
   saveDataToStorage();
   renderDynamicInputs();
   renderSummary();
-  alert('項目設定を更新しました。');
+  alert('Settings Saved.');
 }
 
 function renderMasterSitesList() {
@@ -1074,10 +1442,7 @@ function downloadBlob(blob, fileName) {
 
 function executeImport() {
   const fileInput = document.getElementById('import-file-input');
-  if (!fileInput.files || fileInput.files.length === 0) {
-    alert('JSONファイルを選択してください。');
-    return;
-  }
+  if (!fileInput.files || fileInput.files.length === 0) return;
 
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -1086,20 +1451,16 @@ function executeImport() {
       if (imported.settings && imported.records) {
         appState = imported;
         saveDataToStorage();
-        alert('復元が完了しました。');
+        alert('Restore Complete.');
         location.reload();
-      } else {
-        alert('データフォーマットが正しくありません。');
       }
-    } catch (err) {
-      alert('読み込みエラー: ' + err.message);
-    }
+    } catch (err) { alert('Import error: ' + err.message); }
   };
   reader.readAsText(fileInput.files[0]);
 }
 
 function clearAllData() {
-  if (confirm('【警告】すべての登録データを初期化しますか？')) {
+  if (confirm('Initialize all data?')) {
     localStorage.removeItem(APP_STORAGE_KEY);
     location.reload();
   }
