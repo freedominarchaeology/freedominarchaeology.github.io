@@ -196,7 +196,6 @@
                     </h2>
                     <div class="flex items-center space-x-2">
                         <button id="btnBypassAll" class="bg-synth-dark border border-synth-border hover:border-yellow-500 text-xs px-3 py-1 rounded text-yellow-400 transition cursor-pointer">BYPASS ALL</button>
-                        <!-- 選択式エフェクト追加ドロップダウン -->
                         <div class="relative inline-block">
                             <select id="addEffectSelect" class="bg-cyan-600 hover:bg-cyan-500 text-black text-xs font-bold px-3 py-1.5 rounded transition shadow cursor-pointer focus:outline-none">
                                 <option value="" disabled selected>+ エフェクト追加</option>
@@ -273,7 +272,7 @@
     <script>
         let audioCtx = null;
         let masterGain = null;
-        let activeSources = []; // 複数のアクティブな音源ソースを管理
+        let activeSources = [];
         let currentWaveform = 'sawtooth';
         let currentFreq = 220;
         let importedAudioBuffer = null;
@@ -285,7 +284,6 @@
         let continuousToneOsc = null;
         let continuousToneGain = null;
 
-        // 初期エフェクトチェーン
         let effectChain = [
             { id: 'fx_od', type: 'overdrive', bypass: false, params: { drive: 0.85, tone: 0.7, level: 0.8 } },
             { id: 'fx_del', type: 'delay', bypass: false, params: { time: 0.4, feedback: 0.65, wet: 0.6 } },
@@ -309,7 +307,6 @@
             }
         }
 
-        // Master Volume
         const masterVolumeSlider = document.getElementById('masterVolume');
         const masterVolumeVal = document.getElementById('masterVolumeVal');
         masterVolumeSlider.addEventListener('input', (e) => {
@@ -320,7 +317,6 @@
             }
         });
 
-        // Source Tabs
         const sourceTabs = document.querySelectorAll('.source-tab');
         const sourcePanels = document.querySelectorAll('.source-panel');
 
@@ -340,7 +336,6 @@
             });
         });
 
-        // Text Synth
         document.getElementById('btnTextSynth').addEventListener('click', () => {
             initAudioContext();
             stopContinuousTone();
@@ -378,7 +373,6 @@
             activeSources.push(osc);
         });
 
-        // Mic Handling
         const btnRecordMic = document.getElementById('btnRecordMic');
         const btnPlayMic = document.getElementById('btnPlayMic');
         const micStatusText = document.getElementById('micStatusText');
@@ -428,7 +422,6 @@
             activeSources.push(source);
         });
 
-        // Frequency Slider & Tone
         const freqSlider = document.getElementById('freqSlider');
         const freqValueDisplay = document.getElementById('freqValueDisplay');
         const btnPlayFreq = document.getElementById('btnPlayFreq');
@@ -494,7 +487,6 @@
             }
         });
 
-        // Virtual Keyboard
         const scaleNotes = [
             { name: 'C3', freq: 130.81 },
             { name: 'D3', freq: 146.83 },
@@ -538,7 +530,6 @@
             virtualKeyboard.appendChild(key);
         });
 
-        // File Import
         document.getElementById('audioFileInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -554,7 +545,6 @@
             }
         });
 
-        // XY Pad
         const xyPad = document.getElementById('xyPad');
         const xyCursor = document.getElementById('xyCursor');
         const padTouchStatus = document.getElementById('padTouchStatus');
@@ -620,7 +610,6 @@
             padTouchStatus.textContent = "STATUS: READY";
         });
 
-        // 選択式エフェクト追加
         const addEffectSelect = document.getElementById('addEffectSelect');
         addEffectSelect.addEventListener('change', (e) => {
             const selectedType = e.target.value;
@@ -642,7 +631,6 @@
             addEffectSelect.value = "";
         });
 
-        // Effects Rack Builder & DSP Chain Function
         const effectsRack = document.getElementById('effectsRack');
 
         function renderEffectsRack() {
@@ -726,7 +714,6 @@
 
         renderEffectsRack();
 
-        // DSPエフェクト接続用共通関数
         function connectToEffectChain(sourceOutputNode, context, destinationNode, chain) {
             let currentNode = sourceOutputNode;
 
@@ -851,7 +838,6 @@
             currentNode.connect(destinationNode);
         }
 
-        // Tempo & Pitch Sliders
         const tempoSlider = document.getElementById('tempoSlider');
         const tempoValue = document.getElementById('tempoValue');
         tempoSlider.addEventListener('input', (e) => {
@@ -878,7 +864,6 @@
             });
         });
 
-        // Master Play
         document.getElementById('btnPlayMaster').addEventListener('click', () => {
             initAudioContext();
 
@@ -912,7 +897,6 @@
             }
         });
 
-        // Master Stop (修正済み：アクティブなすべての音源と連続トーンを完全停止)
         document.getElementById('btnStopMaster').addEventListener('click', () => {
             stopContinuousTone();
             activeSources.forEach(src => {
@@ -923,7 +907,6 @@
             activeSources = [];
         });
 
-        // WAVエンコーダー用ヘルパー関数
         function bufferToWav(buffer) {
             const numOfChan = buffer.numberOfChannels;
             const length = buffer.length * numOfChan * 2 + 44;
@@ -980,12 +963,14 @@
             return new Blob([out.buffer], { type: 'audio/wav' });
         }
 
-        // WAV書き出しボタン
+        // WAV書き出しボタン（修正済み：インポート音声未選択時でもオシレーター音声を確実にレンダリング）
         document.getElementById('btnExportWav').addEventListener('click', async () => {
             const exportStatusText = document.getElementById('exportStatusText');
             exportStatusText.textContent = "レンダリング中（書き出し処理バッファ生成）...";
 
-            const duration = importedAudioBuffer ? (importedAudioBuffer.duration / parseFloat(tempoSlider.value)) + 2.0 : 3.0;
+            const tempoVal = parseFloat(tempoSlider.value);
+            const pitchVal = parseInt(pitchSlider.value);
+            const duration = importedAudioBuffer ? (importedAudioBuffer.duration / tempoVal) + 2.0 : 3.0;
             const sampleRate = 44100;
             const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
 
@@ -993,23 +978,28 @@
             if (importedAudioBuffer) {
                 source = offlineCtx.createBufferSource();
                 source.buffer = importedAudioBuffer;
-                const tempoVal = parseFloat(tempoSlider.value);
-                const pitchVal = parseInt(pitchSlider.value);
                 source.playbackRate.value = tempoVal * Math.pow(2, pitchVal / 12);
             } else {
                 source = offlineCtx.createOscillator();
                 source.type = currentWaveform;
-                const pitchVal = parseInt(pitchSlider.value);
                 source.frequency.value = currentFreq * Math.pow(2, pitchVal / 12);
+                
+                // オシレーターの場合はゲインエンベロープ（減衰）を付与して2秒で消音させる
+                const oscGain = offlineCtx.createGain();
+                oscGain.gain.setValueAtTime(0.7, 0);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, 2.0);
+                
+                source.connect(oscGain);
+                connectToEffectChain(oscGain, offlineCtx, offlineCtx.destination, effectChain);
                 source.start(0);
                 source.stop(2.0);
             }
 
-            const offlineGain = offlineCtx.createGain();
-            offlineGain.gain.value = parseFloat(masterVolumeSlider.value);
-
-            connectToEffectChain(source, offlineCtx, offlineGain, effectChain);
             if (importedAudioBuffer) {
+                const offlineGain = offlineCtx.createGain();
+                offlineGain.gain.value = parseFloat(masterVolumeSlider.value);
+                connectToEffectChain(source, offlineCtx, offlineGain, effectChain);
+                offlineGain.connect(offlineCtx.destination);
                 source.start(0);
             }
 
