@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出勤日管理・複数月一括請求システム</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        header {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        header h1 {
+            font-size: 1.35rem;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        select, input, button, textarea {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid #94a3b8;
+            border-radius: 4px;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #0284c7;
+            color: #ffffff;
+            border: none;
+            font-weight: bold;
+            padding: 0.5rem 0.9rem;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        button:hover { background-color: #0369a1; }
+        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+        button.btn-secondary { background-color: #475569; }
+        button.btn-secondary:hover { background-color: #334155; }
+        button.btn-danger { background-color: #dc2626; }
+        button.btn-danger:hover { background-color: #b91c1c; }
+        button.btn-success { background-color: #16a34a; }
+        button.btn-success:hover { background-color: #15803d; }
+        button.btn-outline { background-color: transparent; border: 1px solid #64748b; color: #1e293b; }
+        button.btn-outline:hover { background-color: #e2e8f0; }
+
+        .container {
+            max-width: 1240px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        /* Top Toolbar */
+        .quick-toolbar {
+            background-color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-left: 5px solid #0284c7;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #cbd5e1;
+            margin-bottom: 20px;
+            background-color: #ffffff;
+            border-radius: 6px 6px 0 0;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 18px;
+            border: none;
+            background: none;
+            color: #64748b;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: #0f172a;
+            border-bottom-color: #0284c7;
+            background-color: #f8fafc;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) { background-color: #f8fafc; }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-locked { background-color: #fee2e2; color: #991b1b; }
+        .badge-open { background-color: #dcfce7; color: #166534; }
+
+        .summary-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            max-width: 440px;
+            margin-left: auto;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #0f172a;
+            padding-top: 10px;
+        }
+
+        .export-section-title {
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #1e293b;
+            margin: 15px 0 8px 0;
+            border-left: 4px solid #0284c7;
+            padding-left: 8px;
+        }
+
+        .export-btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border-radius: 8px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+
+        .modal-body {
+            flex: 1;
+            padding: 10px 0;
+        }
+
+        /* Toast Component */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #0f172a;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 12px;
+            position: fixed;
+            z-index: 3000;
+            right: 20px;
+            bottom: 30px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.3s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        /* Print Media Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #printable-invoice, #printable-invoice * {
+                visibility: visible;
+            }
+
+            #printable-invoice {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 15mm;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11pt !important;
+            }
+
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-bottom: 15px !important;
+            }
+
+            th, td {
+                border: 1px solid #000000 !important;
+                padding: 6px 8px !important;
+                color: #000000 !important;
+            }
+
+            th {
+                background-color: #f2f2f2 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .summary-box {
+                border: 1px solid #000000 !important;
+                background-color: #ffffff !important;
+                margin-top: 15px !important;
+            }
+
+            .summary-row {
+                border-bottom: 1px dotted #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="no-print">
+        <h1 id="app-title">出勤日管理・複数月一括請求システム</h1>
+        <div class="header-controls">
+            <span id="db-status-indicator" style="font-size:0.75rem; background:#334155; padding:3px 8px; border-radius:4px;">DB: OK</span>
+            <label for="lang-select" style="font-size: 0.85rem;" id="lbl-lang">言語/Language:</label>
+            <select id="lang-select" onchange="changeLanguage(this.value)">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Quick Action Toolbar -->
+        <div class="quick-toolbar no-print">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <strong style="font-size:0.9rem;" id="lbl-quick-title">クイック操作:</strong>
+                <button class="btn-success" id="btn-quick-print" onclick="triggerInvoicePrint()">🖨️ 請求書印刷プレビュー</button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <input type="file" id="quick-file-input" accept=".json,.csv,.tsv" style="display:none;" onchange="handleFileImport(event)">
+                <button class="btn-secondary" onclick="document.getElementById('quick-file-input').click()">📥 インポート (JSON/CSV/TSV)</button>
+                <button class="btn-outline" onclick="exportJSON()">📤 バックアップ (JSON)</button>
+                <button class="btn-outline" onclick="exportCSV('UTF-8')">📊 CSV出力 (Excel用)</button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs no-print">
+            <button class="tab-btn active" onclick="switchTab('tab-daily', event)" id="tab-btn-daily">日別登録</button>
+            <button class="tab-btn" onclick="switchTab('tab-reports', event)" id="tab-btn-reports">月別・一括集計請求書</button>
+            <button class="tab-btn" onclick="switchTab('tab-settings', event)" id="tab-btn-settings">マスタ・単価設定</button>
+            <button class="tab-btn" onclick="switchTab('tab-data', event)" id="tab-btn-data">データ保管庫・入出力</button>
+        </div>
+
+        <!-- Tab 1: Daily Entry -->
+        <div id="tab-daily" class="tab-content active">
+            <div class="card">
+                <div class="card-title">
+                    <span id="title-daily-form">日別作業・機材実績の入力</span>
+                    <span id="lock-status-badge" class="badge badge-open">編集可能</span>
+                </div>
+                <form id="daily-form" onsubmit="handleDailySubmit(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="entry-date" id="lbl-entry-date">日付:</label>
+                            <input type="date" id="entry-date" required onchange="onDateChange()">
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 12px 0 8px 0; font-size: 0.95rem;" id="lbl-workers-entry">作業員数入力</h4>
+                    <div class="form-grid" id="worker-inputs-container"></div>
+
+                    <h4 style="margin: 12px 0 8px 0; font-size: 0.95rem;" id="lbl-machinery-entry">機械類数量入力</h4>
+                    <div class="form-grid" id="machinery-inputs-container"></div>
+
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label for="entry-notes" id="lbl-entry-notes">備考・作業内容:</label>
+                        <textarea id="entry-notes" rows="2" placeholder="例: A地区 舗装工事"></textarea>
+                    </div>
+
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button type="submit" id="btn-save-entry">保存する</button>
+                        <button type="button" class="btn-secondary" onclick="resetDailyForm()" id="btn-clear-entry">クリア</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Current Month History (Chronological Order: New records appended at bottom) -->
+            <div class="card">
+                <div class="card-title">
+                    <span id="title-daily-list">当月の入力履歴 (日付順：下に新しい日付が追加)</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr id="daily-table-header"></tr>
+                        </thead>
+                        <tbody id="daily-records-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Reports & Printable Invoice -->
+        <div id="tab-reports" class="tab-content">
+            <div class="card">
+                <div class="card-title no-print">
+                    <span id="title-month-select">対象期間・複数月一括集計の設定</span>
+                    <div style="display:flex; gap:8px;">
+                        <button id="btn-toggle-lock" class="btn-secondary" onclick="toggleMonthLock()">選択月の締め処理</button>
+                        <button class="btn-success" onclick="triggerInvoicePrint()" id="btn-print-action">🖨️ 請求書印刷プレビュー表示</button>
+                    </div>
+                </div>
+
+                <div class="form-grid no-print">
+                    <div class="form-group">
+                        <label for="billing-mode" id="lbl-billing-mode">集計モード:</label>
+                        <select id="billing-mode" onchange="onBillingModeChange(this.value)">
+                            <option value="single" id="opt-single-month">単一月のみ集計</option>
+                            <option value="multi" id="opt-multi-month">複数月を一括集計（期間指定）</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="single-month-group">
+                        <label for="report-month" id="lbl-report-month">対象月:</label>
+                        <input type="month" id="report-month" onchange="renderMonthlyReport()">
+                    </div>
+                    <div class="form-group" id="multi-start-group" style="display:none;">
+                        <label for="report-start-month" id="lbl-report-start-month">開始月:</label>
+                        <input type="month" id="report-start-month" onchange="renderMonthlyReport()">
+                    </div>
+                    <div class="form-group" id="multi-end-group" style="display:none;">
+                        <label for="report-end-month" id="lbl-report-end-month">終了月:</label>
+                        <input type="month" id="report-end-month" onchange="renderMonthlyReport()">
+                    </div>
+                </div>
+
+                <!-- Printable Invoice Section -->
+                <div id="printable-invoice">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 1.6rem; text-decoration: underline;" id="invoice-title">月別請求書・集計報告書</h2>
+                        <p style="margin-top: 6px; font-size: 0.95rem;"><span id="invoice-month-label">対象期間</span>: <span id="display-report-month" style="font-weight: bold;"></span></p>
+                    </div>
+
+                    <h3 style="margin-bottom: 8px; font-size: 1rem;" id="title-worker-summary">1. 作業員出勤集計</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th id="th-worker-type">区分・職種</th>
+                                    <th class="text-right" id="th-worker-unit-price">単価 (円)</th>
+                                    <th class="text-right" id="th-worker-days">延べ人数 (人日)</th>
+                                    <th class="text-right" id="th-worker-subtotal">金額 (円)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-worker-body"></tbody>
+                        </table>
+                    </div>
+
+                    <h3 style="margin: 18px 0 8px 0; font-size: 1rem;" id="title-machinery-summary">2. 機械類使用集計</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th id="th-machinery-type">機械・機材名</th>
+                                    <th class="text-right" id="th-machinery-unit-price">単価 (円)</th>
+                                    <th class="text-right" id="th-machinery-qty">使用数量 (台/日)</th>
+                                    <th class="text-right" id="th-machinery-subtotal">金額 (円)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-machinery-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="summary-box">
+                        <div class="summary-row">
+                            <span id="lbl-subtotal-price">小計 (税抜):</span>
+                            <span id="summary-subtotal">¥0</span>
+                        </div>
+                        <div class="summary-row">
+                            <span><span id="lbl-tax-rate">消費税</span> (<span id="summary-tax-rate-val">10</span>%):</span>
+                            <span id="summary-tax">¥0</span>
+                        </div>
+                        <div class="summary-row">
+                            <span id="lbl-total-price">合計請求額 (税込):</span>
+                            <span id="summary-total">¥0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Master & Settings -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <div class="card-title" id="title-tax-settings">消費税率設定</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="tax-rate-input" id="lbl-tax-rate-setting">消費税率 (%):</label>
+                        <select id="tax-rate-input" onchange="onTaxRateSelectChange(this.value)">
+                            <option value="10">10% (標準税率)</option>
+                            <option value="8">8% (軽減税率)</option>
+                            <option value="custom">任意指定</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="custom-tax-group" style="display:none;">
+                        <label for="custom-tax-rate-input" id="lbl-custom-tax">任意消費税率 (%):</label>
+                        <input type="number" id="custom-tax-rate-input" step="0.1" min="0" max="100" value="10">
+                    </div>
+                </div>
+                <button onclick="saveTaxRate()" id="btn-save-tax">税率を保存</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title" id="title-worker-settings">作業員区分・日雇単価の設定</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="new-worker-name" id="lbl-worker-name">区分名 (例: 特殊作業員):</label>
+                        <input type="text" id="new-worker-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-worker-price" id="lbl-worker-price">日額単価 (円):</label>
+                        <input type="number" id="new-worker-price" min="0" value="0">
+                    </div>
+                </div>
+                <button onclick="addWorkerCategory()" id="btn-add-worker">追加 / 更新</button>
+
+                <div class="table-responsive" style="margin-top: 15px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th id="th-setting-worker-name">区分名</th>
+                                <th class="text-right" id="th-setting-worker-price">単価 (円)</th>
+                                <th class="text-center" style="width: 100px;" id="th-setting-action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="worker-settings-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title" id="title-machinery-settings">使用機械・機材区分・単価の設定</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="new-machinery-name" id="lbl-machinery-name">機械・工具名 (例: 4tダンプ):</label>
+                        <input type="text" id="new-machinery-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-machinery-price" id="lbl-machinery-price">日額/使用単価 (円):</label>
+                        <input type="number" id="new-machinery-price" min="0" value="0">
+                    </div>
+                </div>
+                <button onclick="addMachineryCategory()" id="btn-add-machinery">追加 / 更新</button>
+
+                <div class="table-responsive" style="margin-top: 15px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th id="th-setting-machinery-name">機械名</th>
+                                <th class="text-right" id="th-setting-machinery-price">単価 (円)</th>
+                                <th class="text-center" style="width: 100px;" id="th-setting-action2">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="machinery-settings-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Multi-format Data Import & Export Hub -->
+        <div id="tab-data" class="tab-content">
+            <div class="card">
+                <div class="card-title" id="title-data-management">多機能データ保管庫 & 入出力中心部</div>
+                <p style="margin-bottom: 15px; font-size: 0.88rem;" id="desc-data-management">
+                    多様な形式（JSON, CSV, TSV, Excel XML, Markdown等）でのデータエクスポート・インポートを完全オフラインで即時に行えます。
+                </p>
+
+                <div class="export-section-title">1. データエクスポート (ダウンロード保存)</div>
+                <div class="export-btn-group">
+                    <button class="btn-success" onclick="exportJSON()">JSON形式 (.json)</button>
+                    <button class="btn-success" onclick="exportCSV('UTF-8')">CSV形式 (UTF-8 BOM)</button>
+                    <button class="btn-success" onclick="exportCSV('Shift_JIS')">CSV形式 (Shift_JIS)</button>
+                    <button class="btn-success" onclick="exportTSV()">TSV形式 (.tsv)</button>
+                    <button class="btn-success" onclick="exportExcelXML()">Excel互換XML (.xml)</button>
+                    <button class="btn-success" onclick="exportHTMLReport()">HTMLレポート (.html)</button>
+                    <button class="btn-success" onclick="exportMarkdownText()">Markdown/TXT (.md)</button>
+                </div>
+
+                <div class="export-section-title">2. データインポート (ファイル読み込み)</div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <input type="file" id="import-file-input" accept=".json,.csv,.tsv,.txt" style="display:none;" onchange="handleFileImport(event)">
+                    <button class="btn-secondary" onclick="document.getElementById('import-file-input').click()">📁 ファイルを選択して読み込む (JSON/CSV/TSV)</button>
+                </div>
+
+                <div class="export-section-title">3. クリップボード連携</div>
+                <div class="export-btn-group">
+                    <button class="btn-outline" onclick="copyToClipboard('json')">JSONをコピー</button>
+                    <button class="btn-outline" onclick="copyToClipboard('tsv')">TSV (Excel用)をコピー</button>
+                    <button class="btn-outline" onclick="copyToClipboard('markdown')">Markdown要約をコピー</button>
+                </div>
+
+                <div class="export-section-title">4. データベース管理</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-danger" onclick="resetAllData()" id="btn-reset-data">全データ初期化</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable Modal Preview Window -->
+    <div id="print-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size:1.1rem; font-weight:bold;">🖨️ 印刷用帳票プレビュー</h3>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-success" id="btn-execute-print" onclick="executeSystemPrint()">印刷を確定実行</button>
+                    <button class="btn-secondary" onclick="closePrintModal()">閉じる</button>
+                </div>
+            </div>
+            <div class="modal-body" id="modal-print-container"></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const i18n = {
+            ja: {
+                appTitle: "出勤日管理・複数月一括請求システム",
+                lblLang: "言語/Language:",
+                lblQuickTitle: "クイック操作:",
+                tabDaily: "日別登録",
+                tabReports: "月別・一括集計請求書",
+                tabSettings: "マスタ・単価設定",
+                tabData: "データ保管庫・入出力",
+                titleDailyForm: "日別作業・機材実績の入力",
+                statusEditable: "編集可能",
+                statusLocked: "月締め完了 (ロック)",
+                lblEntryDate: "日付:",
+                lblWorkersEntry: "作業員数入力",
+                lblMachineryEntry: "機械類数量入力",
+                lblEntryNotes: "備考・作業内容:",
+                btnSaveEntry: "保存する",
+                btnClearEntry: "クリア",
+                titleDailyList: "当月の入力履歴 (日付順：下に新しい日付が追加)",
+                titleMonthSelect: "対象期間・複数月一括集計の設定",
+                btnLock: "選択月の締め処理",
+                btnUnlock: "締め解除",
+                btnPrintAction: "🖨️ 請求書印刷プレビュー表示",
+                lblBillingMode: "集計モード:",
+                optSingleMonth: "単一月のみ集計",
+                optMultiMonth: "複数月を一括集計（期間指定）",
+                lblReportMonth: "対象月:",
+                lblReportStartMonth: "開始月:",
+                lblReportEndMonth: "終了月:",
+                invoiceTitle: "月別請求書・集計報告書",
+                invoiceMonthLabel: "対象期間",
+                titleWorkerSummary: "1. 作業員出勤集計",
+                thWorkerType: "区分・職種",
+                thWorkerUnitPrice: "単価 (円)",
+                thWorkerDays: "延べ人数 (人日)",
+                thWorkerSubtotal: "金額 (円)",
+                titleMachinerySummary: "2. 機械類使用集計",
+                thMachineryType: "機械・機材名",
+                thMachineryUnitPrice: "単価 (円)",
+                thMachineryQty: "使用数量 (台/日)",
+                thMachinerySubtotal: "金額 (円)",
+                lblSubtotalPrice: "小計 (税抜):",
+                lblTaxRate: "消費税",
+                lblTotalPrice: "合計請求額 (税込):",
+                titleTaxSettings: "消費税率設定",
+                lblTaxRateSetting: "消費税率 (%):",
+                btnSaveTax: "税率を保存",
+                titleWorkerSettings: "作業員区分・日雇単価の設定",
+                lblWorkerName: "区分名 (例: 特殊作業員):",
+                lblWorkerPrice: "日額単価 (円):",
+                btnAddWorker: "追加 / 更新",
+                thSettingWorkerName: "区分名",
+                thSettingWorkerPrice: "単価 (円)",
+                thSettingAction: "操作",
+                titleMachinerySettings: "使用機械・機材区分・単価の設定",
+                lblMachineryName: "機械・工具名 (例: 4tダンプ):",
+                lblMachineryPrice: "日額/使用単価 (円):",
+                btnAddMachinery: "追加 / 更新",
+                thSettingMachineryName: "機械名",
+                thSettingMachineryPrice: "単価 (円)",
+                titleDataManagement: "多機能データ保管庫 & 入出力中心部",
+                descDataManagement: "多様な形式（JSON, CSV, TSV, Excel XML, Markdown等）でのデータエクスポート・インポートを完全オフラインで即時に行えます。",
+                btnResetData: "全データ初期化",
+                btnDelete: "削除",
+                msgSaved: "保存しました。",
+                msgLockedAlert: "選択された月は締め処理が完了しているため変更できません。",
+                msgTaxSaved: "消費税率を保存しました。",
+                msgDataResetConfirm: "すべてのデータが削除されます。本当によろしいですか？",
+                msgResetComplete: "データを初期化しました。",
+                msgImportSuccess: "データを正常にインポートしました。",
+                msgImportFailed: "データの読み込み・解析に失敗しました。",
+                msgCopied: "クリップボードにコピーしました。"
+            },
+            en: {
+                appTitle: "Work Attendance & Multi-Month Invoice System",
+                lblLang: "Language:",
+                lblQuickTitle: "Quick Actions:",
+                tabDaily: "Daily Entry",
+                tabReports: "Monthly & Multi-Month Invoice",
+                tabSettings: "Settings & Rates",
+                tabData: "Data Import / Export Hub",
+                titleDailyForm: "Daily Work & Equipment Record",
+                statusEditable: "Editable",
+                statusLocked: "Closed (Locked)",
+                lblEntryDate: "Date:",
+                lblWorkersEntry: "Worker Headcount",
+                lblMachineryEntry: "Equipment Quantities",
+                lblEntryNotes: "Notes / Details:",
+                btnSaveEntry: "Save Record",
+                btnClearEntry: "Clear",
+                titleDailyList: "Current Month History (Newest at Bottom)",
+                titleMonthSelect: "Select Period / Multi-Month Batch Settings",
+                btnLock: "Toggle Month Lock",
+                btnUnlock: "Unlock Month",
+                btnPrintAction: "🖨️ Invoice Print Preview",
+                lblBillingMode: "Aggregation Mode:",
+                optSingleMonth: "Single Month Billing",
+                optMultiMonth: "Multi-Month Batch Billing",
+                lblReportMonth: "Target Month:",
+                lblReportStartMonth: "Start Month:",
+                lblReportEndMonth: "End Month:",
+                invoiceTitle: "Monthly / Periodical Billing Invoice",
+                invoiceMonthLabel: "Target Period",
+                titleWorkerSummary: "1. Worker Attendance Summary",
+                thWorkerType: "Classification / Category",
+                thWorkerUnitPrice: "Unit Rate (JPY)",
+                thWorkerDays: "Total Headcount",
+                thWorkerSubtotal: "Subtotal (JPY)",
+                titleMachinerySummary: "2. Equipment Usage Summary",
+                thMachineryType: "Equipment Name",
+                thMachineryUnitPrice: "Unit Rate (JPY)",
+                thMachineryQty: "Usage Qty",
+                thMachinerySubtotal: "Subtotal (JPY)",
+                lblSubtotalPrice: "Subtotal (Excl. Tax):",
+                lblTaxRate: "Sales Tax",
+                lblTotalPrice: "Total Amount (Incl. Tax):",
+                titleTaxSettings: "Sales Tax Settings",
+                lblTaxRateSetting: "Tax Rate (%):",
+                btnSaveTax: "Save Tax Rate",
+                titleWorkerSettings: "Worker Categories & Rates",
+                lblWorkerName: "Category Name:",
+                lblWorkerPrice: "Daily Rate (JPY):",
+                btnAddWorker: "Add / Update",
+                thSettingWorkerName: "Category Name",
+                thSettingWorkerPrice: "Daily Rate (JPY)",
+                thSettingAction: "Action",
+                titleMachinerySettings: "Equipment Categories & Rates",
+                lblMachineryName: "Equipment Name:",
+                lblMachineryPrice: "Daily Rate (JPY):",
+                btnAddMachinery: "Add / Update",
+                thSettingMachineryName: "Equipment Name",
+                thSettingMachineryPrice: "Daily Rate (JPY)",
+                titleDataManagement: "Data Storage & Multi-format Hub",
+                descDataManagement: "Export and import attendance data using JSON, CSV, TSV, XML, HTML, and Markdown formats offline.",
+                btnResetData: "Reset All Data",
+                btnDelete: "Delete",
+                msgSaved: "Entry saved.",
+                msgLockedAlert: "Selected month is locked and cannot be edited.",
+                msgTaxSaved: "Tax rate updated.",
+                msgDataResetConfirm: "Are you sure you want to delete all data?",
+                msgResetComplete: "Data reset complete.",
+                msgImportSuccess: "Data imported successfully.",
+                msgImportFailed: "Failed to parse import file.",
+                msgCopied: "Copied to clipboard."
+            },
+            'zh-CN': {
+                appTitle: "考勤与多月合并账单系统",
+                lblLang: "语言/Language:",
+                lblQuickTitle: "快捷操作:",
+                tabDaily: "每日登记",
+                tabReports: "月度·多月合并账单",
+                tabSettings: "单价与设置",
+                tabData: "数据导入导出中心",
+                titleDailyForm: "每日出勤及机械使用登记",
+                statusEditable: "可编辑",
+                statusLocked: "已月结 (锁定)",
+                lblEntryDate: "日期:",
+                lblWorkersEntry: "人员出勤录入",
+                lblMachineryEntry: "机械设备数量",
+                lblEntryNotes: "备注/工作内容:",
+                btnSaveEntry: "保存",
+                btnClearEntry: "重置",
+                titleDailyList: "当月录入历史 (按日期正序：新记录在下方)",
+                titleMonthSelect: "统计期间与多月合并设置",
+                btnLock: "月结锁定/解锁",
+                btnUnlock: "解除月结",
+                btnPrintAction: "🖨️ 打印账单预览",
+                lblBillingMode: "统计模式:",
+                optSingleMonth: "单月结算",
+                optMultiMonth: "多月合并结算 (指定区间)",
+                lblReportMonth: "目标月份:",
+                lblReportStartMonth: "起始月份:",
+                lblReportEndMonth: "结束月份:",
+                invoiceTitle: "考勤与结算账单报告",
+                invoiceMonthLabel: "目标期间",
+                titleWorkerSummary: "1. 工人出勤汇总",
+                thWorkerType: "工种/类别",
+                thWorkerUnitPrice: "单价 (日元)",
+                thWorkerDays: "总工时 (人·天)",
+                thWorkerSubtotal: "金额 (日元)",
+                titleMachinerySummary: "2. 机械使用汇总",
+                thMachineryType: "机械设备名称",
+                thMachineryUnitPrice: "单价 (日元)",
+                thMachineryQty: "使用数量 (台/天)",
+                thMachinerySubtotal: "金额 (日元)",
+                lblSubtotalPrice: "小计 (不含税):",
+                lblTaxRate: "消费税",
+                lblTotalPrice: "总计结算金额 (含税):",
+                titleTaxSettings: "税率设置",
+                lblTaxRateSetting: "消费税率 (%):",
+                btnSaveTax: "保存税率",
+                titleWorkerSettings: "工人类别与日薪设置",
+                lblWorkerName: "类别名称:",
+                lblWorkerPrice: "日薪单价 (日元):",
+                btnAddWorker: "添加 / 更新",
+                thSettingWorkerName: "类别",
+                thSettingWorkerPrice: "单价 (日元)",
+                thSettingAction: "操作",
+                titleMachinerySettings: "机械设备类别与单价设置",
+                lblMachineryName: "设备名称:",
+                lblMachineryPrice: "日租/单价 (日元):",
+                btnAddMachinery: "添加 / 更新",
+                thSettingMachineryName: "设备名称",
+                thSettingMachineryPrice: "单价 (日元)",
+                titleDataManagement: "多功能数据存储与导入导出",
+                descDataManagement: "支持 JSON、CSV、TSV、XML、HTML 及 Markdown 等多种格式的离线导出与导入。",
+                btnResetData: "清空所有数据",
+                btnDelete: "删除",
+                msgSaved: "已保存。",
+                msgLockedAlert: "所选月份已结账锁定，无法修改。",
+                msgTaxSaved: "税率已更新。",
+                msgDataResetConfirm: "确定要清空所有数据吗？",
+                msgResetComplete: "数据已重置。",
+                msgImportSuccess: "数据导入成功。",
+                msgImportFailed: "导入解析失败。",
+                msgCopied: "已复制到剪贴板。"
+            },
+            'zh-TW': {
+                appTitle: "考勤與多月合併帳單系統",
+                lblLang: "語言/Language:",
+                lblQuickTitle: "快捷操作:",
+                tabDaily: "每日登記",
+                tabReports: "月度·多月合併帳單",
+                tabSettings: "單價與設定",
+                tabData: "資料匯入匯出中心",
+                titleDailyForm: "每日出勤及機械使用登記",
+                statusEditable: "可編輯",
+                statusLocked: "已月結 (鎖定)",
+                lblEntryDate: "日期:",
+                lblWorkersEntry: "人員出勤輸入",
+                lblMachineryEntry: "機械設備數量",
+                lblEntryNotes: "備註/工作內容:",
+                btnSaveEntry: "儲存",
+                btnClearEntry: "重設",
+                titleDailyList: "當月輸入歷史 (按日期正序：新記錄在下方)",
+                titleMonthSelect: "統計期間與多月合併設定",
+                btnLock: "月結鎖定/解鎖",
+                btnUnlock: "解除月結",
+                btnPrintAction: "🖨️ 列印帳單預覽",
+                lblBillingMode: "統計模式:",
+                optSingleMonth: "單月結算",
+                optMultiMonth: "多月合併結算 (指定區間)",
+                lblReportMonth: "目標月份:",
+                lblReportStartMonth: "起始月份:",
+                lblReportEndMonth: "結束月份:",
+                invoiceTitle: "考勤與結算帳單報告",
+                invoiceMonthLabel: "目標期間",
+                titleWorkerSummary: "1. 工人出勤匯總",
+                thWorkerType: "工種/類別",
+                thWorkerUnitPrice: "單價 (日圓)",
+                thWorkerDays: "總工時 (人·天)",
+                thWorkerSubtotal: "金額 (日圓)",
+                titleMachinerySummary: "2. 機械使用匯總",
+                thMachineryType: "機械設備名稱",
+                thMachineryUnitPrice: "單價 (日圓)",
+                thMachineryQty: "使用數量 (台/天)",
+                thMachinerySubtotal: "金額 (日圓)",
+                lblSubtotalPrice: "小計 (未稅):",
+                lblTaxRate: "營業稅",
+                lblTotalPrice: "總計結算金額 (含稅):",
+                titleTaxSettings: "稅率設定",
+                lblTaxRateSetting: "營業稅率 (%):",
+                btnSaveTax: "儲存稅率",
+                titleWorkerSettings: "工人類別與日薪設定",
+                lblWorkerName: "類別名稱:",
+                lblWorkerPrice: "日薪單價 (日圓):",
+                btnAddWorker: "新增 / 更新",
+                thSettingWorkerName: "類別",
+                thSettingWorkerPrice: "單價 (日圓)",
+                thSettingAction: "操作",
+                titleMachinerySettings: "機械設備類別與單價設定",
+                lblMachineryName: "設備名稱:",
+                lblMachineryPrice: "日租/單價 (日圓):",
+                btnAddMachinery: "新增 / 更新",
+                thSettingMachineryName: "設備名稱",
+                thSettingMachineryPrice: "單價 (日圓)",
+                titleDataManagement: "多功能資料存儲與匯入匯出",
+                descDataManagement: "支援 JSON、CSV、TSV、XML、HTML 及 Markdown 等多種格式的離線匯出與匯入。",
+                btnResetData: "清除所有資料",
+                btnDelete: "刪除",
+                msgSaved: "已儲存。",
+                msgLockedAlert: "所選月份已結帳鎖定，無法修改。",
+                msgTaxSaved: "稅率已更新。",
+                msgDataResetConfirm: "確定要清除所有資料嗎？",
+                msgResetComplete: "資料已重設。",
+                msgImportSuccess: "資料匯入成功。",
+                msgImportFailed: "匯入解析失敗。",
+                msgCopied: "已複製到剪貼簿。"
+            },
+            ko: {
+                appTitle: "출근 관리 및 일괄 청구 시스템",
+                lblLang: "언어/Language:",
+                lblQuickTitle: "빠른 작업:",
+                tabDaily: "일별 등록",
+                tabReports: "월별·일괄 청구서",
+                tabSettings: "단가 설정",
+                tabData: "데이터 입출력 센터",
+                titleDailyForm: "일별 작업 및 장비 실적 입력",
+                statusEditable: "편집 가능",
+                statusLocked: "월 마감 (잠금)",
+                lblEntryDate: "날짜:",
+                lblWorkersEntry: "작업원 인원수 입력",
+                lblMachineryEntry: "장비 사용 수량",
+                lblEntryNotes: "비고 / 작업 내용:",
+                btnSaveEntry: "저장",
+                btnClearEntry: "초기화",
+                titleDailyList: "당월 입력 내역 (날짜 오름차순: 아래에 추가)",
+                titleMonthSelect: "대상 기간 및 일괄 청구 설정",
+                btnLock: "월 마감 토글",
+                btnUnlock: "월 마감 해제",
+                btnPrintAction: "🖨️ 청구서 인쇄 미리보기",
+                lblBillingMode: "집계 모드:",
+                optSingleMonth: "단일 월 청구",
+                optMultiMonth: "다중 월 일괄 청구 (기간 지정)",
+                lblReportMonth: "대상 월:",
+                lblReportStartMonth: "시작 월:",
+                lblReportEndMonth: "종료 월:",
+                invoiceTitle: "출근 및 청구 집계 보고서",
+                invoiceMonthLabel: "대상 기간",
+                titleWorkerSummary: "1. 작업원 출근 집계",
+                thWorkerType: "구분 / 직종",
+                thWorkerUnitPrice: "단가 (엔)",
+                thWorkerDays: "총 인원 (명)",
+                thWorkerSubtotal: "금액 (엔)",
+                titleMachinerySummary: "2. 장비 사용 집계",
+                thMachineryType: "장비 명칭",
+                thMachineryUnitPrice: "단가 (엔)",
+                thMachineryQty: "사용 수량 (대/일)",
+                thMachinerySubtotal: "금액 (엔)",
+                lblSubtotalPrice: "소계 (세외):",
+                lblTaxRate: "소비세",
+                lblTotalPrice: "총 청구 금액 (세포함):",
+                titleTaxSettings: "소비세율 설정",
+                lblTaxRateSetting: "소비세율 (%):",
+                btnSaveTax: "세율 저장",
+                titleWorkerSettings: "작업원 구분 및 일당 설정",
+                lblWorkerName: "구분명:",
+                lblWorkerPrice: "일당 단가 (엔):",
+                btnAddWorker: "추가 / 수정",
+                thSettingWorkerName: "구분명",
+                thSettingWorkerPrice: "단가 (엔)",
+                thSettingAction: "작업",
+                titleMachinerySettings: "장비 구분 및 단가 설정",
+                lblMachineryName: "장비명:",
+                lblMachineryPrice: "일당 단가 (엔):",
+                btnAddMachinery: "추가 / 수정",
+                thSettingMachineryName: "장비명",
+                thSettingMachineryPrice: "단가 (엔)",
+                titleDataManagement: "데이터 백업 및 가져오기 센터",
+                descDataManagement: "JSON, CSV, TSV, XML, HTML, Markdown 등 다양한 형식으로 내보내기 및 가져오기가 가능합니다.",
+                btnResetData: "모든 데이터 초기화",
+                btnDelete: "삭제",
+                msgSaved: "저장되었습니다.",
+                msgLockedAlert: "선택한 월은 마감되어 수정할 수 없습니다.",
+                msgTaxSaved: "세율이 저장되었습니다.",
+                msgDataResetConfirm: "모든 데이터가 삭제됩니다. 계속하시겠습니까?",
+                msgResetComplete: "데이터가 초기화되었습니다.",
+                msgImportSuccess: "데이터를 성공적으로 가져왔습니다.",
+                msgImportFailed: "가져오기 파싱에 실패했습니다.",
+                msgCopied: "클립보드에 복사되었습니다."
+            },
+            fr: {
+                appTitle: "Gestion des Présences & Facturation Groupée",
+                lblLang: "Langue/Language:",
+                lblQuickTitle: "Actions Rapides:",
+                tabDaily: "Saisie Journalière",
+                tabReports: "Rapports & Factures",
+                tabSettings: "Tarifs & Paramètres",
+                tabData: "Centre d'Importation / Exportation",
+                titleDailyForm: "Saisie du Travail et des Équipements",
+                statusEditable: "Modifiable",
+                statusLocked: "Verrouillé",
+                lblEntryDate: "Date:",
+                lblWorkersEntry: "Nombre d'Ouvriers",
+                lblMachineryEntry: "Équipements Utilisés",
+                lblEntryNotes: "Notes:",
+                btnSaveEntry: "Enregistrer",
+                btnClearEntry: "Effacer",
+                titleDailyList: "Historique du Mois (Chronologique)",
+                titleMonthSelect: "Sélection de Période & Facturation Multi-Mois",
+                btnLock: "Verrouiller / Déverrouiller Le Mois",
+                btnUnlock: "Déverrouiller",
+                btnPrintAction: "🖨️ Aperçu Avant Impression",
+                lblBillingMode: "Mode de Facturation:",
+                optSingleMonth: "Facture Mensuelle Unique",
+                optMultiMonth: "Facturation Multi-Mois (Période)",
+                lblReportMonth: "Mois Cible:",
+                lblReportStartMonth: "Mois Début:",
+                lblReportEndMonth: "Mois Fin:",
+                invoiceTitle: "Facture Mensuelle et Rapport",
+                invoiceMonthLabel: "Période Cible",
+                titleWorkerSummary: "1. Résumé des Ouvriers",
+                thWorkerType: "Catégorie",
+                thWorkerUnitPrice: "Tarif Unitaire (JPY)",
+                thWorkerDays: "Total Jours",
+                thWorkerSubtotal: "Montant (JPY)",
+                titleMachinerySummary: "2. Résumé des Équipements",
+                thMachineryType: "Équipement",
+                thMachineryUnitPrice: "Tarif Unitaire (JPY)",
+                thMachineryQty: "Quantité",
+                thMachinerySubtotal: "Montant (JPY)",
+                lblSubtotalPrice: "Sous-total HT:",
+                lblTaxRate: "TVA",
+                lblTotalPrice: "Total TTC:",
+                titleTaxSettings: "Taux de TVA",
+                lblTaxRateSetting: "Taux (%):",
+                btnSaveTax: "Enregistrer Taux",
+                titleWorkerSettings: "Catégories d'Ouvriers",
+                lblWorkerName: "Nom de Catégorie:",
+                lblWorkerPrice: "Tarif Journalier (JPY):",
+                btnAddWorker: "Ajouter / Modifier",
+                thSettingWorkerName: "Catégorie",
+                thSettingWorkerPrice: "Tarif (JPY)",
+                thSettingAction: "Action",
+                titleMachinerySettings: "Catégories d'Équipements",
+                lblMachineryName: "Nom d'Équipement:",
+                lblMachineryPrice: "Tarif Journalier (JPY):",
+                btnAddMachinery: "Ajouter / Modifier",
+                thSettingMachineryName: "Équipement",
+                thSettingMachineryPrice: "Tarif (JPY)",
+                titleDataManagement: "Centre de Gestion des Données",
+                descDataManagement: "Exportez et importez hors-ligne via JSON, CSV, TSV, XML, HTML, et Markdown.",
+                btnResetData: "Réinitialiser Tout",
+                btnDelete: "Supprimer",
+                msgSaved: "Enregistré.",
+                msgLockedAlert: "Ce mois est verrouillé.",
+                msgTaxSaved: "TVA mise à jour.",
+                msgDataResetConfirm: "Réinitialiser toutes les données ?",
+                msgResetComplete: "Réinitialisation terminée.",
+                msgImportSuccess: "Importation réussie.",
+                msgImportFailed: "Échec de l'importation.",
+                msgCopied: "Copié dans le presse-papier."
+            },
+            es: {
+                appTitle: "Control de Asistencia y Facturación Conjunta",
+                lblLang: "Idioma/Language:",
+                lblQuickTitle: "Acciones Rápidas:",
+                tabDaily: "Registro Diario",
+                tabReports: "Informe y Facturas Multi-Mes",
+                tabSettings: "Tarifas y Configuración",
+                tabData: "Centro de Importación y Exportación",
+                titleDailyForm: "Registro de Trabajo y Maquinaria",
+                statusEditable: "Editable",
+                statusLocked: "Bloqueado",
+                lblEntryDate: "Fecha:",
+                lblWorkersEntry: "Número de Trabajadores",
+                lblMachineryEntry: "Maquinaria Utilizada",
+                lblEntryNotes: "Notas:",
+                btnSaveEntry: "Guardar",
+                btnClearEntry: "Limpiar",
+                titleDailyList: "Historial del Mes (Orden Cronológico)",
+                titleMonthSelect: "Período y Facturación Multi-Mes",
+                btnLock: "Bloquear / Desbloquear Mes",
+                btnUnlock: "Desbloquear Mes",
+                btnPrintAction: "🖨️ Vista Previa de Impresión",
+                lblBillingMode: "Modo de Facturación:",
+                optSingleMonth: "Factura de Un Solo Mes",
+                optMultiMonth: "Facturación Conjunta Multi-Mes",
+                lblReportMonth: "Mes Objetivo:",
+                lblReportStartMonth: "Mes Inicio:",
+                lblReportEndMonth: "Mes Fin:",
+                invoiceTitle: "Factura Mensual y Reporte",
+                invoiceMonthLabel: "Período Objetivo",
+                titleWorkerSummary: "1. Resumen de Trabajadores",
+                thWorkerType: "Categoría",
+                thWorkerUnitPrice: "Tarifa Unitaria (JPY)",
+                thWorkerDays: "Días/Personas",
+                thWorkerSubtotal: "Monto (JPY)",
+                titleMachinerySummary: "2. Resumen de Maquinaria",
+                thMachineryType: "Maquinaria",
+                thMachineryUnitPrice: "Tarifa Unitaria (JPY)",
+                thMachineryQty: "Cantidad",
+                thMachinerySubtotal: "Monto (JPY)",
+                lblSubtotalPrice: "Subtotal (Sin Impuesto):",
+                lblTaxRate: "Impuesto",
+                lblTotalPrice: "Total (Con Impuesto):",
+                titleTaxSettings: "Configuración de Impuesto",
+                lblTaxRateSetting: "Tasa (%):",
+                btnSaveTax: "Guardar Impuesto",
+                titleWorkerSettings: "Categorías de Trabajadores",
+                lblWorkerName: "Nombre de Categoría:",
+                lblWorkerPrice: "Tarifa Diaria (JPY):",
+                btnAddWorker: "Agregar / Actualizar",
+                thSettingWorkerName: "Categoría",
+                thSettingWorkerPrice: "Tarifa (JPY)",
+                thSettingAction: "Acción",
+                titleMachinerySettings: "Categorías de Maquinaria",
+                lblMachineryName: "Nombre de Maquinaria:",
+                lblMachineryPrice: "Tarifa Diaria (JPY):",
+                btnAddMachinery: "Agregar / Actualizar",
+                thSettingMachineryName: "Maquinaria",
+                thSettingMachineryPrice: "Tarifa (JPY)",
+                titleDataManagement: "Gestión Avanzada de Datos",
+                descDataManagement: "Exporte e importe fuera de línea a través de JSON, CSV, TSV, XML, HTML y Markdown.",
+                btnResetData: "Restablecer Todo",
+                btnDelete: "Eliminar",
+                msgSaved: "Guardado.",
+                msgLockedAlert: "Este mes está bloqueado.",
+                msgTaxSaved: "Impuesto actualizado.",
+                msgDataResetConfirm: "¿Restablecer todos los datos?",
+                msgResetComplete: "Datos restablecidos.",
+                msgImportSuccess: "Importación exitosa.",
+                msgImportFailed: "Error en la importación.",
+                msgCopied: "Copiado al portapapeles."
+            }
+        };
+
+        let appState = {
+            currentLang: 'ja',
+            taxRate: 10,
+            workersMaster: [
+                { id: 'w1', name: '一般作業員', price: 12000 },
+                { id: 'w2', name: '特殊作業員', price: 15000 },
+                { id: 'w3', name: '現場監督', price: 20000 }
+            ],
+            machineryMaster: [
+                { id: 'm1', name: '4tダンプトラック', price: 15000 },
+                { id: 'm2', name: '油圧ショベル', price: 18000 },
+                { id: 'm3', name: '発電機', price: 3000 }
+            ],
+            dailyEntries: {},
+            monthlyLocks: {}
+        };
+
+        const LOCAL_STORAGE_KEY = 'attendance_app_v5';
+        let dbInstance = null;
+
+        function initIndexedDB() {
+            return new Promise((resolve) => {
+                try {
+                    const request = indexedDB.open('AttendanceAppDBV5', 1);
+                    request.onupgradeneeded = function(e) {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('appStore')) {
+                            db.createObjectStore('appStore');
+                        }
+                    };
+                    request.onsuccess = function(e) {
+                        dbInstance = e.target.result;
+                        const ind = document.getElementById('db-status-indicator');
+                        if (ind) ind.textContent = 'DB: 同期完了';
+                        resolve(true);
+                    };
+                    request.onerror = function() { resolve(false); };
+                } catch (err) { resolve(false); }
+            });
+        }
+
+        async function saveToStorage() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) { console.error(e); }
+
+            if (dbInstance) {
+                try {
+                    const tx = dbInstance.transaction('appStore', 'readwrite');
+                    tx.objectStore('appStore').put(appState, 'mainState');
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        async function loadFromStorage() {
+            let loaded = false;
+            try {
+                const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (raw) {
+                    appState = Object.assign({}, appState, JSON.parse(raw));
+                    loaded = true;
+                }
+            } catch (e) { console.error(e); }
+
+            if (!loaded && dbInstance) {
+                try {
+                    await new Promise((resolve) => {
+                        const tx = dbInstance.transaction('appStore', 'readonly');
+                        const req = tx.objectStore('appStore').get('mainState');
+                        req.onsuccess = function() {
+                            if (req.result) appState = Object.assign({}, appState, req.result);
+                            resolve();
+                        };
+                        req.onerror = resolve;
+                    });
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        window.onload = async function() {
+            await initIndexedDB();
+            await loadFromStorage();
+            initDates();
+            applyLanguage(appState.currentLang);
+            renderMasterTables();
+            buildFormInputs();
+            renderDailyRecords();
+            renderMonthlyReport();
+        };
+
+        function switchTab(tabId, evt) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+
+            if (tabId === 'tab-reports') renderMonthlyReport();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        }
+
+        function changeLanguage(langKey) {
+            if (!i18n[langKey]) return;
+            appState.currentLang = langKey;
+            saveToStorage();
+            applyLanguage(langKey);
+            renderDailyRecords();
+            renderMonthlyReport();
+        }
+
+        function applyLanguage(langKey) {
+            const dict = i18n[langKey] || i18n['ja'];
+            document.getElementById('lang-select').value = langKey;
+
+            const map = {
+                'app-title': dict.appTitle,
+                'lbl-lang': dict.lblLang,
+                'lbl-quick-title': dict.lblQuickTitle,
+                'tab-btn-daily': dict.tabDaily,
+                'tab-btn-reports': dict.tabReports,
+                'tab-btn-settings': dict.tabSettings,
+                'tab-btn-data': dict.tabData,
+                'title-daily-form': dict.titleDailyForm,
+                'lbl-entry-date': dict.lblEntryDate,
+                'lbl-workers-entry': dict.lblWorkersEntry,
+                'lbl-machinery-entry': dict.lblMachineryEntry,
+                'lbl-entry-notes': dict.lblEntryNotes,
+                'btn-save-entry': dict.btnSaveEntry,
+                'btn-clear-entry': dict.btnClearEntry,
+                'title-daily-list': dict.titleDailyList,
+                'title-month-select': dict.titleMonthSelect,
+                'btn-print-action': dict.btnPrintAction,
+                'lbl-billing-mode': dict.lblBillingMode,
+                'opt-single-month': dict.optSingleMonth,
+                'opt-multi-month': dict.optMultiMonth,
+                'lbl-report-month': dict.lblReportMonth,
+                'lbl-report-start-month': dict.lblReportStartMonth,
+                'lbl-report-end-month': dict.lblReportEndMonth,
+                'invoice-title': dict.invoiceTitle,
+                'invoice-month-label': dict.invoiceMonthLabel,
+                'title-worker-summary': dict.titleWorkerSummary,
+                'th-worker-type': dict.thWorkerType,
+                'th-worker-unit-price': dict.thWorkerUnitPrice,
+                'th-worker-days': dict.thWorkerDays,
+                'th-worker-subtotal': dict.thWorkerSubtotal,
+                'title-machinery-summary': dict.titleMachinerySummary,
+                'th-machinery-type': dict.thMachineryType,
+                'th-machinery-unit-price': dict.thMachineryUnitPrice,
+                'th-machinery-qty': dict.thMachineryQty,
+                'th-machinery-subtotal': dict.thMachinerySubtotal,
+                'lbl-subtotal-price': dict.lblSubtotalPrice,
+                'lbl-tax-rate': dict.lblTaxRate,
+                'lbl-total-price': dict.lblTotalPrice,
+                'title-tax-settings': dict.titleTaxSettings,
+                'lbl-tax-rate-setting': dict.lblTaxRateSetting,
+                'btn-save-tax': dict.btnSaveTax,
+                'title-worker-settings': dict.titleWorkerSettings,
+                'lbl-worker-name': dict.lblWorkerName,
+                'lbl-worker-price': dict.lblWorkerPrice,
+                'btn-add-worker': dict.btnAddWorker,
+                'th-setting-worker-name': dict.thSettingWorkerName,
+                'th-setting-worker-price': dict.thSettingWorkerPrice,
+                'th-setting-action': dict.thSettingAction,
+                'title-machinery-settings': dict.titleMachinerySettings,
+                'lbl-machinery-name': dict.lblMachineryName,
+                'lbl-machinery-price': dict.lblMachineryPrice,
+                'btn-add-machinery': dict.btnAddMachinery,
+                'th-setting-machinery-name': dict.thSettingMachineryName,
+                'th-setting-machinery-price': dict.thSettingMachineryPrice,
+                'th-setting-action2': dict.thSettingAction,
+                'title-data-management': dict.titleDataManagement,
+                'desc-data-management': dict.descDataManagement,
+                'btn-reset-data': dict.btnResetData
+            };
+
+            for (let id in map) {
+                const elem = document.getElementById(id);
+                if (elem) elem.textContent = map[id];
+            }
+
+            updateLockStatusUI();
+        }
+
+        function triggerInvoicePrint() {
+            renderMonthlyReport();
+            const printableContent = document.getElementById('printable-invoice').cloneNode(true);
+            const modalBody = document.getElementById('modal-print-container');
+            modalBody.innerHTML = '';
+            modalBody.appendChild(printableContent);
+
+            const modal = document.getElementById('print-modal');
+            modal.classList.add('active');
+        }
+
+        function executeSystemPrint() { window.print(); }
+        function closePrintModal() { document.getElementById('print-modal').classList.remove('active'); }
+
+        function initDates() {
+            const today = new Date().toISOString().substring(0, 10);
+            const monthStr = today.substring(0, 7);
+
+            document.getElementById('entry-date').value = today;
+            document.getElementById('report-month').value = monthStr;
+            document.getElementById('report-start-month').value = monthStr;
+            document.getElementById('report-end-month').value = monthStr;
+
+            const rate = appState.taxRate;
+            const selectElem = document.getElementById('tax-rate-input');
+            if (rate === 10) selectElem.value = '10';
+            else if (rate === 8) selectElem.value = '8';
+            else {
+                selectElem.value = 'custom';
+                document.getElementById('custom-tax-group').style.display = 'flex';
+                document.getElementById('custom-tax-rate-input').value = rate;
+            }
+        }
+
+        function buildFormInputs() {
+            const workerContainer = document.getElementById('worker-inputs-container');
+            const machineryContainer = document.getElementById('machinery-inputs-container');
+
+            workerContainer.innerHTML = '';
+            machineryContainer.innerHTML = '';
+
+            appState.workersMaster.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                div.innerHTML = `<label>${escapeHtml(w.name)} (¥${w.price.toLocaleString()}):</label>
+                                 <input type="number" min="0" step="0.5" value="0" data-id="${w.id}" class="input-worker-val">`;
+                workerContainer.appendChild(div);
+            });
+
+            appState.machineryMaster.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                div.innerHTML = `<label>${escapeHtml(m.name)} (¥${m.price.toLocaleString()}):</label>
+                                 <input type="number" min="0" step="1" value="0" data-id="${m.id}" class="input-machinery-val">`;
+                machineryContainer.appendChild(div);
+            });
+        }
+
+        function onDateChange() {
+            const dateVal = document.getElementById('entry-date').value;
+            if (!dateVal) return;
+
+            updateLockStatusUI();
+            const record = appState.dailyEntries[dateVal];
+            if (record) {
+                document.querySelectorAll('.input-worker-val').forEach(inp => {
+                    inp.value = record.workers[inp.dataset.id] || 0;
+                });
+                document.querySelectorAll('.input-machinery-val').forEach(inp => {
+                    inp.value = record.machinery[inp.dataset.id] || 0;
+                });
+                document.getElementById('entry-notes').value = record.notes || '';
+            } else {
+                resetDailyInputsOnly();
+            }
+            renderDailyRecords();
+        }
+
+        function resetDailyInputsOnly() {
+            document.querySelectorAll('.input-worker-val').forEach(inp => inp.value = 0);
+            document.querySelectorAll('.input-machinery-val').forEach(inp => inp.value = 0);
+            document.getElementById('entry-notes').value = '';
+        }
+
+        function resetDailyForm() {
+            resetDailyInputsOnly();
+            document.getElementById('entry-date').value = new Date().toISOString().substring(0, 10);
+            onDateChange();
+        }
+
+        function isMonthLocked(dateStr) {
+            if (!dateStr) return false;
+            return !!appState.monthlyLocks[dateStr.substring(0, 7)];
+        }
+
+        function updateLockStatusUI() {
+            const dateVal = document.getElementById('entry-date').value;
+            const monthStr = dateVal ? dateVal.substring(0, 7) : '';
+            const isLocked = !!appState.monthlyLocks[monthStr];
+            const badge = document.getElementById('lock-status-badge');
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+
+            if (isLocked) {
+                badge.className = 'badge badge-locked';
+                badge.textContent = dict.statusLocked;
+                document.getElementById('btn-save-entry').disabled = true;
+            } else {
+                badge.className = 'badge badge-open';
+                badge.textContent = dict.statusEditable;
+                document.getElementById('btn-save-entry').disabled = false;
+            }
+        }
+
+        function handleDailySubmit(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('entry-date').value;
+            if (!dateVal) return;
+
+            if (isMonthLocked(dateVal)) {
+                const dict = i18n[appState.currentLang] || i18n['ja'];
+                alert(dict.msgLockedAlert);
+                return;
+            }
+
+            const workers = {};
+            document.querySelectorAll('.input-worker-val').forEach(inp => {
+                workers[inp.dataset.id] = parseFloat(inp.value) || 0;
+            });
+
+            const machinery = {};
+            document.querySelectorAll('.input-machinery-val').forEach(inp => {
+                machinery[inp.dataset.id] = parseFloat(inp.value) || 0;
+            });
+
+            appState.dailyEntries[dateVal] = {
+                workers,
+                machinery,
+                notes: document.getElementById('entry-notes').value.trim()
+            };
+
+            saveToStorage();
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+            showToast(dict.msgSaved);
+            renderDailyRecords();
+        }
+
+        function renderDailyRecords() {
+            const tableHeader = document.getElementById('daily-table-header');
+            const tableBody = document.getElementById('daily-records-body');
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+
+            tableHeader.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            let trH = `<th>${dict.lblEntryDate.replace(':','')}</th>`;
+            appState.workersMaster.forEach(w => { trH += `<th class="text-right">${escapeHtml(w.name)}</th>`; });
+            appState.machineryMaster.forEach(m => { trH += `<th class="text-right">${escapeHtml(m.name)}</th>`; });
+            trH += `<th>${dict.lblEntryNotes.replace(':','')}</th><th class="text-center">${dict.thSettingAction}</th>`;
+            tableHeader.innerHTML = trH;
+
+            const selectedMonth = document.getElementById('entry-date').value.substring(0, 7);
+            
+            // KEY FEATURE: Sort in CHRONOLOGICAL Order (Oldest first -> Newest added at bottom)
+            const sortedDates = Object.keys(appState.dailyEntries)
+                .filter(d => d.startsWith(selectedMonth))
+                .sort(); // Ascending order (1st, 2nd, 3rd...)
+
+            sortedDates.forEach(dateStr => {
+                const entry = appState.dailyEntries[dateStr];
+                const tr = document.createElement('tr');
+
+                let html = `<td>${dateStr}</td>`;
+                appState.workersMaster.forEach(w => { html += `<td class="text-right">${entry.workers[w.id] || 0}</td>`; });
+                appState.machineryMaster.forEach(m => { html += `<td class="text-right">${entry.machinery[m.id] || 0}</td>`; });
+                html += `<td>${escapeHtml(entry.notes || '')}</td>`;
+                html += `<td class="text-center"><button class="btn-danger" style="padding:2px 6px; font-size:0.75rem;" onclick="deleteDailyRecord('${dateStr}')">${dict.btnDelete}</button></td>`;
+
+                tr.innerHTML = html;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function deleteDailyRecord(dateStr) {
+            if (isMonthLocked(dateStr)) {
+                const dict = i18n[appState.currentLang] || i18n['ja'];
+                alert(dict.msgLockedAlert);
+                return;
+            }
+            delete appState.dailyEntries[dateStr];
+            saveToStorage();
+            renderDailyRecords();
+        }
+
+        function onBillingModeChange(mode) {
+            if (mode === 'multi') {
+                document.getElementById('single-month-group').style.display = 'none';
+                document.getElementById('multi-start-group').style.display = 'flex';
+                document.getElementById('multi-end-group').style.display = 'flex';
+            } else {
+                document.getElementById('single-month-group').style.display = 'flex';
+                document.getElementById('multi-start-group').style.display = 'none';
+                document.getElementById('multi-end-group').style.display = 'none';
+            }
+            renderMonthlyReport();
+        }
+
+        function renderMonthlyReport() {
+            const mode = document.getElementById('billing-mode').value;
+            let displayPeriodStr = '';
+            let isDateInRange = (dateStr) => false;
+
+            if (mode === 'single') {
+                const monthStr = document.getElementById('report-month').value;
+                displayPeriodStr = monthStr;
+                isDateInRange = (dateStr) => dateStr.startsWith(monthStr);
+
+                const dict = i18n[appState.currentLang] || i18n['ja'];
+                const lockBtn = document.getElementById('btn-toggle-lock');
+                const isLocked = !!appState.monthlyLocks[monthStr];
+                lockBtn.textContent = isLocked ? dict.btnUnlock : dict.btnLock;
+                lockBtn.className = isLocked ? 'btn-danger' : 'btn-secondary';
+            } else {
+                const startM = document.getElementById('report-start-month').value;
+                const endM = document.getElementById('report-end-month').value;
+                displayPeriodStr = `${startM} ~ ${endM}`;
+                
+                isDateInRange = (dateStr) => {
+                    const m = dateStr.substring(0, 7);
+                    return m >= startM && m <= endM;
+                };
+
+                const dict = i18n[appState.currentLang] || i18n['ja'];
+                document.getElementById('btn-toggle-lock').textContent = dict.btnLock;
+            }
+
+            document.getElementById('display-report-month').textContent = displayPeriodStr;
+
+            const workerTotals = {}, machineryTotals = {};
+            appState.workersMaster.forEach(w => workerTotals[w.id] = 0);
+            appState.machineryMaster.forEach(m => machineryTotals[m.id] = 0);
+
+            Object.keys(appState.dailyEntries).forEach(dateStr => {
+                if (isDateInRange(dateStr)) {
+                    const record = appState.dailyEntries[dateStr];
+                    if (record.workers) {
+                        for (let wid in record.workers) workerTotals[wid] = (workerTotals[wid] || 0) + record.workers[wid];
+                    }
+                    if (record.machinery) {
+                        for (let mid in record.machinery) machineryTotals[mid] = (machineryTotals[mid] || 0) + record.machinery[mid];
+                    }
+                }
+            });
+
+            const workerBody = document.getElementById('report-worker-body');
+            workerBody.innerHTML = '';
+            let workerSubtotal = 0;
+
+            appState.workersMaster.forEach(w => {
+                const count = workerTotals[w.id] || 0;
+                const total = count * w.price;
+                workerSubtotal += total;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${escapeHtml(w.name)}</td>
+                                <td class="text-right">¥${w.price.toLocaleString()}</td>
+                                <td class="text-right">${count}</td>
+                                <td class="text-right">¥${total.toLocaleString()}</td>`;
+                workerBody.appendChild(tr);
+            });
+
+            const machineryBody = document.getElementById('report-machinery-body');
+            machineryBody.innerHTML = '';
+            let machinerySubtotal = 0;
+
+            appState.machineryMaster.forEach(m => {
+                const count = machineryTotals[m.id] || 0;
+                const total = count * m.price;
+                machinerySubtotal += total;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${escapeHtml(m.name)}</td>
+                                <td class="text-right">¥${m.price.toLocaleString()}</td>
+                                <td class="text-right">${count}</td>
+                                <td class="text-right">¥${total.toLocaleString()}</td>`;
+                machineryBody.appendChild(tr);
+            });
+
+            const grandSubtotal = workerSubtotal + machinerySubtotal;
+            const taxRate = parseFloat(appState.taxRate) || 0;
+            const taxAmount = Math.floor(grandSubtotal * (taxRate / 100));
+            const grandTotal = grandSubtotal + taxAmount;
+
+            document.getElementById('summary-subtotal').textContent = `¥${grandSubtotal.toLocaleString()}`;
+            document.getElementById('summary-tax-rate-val').textContent = taxRate;
+            document.getElementById('summary-tax').textContent = `¥${taxAmount.toLocaleString()}`;
+            document.getElementById('summary-total').textContent = `¥${grandTotal.toLocaleString()}`;
+        }
+
+        function toggleMonthLock() {
+            const mode = document.getElementById('billing-mode').value;
+            if (mode === 'multi') {
+                alert("一括表示モード中は個別の月締め操作ができません。単一月モードに切り替えてください。");
+                return;
+            }
+            const monthStr = document.getElementById('report-month').value;
+            if (!monthStr) return;
+            appState.monthlyLocks[monthStr] = !appState.monthlyLocks[monthStr];
+            saveToStorage();
+            updateLockStatusUI();
+            renderMonthlyReport();
+        }
+
+        function onTaxRateSelectChange(val) {
+            const customGroup = document.getElementById('custom-tax-group');
+            if (val === 'custom') customGroup.style.display = 'flex';
+            else customGroup.style.display = 'none';
+        }
+
+        function saveTaxRate() {
+            const valSelect = document.getElementById('tax-rate-input').value;
+            let finalRate = 10;
+            if (valSelect === 'custom') {
+                finalRate = parseFloat(document.getElementById('custom-tax-rate-input').value) || 0;
+            } else {
+                finalRate = parseFloat(valSelect);
+            }
+
+            appState.taxRate = finalRate;
+            saveToStorage();
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+            showToast(dict.msgTaxSaved);
+        }
+
+        function renderMasterTables() {
+            const wBody = document.getElementById('worker-settings-body');
+            const mBody = document.getElementById('machinery-settings-body');
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+
+            wBody.innerHTML = '';
+            appState.workersMaster.forEach(w => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${escapeHtml(w.name)}</td>
+                                <td class="text-right">¥${w.price.toLocaleString()}</td>
+                                <td class="text-center"><button class="btn-danger" style="padding:2px 6px; font-size:0.75rem;" onclick="deleteWorkerCategory('${w.id}')">${dict.btnDelete}</button></td>`;
+                wBody.appendChild(tr);
+            });
+
+            mBody.innerHTML = '';
+            appState.machineryMaster.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${escapeHtml(m.name)}</td>
+                                <td class="text-right">¥${m.price.toLocaleString()}</td>
+                                <td class="text-center"><button class="btn-danger" style="padding:2px 6px; font-size:0.75rem;" onclick="deleteMachineryCategory('${m.id}')">${dict.btnDelete}</button></td>`;
+                mBody.appendChild(tr);
+            });
+        }
+
+        function addWorkerCategory() {
+            const name = document.getElementById('new-worker-name').value.trim();
+            const price = parseFloat(document.getElementById('new-worker-price').value) || 0;
+            if (!name) return;
+
+            const existing = appState.workersMaster.find(w => w.name === name);
+            if (existing) existing.price = price;
+            else appState.workersMaster.push({ id: 'w_' + Date.now(), name, price });
+
+            document.getElementById('new-worker-name').value = '';
+            document.getElementById('new-worker-price').value = '0';
+            saveToStorage();
+            renderMasterTables();
+            buildFormInputs();
+        }
+
+        function deleteWorkerCategory(id) {
+            appState.workersMaster = appState.workersMaster.filter(w => w.id !== id);
+            saveToStorage();
+            renderMasterTables();
+            buildFormInputs();
+        }
+
+        function addMachineryCategory() {
+            const name = document.getElementById('new-machinery-name').value.trim();
+            const price = parseFloat(document.getElementById('new-machinery-price').value) || 0;
+            if (!name) return;
+
+            const existing = appState.machineryMaster.find(m => m.name === name);
+            if (existing) existing.price = price;
+            else appState.machineryMaster.push({ id: 'm_' + Date.now(), name, price });
+
+            document.getElementById('new-machinery-name').value = '';
+            document.getElementById('new-machinery-price').value = '0';
+            saveToStorage();
+            renderMasterTables();
+            buildFormInputs();
+        }
+
+        function deleteMachineryCategory(id) {
+            appState.machineryMaster = appState.machineryMaster.filter(m => m.id !== id);
+            saveToStorage();
+            renderMasterTables();
+            buildFormInputs();
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportJSON() {
+            const jsonStr = JSON.stringify(appState, null, 2);
+            downloadFile(jsonStr, `attendance_backup_${getDateStamp()}.json`, 'application/json');
+        }
+
+        function generateCSVData(delimiter = ',') {
+            const rows = [];
+            const headers = ['日付'];
+            appState.workersMaster.forEach(w => headers.push(`作業員_${w.name}`));
+            appState.machineryMaster.forEach(m => headers.push(`機械_${m.name}`));
+            headers.push('備考');
+            rows.push(headers.join(delimiter));
+
+            Object.keys(appState.dailyEntries).sort().forEach(dateStr => {
+                const entry = appState.dailyEntries[dateStr];
+                const row = [dateStr];
+                appState.workersMaster.forEach(w => row.push(entry.workers[w.id] || 0));
+                appState.machineryMaster.forEach(m => row.push(entry.machinery[m.id] || 0));
+                row.push(`"${(entry.notes || '').replace(/"/g, '""')}"`);
+                rows.push(row.join(delimiter));
+            });
+
+            return rows.join('\r\n');
+        }
+
+        function exportCSV(encoding = 'UTF-8') {
+            const csvContent = generateCSVData(',');
+            if (encoding === 'UTF-8') {
+                const bom = '\uFEFF';
+                downloadFile(bom + csvContent, `attendance_export_${getDateStamp()}_utf8.csv`, 'text/csv;charset=utf-8;');
+            } else {
+                downloadFile(csvContent, `attendance_export_${getDateStamp()}_sjis.csv`, 'text/csv;');
+            }
+        }
+
+        function exportTSV() {
+            const tsvContent = generateCSVData('\t');
+            downloadFile(tsvContent, `attendance_export_${getDateStamp()}.tsv`, 'text/tab-separated-values');
+        }
+
+        function exportExcelXML() {
+            const dateMonth = document.getElementById('report-month').value;
+            let xml = `<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n xmlns:o="urn:schemas-microsoft-com:office:office"\n xmlns:x="urn:schemas-microsoft-com:office:excel"\n xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n<Worksheet ss:Name="出勤集計">\n<Table>\n`;
+            
+            xml += `<Row><Cell><Data ss:Type="String">日付</Data></Cell>`;
+            appState.workersMaster.forEach(w => xml += `<Cell><Data ss:Type="String">${escapeHtml(w.name)}</Data></Cell>`);
+            appState.machineryMaster.forEach(m => xml += `<Cell><Data ss:Type="String">${escapeHtml(m.name)}</Data></Cell>`);
+            xml += `<Cell><Data ss:Type="String">備考</Data></Cell></Row>\n`;
+
+            Object.keys(appState.dailyEntries).sort().forEach(dateStr => {
+                const entry = appState.dailyEntries[dateStr];
+                xml += `<Row><Cell><Data ss:Type="String">${dateStr}</Data></Cell>`;
+                appState.workersMaster.forEach(w => xml += `<Cell><Data ss:Type="Number">${entry.workers[w.id] || 0}</Data></Cell>`);
+                appState.machineryMaster.forEach(m => xml += `<Cell><Data ss:Type="Number">${entry.machinery[m.id] || 0}</Data></Cell>`);
+                xml += `<Cell><Data ss:Type="String">${escapeHtml(entry.notes || '')}</Data></Cell></Row>\n`;
+            });
+
+            xml += `</Table>\n</Worksheet>\n</Workbook>`;
+            downloadFile(xml, `attendance_excel_${dateMonth}.xml`, 'application/vnd.ms-excel');
+        }
+
+        function exportHTMLReport() {
+            const reportNode = document.getElementById('printable-invoice').innerHTML;
+            const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>出勤集計レポート</title><style>body{font-family:sans-serif;padding:20px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ccc;padding:8px;text-align:left;} .text-right{text-align:right;} .summary-box{margin-top:20px;border:1px solid #aaa;padding:15px;max-width:350px;margin-left:auto;}</style></head><body>${reportNode}</body></html>`;
+            downloadFile(fullHTML, `invoice_report_${getDateStamp()}.html`, 'text/html');
+        }
+
+        function exportMarkdownText() {
+            const dateMonth = document.getElementById('report-month').value;
+            let md = `# 出勤・請求集計報告書 (${dateMonth})\n\n`;
+
+            md += `## 1. 作業員集計\n`;
+            md += `| 区分 | 単価 | 延べ人数 | 金額 |\n| --- | ---: | ---: | ---: |\n`;
+            appState.workersMaster.forEach(w => {
+                let count = 0;
+                Object.keys(appState.dailyEntries).forEach(d => {
+                    count += (appState.dailyEntries[d].workers[w.id] || 0);
+                });
+                md += `| ${w.name} | ¥${w.price.toLocaleString()} | ${count} | ¥${(count * w.price).toLocaleString()} |\n`;
+            });
+
+            md += `\n## 2. 機械類集計\n`;
+            md += `| 機械名 | 単価 | 使用数量 | 金額 |\n| --- | ---: | ---: | ---: |\n`;
+            appState.machineryMaster.forEach(m => {
+                let count = 0;
+                Object.keys(appState.dailyEntries).forEach(d => {
+                    count += (appState.dailyEntries[d].machinery[m.id] || 0);
+                });
+                md += `| ${m.name} | ¥${m.price.toLocaleString()} | ${count} | ¥${(count * m.price).toLocaleString()} |\n`;
+            });
+
+            downloadFile(md, `attendance_summary_${dateMonth}.md`, 'text/markdown');
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            reader.onload = function(e) {
+                const text = e.target.result;
+                try {
+                    if (fileName.endsWith('.json')) {
+                        const parsed = JSON.parse(text);
+                        if (parsed && typeof parsed === 'object') {
+                            appState = parsed;
+                            saveToStorage();
+                            applyLanguage(appState.currentLang || 'ja');
+                            renderMasterTables();
+                            buildFormInputs();
+                            renderDailyRecords();
+                            renderMonthlyReport();
+                            const dict = i18n[appState.currentLang] || i18n['ja'];
+                            showToast(dict.msgImportSuccess);
+                        }
+                    } else if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
+                        parseCSVOrTSV(text, fileName.endsWith('.tsv') ? '\t' : ',');
+                    }
+                } catch (err) {
+                    const dict = i18n[appState.currentLang] || i18n['ja'];
+                    alert(dict.msgImportFailed);
+                }
+            };
+
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function parseCSVOrTSV(content, delimiter) {
+            const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (lines.length < 2) return;
+
+            const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+            
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(delimiter).map(c => c.trim().replace(/^"|"$/g, ''));
+                const dateVal = cols[0];
+                if (!dateVal || !dateVal.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+
+                if (!appState.dailyEntries[dateVal]) {
+                    appState.dailyEntries[dateVal] = { workers: {}, machinery: {}, notes: '' };
+                }
+
+                headers.forEach((h, idx) => {
+                    if (idx === 0) return;
+                    const val = cols[idx] || 0;
+                    if (h.startsWith('作業員_')) {
+                        const wName = h.replace('作業員_', '');
+                        const wObj = appState.workersMaster.find(w => w.name === wName);
+                        if (wObj) appState.dailyEntries[dateVal].workers[wObj.id] = parseFloat(val) || 0;
+                    } else if (h.startsWith('機械_')) {
+                        const mName = h.replace('機械_', '');
+                        const mObj = appState.machineryMaster.find(m => m.name === mName);
+                        if (mObj) appState.dailyEntries[dateVal].machinery[mObj.id] = parseFloat(val) || 0;
+                    } else if (h === '備考') {
+                        appState.dailyEntries[dateVal].notes = val;
+                    }
+                });
+            }
+
+            saveToStorage();
+            renderDailyRecords();
+            renderMonthlyReport();
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+            showToast(dict.msgImportSuccess);
+        }
+
+        function copyToClipboard(format) {
+            let copyText = '';
+            if (format === 'json') {
+                copyText = JSON.stringify(appState, null, 2);
+            } else if (format === 'tsv') {
+                copyText = generateCSVData('\t');
+            } else if (format === 'markdown') {
+                const period = document.getElementById('display-report-month').textContent;
+                copyText = `# 出勤集計 (${period})\nSubtotal: ${document.getElementById('summary-subtotal').textContent}\nTotal: ${document.getElementById('summary-total').textContent}`;
+            }
+
+            const tempArea = document.createElement("textarea");
+            tempArea.value = copyText;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempArea);
+
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+            showToast(dict.msgCopied);
+        }
+
+        function resetAllData() {
+            const dict = i18n[appState.currentLang] || i18n['ja'];
+            if (confirm(dict.msgDataResetConfirm)) {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                if (dbInstance) {
+                    const tx = dbInstance.transaction('appStore', 'readwrite');
+                    tx.objectStore('appStore').clear();
+                }
+                location.reload();
+            }
+        }
+
+        function getDateStamp() { return new Date().toISOString().substring(0, 10); }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
