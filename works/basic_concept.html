@@ -34,21 +34,22 @@
             background-size: 40px 40px;  
         }  
         
-        /* スクロールバーを常に分かりやすく表示（スマホ・PC共通） */  
+        /* スクロールバーを分かりやすく表示（PCおよび一部対応ブラウザ） */  
         #canvas-wrapper::-webkit-scrollbar {  
-            width: 10px;  
-            height: 10px;  
+            width: 12px;  
+            height: 12px;  
         }  
         #canvas-wrapper::-webkit-scrollbar-track {  
-            background: #e2e8f0;  
-            border-radius: 4px;  
+            background: #cbd5e1;  
+            border-radius: 6px;  
         }  
         #canvas-wrapper::-webkit-scrollbar-thumb {  
-            background: #94a3b8;  
-            border-radius: 4px;  
+            background: #475569;  
+            border-radius: 6px;  
+            border: 2px solid #cbd5e1;  
         }  
         #canvas-wrapper::-webkit-scrollbar-thumb:hover {  
-            background: #64748b;  
+            background: #334155;  
         }  
 
         .canvas-container {  
@@ -169,7 +170,7 @@
                         <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 shrink-0">3</span>  
                         <span id="t-layout-header">平面配置図・外構レイアウト（A3大判対応）</span>  
                     </div>  
-                    <span class="text-xs text-slate-500 font-normal">※スクロールバーで広範囲を移動可能</span>  
+                    <span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded border border-blue-200">指でスクロール可能</span>  
                 </h2>  
                   
                 <!-- ツールバー -->  
@@ -195,10 +196,11 @@
                     </div>  
                 </div>  
   
-                <!-- A3大判サイズ（1400x900px）のスクロール可能なキャンバスコンテナ（スクロールバー常時表示・タッチ操作対応） -->  
-                <div id="canvas-wrapper" class="w-full border-2 border-slate-300 rounded-lg relative bg-white shadow-inner" style="height: 550px;">  
+                <!-- A3大判サイズ（1400x900px）のスクロール可能なキャンバスコンテナ -->  
+                <div id="canvas-wrapper" class="w-full border-4 border-slate-400 rounded-lg relative bg-white shadow-md" style="height: 550px;">  
                     <canvas id="layout-canvas"></canvas>  
                 </div>  
+                <p class="text-[11px] text-slate-500 mt-1 text-right">※キャンバスの余白部分をドラッグすると、スマホでもスムーズにスクロールできます。</p>  
   
                 <!-- 集計エリア -->  
                 <div class="mt-4 grid grid-cols-2 gap-3 sm:gap-4">  
@@ -357,7 +359,7 @@
                 layoutHeader: "Boceto de Diseño (Formato A3)", lblAddShape: "Añadir:",  
                 btnRect: "Rect", btnL: "Forma L", btnU: "Forma U", btnCircle: "Círculo", btnGarden: "Jardín", btnParking: "Parking", btnFence: "Valla", btnDel: "Borrar", btnUp: "Subir", btnDown: "Bajar",  
                 lblStatArea: "Área de Edificio", lblStatFence: "Longitud de Valla",  
-                schedHeader: "Hoja de Ruta", scT1: "Fase 1: Concepto", scD1: "Encuestas", scT2: "Fase 2: Público", scD2: "Consulta", scT3: "Fase 3: Diseño", scD3: "Diseño básico",  
+                schedHeader: "Hoja de Ruta", scT1: "Fase 1: Concepto", scD1: "Encuestas", scT2: "Phase 2: Público", scD2: "Consulta", scT3: "Phase 3: Diseño", scD3: "Diseño básico",  
                 expHeader: "Exportar"  
             }  
         };  
