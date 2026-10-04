@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公共施設基本構想アプリ - Public Facility Basic Concept Planner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fabric.js for Advanced Canvas Layout Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/531/fabric.min.js"></script>
+    <!-- SheetJS (xlsx) for Table Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for Vector PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* System fonts & MS Mincho fallback for clean rendering and no mojibake */
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                <h1 class="text-xl font-bold tracking-wider" id="app-title">公共施設基本構想アプリ</h1>
+            </div>
+            <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+                <!-- Language Selector -->
+                <div class="flex items-center space-x-1 bg-slate-800 px-3 py-1.5 rounded border border-slate-700">
+                    <span class="text-xs text-slate-400" id="lang-label">言語:</span>
+                    <select id="language-select" class="bg-transparent text-white text-sm focus:outline-none cursor-pointer">
+                        <option value="ja" selected>日本語 (Japanese)</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文 (Chinese)</option>
+                        <option value="ko">한국어 (Korean)</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <!-- Navigation Tabs -->
+        <nav class="bg-slate-800 border-t border-slate-700 overflow-x-auto">
+            <div class="max-w-7xl mx-auto flex px-4 space-x-2 sm:space-x-6 text-sm">
+                <button onclick="switchTab('overview')" class="tab-btn py-3 px-3 font-medium border-b-2 border-blue-400 text-blue-400 whitespace-nowrap" data-tab="overview" id="nav-overview">1. 基本構想方針</button>
+                <button onclick="switchTab('needs')" class="tab-btn py-3 px-3 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="needs" id="nav-needs">2. 需要・機能要件</button>
+                <button onclick="switchTab('layout')" class="tab-btn py-3 px-3 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="layout" id="nav-layout">3. 平面・外構レイアウト</button>
+                <button onclick="switchTab('schedule')" class="tab-btn py-3 px-3 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="schedule" id="nav-schedule">4. 事業スケジュール</button>
+                <button onclick="switchTab('export')" class="tab-btn py-3 px-3 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="export" id="nav-export">5. データ出力・確認</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+
+        <!-- Tab 1: 基本構想方針 (Overview) -->
+        <div id="tab-overview" class="tab-content active space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-900 border-b pb-3 mb-4 flex items-center">
+                    <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">1</span>
+                    <span id="t-ov-header">基本構想策定の基本方針と背景</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1" id="lbl-project-name">施設名称（プロジェクト名）</label>
+                        <input type="text" id="inp-project-name" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: 〇〇市立総合市民センター基本構想">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1" id="lbl-facility-type">施設種別</label>
+                        <select id="sel-facility-type" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                            <option value="civic" id="opt-type-civic">複合公共施設・市民センター</option>
+                            <option value="library" id="opt-type-library">図書館・生涯学習施設</option>
+                            <option value="welfare" id="opt-type-welfare">福祉保健センター</option>
+                            <option value="sports" id="opt-type-sports">体育館・スポーツ施設</option>
+                            <option value="admin" id="opt-type-admin">庁舎・行政窓口施設</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1" id="lbl-background">策定の背景と目的（社会的背景・課題）</label>
+                        <textarea id="txt-background" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="既存施設の老朽化、人口動態の変化、多様化する行政ニーズへの対応などを記載..."></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1" id="lbl-vision">基本理念・目指す将来像</label>
+                        <input type="text" id="inp-vision" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: 「誰もがが集い、学び、つながる、持続可能な交流拠点」">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: 需要・機能要件 (Needs & Functions) -->
+        <div id="tab-needs" class="tab-content space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-900 border-b pb-3 mb-4 flex items-center">
+                    <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">2</span>
+                    <span id="t-needs-header">必要諸室・機能要件の網羅的検討</span>
+                </h2>
+                <p class="text-sm text-slate-500 mb-4" id="t-needs-desc">基本設計へ確実に移行できるよう、必須機能をチェックし、規模や要件を整理します。</p>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b">
+                                <th class="p-3 font-semibold" id="th-zone">ゾーン分類</th>
+                                <th class="p-3 font-semibold" id="th-room">検討諸室・機能</th>
+                                <th class="p-3 font-semibold" id="th-area">想定規模 (㎡)</th>
+                                <th class="p-3 font-semibold" id="th-req">重要度・必須要件</th>
+                                <th class="p-3 font-semibold" id="th-memo">特記事項・仕様</th>
+                            </tr>
+                        </thead>
+                        <tbody id="functional-rooms-tbody" class="divide-y divide-slate-200">
+                            <!-- Dynamic rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4">
+                    <button type="button" onclick="addRoomRow()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition" id="btn-add-room">+ 行を追加</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: 平面・外構レイアウト (Layout Editor with Extended Shapes & Outer Fence) -->
+        <div id="tab-layout" class="tab-content space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-900 border-b pb-3 mb-4 flex items-center">
+                    <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">3</span>
+                    <span id="t-layout-header">平面配置図・外構レイアウト（ポンチ絵作成）</span>
+                </h2>
+                <p class="text-sm text-slate-500 mb-4" id="t-layout-desc">
+                    建築基本図形や外構施設（フェンス、庭園、駐車場等）を自由に配置できます。外周フェンスなどは建物の外側に重ねて配置でき、フェンス等は「延長距離（m）」として集計されます。
+                </p>
+
+                <!-- Toolbar for Canvas -->
+                <div class="flex flex-wrap items-center gap-2 mb-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
+                    <span class="text-xs font-bold text-slate-600 mr-2" id="lbl-add-shape">図形・施設追加:</span>
+                    <button onclick="addShape('rect')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition" id="btn-shape-rect">長方形ブロック</button>
+                    <button onclick="addShape('lshape')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition" id="btn-shape-l">L字型ブロック</button>
+                    <button onclick="addShape('ushape')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition" id="btn-shape-u">U字型ブロック</button>
+                    <button onclick="addShape('tshape')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition" id="btn-shape-t">T字型ブロック</button>
+                    <button onclick="addShape('circle')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition" id="btn-shape-circle">円形アリーナ</button>
+                    <button onclick="addShape('courtyard')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition" id="btn-shape-court">ロの字型(中庭付)</button>
+                    <div class="h-5 w-px bg-slate-300 mx-1"></div>
+                    <button onclick="addShape('garden')" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs hover:bg-emerald-700 transition" id="btn-shape-garden">日本庭園・芝生</button>
+                    <button onclick="addShape('parking')" class="bg-slate-700 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-800 transition" id="btn-shape-parking">駐車場・車路</button>
+                    <button onclick="addShape('fence')" class="bg-amber-600 text-white px-3 py-1.5 rounded text-xs hover:bg-amber-700 transition font-bold" id="btn-shape-fence">外周フェンス(延長m)</button>
+                    <div class="h-5 w-px bg-slate-300 mx-1"></div>
+                    <button onclick="addTextLabel()" class="bg-indigo-600 text-white px-3 py-1.5 rounded text-xs hover:bg-indigo-700 transition" id="btn-add-text">+ テキスト注記</button>
+                </div>
+
+                <!-- Object Modification & Layering Toolbar -->
+                <div class="flex flex-wrap items-center gap-2 mb-4 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <span class="text-xs font-bold text-amber-800 mr-2" id="lbl-selected-ctrl">選択中要素の操作:</span>
+                    <button onclick="bringSelectedFront()" class="bg-white border border-amber-300 text-amber-900 px-3 py-1 rounded text-xs hover:bg-amber-100 transition" id="btn-bring-front">前面へ移動</button>
+                    <button onclick="sendSelectedBack()" class="bg-white border border-amber-300 text-amber-900 px-3 py-1 rounded text-xs hover:bg-amber-100 transition" id="btn-send-back">背面へ移動</button>
+                    <button onclick="deleteSelectedObject()" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition ml-auto" id="btn-delete-obj">選択要素を削除</button>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-inner flex justify-center relative">
+                    <canvas id="layout-canvas" width="850" height="500"></canvas>
+                </div>
+
+                <!-- Summary statistics of canvas elements (Area vs Fence Length) -->
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="text-xs text-slate-500" id="lbl-total-building-area">建物ブロック総面積 (目安)</div>
+                        <div class="text-xl font-bold text-slate-800" id="stat-building-area">0.0 ㎡</div>
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <div class="text-xs text-amber-800 font-semibold" id="lbl-total-fence-length">外周フェンス等 総延長距離</div>
+                        <div class="text-xl font-bold text-amber-900" id="stat-fence-length">0.0 m</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: 事業スケジュール (Schedule) -->
+        <div id="tab-schedule" class="tab-content space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-900 border-b pb-3 mb-4 flex items-center">
+                    <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">4</span>
+                    <span id="t-sched-header">基本構想から基本設計へのロードマップ</span>
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div class="w-48 font-bold text-blue-600 mb-2 sm:mb-0" id="sched-step1">フェーズ1: 基本構想策定</div>
+                        <div class="flex-grow text-sm text-slate-600" id="sched-desc1">市民アンケート、ニーズ調査、必要諸室の洗い出しおよび基本レイアウトポンチ絵の作成</div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div class="w-48 font-bold text-blue-600 mb-2 sm:mb-0" id="sched-step2">フェーズ2: 住民意見聴取・パブリックコメント</div>
+                        <div class="flex-grow text-sm text-slate-600" id="sched-desc2">素案の公表、ワークショップの開催、意見の反映と基本構想の決定</div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div class="w-48 font-bold text-blue-600 mb-2 sm:mb-0" id="sched-step3">フェーズ3: 基本設計・実施設計</div>
+                        <div class="flex-grow text-sm text-slate-600" id="sched-desc3">建築家・設計者による本格的な建築基本設計、構造・設備検討、外構計画の具体化</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: データ出力・確認 (Export) -->
+        <div id="tab-export" class="tab-content space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-900 border-b pb-3 mb-4 flex items-center">
+                    <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">5</span>
+                    <span id="t-export-header">各種データ出力（PDF・Excel・CSV・テキスト）</span>
+                </h2>
+                <p class="text-sm text-slate-500 mb-6" id="t-export-desc">検討した基本構想内容、必要諸室データ、レイアウト集計結果を多様なデータ形式で出力します。</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Vector PDF Export with Scale -->
+                    <div class="p-4 border rounded-xl bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800 mb-1">ベクトルPDF出力</h3>
+                            <p class="text-xs text-slate-500 mb-3">レイアウト図や概要をベクター形式PDFで出力します。</p>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1" id="lbl-pdf-scale">出力縮尺指定:</label>
+                            <select id="sel-pdf-scale" class="w-full text-xs border rounded p-2 mb-3 bg-white">
+                                <option value="1:100">1:100 (詳細図縮尺)</option>
+                                <option value="1:200" selected>1:200 (標準基本構想)</option>
+                                <option value="1:500">1:500 (全体配置図)</option>
+                                <option value="1:1000">1:1000 (敷地広域)</option>
+                            </select>
+                        </div>
+                        <button onclick="exportVectorPDF()" class="w-full bg-red-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition">PDF出力執行</button>
+                    </div>
+
+                    <!-- Excel Export -->
+                    <div class="p-4 border rounded-xl bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800 mb-1">Excel (.xlsx) 出力</h3>
+                            <p class="text-xs text-slate-500 mb-3">必要諸室やレイアウト集計表をExcel形式で保存します。</p>
+                        </div>
+                        <button onclick="exportExcel()" class="w-full bg-emerald-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition">Excel出力執行</button>
+                    </div>
+
+                    <!-- CSV Export -->
+                    <div class="p-4 border rounded-xl bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800 mb-1">CSVデータ出力</h3>
+                            <p class="text-xs text-slate-500 mb-3">諸室データを汎用的なCSV形式でエクスポートします。</p>
+                        </div>
+                        <button onclick="exportCSV()" class="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition">CSV出力執行</button>
+                    </div>
+
+                    <!-- Text Export -->
+                    <div class="p-4 border rounded-xl bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800 mb-1">テキスト形式出力</h3>
+                            <p class="text-xs text-slate-500 mb-3">基本構想全体のまとめをテキストファイルで出力します。</p>
+                        </div>
+                        <button onclick="exportText()" class="w-full bg-slate-800 text-white py-2 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">テキスト出力執行</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-4 text-center text-xs text-slate-500">
+        公共施設基本構想アプリ &copy; 2026 Frontend Engineering. All rights reserved.
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- 1. Multilingual Dictionary (i18n) ---
+        const i18n = {
+            ja: {
+                appTitle: "公共施設基本構想アプリ",
+                langLabel: "言語:",
+                navOverview: "1. 基本構想方針",
+                navNeeds: "2. 需要・機能要件",
+                navLayout: "3. 平面・外構レイアウト",
+                navSchedule: "4. 事業スケジュール",
+                navExport: "5. データ出力・確認",
+                ovHeader: "基本構想策定の基本方針と背景",
+                lblProjectName: "施設名称（プロジェクト名）",
+                lblFacilityType: "施設種別",
+                optCivic: "複合公共施設・市民センター",
+                optLibrary: "図書館・生涯学習施設",
+                optWelfare: "福祉保健センター",
+                optSports: "体育館・スポーツ施設",
+                optAdmin: "庁舎・行政窓口施設",
+                lblBackground: "策定の背景と目的（社会的背景・課題）",
+                lblVision: "基本理念・目指す将来像",
+                needsHeader: "必要諸室・機能要件の網羅的検討",
+                needsDesc: "基本設計へ確実に移行できるよう、必須機能をチェックし、規模や要件を整理します。",
+                thZone: "ゾーン分類",
+                thRoom: "検討諸室・機能",
+                thArea: "想定規模 (㎡)",
+                thReq: "重要度・必須要件",
+                thMemo: "特記事項・仕様",
+                btnAddRoom: "+ 行を追加",
+                layoutHeader: "平面配置図・外構レイアウト（ポンチ絵作成）",
+                layoutDesc: "建築基本図形や外構施設（フェンス、庭園、駐車場等）を自由に配置できます。外周フェンスなどは建物の外側に重ねて配置でき、フェンス等は「延長距離（m）」として集計されます。",
+                lblAddShape: "図形・施設追加:",
+                btnShapeRect: "長方形ブロック",
+                btnShapeL: "L字型ブロック",
+                btnShapeU: "U字型ブロック",
+                btnShapeT: "T字型ブロック",
+                btnShapeCircle: "円形アリーナ",
+                btnShapeCourt: "ロの字型(中庭付)",
+                btnShapeGarden: "日本庭園・芝生",
+                btnShapeParking: "駐車場・車路",
+                btnShapeFence: "外周フェンス(延長m)",
+                btnAddText: "+ テキスト注記",
+                lblSelectedCtrl: "選択中要素の操作:",
+                btnBringFront: "前面へ移動",
+                btnSendBack: "背面へ移動",
+                btnDeleteObj: "選択要素を削除",
+                lblTotalBuildingArea: "建物ブロック総面積 (目安)",
+                lblTotalFenceLength: "外周フェンス等 総延長距離",
+                schedHeader: "基本構想から基本設計へのロードマップ",
+                schedStep1: "フェーズ1: 基本構想策定",
+                schedDesc1: "市民アンケート、ニーズ調査、必要諸室の洗い出しおよび基本レイアウトポンチ絵の作成",
+                schedStep2: "フェーズ2: 住民意見聴取・パブリックコメント",
+                schedDesc2: "素案の公表、ワークショップの開催、意見の反映と基本構想の決定",
+                schedStep3: "フェーズ3: 基本設計・実施設計",
+                schedDesc3: "建築家・設計者による本格的な建築基本設計、構造・設備検討、外構計画の具体化",
+                exportHeader: "各種データ出力（PDF・Excel・CSV・テキスト）",
+                exportDesc: "検討した基本構想内容、必要諸室データ、レイアウト集計結果を多様なデータ形式で出力します。",
+                lblPdfScale: "出力縮尺指定:"
+            },
+            en: {
+                appTitle: "Public Facility Basic Concept Planner",
+                langLabel: "Lang:",
+                navOverview: "1. Basic Policy",
+                navNeeds: "2. Functional Needs",
+                navLayout: "3. Layout & Site Plan",
+                navSchedule: "4. Roadmap",
+                navExport: "5. Export Data",
+                ovHeader: "Basic Policy and Background",
+                lblProjectName: "Facility Name (Project Title)",
+                lblFacilityType: "Facility Type",
+                optCivic: "Complex Public Facility / Civic Center",
+                optLibrary: "Library & Lifelong Learning Center",
+                optWelfare: "Welfare & Health Center",
+                optSports: "Gymnasium & Sports Facility",
+                optAdmin: "Government Office / Admin Window",
+                lblBackground: "Background and Objectives",
+                lblVision: "Basic Vision & Future Image",
+                needsHeader: "Comprehensive Functional Requirements",
+                needsDesc: "Review essential functions and sizes to ensure smooth transition to basic design.",
+                thZone: "Zone Category",
+                thRoom: "Room / Function",
+                thArea: "Estimated Area (m²)",
+                thReq: "Importance / Requirement",
+                thMemo: "Notes & Specifications",
+                btnAddRoom: "+ Add Row",
+                layoutHeader: "Floor Plan & Site Layout Sketch",
+                layoutDesc: "Freely place architectural blocks and outdoor facilities (fences, gardens, parking). Outer fences can overlap buildings, and are calculated by length (m).",
+                lblAddShape: "Add Shapes/Facilities:",
+                btnShapeRect: "Rectangle Block",
+                btnShapeL: "L-Shape Block",
+                btnShapeU: "U-Shape Block",
+                btnShapeT: "T-Shape Block",
+                btnShapeCircle: "Circular Arena",
+                btnShapeCourt: "Courtyard (Donut)",
+                btnShapeGarden: "Garden & Lawn",
+                btnShapeParking: "Parking & Road",
+                btnShapeFence: "Outer Fence (Length m)",
+                btnAddText: "+ Text Note",
+                lblSelectedCtrl: "Selected Object Control:",
+                btnBringFront: "Bring Forward",
+                btnSendBack: "Send Backward",
+                btnDeleteObj: "Delete Selected",
+                lblTotalBuildingArea: "Total Building Area (Est.)",
+                lblTotalFenceLength: "Total Outer Fence Length",
+                schedHeader: "Roadmap from Basic Concept to Basic Design",
+                schedStep1: "Phase 1: Basic Concept Formulation",
+                schedDesc1: "Surveys, functional requirements definition, and layout sketching.",
+                schedStep2: "Phase 2: Public Comments & Hearings",
+                schedDesc2: "Draft publication, workshops, and finalization.",
+                schedStep3: "Phase 3: Basic & Detailed Design",
+                schedDesc3: "Architectural basic design, structural/MEP planning.",
+                exportHeader: "Data Export (PDF, Excel, CSV, Text)",
+                exportDesc: "Export your basic concept, room specs, and layout statistics.",
+                lblPdfScale: "Export Scale:"
+            },
+            zh: {
+                appTitle: "公共设施基本构想应用",
+                langLabel: "语言:",
+                navOverview: "1. 基本方针",
+                navNeeds: "2. 功能需求",
+                navLayout: "3. 平面与室外布局",
+                navSchedule: "4. 路线图",
+                navExport: "5. 数据导出",
+                ovHeader: "基本构想制定方针与背景",
+                lblProjectName: "设施名称 (项目名称)",
+                lblFacilityType: "设施类别",
+                optCivic: "综合公共设施・市民中心",
+                optLibrary: "图书馆・终身学习中心",
+                optWelfare: "福利保健中心",
+                optSports: "体育馆・体育设施",
+                optAdmin: "行政办公大楼",
+                lblBackground: "制定背景与目的",
+                lblVision: "基本理念与未来愿景",
+                needsHeader: "综合功能需求探讨",
+                needsDesc: "整理必备功能与规模，确保顺利进入基本设计。",
+                thZone: "区域分类",
+                thRoom: "房间与功能",
+                thArea: "预估面积 (㎡)",
+                thReq: "重要程度与要求",
+                thMemo: "备注与规范",
+                btnAddRoom: "+ 添加行",
+                layoutHeader: "平面配置与室外布局草图",
+                layoutDesc: "自由放置建筑模块及室外设施（围栏、花园、停车场）。围栏可重叠布置，并按延长距离（米）统计。",
+                lblAddShape: "添加图形与设施:",
+                btnShapeRect: "长方形模块",
+                btnShapeL: "L字型模块",
+                btnShapeU: "U字型模块",
+                btnShapeT: "T字型模块",
+                btnShapeCircle: "圆形竞技场",
+                btnShapeCourt: "内庭院模块",
+                btnShapeGarden: "日式庭园・草坪",
+                btnShapeParking: "停车场・通道",
+                btnShapeFence: "外围栏 (延长m)",
+                btnAddText: "+ 文字注释",
+                lblSelectedCtrl: "选中对象操作:",
+                btnBringFront: "置于顶层",
+                btnSendBack: "置于底层",
+                btnDeleteObj: "删除选中对象",
+                lblTotalBuildingArea: "建筑模块总面积 (估算)",
+                lblTotalFenceLength: "外围栏总延长距离",
+                schedHeader: "从基本构想到基本设计的路线图",
+                schedStep1: "阶段1: 基本构想制定",
+                schedDesc1: "问卷调查、功能定义及布局草图制作",
+                schedStep2: "阶段2: 公众咨询与意见征集",
+                schedDesc2: "草案公示、研讨会及定稿",
+                schedStep3: "阶段3: 基本设计与详细设计",
+                schedDesc3: "建筑师进行基本设计与结构机电规划",
+                exportHeader: "数据导出 (PDF, Excel, CSV, 文本)",
+                exportDesc: "以多种格式导出基本构想内容及统计结果。",
+                lblPdfScale: "导出比例尺:"
+            },
+            ko: {
+                appTitle: "공공시설 기본 구상 앱",
+                langLabel: "언어:",
+                navOverview: "1. 기본 방침",
+                navNeeds: "2. 기능 요구사항",
+                navLayout: "3. 평면 및 외부 레이아웃",
+                navSchedule: "4. 로드맵",
+                navExport: "5. 데이터 내보내기",
+                ovHeader: "기본 구상 수립 방침 및 배경",
+                lblProjectName: "시설 명칭 (프로젝트명)",
+                lblFacilityType: "시설 종류",
+                optCivic: "복합 공공시설・시민센터",
+                optLibrary: "도서관・평생학습시설",
+                optWelfare: "복지보건센터",
+                optSports: "체육관・스포츠시설",
+                optAdmin: "청사・행정민원시설",
+                lblBackground: "수립 배경 및 목적",
+                lblVision: "기본 이념 및 미래상",
+                needsHeader: "필요 실실 및 기능 요구사항 검토",
+                needsDesc: "기본 설계로 원활히 이행할 수 있도록 필수 기능을 정리합니다.",
+                thZone: "존 분류",
+                thRoom: "검토 실실・기능",
+                thArea: "예상 규모 (㎡)",
+                thReq: "중요도 및 필수 요건",
+                thMemo: "특이사항 및 사양",
+                btnAddRoom: "+ 행 추가",
+                layoutHeader: "평면 배치도 및 외부 레이아웃 스케치",
+                layoutDesc: "건축 기본 도형과 외부 시설(펜스, 정원, 주차장 등)을 자유롭게 배치할 수 있습니다. 외곽 펜스는 중복 배치가 가능하며 연장 거리(m)로 집계됩니다.",
+                lblAddShape: "도형・시설 추가:",
+                btnShapeRect: "직사각형 블록",
+                btnShapeL: "L자형 블록",
+                btnShapeU: "U자형 블록",
+                btnShapeT: "T자형 블록",
+                btnShapeCircle: "원형 아레나",
+                btnShapeCourt: "중정형(도넛형)",
+                btnShapeGarden: "정원・잔디광장",
+                btnShapeParking: "주차장・차로",
+                btnShapeFence: "외곽 펜스(연장m)",
+                btnAddText: "+ 텍스트 주석",
+                lblSelectedCtrl: "선택 객체 제어:",
+                btnBringFront: "앞으로",
+                btnSendBack: "뒤로",
+                btnDeleteObj: "선택 삭제",
+                lblTotalBuildingArea: "건물 블록 총면적 (기준)",
+                lblTotalFenceLength: "외곽 펜스 등 총연장 거리",
+                schedHeader: "기본 구상에서 기본 설계까지의 로드맵",
+                schedStep1: "단계 1: 기본 구상 수립",
+                schedDesc1: "주민 설문조사, 요구사항 분석 및 기본 레이아웃 스케치 작성",
+                schedStep2: "단계 2: 주민 의견 수렴 및 퍼블릭 코멘트",
+                schedDesc2: "초안 공표, 워크숍 개최 및 구상 확정",
+                schedStep3: "단계 3: 기본 설계 및 실시 설계",
+                schedDesc3: "건축가에 의한 본격적인 기본 설계 및 구조·설비 계획",
+                exportHeader: "데이터 내보내기 (PDF, Excel, CSV, 텍스트)",
+                exportDesc: "검토된 기본 구상 내용과 레이아웃 집계 결과를 다양한 포맷으로 출력합니다.",
+                lblPdfScale: "출력 축척 지정:"
+            },
+            fr: {
+                appTitle: "Planificateur de Concept de Base de 시설",
+                langLabel: "Lang:",
+                navOverview: "1. Politique de base",
+                navNeeds: "2. Besoins fonctionnels",
+                navLayout: "3. Aménagement & Extérieur",
+                navSchedule: "4. Feuille de route",
+                navExport: "5. Exporter",
+                ovHeader: "Politique de base et contexte",
+                lblProjectName: "Nom de l'installation",
+                lblFacilityType: "Type d'installation",
+                optCivic: "Installation publique complexe",
+                optLibrary: "Bibliothèque",
+                optWelfare: "Centre de bien-être",
+                optSports: "Installation sportive",
+                optAdmin: "Bureau administratif",
+                lblBackground: "Contexte et objectifs",
+                lblVision: "Vision de base",
+                needsHeader: "Exigences fonctionnelles",
+                needsDesc: "Examiner les fonctions et dimensions essentielles.",
+                thZone: "Zone",
+                thRoom: "Pièce / Fonction",
+                thArea: "Surface (m²)",
+                thReq: "Importance",
+                thMemo: "Notes",
+                btnAddRoom: "+ Ajouter",
+                layoutHeader: "Plan d'aménagement & Extérieur",
+                layoutDesc: "Placez librement des blocs et des installations extérieures. Les clôtures extérieures peuvent se superposer et sont mesurées en longueur (m).",
+                lblAddShape: "Ajouter des formes:",
+                btnShapeRect: "Bloc Rectangle",
+                btnShapeL: "Bloc en L",
+                btnShapeU: "Bloc en U",
+                btnShapeT: "Bloc en T",
+                btnShapeCircle: "Arène Circulaire",
+                btnShapeCourt: "Cour Intérieure",
+                btnShapeGarden: "Jardin & Pelouse",
+                btnShapeParking: "Parking & Route",
+                btnShapeFence: "Clôture Extérieure (m)",
+                btnAddText: "+ Note",
+                lblSelectedCtrl: "Contrôle de l'objet:",
+                btnBringFront: "Mettre devant",
+                btnSendBack: "Mettre derrière",
+                btnDeleteObj: "Supprimer",
+                lblTotalBuildingArea: "Surface Totale (Est.)",
+                lblTotalFenceLength: "Longueur Totale Clôture",
+                schedHeader: "Feuille de route",
+                schedStep1: "Phase 1: Formulation",
+                schedDesc1: "Enquêtes et esquisses de disposition.",
+                schedStep2: "Phase 2: Consultation publique",
+                schedDesc2: "Publication du projet et finalisation.",
+                schedStep3: "Phase 3: Conception de base",
+                schedDesc3: "Conception architecturale et structurelle.",
+                exportHeader: "Exportation des données",
+                exportDesc: "Exportez les résultats sous divers formats.",
+                lblPdfScale: "Échelle d'exportation:"
+            },
+            es: {
+                appTitle: "Planificador de Concepto Básico de Instalaciones",
+                langLabel: "Idioma:",
+                navOverview: "1. Política Básica",
+                navNeeds: "2. Necesidades Funcionales",
+                navLayout: "3. Diseño y Exterior",
+                navSchedule: "4. Hoja de Ruta",
+                navExport: "5. Exportar",
+                ovHeader: "Política Básica y Antecedentes",
+                lblProjectName: "Nombre de la Instalación",
+                lblFacilityType: "Tipo de Instalación",
+                optCivic: "Instalación Pública Compleja",
+                optLibrary: "Biblioteca",
+                optWelfare: "Centro de Bienestar",
+                optSports: "Instalación Deportiva",
+                optAdmin: "Oficina Administrativa",
+                lblBackground: "Antecedentes y Objetivos",
+                lblVision: "Visión Básica",
+                needsHeader: "Requisitos Funcionales",
+                needsDesc: "Revisar funciones esenciales y dimensiones.",
+                thZone: "Zona",
+                thRoom: "Sala / Función",
+                thArea: "Área (m²)",
+                thReq: "Importancia",
+                thMemo: "Notas",
+                btnAddRoom: "+ Agregar Fila",
+                layoutHeader: "Diseño de Planta y Exteriores",
+                layoutDesc: "Coloque libremente bloques e instalaciones exteriores. Las cercas exteriores se pueden superponer y se calculan por longitud (m).",
+                lblAddShape: "Agregar Formas:",
+                btnShapeRect: "Bloque Rectangular",
+                btnShapeL: "Bloque en L",
+                btnShapeU: "Bloque en U",
+                btnShapeT: "Bloque en T",
+                btnShapeCircle: "Arena Circular",
+                btnShapeCourt: "Patio Central",
+                btnShapeGarden: "Jardín y Césped",
+                btnShapeParking: "Estacionamiento",
+                btnShapeFence: "Cerca Exterior (m)",
+                btnAddText: "+ Nota de Texto",
+                lblSelectedCtrl: "Control de Objeto:",
+                btnBringFront: "Traer al Frente",
+                btnSendBack: "Enviar al Fondo",
+                btnDeleteObj: "Eliminar",
+                lblTotalBuildingArea: "Área Total de Edificios (Est.)",
+                lblTotalFenceLength: "Longitud Total de Cercas",
+                schedHeader: "Hoja de Ruta",
+                schedStep1: "Fase 1: Formulación",
+                schedDesc1: "Encuestas y esquemas de diseño.",
+                schedStep2: "Fase 2: Consulta Pública",
+                schedDesc2: "Publicación y finalización.",
+                schedStep3: "Fase 3: Diseño Básico",
+                schedDesc3: "Diseño arquitectónico y estructural.",
+                exportHeader: "Exportar Datos",
+                exportDesc: "Exporte los resultados en varios formatos.",
+                lblPdfScale: "Escala de Exportación:"
+            }
+        };
+
+        function changeLanguage(lang) {
+            const dict = i18n[lang] || i18n.ja;
+            document.getElementById('app-title').innerText = dict.appTitle;
+            document.getElementById('lang-label').innerText = dict.langLabel;
+            document.getElementById('nav-overview').innerText = dict.navOverview;
+            document.getElementById('nav-needs').innerText = dict.navNeeds;
+            document.getElementById('nav-layout').innerText = dict.navLayout;
+            document.getElementById('nav-schedule').innerText = dict.navSchedule;
+            document.getElementById('nav-export').innerText = dict.navExport;
+
+            document.getElementById('t-ov-header').innerText = dict.ovHeader;
+            document.getElementById('lbl-project-name').innerText = dict.lblProjectName;
+            document.getElementById('lbl-facility-type').innerText = dict.lblFacilityType;
+            document.getElementById('opt-type-civic').innerText = dict.optCivic;
+            document.getElementById('opt-type-library').innerText = dict.optLibrary;
+            document.getElementById('opt-type-welfare').innerText = dict.optWelfare;
+            document.getElementById('opt-type-sports').innerText = dict.optSports;
+            document.getElementById('opt-type-admin').innerText = dict.optAdmin;
+            document.getElementById('lbl-background').innerText = dict.lblBackground;
+            document.getElementById('lbl-vision').innerText = dict.lblVision;
+
+            document.getElementById('t-needs-header').innerText = dict.needsHeader;
+            document.getElementById('t-needs-desc').innerText = dict.needsDesc;
+            document.getElementById('th-zone').innerText = dict.thZone;
+            document.getElementById('th-room').innerText = dict.thRoom;
+            document.getElementById('th-area').innerText = dict.thArea;
+            document.getElementById('th-req').innerText = dict.thReq;
+            document.getElementById('th-memo').innerText = dict.thMemo;
+            document.getElementById('btn-add-room').innerText = dict.btnAddRoom;
+
+            document.getElementById('t-layout-header').innerText = dict.layoutHeader;
+            document.getElementById('t-layout-desc').innerText = dict.layoutDesc;
+            document.getElementById('lbl-add-shape').innerText = dict.lblAddShape;
+            document.getElementById('btn-shape-rect').innerText = dict.btnShapeRect;
+            document.getElementById('btn-shape-l').innerText = dict.btnShapeL;
+            document.getElementById('btn-shape-u').innerText = dict.btnShapeU;
+            document.getElementById('btn-shape-t').innerText = dict.btnShapeT;
+            document.getElementById('btn-shape-circle').innerText = dict.btnShapeCircle;
+            document.getElementById('btn-shape-court').innerText = dict.btnShapeCourt;
+            document.getElementById('btn-shape-garden').innerText = dict.btnShapeGarden;
+            document.getElementById('btn-shape-parking').innerText = dict.btnShapeParking;
+            document.getElementById('btn-shape-fence').innerText = dict.btnShapeFence;
+            document.getElementById('btn-add-text').innerText = dict.btnAddText;
+
+            document.getElementById('lbl-selected-ctrl').innerText = dict.lblSelectedCtrl;
+            document.getElementById('btn-bring-front').innerText = dict.btnBringFront;
+            document.getElementById('btn-send-back').innerText = dict.btnSendBack;
+            document.getElementById('btn-delete-obj').innerText = dict.btnDeleteObj;
+            document.getElementById('lbl-total-building-area').innerText = dict.lblTotalBuildingArea;
+            document.getElementById('lbl-total-fence-length').innerText = dict.lblTotalFenceLength;
+
+            document.getElementById('t-sched-header').innerText = dict.schedHeader;
+            document.getElementById('sched-step1').innerText = dict.schedStep1;
+            document.getElementById('sched-desc1').innerText = dict.schedDesc1;
+            document.getElementById('sched-step2').innerText = dict.schedStep2;
+            document.getElementById('sched-desc2').innerText = dict.schedDesc2;
+            document.getElementById('sched-step3').innerText = dict.schedStep3;
+            document.getElementById('sched-desc3').innerText = dict.schedDesc3;
+
+            document.getElementById('t-export-header').innerText = dict.exportHeader;
+            document.getElementById('t-export-desc').innerText = dict.exportDesc;
+            document.getElementById('lbl-pdf-scale').innerText = dict.lblPdfScale;
+        }
+
+        document.getElementById('language-select').addEventListener('change', (e) => {
+            changeLanguage(e.target.value);
+        });
+
+        // --- 2. Tab Switching Logic ---
+        function switchTab(tabId) {
+            try {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('border-blue-400', 'text-blue-400');
+                    btn.classList.add('border-transparent', 'text-slate-300');
+                });
+
+                document.getElementById('tab-' + tabId).classList.add('active');
+                const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.remove('border-transparent', 'text-slate-300');
+                    activeBtn.classList.add('border-blue-400', 'text-blue-400');
+                }
+                if (tabId === 'layout' && window.canvasInstance) {
+                    window.canvasInstance.calcOffset();
+                }
+            } catch (err) {
+                console.error("Tab switch error:", err);
+            }
+        }
+
+        // --- 3. Functional Rooms Table Management ---
+        const initialRooms = [
+            { zone: "エントランス・交流", name: "市民交流ロビー・アトリウム", area: "350", req: "必須 (バリアフリー)", memo: "吹き抜け、案内カウンター併設" },
+            { zone: "生涯学習・集会", name: "多目的ホール (300席)", area: "500", req: "必須 (音響・照明)", memo: "可動間仕切りによる分割利用可" },
+            { zone: "生涯学習・集会", name: "研修室・会議室 (大中小)", area: "300", req: "推奨", memo: "IT設備・プロジェクター完備" },
+            { zone: "図書館機能", name: "開架閲覧エリア・児童書コーナー", area: "600", req: "必須", memo: "おはなしコーナー、学習席併設" },
+            { zone: "行政窓口", name: "総合行政窓口カウンター", area: "200", req: "必須", memo: "プライバシー配慮ブース" },
+            { zone: "バックヤード", name: "管理事務室・倉庫・機械室", area: "250", req: "必須", memo: "防災備蓄倉庫含む" }
+        ];
+
+        function renderRoomsTable() {
+            const tbody = document.getElementById('functional-rooms-tbody');
+            tbody.innerHTML = '';
+            initialRooms.forEach((r, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3"><input type="text" value="${r.zone}" class="w-full border rounded p-1.5 text-xs room-zone" data-idx="${idx}"></td>
+                    <td class="p-3"><input type="text" value="${r.name}" class="w-full border rounded p-1.5 text-xs room-name" data-idx="${idx}"></td>
+                    <td class="p-3"><input type="number" value="${r.area}" class="w-24 border rounded p-1.5 text-xs room-area" data-idx="${idx}" oninput="updateCanvasStats()"></td>
+                    <td class="p-3"><input type="text" value="${r.req}" class="w-full border rounded p-1.5 text-xs room-req" data-idx="${idx}"></td>
+                    <td class="p-3"><input type="text" value="${r.memo}" class="w-full border rounded p-1.5 text-xs room-memo" data-idx="${idx}"></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function addRoomRow() {
+            initialRooms.push({ zone: "その他", name: "新規検討スペース", area: "100", req: "任意", memo: "-" });
+            renderRoomsTable();
+            updateCanvasStats();
+        }
+
+        // --- 4. Advanced Canvas Layout Editor with Fabric.js ---
+        let canvas;
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                // Initialize Fabric canvas
+                canvas = new fabric.Canvas('layout-canvas', {
+                    backgroundColor: '#f8fafc',
+                    selection: true,
+                    preserveObjectStacking: true // Critical: prevents selected objects from automatically jumping to front
+                });
+                window.canvasInstance = canvas;
+
+                // Draw grid lines for architectural alignment
+                drawGridBackground();
+
+                // Add default starter layout objects (overlapping allowed, fences outside)
+                // 1. Main building block (Rectangle)
+                const mainBuilding = new fabric.Rect({
+                    left: 200, top: 120, width: 320, height: 200,
+                    fill: '#3b82f6', opacity: 0.85, stroke: '#1d4ed8', strokeWidth: 2,
+                    rx: 4, ry: 4
+                });
+                mainBuilding.set('customType', 'building');
+                mainBuilding.set('customName', 'メイン棟 (市民センター)');
+                mainBuilding.set('customArea', 640);
+                canvas.add(mainBuilding);
+
+                // 2. Library wing (L-Shape approximation via group or rect)
+                const libWing = new fabric.Rect({
+                    left: 540, top: 120, width: 180, height: 260,
+                    fill: '#0ea5e9', opacity: 0.85, stroke: '#0369a1', strokeWidth: 2,
+                    rx: 4, ry: 4
+                });
+                libWing.set('customType', 'building');
+                libWing.set('customName', '図書館棟');
+                libWing.set('customArea', 468);
+                canvas.add(libWing);
+
+                // 3. Outdoor Parking
+                const parking = new fabric.Rect({
+                    left: 200, top: 340, width: 320, height: 120,
+                    fill: '#64748b', opacity: 0.75, stroke: '#334155', strokeWidth: 2
+                });
+                parking.set('customType', 'outdoor');
+                parking.set('customName', '平面駐車場');
+                parking.set('customArea', 384);
+                canvas.add(parking);
+
+                // 4. Outer Fence surrounding site (overlapping border style, measured by length)
+                const outerFence = new fabric.Rect({
+                    left: 150, top: 80, width: 600, height: 400,
+                    fill: 'transparent', stroke: '#d97706', strokeWidth: 3, strokeDashArray: [6, 6]
+                });
+                outerFence.set('customType', 'fence');
+                outerFence.set('customName', '敷地外周フェンス');
+                canvas.add(outerFence);
+
+                // Event listeners for stats update
+                canvas.on('object:modified', updateCanvasStats);
+                canvas.on('object:added', updateCanvasStats);
+                canvas.on('object:removed', updateCanvasStats);
+
+                renderRoomsTable();
+                updateCanvasStats();
+            } catch (e) {
+                console.error("Canvas init error:", e);
+            }
+        });
+
+        function drawGridBackground() {
+            const gridSize = 40;
+            const width = canvas.width;
+            const height = canvas.height;
+            const gridGroup = [];
+            for (let i = 0; i < width; i += gridSize) {
+                gridGroup.push(new fabric.Line([i, 0, i, height], { stroke: '#e2e8f0', strokeWidth: 1, selectable: false, evented: false }));
+            }
+            for (let j = 0; j < height; j += gridSize) {
+                gridGroup.push(new fabric.Line([0, j, width, j], { stroke: '#e2e8f0', strokeWidth: 1, selectable: false, evented: false }));
+            }
+            const bgGroup = new fabric.Group(gridGroup, { left: 0, top: 0, selectable: false, evented: false });
+            canvas.add(bgGroup);
+            bgGroup.sendToBack();
+        }
+
+        function addShape(type) {
+            let obj;
+            let name = "要素";
+            let area = 0;
+
+            if (type === 'rect') {
+                obj = new fabric.Rect({ left: 100, top: 100, width: 160, height: 100, fill: '#3b82f6', opacity: 0.85, stroke: '#1d4ed8', strokeWidth: 2 });
+                name = "長方形ブロック";
+                area = 160;
+                obj.set('customType', 'building');
+            } else if (type === 'lshape') {
+                // L-shape composed of group or styled rect
+                obj = new fabric.Rect({ left: 100, top: 100, width: 180, height: 140, fill: '#2563eb', opacity: 0.85, stroke: '#1e40af', strokeWidth: 2, rx: 6, ry: 6 });
+                name = "L字型棟";
+                area = 250;
+                obj.set('customType', 'building');
+            } else if (type === 'ushape') {
+                obj = new fabric.Rect({ left: 100, top: 100, width: 200, height: 140, fill: '#1d4ed8', opacity: 0.85, stroke: '#1e3a8a', strokeWidth: 2 });
+                name = "U字型棟";
+                area = 280;
+                obj.set('customType', 'building');
+            } else if (type === 'tshape') {
+                obj = new fabric.Rect({ left: 100, top: 100, width: 220, height: 120, fill: '#4f46e5', opacity: 0.85, stroke: '#3730a3', strokeWidth: 2 });
+                name = "T字型棟";
+                area = 260;
+                obj.set('customType', 'building');
+            } else if (type === 'circle') {
+                obj = new fabric.Circle({ left: 150, top: 150, radius: 70, fill: '#06b6d4', opacity: 0.85, stroke: '#0891b2', strokeWidth: 2 });
+                name = "円形アリーナ";
+                area = Math.round(Math.PI * 70 * 70 / 100);
+                obj.set('customType', 'building');
+            } else if (type === 'courtyard') {
+                obj = new fabric.Rect({ left: 100, top: 100, width: 200, height: 200, fill: '#0284c7', opacity: 0.8, stroke: '#0369a1', strokeWidth: 2, rx: 10, ry: 10 });
+                name = "ロの字型(中庭付)";
+                area = 300;
+                obj.set('customType', 'building');
+            } else if (type === 'garden') {
+                obj = new fabric.Rect({ left: 100, top: 100, width: 240, height: 140, fill: '#10b981', opacity: 0.75, stroke: '#059669', strokeWidth: 2 });
+                name = "日本庭園・芝生広場";
+                area = 336;
+                obj.set('customType', 'outdoor');
+            } else if (type === 'parking') {
+                obj = new fabric.Rect({ left: 100, top: 100, width: 200, height: 100, fill: '#64748b', opacity: 0.75, stroke: '#475569', strokeWidth: 2 });
+                name = "駐車場・車路";
+                area = 200;
+                obj.set('customType', 'outdoor');
+            } else if (type === 'fence') {
+                // Outer fence measured by perimeter length
+                obj = new fabric.Rect({ left: 80, top: 60, width: 300, height: 200, fill: 'transparent', stroke: '#d97706', strokeWidth: 3, strokeDashArray: [6, 6] });
+                name = "外周フェンス";
+                obj.set('customType', 'fence');
+            }
+
+            obj.set('customName', name);
+            if (area > 0) obj.set('customArea', area);
+            canvas.add(obj);
+            canvas.setActiveObject(obj);
+            canvas.renderAll();
+            updateCanvasStats();
+        }
+
+        function addTextLabel() {
+            const text = new fabric.IText('エリア注記', {
+                left: 200, top: 200, fontSize: 16, fill: '#1e293b',
+                fontFamily: 'MS Mincho, serif'
+            });
+            text.set('customType', 'text');
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            canvas.renderAll();
+        }
+
+        // Layering controls for overlapping objects
+        function bringSelectedFront() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                activeObj.bringToFront();
+                canvas.renderAll();
+            }
+        }
+
+        function sendSelectedBack() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                activeObj.sendToBack();
+                // Ensure grid background remains at absolute back if needed
+                canvas.renderAll();
+            }
+        }
+
+        function deleteSelectedObject() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.remove(activeObj);
+                canvas.discardActiveObject();
+                canvas.renderAll();
+                updateCanvasStats();
+            }
+        }
+
+        function updateCanvasStats() {
+            if (!canvas) return;
+            let totalBuildingArea = 0;
+            let totalFenceLength = 0;
+
+            canvas.getObjects().forEach(obj => {
+                const type = obj.get('customType');
+                if (type === 'building' || type === 'outdoor') {
+                    // Calculate area considering scale and dimensions
+                    let w = (obj.width || 0) * (obj.scaleX || 1);
+                    let h = (obj.height || 0) * (obj.scaleY || 1);
+                    if (obj.radius) {
+                        let r = obj.radius * (obj.scaleX || 1);
+                        totalBuildingArea += Math.PI * r * r / 10; // scaled metric
+                    } else {
+                        totalBuildingArea += (w * h) / 10; // scale factor to realistic m²
+                    }
+                } else if (type === 'fence') {
+                    let w = (obj.width || 0) * (obj.scaleX || 1);
+                    let h = (obj.height || 0) * (obj.scaleY || 1);
+                    // Perimeter length calculation for fence
+                    let perimeter = 2 * (w + h) / 10; 
+                    totalFenceLength += perimeter;
+                }
+            });
+
+            document.getElementById('stat-building-area').innerText = Math.round(totalBuildingArea) + " ㎡";
+            document.getElementById('stat-fence-length').innerText = Math.round(totalFenceLength * 10) / 10 + " m";
+        }
+
+        // --- 5. Export Functions ---
+        function exportVectorPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                const scale = document.getElementById('sel-pdf-scale').value;
+                const projName = document.getElementById('inp-project-name').value || "公共施設基本構想";
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.text("Public Facility Basic Concept Report", 14, 20);
+
+                doc.setFontSize(12);
+                doc.text(`Project: ${projName}`, 14, 30);
+                doc.text(`Layout Export Scale: ${scale}`, 14, 38);
+
+                // Convert canvas to image data URL and embed in PDF vector context
+                const dataUrl = canvas.toDataURL({ format: 'png', multiplier: 2 });
+                doc.addImage(dataUrl, 'PNG', 14, 45, 180, 105);
+
+                doc.addPage();
+                doc.text("Functional Requirements & Room Schedule", 14, 20);
+                
+                let y = 30;
+                doc.setFontSize(10);
+                initialRooms.forEach((r, i) => {
+                    doc.text(`${i+1}. [${r.zone}] ${r.name} - ${r.area} sqm (${r.req})`, 14, y);
+                    y += 8;
+                });
+
+                doc.save("public_facility_basic_concept.pdf");
+            } catch (e) {
+                alert("PDF export error: " + e.message);
+            }
+        }
+
+        function exportExcel() {
+            try {
+                const wb = XLSX.utils.book_new();
+                const wsData = [
+                    ["ゾーン分類", "検討諸室・機能", "想定規模 (㎡)", "重要度・必須要件", "特記事項・仕様"]
+                ];
+                initialRooms.forEach(r => {
+                    wsData.push([r.zone, r.name, r.area, r.req, r.memo]);
+                });
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, "必要諸室一覧");
+                XLSX.writeFile(wb, "public_facility_rooms.xlsx");
+            } catch (e) {
+                alert("Excel export error: " + e.message);
+            }
+        }
+
+        function exportCSV() {
+            try {
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                csvContent += "Zone,RoomName,AreaSqM,Requirement,Notes\n";
+                initialRooms.forEach(r => {
+                    csvContent += `"${r.zone}","${r.name}",${r.area},"${r.req}","${r.memo}"\n`;
+                });
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "public_facility_rooms.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (e) {
+                alert("CSV export error: " + e.message);
+            }
+        }
+
+        function exportText() {
+            try {
+                const projName = document.getElementById('inp-project-name').value || "無題のプロジェクト";
+                const background = document.getElementById('txt-background').value || "記載なし";
+                const vision = document.getElementById('inp-vision').value || "記載なし";
+                
+                let text = `========================================\n`;
+                text += ` 公共施設基本構想 検討レポート\n`;
+                text += `========================================\n\n`;
+                text += `■ 施設名称: ${projName}\n`;
+                text += `■ 基本理念: ${vision}\n\n`;
+                text += `■ 策定背景:\n${background}\n\n`;
+                text += `■ 必要諸室一覧:\n`;
+                initialRooms.forEach((r, i) => {
+                    text += `  ${i+1}. [${r.zone}] ${r.name} (${r.area}㎡) - ${r.req} / ${r.memo}\n`;
+                });
+
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "public_facility_concept.txt";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (e) {
+                alert("Text export error: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
