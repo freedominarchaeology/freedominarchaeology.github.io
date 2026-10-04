@@ -2,7 +2,6 @@
 <html lang="ja">  
 <head>  
     <meta charset="UTF-8">  
-    <!-- スマホでの誤作動（ズームや意図しないスクロール）を防ぎ、タッチ操作を安定させるための必須設定 -->  
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
     <title>公共施設基本構想アプリ - Public Facility Basic Concept Planner</title>  
       
@@ -16,32 +15,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>  
   
     <style>  
-        /* 文字化け防止・統一フォント設定 */  
         body {  
             font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;  
             -webkit-tap-highlight-color: transparent;  
         }  
-        /* タブ切り替え用の非表示クラス */  
         .tab-content { display: none; }  
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }  
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }  
   
-        /* キャンバス操作をスマホで安定させるための保護設定 */  
+        /* A3大判キャンバス対応のスクロール可能なコンテナ */  
         #canvas-wrapper {  
-            touch-action: none !important;  
-            -ms-touch-action: none !important;  
-            user-select: none;  
-            -webkit-user-select: none;  
-            overflow: hidden;  
+            touch-action: auto !important; /* スクロール許可 */  
+            overflow: auto;  
             background-image:   
                 linear-gradient(to right, #f1f5f9 1px, transparent 1px),  
                 linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);  
             background-size: 40px 40px;  
         }  
         .canvas-container {  
-            margin: 0 auto;  
+            margin: 0;  
         }  
-        /* 入力フォームがスマホで潰れないための最小幅設定 */  
         .table-input {  
             min-width: 100px;  
         }  
@@ -70,12 +63,11 @@
                 </select>  
             </div>  
         </div>  
-        <!-- Mobile scrollable nav -->  
         <nav class="bg-slate-800 border-t border-slate-700 overflow-x-auto">  
             <div class="max-w-7xl mx-auto flex px-2 sm:px-4 space-x-1 sm:space-x-4 text-xs sm:text-sm">  
                 <button type="button" onclick="switchTab('overview')" class="tab-btn py-3 px-3 sm:px-4 font-medium border-b-2 border-blue-400 text-blue-400 whitespace-nowrap" data-tab="overview" id="nav-overview">1. 基本方針</button>  
                 <button type="button" onclick="switchTab('needs')" class="tab-btn py-3 px-3 sm:px-4 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="needs" id="nav-needs">2. 需要要件</button>  
-                <button type="button" onclick="switchTab('layout')" class="tab-btn py-3 px-3 sm:px-4 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="layout" id="nav-layout">3. 平面レイアウト</button>  
+                <button type="button" onclick="switchTab('layout')" class="tab-btn py-3 px-3 sm:px-4 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="layout" id="nav-layout">3. 平面レイアウト (A3対応)</button>  
                 <button type="button" onclick="switchTab('schedule')" class="tab-btn py-3 px-3 sm:px-4 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="schedule" id="nav-schedule">4. スケジュール</button>  
                 <button type="button" onclick="switchTab('export')" class="tab-btn py-3 px-3 sm:px-4 font-medium border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap" data-tab="export" id="nav-export">5. 出力</button>  
             </div>  
@@ -150,15 +142,18 @@
             </div>  
         </div>  
   
-        <!-- Tab 3: 平面・外構レイアウト (スマホ対応改善版) -->  
+        <!-- Tab 3: 平面・外構レイアウト (A3大判対応) -->  
         <div id="tab-layout" class="tab-content space-y-4 sm:space-y-6">  
             <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-slate-200">  
-                <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b pb-2 sm:pb-3 mb-3 flex items-center">  
-                    <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 shrink-0">3</span>  
-                    <span id="t-layout-header">平面配置図・外構レイアウト（ポンチ絵作成）</span>  
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b pb-2 sm:pb-3 mb-3 flex items-center justify-between">  
+                    <div class="flex items-center">  
+                        <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 shrink-0">3</span>  
+                        <span id="t-layout-header">平面配置図・外構レイアウト（A3大判対応）</span>  
+                    </div>  
+                    <span class="text-xs text-slate-500 font-normal">※スクロールして広範囲を編集可能</span>  
                 </h2>  
                   
-                <!-- ツールバー (スクロール可能にしてスマホでも押しやすく) -->  
+                <!-- ツールバー -->  
                 <div class="overflow-x-auto pb-2 mb-3">  
                     <div class="flex items-center gap-2 min-w-max">  
                         <span class="text-xs font-bold text-slate-600 bg-slate-100 py-1.5 px-2 rounded" id="lbl-add-shape">図形追加:</span>  
@@ -181,8 +176,8 @@
                     </div>  
                 </div>  
   
-                <!-- キャンバスコンテナ (タッチ操作保護) -->  
-                <div id="canvas-wrapper" class="w-full border-2 border-slate-300 rounded-lg relative bg-white shadow-inner" style="height: 450px;">  
+                <!-- A3大判サイズ（1400x900px）のスクロール可能なキャンバスコンテナ -->  
+                <div id="canvas-wrapper" class="w-full border-2 border-slate-300 rounded-lg relative bg-white shadow-inner" style="height: 550px;">  
                     <canvas id="layout-canvas"></canvas>  
                 </div>  
   
@@ -234,8 +229,8 @@
                   
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">  
                     <div class="p-4 border rounded-xl bg-slate-50">  
-                        <h3 class="font-bold text-sm mb-2">ベクトルPDF出力</h3>  
-                        <button type="button" onclick="exportPDF()" class="w-full bg-red-600 text-white py-2.5 rounded-lg text-sm font-bold shadow hover:bg-red-700 active:scale-95 transition">PDFを生成</button>  
+                        <h3 class="font-bold text-sm mb-2">A3ベクトルPDF出力</h3>  
+                        <button type="button" onclick="exportPDF()" class="w-full bg-red-600 text-white py-2.5 rounded-lg text-sm font-bold shadow hover:bg-red-700 active:scale-95 transition">A3 PDFを生成</button>  
                     </div>  
                     <div class="p-4 border rounded-xl bg-slate-50">  
                         <h3 class="font-bold text-sm mb-2">Excel (.xlsx) 出力</h3>  
@@ -261,17 +256,16 @@
   
     <!-- JavaScript Application Logic -->  
     <script>  
-        // --- 1. Multilingual Dictionary (6 Languages) ---  
         const i18n = {  
             ja: {  
                 appTitle: "公共施設基本構想アプリ", langLabel: "言語:",  
-                navOverview: "1. 基本方針", navNeeds: "2. 需要要件", navLayout: "3. 平面レイアウト", navSchedule: "4. スケジュール", navExport: "5. 出力",  
+                navOverview: "1. 基本方針", navNeeds: "2. 需要要件", navLayout: "3. 平面レイアウト (A3対応)", navSchedule: "4. スケジュール", navExport: "5. 出力",  
                 ovHeader: "基本構想策定の基本方針と背景", lblProjectName: "施設名称", lblFacilityType: "施設種別",  
                 optCivic: "複合公共施設・市民センター", optLibrary: "図書館・生涯学習施設", optWelfare: "福祉保健センター", optSports: "体育館・スポーツ施設", optAdmin: "庁舎・行政窓口",  
                 lblBackground: "策定の背景と目的", lblVision: "目指す将来像",  
                 needsHeader: "必要諸室・機能要件の網羅的検討",  
                 thZone: "ゾーン", thRoom: "諸室・機能", thArea: "面積(㎡)", thReq: "要件", btnAddRoom: "+ 行を追加", lblTotalReqArea: "総想定面積:",  
-                layoutHeader: "平面配置図・外構レイアウト", lblAddShape: "図形追加:",  
+                layoutHeader: "平面配置図・外構レイアウト（A3大判対応）", lblAddShape: "図形追加:",  
                 btnRect: "長方形", btnL: "L字", btnU: "U字", btnCircle: "円形", btnGarden: "庭園", btnParking: "駐車場", btnFence: "外周フェンス", btnDel: "削除", btnUp: "前面へ", btnDown: "背面へ",  
                 lblStatArea: "建物等 総面積目安", lblStatFence: "フェンス 総延長",  
                 schedHeader: "基本構想から基本設計へのロードマップ", scT1: "フェーズ1: 構想策定", scD1: "ニーズ調査、レイアウト作成", scT2: "フェーズ2: 意見聴取", scD2: "パブリックコメント、意見反映", scT3: "フェーズ3: 基本設計", scD3: "建築設計者による設計具体化",  
@@ -279,13 +273,13 @@
             },  
             en: {  
                 appTitle: "Facility Concept Planner", langLabel: "Lang:",  
-                navOverview: "1. Policy", navNeeds: "2. Needs", navLayout: "3. Layout", navSchedule: "4. Schedule", navExport: "5. Export",  
+                navOverview: "1. Policy", navNeeds: "2. Needs", navLayout: "3. Layout (A3)", navSchedule: "4. Schedule", navExport: "5. Export",  
                 ovHeader: "Basic Policy and Background", lblProjectName: "Project Name", lblFacilityType: "Facility Type",  
                 optCivic: "Civic Center", optLibrary: "Library", optWelfare: "Welfare Center", optSports: "Sports Facility", optAdmin: "Admin Office",  
                 lblBackground: "Background & Objectives", lblVision: "Future Vision",  
                 needsHeader: "Functional Requirements",  
                 thZone: "Zone", thRoom: "Room/Function", thArea: "Area(m²)", thReq: "Req.", btnAddRoom: "+ Add Row", lblTotalReqArea: "Total Est. Area:",  
-                layoutHeader: "Site Layout Sketch", lblAddShape: "Add:",  
+                layoutHeader: "Site Layout Sketch (A3 Scale)", lblAddShape: "Add:",  
                 btnRect: "Rect", btnL: "L-Shape", btnU: "U-Shape", btnCircle: "Circle", btnGarden: "Garden", btnParking: "Parking", btnFence: "Fence", btnDel: "Delete", btnUp: "Front", btnDown: "Back",  
                 lblStatArea: "Total Bldg Area", lblStatFence: "Total Fence Length",  
                 schedHeader: "Roadmap to Basic Design", scT1: "Phase 1: Concept", scD1: "Survey & layout sketch", scT2: "Phase 2: Public", scD2: "Public comments & finalize", scT3: "Phase 3: Design", scD3: "Architectural basic design",  
@@ -293,13 +287,13 @@
             },  
             zh: {  
                 appTitle: "公共设施构想规划", langLabel: "语言:",  
-                navOverview: "1. 基本方针", navNeeds: "2. 需求", navLayout: "3. 布局", navSchedule: "4. 日程", navExport: "5. 导出",  
+                navOverview: "1. 基本方针", navNeeds: "2. 需求", navLayout: "3. 布局 (A3)", navSchedule: "4. 日程", navExport: "5. 导出",  
                 ovHeader: "基本方针与背景", lblProjectName: "项目名称", lblFacilityType: "设施类别",  
                 optCivic: "市民中心", optLibrary: "图书馆", optWelfare: "福利中心", optSports: "体育设施", optAdmin: "行政中心",  
                 lblBackground: "背景与目的", lblVision: "愿景",  
                 needsHeader: "功能需求探讨",  
                 thZone: "区域", thRoom: "房间/功能", thArea: "面积(㎡)", thReq: "要求", btnAddRoom: "+ 添加行", lblTotalReqArea: "总预估面积:",  
-                layoutHeader: "平面与室外布局草图", lblAddShape: "添加:",  
+                layoutHeader: "平面与室外布局草图 (A3大版)", lblAddShape: "添加:",  
                 btnRect: "长方形", btnL: "L字", btnU: "U字", btnCircle: "圆形", btnGarden: "庭园", btnParking: "停车场", btnFence: "围栏", btnDel: "删除", btnUp: "置前", btnDown: "置后",  
                 lblStatArea: "建筑总面积", lblStatFence: "围栏总长度",  
                 schedHeader: "路线图", scT1: "阶段1: 构想", scD1: "需求调查与草图", scT2: "阶段2: 公众咨询", scD2: "意见征集", scT3: "阶段3: 设计", scD3: "建筑基本设计",  
@@ -307,13 +301,13 @@
             },  
             ko: {  
                 appTitle: "공공시설 기본구상 플래너", langLabel: "언어:",  
-                navOverview: "1. 방침", navNeeds: "2. 요구사항", navLayout: "3. 레이아웃", navSchedule: "4. 일정", navExport: "5. 내보내기",  
+                navOverview: "1. 방침", navNeeds: "2. 요구사항", navLayout: "3. 레이아웃 (A3)", navSchedule: "4. 일정", navExport: "5. 내보내기",  
                 ovHeader: "기본 방침 및 배경", lblProjectName: "프로젝트명", lblFacilityType: "시설 종류",  
                 optCivic: "시민센터", optLibrary: "도서관", optWelfare: "복지센터", optSports: "스포츠시설", optAdmin: "행정청사",  
                 lblBackground: "배경 및 목적", lblVision: "비전",  
                 needsHeader: "기능 요구사항",  
                 thZone: "존", thRoom: "실/기능", thArea: "면적(㎡)", thReq: "요건", btnAddRoom: "+ 행 추가", lblTotalReqArea: "총 예상 면적:",  
-                layoutHeader: "배치도 및 스케치", lblAddShape: "추가:",  
+                layoutHeader: "배치도 및 스케치 (A3 대판)", lblAddShape: "추가:",  
                 btnRect: "직사각형", btnL: "L자", btnU: "U자", btnCircle: "원형", btnGarden: "정원", btnParking: "주차장", btnFence: "펜스", btnDel: "삭제", btnUp: "앞으로", btnDown: "뒤로",  
                 lblStatArea: "건물 총 면적", lblStatFence: "펜스 총 길이",  
                 schedHeader: "로드맵", scT1: "1단계: 구상", scD1: "조사 및 스케치", scT2: "2단계: 의견 수렴", scD2: "공청회 및 확정", scT3: "3단계: 설계", scD3: "건축 기본 설계",  
@@ -321,13 +315,13 @@
             },  
             fr: {  
                 appTitle: "Planificateur d'installation", langLabel: "Lang:",  
-                navOverview: "1. Politique", navNeeds: "2. Besoins", navLayout: "3. Plan", navSchedule: "4. Calendrier", navExport: "5. Export",  
+                navOverview: "1. Politique", navNeeds: "2. Besoins", navLayout: "3. Plan (A3)", navSchedule: "4. Calendrier", navExport: "5. Export",  
                 ovHeader: "Politique et Contexte", lblProjectName: "Nom du projet", lblFacilityType: "Type",  
                 optCivic: "Centre Civique", optLibrary: "Bibliothèque", optWelfare: "Bien-être", optSports: "Sports", optAdmin: "Administration",  
                 lblBackground: "Contexte", lblVision: "Vision",  
                 needsHeader: "Besoins Fonctionnels",  
                 thZone: "Zone", thRoom: "Pièce", thArea: "Surface(m²)", thReq: "Req.", btnAddRoom: "+ Ajouter", lblTotalReqArea: "Surface Totale:",  
-                layoutHeader: "Croquis d'aménagement", lblAddShape: "Ajouter:",  
+                layoutHeader: "Croquis d'aménagement (Format A3)", lblAddShape: "Ajouter:",  
                 btnRect: "Rect", btnL: "Forme L", btnU: "Forme U", btnCircle: "Cercle", btnGarden: "Jardin", btnParking: "Parking", btnFence: "Clôture", btnDel: "Supprimer", btnUp: "Avancer", btnDown: "Reculer",  
                 lblStatArea: "Surface Bâtiment", lblStatFence: "Longueur Clôture",  
                 schedHeader: "Feuille de route", scT1: "Phase 1: Concept", scD1: "Enquêtes", scT2: "Phase 2: Public", scD2: "Consultation", scT3: "Phase 3: Design", scD3: "Conception de base",  
@@ -335,13 +329,13 @@
             },  
             es: {  
                 appTitle: "Planificador de Instalaciones", langLabel: "Idioma:",  
-                navOverview: "1. Política", navNeeds: "2. Necesidades", navLayout: "3. Diseño", navSchedule: "4. Calendario", navExport: "5. Exportar",  
+                navOverview: "1. Política", navNeeds: "2. Necesidades", navLayout: "3. Diseño (A3)", navSchedule: "4. Calendario", navExport: "5. Exportar",  
                 ovHeader: "Política y Antecedentes", lblProjectName: "Nombre del Proyecto", lblFacilityType: "Tipo",  
                 optCivic: "Centro Cívico", optLibrary: "Biblioteca", optWelfare: "Bienestar", optSports: "Deportes", optAdmin: "Administración",  
                 lblBackground: "Antecedentes", lblVision: "Visión",  
                 needsHeader: "Requisitos Funcionales",  
                 thZone: "Zona", thRoom: "Sala", thArea: "Área(m²)", thReq: "Req.", btnAddRoom: "+ Añadir", lblTotalReqArea: "Área Total:",  
-                layoutHeader: "Boceto de Diseño", lblAddShape: "Añadir:",  
+                layoutHeader: "Boceto de Diseño (Formato A3)", lblAddShape: "Añadir:",  
                 btnRect: "Rect", btnL: "Forma L", btnU: "Forma U", btnCircle: "Círculo", btnGarden: "Jardín", btnParking: "Parking", btnFence: "Valla", btnDel: "Borrar", btnUp: "Subir", btnDown: "Bajar",  
                 lblStatArea: "Área de Edificio", lblStatFence: "Longitud de Valla",  
                 schedHeader: "Hoja de Ruta", scT1: "Fase 1: Concepto", scD1: "Encuestas", scT2: "Fase 2: Público", scD2: "Consulta", scT3: "Fase 3: Diseño", scD3: "Diseño básico",  
@@ -403,7 +397,6 @@
             } catch (e) { console.error("Language switch error:", e); }  
         }  
   
-        // --- 2. Tab & Responsive Logic ---  
         function switchTab(tabId) {  
             try {  
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));  
@@ -419,16 +412,15 @@
                     activeBtn.classList.add('border-blue-400', 'text-blue-400');  
                 }  
   
-                // 【最重要】非表示から表示された際にキャンバスのサイズと座標を再計算してタッチバグを防ぐ  
                 if (tabId === 'layout' && window.fabricCanvas) {  
                     setTimeout(() => {  
-                        resizeCanvas();  
-                    }, 50); // DOMレンダリング待ち  
+                        window.fabricCanvas.calcOffset();  
+                        window.fabricCanvas.renderAll();  
+                    }, 50);  
                 }  
             } catch (err) { console.error("Tab Error:", err); }  
         }  
   
-        // --- 3. Rooms Data Management ---  
         let roomsData = [  
             { zone: "集会・交流", name: "多目的ホール・ロビー", area: 850, req: "必須" },  
             { zone: "学習・図書", name: "開架スペース・学習室", area: 500, req: "必須" },  
@@ -467,94 +459,75 @@
             renderRooms();  
         }  
   
-        // --- 4. Robust Fabric.js Canvas for Mobile & Desktop ---  
         let fCanvas;  
   
         function initCanvas() {  
             try {  
-                // キャンバス要素の初期化 (タッチスクロール無効化)  
+                // A3相当の広大な論理サイズ（1400x900px）でキャンバスを初期化  
                 fCanvas = new fabric.Canvas('layout-canvas', {  
+                    width: 1400,  
+                    height: 900,  
                     selection: true,  
-                    preserveObjectStacking: true, // 前面・背面の維持  
-                    allowTouchScrolling: false // 【重要】オブジェクトドラッグ中の画面スクロールを禁止  
+                    preserveObjectStacking: true,  
+                    allowTouchScrolling: true  
                 });  
                 window.fabricCanvas = fCanvas;  
   
-                // イベントバインディング  
                 fCanvas.on('object:modified', updateStats);  
                 fCanvas.on('object:added', updateStats);  
                 fCanvas.on('object:removed', updateStats);  
   
-                // 初期リサイズと描画  
-                resizeCanvas();  
-                window.addEventListener('resize', resizeCanvas);  
-  
-                // 初期オブジェクト配置  
-                addShape('rect', 150, 100);  
-                addShape('parking', 150, 250);  
-                addShape('fence', 50, 50);  
+                // 初期オブジェクト配置（広い空間に合わせて配置）  
+                addShape('rect', 250, 200);  
+                addShape('parking', 250, 420);  
+                addShape('fence', 120, 100);  
   
             } catch (e) {  
                 console.error("Canvas init failed:", e);  
             }  
         }  
   
-        function resizeCanvas() {  
-            if (!fCanvas) return;  
-            const wrapper = document.getElementById('canvas-wrapper');  
-            if (wrapper.clientWidth > 0) {  
-                fCanvas.setWidth(wrapper.clientWidth);  
-                fCanvas.setHeight(wrapper.clientHeight);  
-                fCanvas.calcOffset(); // 【必須】タッチ座標の再計算  
-                fCanvas.renderAll();  
-            }  
-        }  
-  
-        // 図形追加ロジック (スマホ画面に収まるよう初期サイズを調整)  
         function addShape(type, initLeft = null, initTop = null) {  
             if(!fCanvas) return;  
             fCanvas.discardActiveObject();  
               
-            // 画面中央付近を計算  
-            const left = initLeft !== null ? initLeft : (fCanvas.width / 2) - 50;  
-            const top = initTop !== null ? initTop : (fCanvas.height / 2) - 50;  
+            const left = initLeft !== null ? initLeft : 400;  
+            const top = initTop !== null ? initTop : 300;  
               
             let obj;  
             const commonOpt = { left, top, opacity: 0.85, strokeWidth: 2, cornerSize: 12, transparentCorners: false };  
   
             switch(type) {  
                 case 'rect':  
-                    obj = new fabric.Rect({ ...commonOpt, width: 100, height: 80, fill: '#3b82f6', stroke: '#1d4ed8' });  
+                    obj = new fabric.Rect({ ...commonOpt, width: 140, height: 100, fill: '#3b82f6', stroke: '#1d4ed8' });  
                     obj.customType = 'building';  
                     break;  
                 case 'lshape':  
-                    // ポリゴンでL字を描画  
                     obj = new fabric.Polygon([  
-                        {x:0,y:0}, {x:50,y:0}, {x:50,y:60}, {x:100,y:60}, {x:100,y:100}, {x:0,y:100}  
+                        {x:0,y:0}, {x:70,y:0}, {x:70,y:80}, {x:140,y:80}, {x:140,y:140}, {x:0,y:140}  
                     ], { ...commonOpt, fill: '#2563eb', stroke: '#1e40af' });  
                     obj.customType = 'building';  
                     break;  
                 case 'ushape':  
                     obj = new fabric.Polygon([  
-                        {x:0,y:0}, {x:30,y:0}, {x:30,y:70}, {x:70,y:70}, {x:70,y:0}, {x:100,y:0}, {x:100,y:100}, {x:0,y:100}  
+                        {x:0,y:0}, {x:40,y:0}, {x:40,y:90}, {x:100,y:90}, {x:100,y:0}, {x:140,y:0}, {x:140,y:140}, {x:0,y:140}  
                     ], { ...commonOpt, fill: '#1d4ed8', stroke: '#1e3a8a' });  
                     obj.customType = 'building';  
                     break;  
                 case 'circle':  
-                    obj = new fabric.Circle({ ...commonOpt, radius: 40, fill: '#06b6d4', stroke: '#0891b2' });  
+                    obj = new fabric.Circle({ ...commonOpt, radius: 55, fill: '#06b6d4', stroke: '#0891b2' });  
                     obj.customType = 'building';  
                     break;  
                 case 'garden':  
-                    obj = new fabric.Rect({ ...commonOpt, width: 120, height: 80, fill: '#10b981', stroke: '#059669', opacity: 0.7 });  
+                    obj = new fabric.Rect({ ...commonOpt, width: 180, height: 120, fill: '#10b981', stroke: '#059669', opacity: 0.7 });  
                     obj.customType = 'outdoor';  
                     break;  
                 case 'parking':  
-                    obj = new fabric.Rect({ ...commonOpt, width: 140, height: 70, fill: '#64748b', stroke: '#334155', opacity: 0.7 });  
+                    obj = new fabric.Rect({ ...commonOpt, width: 200, height: 100, fill: '#64748b', stroke: '#334155', opacity: 0.7 });  
                     obj.customType = 'outdoor';  
                     break;  
                 case 'fence':  
-                    // 外周フェンス（中空・破線）  
-                    obj = new fabric.Rect({ ...commonOpt, width: 200, height: 150, fill: 'transparent', stroke: '#d97706', strokeWidth: 3, strokeDashArray: [6, 6] });  
+                    obj = new fabric.Rect({ ...commonOpt, width: 400, height: 300, fill: 'transparent', stroke: '#d97706', strokeWidth: 3, strokeDashArray: [6, 6] });  
                     obj.customType = 'fence';  
                     break;  
             }  
@@ -566,7 +539,6 @@
             }  
         }  
   
-        // レイヤー・削除操作  
         function deleteSelected() {  
             const active = fCanvas.getActiveObjects();  
             if(active.length) {  
@@ -584,12 +556,11 @@
             if(obj) { obj.sendToBack(); fCanvas.requestRenderAll(); }  
         }  
   
-        // 面積・延長集計  
         function updateStats() {  
             if(!fCanvas) return;  
             let area = 0;  
             let fence = 0;  
-            const scaleFactor = 2; // 仮の縮尺変換用  
+            const scaleFactor = 3; // 大判スケール換算  
   
             fCanvas.getObjects().forEach(obj => {  
                 const w = (obj.width || 0) * (obj.scaleX || 1);  
@@ -600,13 +571,12 @@
                         const r = (obj.radius || 0) * (obj.scaleX || 1);  
                         area += (Math.PI * r * r) * scaleFactor;  
                     } else if (obj.type === 'polygon') {  
-                        // 簡易的にBoundingBox面積で計算  
-                        area += (w * h) * scaleFactor * 0.7; // 欠け分を補正  
+                        area += (w * h) * scaleFactor * 0.7;  
                     } else {  
                         area += (w * h) * scaleFactor;  
                     }  
                 } else if (obj.customType === 'fence') {  
-                    fence += (2 * (w + h)) * scaleFactor / 10; // 長さに変換  
+                    fence += (2 * (w + h)) * scaleFactor / 10;  
                 }  
             });  
   
@@ -614,25 +584,43 @@
             document.getElementById('canvas-fence').innerText = Math.round(fence);  
         }  
   
-        // --- 5. Export Logic ---  
+        // A3サイズでのベクトルPDF出力（下部が切れないようにアスペクト比を自動調整）  
         function exportPDF() {  
             try {  
                 const { jsPDF } = window.jspdf;  
-                const doc = new jsPDF('l', 'mm', 'a4');  
-                const title = document.getElementById('inp-project-name').value || "Basic Concept";  
+                // A3横サイズ指定 ('l', 'mm', 'a3') -> 幅 420mm, 高さ 297mm  
+                const doc = new jsPDF('l', 'mm', 'a3');  
+                const title = document.getElementById('inp-project-name').value || "公共施設基本構想レイアウト図";  
                   
                 doc.setFont("helvetica", "bold");  
-                doc.text(title, 14, 20);  
+                doc.setFontSize(18);  
+                doc.text(title, 20, 20);  
                   
-                // Canvas Image  
                 if (fCanvas) {  
                     fCanvas.discardActiveObject();  
                     fCanvas.renderAll();  
                     const imgData = document.getElementById('layout-canvas').toDataURL("image/png", 1.0);  
-                    doc.addImage(imgData, 'PNG', 14, 30, 200, 0); // アスペクト比維持  
+                      
+                    // A3の印刷可能範囲（幅 380mm, 高さ 230mm）に全体が綺麗に収まるよう計算  
+                    const pdfMaxWidth = 380;  
+                    const pdfMaxHeight = 230;  
+                    const canvasEl = document.getElementById('layout-canvas');  
+                    const imgWidth = canvasEl.width;  
+                    const imgHeight = canvasEl.height;  
+                    const ratio = imgHeight / imgWidth;  
+                      
+                    let pdfWidth = pdfMaxWidth;  
+                    let pdfHeight = pdfWidth * ratio;  
+                      
+                    if (pdfHeight > pdfMaxHeight) {  
+                        pdfHeight = pdfMaxHeight;  
+                        pdfWidth = pdfMaxHeight / ratio;  
+                    }  
+                      
+                    doc.addImage(imgData, 'PNG', 20, 30, pdfWidth, pdfHeight);  
                 }  
   
-                doc.save("Concept_Layout.pdf");  
+                doc.save("Concept_Layout_A3.pdf");  
             } catch(e) { alert("PDF Error: " + e.message); }  
         }  
   
@@ -672,11 +660,10 @@
             link.remove();  
         }  
   
-        // --- Init Boot ---  
         window.addEventListener('DOMContentLoaded', () => {  
             renderRooms();  
             initCanvas();  
         });  
     </script>  
 </body>  
-</html>
+</html>  
