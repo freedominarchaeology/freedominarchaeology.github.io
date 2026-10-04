@@ -23,15 +23,34 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }  
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }  
   
-        /* A3大判キャンバス対応のスクロール可能なコンテナ */  
+        /* A3大判キャンバス対応のスクロール可能なコンテナ & スマホ用スクロールバー対策 */  
         #canvas-wrapper {  
-            touch-action: auto !important; /* スクロール許可 */  
+            touch-action: pan-x pan-y !important; /* スマホでの縦横スクロールを明示的に許可 */  
             overflow: auto;  
+            -webkit-overflow-scrolling: touch; /* iOSでの滑らかなスクロール */  
             background-image:   
                 linear-gradient(to right, #f1f5f9 1px, transparent 1px),  
                 linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);  
             background-size: 40px 40px;  
         }  
+        
+        /* スクロールバーを常に分かりやすく表示（スマホ・PC共通） */  
+        #canvas-wrapper::-webkit-scrollbar {  
+            width: 10px;  
+            height: 10px;  
+        }  
+        #canvas-wrapper::-webkit-scrollbar-track {  
+            background: #e2e8f0;  
+            border-radius: 4px;  
+        }  
+        #canvas-wrapper::-webkit-scrollbar-thumb {  
+            background: #94a3b8;  
+            border-radius: 4px;  
+        }  
+        #canvas-wrapper::-webkit-scrollbar-thumb:hover {  
+            background: #64748b;  
+        }  
+
         .canvas-container {  
             margin: 0;  
         }  
@@ -150,7 +169,7 @@
                         <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 shrink-0">3</span>  
                         <span id="t-layout-header">平面配置図・外構レイアウト（A3大判対応）</span>  
                     </div>  
-                    <span class="text-xs text-slate-500 font-normal">※スクロールして広範囲を編集可能</span>  
+                    <span class="text-xs text-slate-500 font-normal">※スクロールバーで広範囲を移動可能</span>  
                 </h2>  
                   
                 <!-- ツールバー -->  
@@ -176,7 +195,7 @@
                     </div>  
                 </div>  
   
-                <!-- A3大判サイズ（1400x900px）のスクロール可能なキャンバスコンテナ -->  
+                <!-- A3大判サイズ（1400x900px）のスクロール可能なキャンバスコンテナ（スクロールバー常時表示・タッチ操作対応） -->  
                 <div id="canvas-wrapper" class="w-full border-2 border-slate-300 rounded-lg relative bg-white shadow-inner" style="height: 550px;">  
                     <canvas id="layout-canvas"></canvas>  
                 </div>  
@@ -477,7 +496,7 @@
                 fCanvas.on('object:added', updateStats);  
                 fCanvas.on('object:removed', updateStats);  
   
-                // 初期オブジェクト配置（広い空間に合わせて配置）  
+                // 初期オブジェクト配置  
                 addShape('rect', 250, 200);  
                 addShape('parking', 250, 420);  
                 addShape('fence', 120, 100);  
@@ -560,7 +579,7 @@
             if(!fCanvas) return;  
             let area = 0;  
             let fence = 0;  
-            const scaleFactor = 3; // 大判スケール換算  
+            const scaleFactor = 3;  
   
             fCanvas.getObjects().forEach(obj => {  
                 const w = (obj.width || 0) * (obj.scaleX || 1);  
@@ -584,11 +603,10 @@
             document.getElementById('canvas-fence').innerText = Math.round(fence);  
         }  
   
-        // A3サイズでのベクトルPDF出力（下部が切れないようにアスペクト比を自動調整）  
+        // A3サイズでのベクトルPDF出力  
         function exportPDF() {  
             try {  
                 const { jsPDF } = window.jspdf;  
-                // A3横サイズ指定 ('l', 'mm', 'a3') -> 幅 420mm, 高さ 297mm  
                 const doc = new jsPDF('l', 'mm', 'a3');  
                 const title = document.getElementById('inp-project-name').value || "公共施設基本構想レイアウト図";  
                   
@@ -601,7 +619,6 @@
                     fCanvas.renderAll();  
                     const imgData = document.getElementById('layout-canvas').toDataURL("image/png", 1.0);  
                       
-                    // A3の印刷可能範囲（幅 380mm, 高さ 230mm）に全体が綺麗に収まるよう計算  
                     const pdfMaxWidth = 380;  
                     const pdfMaxHeight = 230;  
                     const canvasEl = document.getElementById('layout-canvas');  
