@@ -23,18 +23,17 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }  
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }  
   
-        /* A3大判キャンバス対応のスクロール可能なコンテナ & スマホ用スクロールバー対策 */  
+        /* A3大判キャンバス対応のスクロール可能なコンテナ */  
         #canvas-wrapper {  
-            touch-action: pan-x pan-y !important; /* スマホでの縦横スクロールを明示的に許可 */  
+            touch-action: pan-x pan-y !important;  
             overflow: auto;  
-            -webkit-overflow-scrolling: touch; /* iOSでの滑らかなスクロール */  
+            -webkit-overflow-scrolling: touch;  
             background-image:   
                 linear-gradient(to right, #f1f5f9 1px, transparent 1px),  
                 linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);  
             background-size: 40px 40px;  
         }  
         
-        /* スクロールバーを分かりやすく表示（PCおよび一部対応ブラウザ） */  
         #canvas-wrapper::-webkit-scrollbar {  
             width: 12px;  
             height: 12px;  
@@ -170,12 +169,17 @@
                         <span class="bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2 shrink-0">3</span>  
                         <span id="t-layout-header">平面配置図・外構レイアウト（A3大判対応）</span>  
                     </div>  
-                    <span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded border border-blue-200">指でスクロール可能</span>  
+                    <span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded border border-blue-200">モード切替でスクロール快適</span>  
                 </h2>  
                   
-                <!-- ツールバー -->  
+                <!-- ツールバー（モード切替ボタン追加） -->  
                 <div class="overflow-x-auto pb-2 mb-3">  
                     <div class="flex items-center gap-2 min-w-max">  
+                        <!-- モード切替ボタン -->  
+                        <button type="button" onclick="togglePanMode()" id="btn-mode" class="bg-slate-700 text-white px-3 py-2 rounded text-xs font-semibold shadow hover:bg-slate-800 active:scale-95 transition">モード: 選択・編集</button>  
+                          
+                        <div class="h-6 w-px bg-slate-300 mx-1"></div>  
+
                         <span class="text-xs font-bold text-slate-600 bg-slate-100 py-1.5 px-2 rounded" id="lbl-add-shape">図形追加:</span>  
                         <button type="button" onclick="addShape('rect')" class="bg-blue-600 text-white px-3 py-2 rounded text-xs font-semibold shadow hover:bg-blue-700 active:scale-95" id="btn-s-rect">長方形</button>  
                         <button type="button" onclick="addShape('lshape')" class="bg-blue-600 text-white px-3 py-2 rounded text-xs font-semibold shadow hover:bg-blue-700 active:scale-95" id="btn-s-l">L字</button>  
@@ -200,7 +204,7 @@
                 <div id="canvas-wrapper" class="w-full border-4 border-slate-400 rounded-lg relative bg-white shadow-md" style="height: 550px;">  
                     <canvas id="layout-canvas"></canvas>  
                 </div>  
-                <p class="text-[11px] text-slate-500 mt-1 text-right">※キャンバスの余白部分をドラッグすると、スマホでもスムーズにスクロールできます。</p>  
+                <p class="text-[11px] text-slate-500 mt-1 text-right">※「モード: スクロール中」に切り替えると、キャンバス内を自由にドラッグしてスクロールできます。</p>  
   
                 <!-- 集計エリア -->  
                 <div class="mt-4 grid grid-cols-2 gap-3 sm:gap-4">  
@@ -481,10 +485,33 @@
         }  
   
         let fCanvas;  
+        let isPanMode = false;  
+        let isDragging = false;  
+        let lastPosX = 0;  
+        let lastPosY = 0;  
+  
+        function togglePanMode() {  
+            isPanMode = !isPanMode;  
+            const btn = document.getElementById('btn-mode');  
+            const wrapper = document.getElementById('canvas-wrapper');  
+            if (isPanMode) {  
+                btn.className = "bg-amber-600 text-white px-3 py-2 rounded text-xs font-semibold shadow hover:bg-amber-700 active:scale-95 transition";  
+                btn.innerText = "モード: スクロール中";  
+                wrapper.style.cursor = "grab";  
+                fCanvas.selection = false;  
+                fCanvas.forEachObject(obj => { obj.selectable = false; });  
+            } else {  
+                btn.className = "bg-slate-700 text-white px-3 py-2 rounded text-xs font-semibold shadow hover:bg-slate-800 active:scale-95 transition";  
+                btn.innerText = "モード: 選択・編集";  
+                wrapper.style.cursor = "default";  
+                fCanvas.selection = true;  
+                fCanvas.forEachObject(obj => { obj.selectable = true; });  
+            }  
+            fCanvas.requestRenderAll();  
+        }  
   
         function initCanvas() {  
             try {  
-                // A3相当の広大な論理サイズ（1400x900px）でキャンバスを初期化  
                 fCanvas = new fabric.Canvas('layout-canvas', {  
                     width: 1400,  
                     height: 900,  
@@ -497,6 +524,33 @@
                 fCanvas.on('object:modified', updateStats);  
                 fCanvas.on('object:added', updateStats);  
                 fCanvas.on('object:removed', updateStats);  
+  
+                // スクロールモード時のドラッグ操作ハンドリング  
+                fCanvas.on('mouse:down', function(opt) {  
+                    if (!isPanMode) return;  
+                    isDragging = true;  
+                    const e = opt.e;  
+                    lastPosX = e.clientX || (e.touches && e.touches[0].clientX);  
+                    lastPosY = e.clientY || (e.touches && e.touches[0].clientY);  
+                });  
+  
+                fCanvas.on('mouse:move', function(opt) {  
+                    if (!isPanMode || !isDragging) return;  
+                    const e = opt.e;  
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);  
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);  
+                    if (!clientX || !clientY) return;  
+  
+                    const wrapper = document.getElementById('canvas-wrapper');  
+                    wrapper.scrollLeft += (lastPosX - clientX);  
+                    wrapper.scrollTop += (lastPosY - clientY);  
+                    lastPosX = clientX;  
+                    lastPosY = clientY;  
+                });  
+  
+                fCanvas.on('mouse:up', function() {  
+                    isDragging = false;  
+                });  
   
                 // 初期オブジェクト配置  
                 addShape('rect', 250, 200);  
@@ -554,6 +608,7 @@
             }  
   
             if(obj) {  
+                obj.selectable = !isPanMode;  
                 fCanvas.add(obj);  
                 fCanvas.setActiveObject(obj);  
                 fCanvas.renderAll();  
@@ -605,7 +660,6 @@
             document.getElementById('canvas-fence').innerText = Math.round(fence);  
         }  
   
-        // A3サイズでのベクトルPDF出力  
         function exportPDF() {  
             try {  
                 const { jsPDF } = window.jspdf;  
@@ -666,7 +720,7 @@
                 link.remove();  
             } catch(e) { alert("CSV Error"); }  
         }  
-  
+        
         function exportText() {  
             let txt = `【プロジェクト】${document.getElementById('inp-project-name').value}\n\n`;  
             roomsData.forEach(r => txt += `[${r.zone}] ${r.name}: ${r.area}㎡ (${r.req})\n`);  
