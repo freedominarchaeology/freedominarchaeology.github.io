@@ -1,306 +1,373 @@
 <!DOCTYPE html>
-<html lang="ja" class="h-full">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>公共施設基本構想・配置計画プランナー</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公共施設基本構想プラットフォーム</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Icons -->
+    <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Fabric.js for Touch-Optimized Canvas Layout Editor -->
+    <!-- Fabric.js for Interactive Canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/531/fabric.min.js"></script>
-    <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Google Fonts Inter & Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Noto Sans JP', 'Inter', sans-serif;
-            touch-action: manipulation;
-        }
-        /* Custom scrollbar for mobile drawers & tabs */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        /* Canvas container sizing */
-        .canvas-container {
-            margin: 0 auto;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.75rem;
-            overflow: hidden;
-        }
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+        .canvas-container { margin: 0 auto; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-full flex flex-col overflow-hidden">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col transition-colors duration-200">
 
     <!-- Header -->
-    <header class="bg-indigo-700 text-white shadow-md z-20 flex-shrink-0">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-inner">
+                <div class="bg-blue-600 text-white p-2 rounded-xl shadow-md flex items-center justify-center">
                     <i class="fa-solid fa-city text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight">公共施設基本構想プランナー</h1>
-                    <p class="text-xs text-indigo-200">スマホ・タブレット完全対応版</p>
+                    <h1 class="font-bold text-lg text-slate-900 tracking-tight" data-i18n="app_title">公共施設基本構想プラットフォーム</h1>
+                    <p class="text-xs text-slate-500" data-i18n="app_subtitle">Public Facility Basic Concept & Layout Planner</p>
                 </div>
             </div>
-            <!-- Quick Action / Status -->
-            <div class="flex items-center space-x-2">
-                <button onclick="app.exportProject()" class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-800 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center space-x-1 shadow transition touch-manipulation">
-                    <i class="fa-solid fa-download"></i>
-                    <span class="hidden sm:inline">エクスポート</span>
-                </button>
-                <button onclick="app.resetAll()" class="bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center space-x-1 shadow transition touch-manipulation">
-                    <i class="fa-solid fa-trash-can"></i>
-                    <span class="hidden sm:inline">リセット</span>
+            <div class="flex items-center space-x-3">
+                <!-- Language Selector -->
+                <div class="relative">
+                    <select id="langSelect" class="bg-slate-100 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none cursor-pointer">
+                        <option value="ja">日本語</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
+                        <option value="ko">한국어</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+                <!-- Dark Mode Toggle -->
+                <button id="themeToggle" class="p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition" title="ダークモード切替">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
                 </button>
             </div>
-        </div>
-        <!-- Navigation Tabs -->
-        <div class="bg-indigo-800 px-4 flex space-x-1 border-t border-indigo-600 overflow-x-auto">
-            <button onclick="app.switchTab('requirements')" id="tab-btn-requirements" class="py-3 px-4 text-sm font-semibold border-b-2 border-white text-white flex items-center space-x-2 whitespace-nowrap transition">
-                <i class="fa-solid fa-list-check"></i>
-                <span>1. 必要諸室・機能要件</span>
-            </button>
-            <button onclick="app.switchTab('layout')" id="tab-btn-layout" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-indigo-200 hover:text-white flex items-center space-x-2 whitespace-nowrap transition">
-                <i class="fa-solid fa-map"></i>
-                <span>2. 平面配置・外構エディタ</span>
-            </button>
-            <button onclick="app.switchTab('summary')" id="tab-btn-summary" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-indigo-200 hover:text-white flex items-center space-x-2 whitespace-nowrap transition">
-                <i class="fa-solid fa-file-lines"></i>
-                <span>3. 総合サマリー</span>
-            </button>
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-hidden relative flex flex-col">
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col space-y-6">
 
-        <!-- TAB 1: Functional Requirements & Rooms (Optimized for Mobile Cards & Tables) -->
-        <section id="tab-requirements" class="flex-1 overflow-y-auto p-4 md:p-6 max-w-7xl mx-auto w-full">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-900">必要諸室・機能要件検討</h2>
-                    <p class="text-sm text-slate-500">スマホ・PCどちらでも快適に入力できるカード型／テーブル切替対応フォームです。</p>
-                </div>
-                <div class="flex items-center space-x-2 self-start sm:self-auto">
-                    <!-- View Toggle -->
-                    <div class="bg-slate-200 p-1 rounded-lg flex text-xs font-medium">
-                        <button onclick="app.setReqView('card')" id="view-card-btn" class="px-3 py-1.5 rounded-md bg-white text-indigo-700 shadow-sm transition">
-                            <i class="fa-solid fa-address-card mr-1"></i>カード表示
-                        </button>
-                        <button onclick="app.setReqView('table')" id="view-table-btn" class="px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition">
-                            <i class="fa-solid fa-table mr-1"></i>テーブル表示
-                        </button>
-                    </div>
-                    <button onclick="app.addRoomModalOpen()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 shadow transition touch-manipulation">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>諸室追加</span>
-                    </button>
-                </div>
-            </div>
+        <!-- Navigation Tabs -->
+        <div class="flex overflow-x-auto space-x-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm scrollbar-none">
+            <button data-tab="overview" class="tab-btn flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-medium text-sm transition flex items-center justify-center space-x-2 bg-blue-600 text-white shadow-sm">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span data-i18n="tab_overview">概要・方針</span>
+            </button>
+            <button data-tab="layout" class="tab-btn flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-medium text-sm transition flex items-center justify-center space-x-2 text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-map"></i>
+                <span data-i18n="tab_layout">配置図・レイアウト</span>
+            </button>
+            <button data-tab="rooms" class="tab-btn flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-medium text-sm transition flex items-center justify-center space-x-2 text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-table-cells"></i>
+                <span data-i18n="tab_rooms">必要諸室計画</span>
+            </button>
+            <button data-tab="export" class="tab-btn flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-medium text-sm transition flex items-center justify-center space-x-2 text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-download"></i>
+                <span data-i18n="tab_export">データ出力・共有</span>
+            </button>
+        </div>
 
-            <!-- Stats Overview Bar -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <span class="text-xs text-slate-500 font-medium">登録諸室数</span>
-                    <div id="stat-total-rooms" class="text-2xl font-bold text-slate-900 mt-1">0 室</div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <span class="text-xs text-slate-500 font-medium">合計想定面積</span>
-                    <div id="stat-total-area" class="text-2xl font-bold text-indigo-600 mt-1">0.0 m²</div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <span class="text-xs text-slate-500 font-medium">必須機能要件クリア率</span>
-                    <div id="stat-req-rate" class="text-2xl font-bold text-emerald-600 mt-1">0%</div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <span class="text-xs text-slate-500 font-medium">予算目安(推定)</span>
-                    <div id="stat-est-budget" class="text-2xl font-bold text-amber-600 mt-1">0 万円</div>
-                </div>
-            </div>
-
-            <!-- Filter / Search Bar -->
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 mb-4 flex flex-col sm:flex-row gap-3">
-                <div class="flex-1 relative">
-                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
-                    <input type="text" id="room-search-input" oninput="app.filterRooms()" placeholder="諸室名やキーワードで検索..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div class="flex space-x-2">
-                    <select id="room-category-filter" onchange="app.filterRooms()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">すべてのカテゴリ</option>
-                        <option value="事務・管理">事務・管理</option>
-                        <option value="集会・交流">集会・交流</option>
-                        <option value="福祉・健康">福祉・健康</option>
-                        <option value="バックヤード・共用">バックヤード・共用</option>
-                        <option value="外構・駐車場">外構・駐車場</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Container for Cards / Table -->
-            <div id="requirements-content-container" class="pb-24">
-                <!-- Dynamically rendered via JS -->
-            </div>
-        </section>
-
-        <!-- TAB 2: Fabric.js Layout & Exterior Editor (Touch Optimized) -->
-        <section id="tab-layout" class="flex-1 hidden flex-col md:flex-row overflow-hidden bg-slate-100">
-            <!-- Sidebar Controls (Collapsible on mobile) -->
-            <div class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 shadow-lg z-10 overflow-y-auto max-h-[45vh] md:max-h-none">
-                <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <!-- Tab 1: Overview -->
+        <section id="content-overview" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
-                        <h3 class="font-bold text-slate-800 text-base">レイアウト・外構ツール</h3>
-                        <p class="text-xs text-slate-500">スタンプをタッチして配置します</p>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl mb-4 font-bold">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-900 mb-2" data-i18n="ov_c1_title">基本理念と目的</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed" data-i18n="ov_c1_desc">地域コミュニティの活性化、防災拠点の強化、および持続可能な行政サービスの提供を一体化させた複合公共施設の整備を目指します。</p>
                     </div>
-                    <button onclick="app.toggleSidebarMobile()" class="md:hidden text-slate-500 hover:text-slate-800 p-1">
-                        <i class="fa-solid fa-chevron-up" id="sidebar-toggle-icon"></i>
-                    </button>
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span data-i18n="ov_status_active">策定フェーズ</span>
+                        <span class="px-2.5 py-1 bg-green-50 text-green-700 font-semibold rounded-full">進行中</span>
+                    </div>
                 </div>
-
-                <div id="sidebar-body" class="p-4 space-y-4">
-                    <!-- Add Stamp Section -->
+                <!-- Card 2 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">配置オブジェクト追加</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="app.addCanvasShape('mainBuilding')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 p-2.5 rounded-lg text-xs font-medium flex flex-col items-center justify-center transition active:scale-95 touch-manipulation">
-                                <i class="fa-solid fa-building text-lg mb-1 text-indigo-600"></i>
-                                <span>本館棟</span>
-                            </button>
-                            <button onclick="app.addCanvasShape('hall')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 p-2.5 rounded-lg text-xs font-medium flex flex-col items-center justify-center transition active:scale-95 touch-manipulation">
-                                <i class="fa-solid fa-landmark text-lg mb-1 text-indigo-600"></i>
-                                <span>ホール・講堂</span>
-                            </button>
-                            <button onclick="app.addCanvasShape('parking')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 p-2.5 rounded-lg text-xs font-medium flex flex-col items-center justify-center transition active:scale-95 touch-manipulation">
-                                <i class="fa-solid fa-square-parking text-lg mb-1 text-emerald-600"></i>
-                                <span>駐車場ゾーン</span>
-                            </button>
-                            <button onclick="app.addCanvasShape('greenery')" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 p-2.5 rounded-lg text-xs font-medium flex flex-col items-center justify-center transition active:scale-95 touch-manipulation">
-                                <i class="fa-solid fa-tree text-lg mb-1 text-green-600"></i>
-                                <span>緑地・広場</span>
-                            </button>
-                            <button onclick="app.addCanvasShape('road')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 p-2.5 rounded-lg text-xs font-medium flex flex-col items-center justify-center transition active:scale-95 touch-manipulation">
-                                <i class="fa-solid fa-road text-lg mb-1 text-slate-600"></i>
-                                <span>アクセス道路</span>
-                            </button>
-                            <button onclick="app.addCanvasShape('entrance')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 p-2.5 rounded-lg text-xs font-medium flex flex-col items-center justify-center transition active:scale-95 touch-manipulation">
-                                <i class="fa-solid fa-door-open text-lg mb-1 text-amber-600"></i>
-                                <span>メイン出入口</span>
-                            </button>
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-4 font-bold">
+                            <i class="fa-solid fa-calculator"></i>
                         </div>
+                        <h3 class="font-bold text-lg text-slate-900 mb-2" data-i18n="ov_c2_title">総延床面積シミュレーション</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed" data-i18n="ov_c2_desc">必要諸室データに基づき、自動計算された総床面積と敷地適正配置の指標をリアルタイムに集計します。</p>
                     </div>
-
-                    <!-- Selected Object Properties / Actions -->
-                    <div id="selected-object-panel" class="bg-slate-50 p-3 rounded-xl border border-slate-200 hidden">
-                        <h4 class="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
-                            <span>選択中オブジェクト編集</span>
-                            <span id="selected-obj-type" class="text-indigo-600 font-bold"></span>
-                        </h4>
-                        <div class="space-y-2">
-                            <div>
-                                <label class="block text-[11px] text-slate-500 mb-1">ラベル名</label>
-                                <input type="text" id="obj-label-input" oninput="app.updateSelectedLabel(this.value)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div class="flex space-x-2 pt-1">
-                                <button onclick="app.bringForward()" class="flex-1 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 py-1.5 rounded-lg text-xs font-medium shadow-sm transition">
-                                    <i class="fa-solid fa-arrow-up"></i> 前面へ
-                                </button>
-                                <button onclick="app.deleteSelectedObject()" class="flex-1 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 py-1.5 rounded-lg text-xs font-medium shadow-sm transition">
-                                    <i class="fa-solid fa-trash"></i> 削除
-                                </button>
-                            </div>
-                        </div>
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500" data-i18n="ov_total_area">現在の総面積目安</span>
+                        <span class="text-lg font-bold text-indigo-600" id="totalAreaDisplay">4,450 m²</span>
                     </div>
-
-                    <!-- Canvas Quick Action Buttons for Touch -->
+                </div>
+                <!-- Card 3 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">キャンバス操作</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="app.clearCanvas()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 py-2 px-3 rounded-lg text-xs font-medium shadow-sm transition flex items-center justify-center space-x-1 touch-manipulation">
-                                <i class="fa-solid fa-rotate-right"></i>
-                                <span>全クリア</span>
-                            </button>
-                            <button onclick="app.downloadCanvasImage()" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg text-xs font-medium shadow-sm transition flex items-center justify-center space-x-1 touch-manipulation">
-                                <i class="fa-solid fa-camera"></i>
-                                <span>画像保存</span>
-                            </button>
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl mb-4 font-bold">
+                            <i class="fa-solid fa-shield-halved"></i>
                         </div>
+                        <h3 class="font-bold text-lg text-slate-900 mb-2" data-i18n="ov_c3_title">防災・環境配慮</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed" data-i18n="ov_c3_desc">太陽光発電・蓄電池設備の導入、ZEB化による省エネルギー性能の確保、災害時の避難所としての機能強化を徹底。</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span data-i18n="ov_target_standard">目標基準</span>
+                        <span class="px-2.5 py-1 bg-amber-50 text-amber-700 font-semibold rounded-full">ZEB Ready</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Canvas Workspace -->
-            <div class="flex-1 flex flex-col items-center justify-center p-2 md:p-6 overflow-hidden relative">
-                <!-- Canvas Container with Touch Instructions Overlay -->
-                <div class="relative bg-white shadow-xl rounded-xl border border-slate-200 overflow-hidden touch-none" id="canvas-wrapper">
-                    <canvas id="layout-canvas" width="600" height="450"></canvas>
-                    <!-- Floating touch helper banner -->
-                    <div class="absolute bottom-2 left-2 right-2 bg-slate-900/75 backdrop-blur text-white text-[11px] px-3 py-1.5 rounded-lg flex justify-between items-center pointer-events-none">
-                        <span><i class="fa-solid fa-hand-pointer mr-1 text-indigo-400"></i> タップして選択・ドラッグで移動・四隅で拡大縮小</span>
-                        <span id="canvas-scale-indicator" class="font-mono text-indigo-300">100%</span>
+            <!-- Project Details Form -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-base text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-blue-600"></i>
+                    <span data-i18n="ov_form_title">基本構想プロジェクト概要設定</span>
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="lbl_proj_name">プロジェクト名称</label>
+                        <input type="text" id="projName" value="〇〇市総合福祉・文化センター" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="lbl_location">建設予定地</label>
+                        <input type="text" id="projLocation" value="〇〇市中央町1丁目地内" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="lbl_target_year">目標開設年度</label>
+                        <input type="text" id="projYear" value="2028年度 (令和10年度)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="lbl_budget">概算事業費目安</label>
+                        <input type="text" id="projBudget" value="約 35.8 億円" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 3: Summary & Export Report -->
-        <section id="tab-summary" class="flex-1 hidden overflow-y-auto p-4 md:p-6 max-w-5xl mx-auto w-full">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-20">
-                <div class="border-b border-slate-200 pb-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <!-- Tab 2: Layout Canvas -->
+        <section id="content-layout" class="tab-content hidden space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">基本構想レポート</span>
-                        <h2 class="text-2xl font-bold text-slate-900 mt-2">公共施設整備事業 総合まとめ</h2>
-                        <p class="text-sm text-slate-500 mt-1">作成日時: <span id="report-timestamp">-</span></p>
+                        <h3 class="font-bold text-base text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-shapes text-blue-600"></i>
+                            <span data-i18n="layout_title">インタラクティブ平面配置・外構レイアウト</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5" data-i18n="layout_subtitle">図形やゾーンをキャンバスに追加して敷地計画をシミュレーションします（タッチ＆マウス対応）</p>
                     </div>
-                    <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 shadow transition touch-manipulation">
-                        <i class="fa-solid fa-print"></i>
-                        <span>印刷 / PDF出力</span>
-                    </button>
+                    <!-- Quick Actions -->
+                    <div class="flex flex-wrap gap-2">
+                        <button id="addMainBuilding" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                            <i class="fa-solid fa-building"></i>
+                            <span data-i18n="btn_add_building">本館棟追加</span>
+                        </button>
+                        <button id="addParking" class="px-3 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                            <i class="fa-solid fa-square-parking"></i>
+                            <span data-i18n="btn_add_parking">駐車場追加</span>
+                        </button>
+                        <button id="addGreenery" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                            <i class="fa-solid fa-tree"></i>
+                            <span data-i18n="btn_add_green">緑地ゾーン</span>
+                        </button>
+                        <button id="addRoad" class="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                            <i class="fa-solid fa-road"></i>
+                            <span data-i18n="btn_add_road">アクセス道路</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center">
-                            <i class="fa-solid fa-chart-pie text-indigo-600 mr-2"></i>1. 諸室・面積集計サマリー
-                        </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div>
-                                <span class="text-xs text-slate-500">総登録諸室</span>
-                                <div id="summary-total-rooms" class="text-xl font-bold text-slate-900">0 室</div>
-                            </div>
-                            <div>
-                                <span class="text-xs text-slate-500">延床面積試算</span>
-                                <div id="summary-total-area" class="text-xl font-bold text-indigo-600">0.0 m²</div>
-                            </div>
-                            <div>
-                                <span class="text-xs text-slate-500">概算事業費試算</span>
-                                <div id="summary-total-cost" class="text-xl font-bold text-amber-600">0 万円</div>
-                            </div>
-                        </div>
+                <!-- Canvas Control Toolbar -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-medium text-slate-700" data-i18n="lbl_layer_ctrl">レイヤー操作:</span>
+                        <button id="bringForward" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg text-slate-700 font-medium transition shadow-xs">
+                            <i class="fa-solid fa-arrow-up mr-1"></i><span data-i18n="btn_forward">前面へ</span>
+                        </button>
+                        <button id="sendBackward" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg text-slate-700 font-medium transition shadow-xs">
+                            <i class="fa-solid fa-arrow-down mr-1"></i><span data-i18n="btn_backward">背面へ</span>
+                        </button>
                     </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="deleteSelected" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg font-medium transition flex items-center space-x-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span data-i18n="btn_delete">選択項目削除</span>
+                        </button>
+                        <button id="clearCanvas" class="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg font-medium transition flex items-center space-x-1">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span data-i18n="btn_clear">すべてクリア</span>
+                        </button>
+                    </div>
+                </div>
 
+                <!-- Canvas Wrapper -->
+                <div class="relative w-full border border-slate-200 rounded-xl overflow-hidden bg-slate-100 flex justify-center items-center p-2">
+                    <canvas id="siteCanvas" class="touch-none"></canvas>
+                </div>
+                <div class="text-xs text-slate-500 flex items-center justify-between">
+                    <span data-i18n="layout_hint"><i class="fa-solid fa-circle-info mr-1 text-blue-600"></i>図形をクリック・タッチしてドラッグで移動、角のハンドルでリサイズが可能です。</span>
+                    <span id="canvasObjCount">配置要素数: 0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: Rooms Plan -->
+        <section id="content-rooms" class="tab-content hidden space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center">
-                            <i class="fa-solid fa-list-check text-indigo-600 mr-2"></i>2. カテゴリ別内訳
+                        <h3 class="font-bold text-base text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-list-check text-blue-600"></i>
+                            <span data-i18n="rooms_title">必要諸室・床面積積算リスト</span>
                         </h3>
-                        <div id="summary-category-breakdown" class="space-y-2">
+                        <p class="text-xs text-slate-500 mt-0.5" data-i18n="rooms_subtitle">各部門別の必要諸室と床面積を管理します（PC・スマートフォン両対応）</p>
+                    </div>
+                    <!-- View Mode Toggle & Add Button -->
+                    <div class="flex items-center space-x-3 w-full sm:w-auto justify-between">
+                        <div class="bg-slate-100 p-1 rounded-xl flex space-x-1 border border-slate-200">
+                            <button id="viewTableBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-blue-600 shadow-xs transition flex items-center space-x-1">
+                                <i class="fa-solid fa-table"></i>
+                                <span data-i18n="view_table">テーブル</span>
+                            </button>
+                            <button id="viewCardBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center space-x-1">
+                                <i class="fa-solid fa-grip"></i>
+                                <span data-i18n="view_card">カード</span>
+                            </button>
+                        </div>
+                        <button id="openAddRoomModal" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                            <i class="fa-solid fa-plus"></i>
+                            <span data-i18n="btn_add_room">諸室追加</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table View Container -->
+                <div id="tableViewContainer" class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider">
+                                <th class="p-3.5 font-semibold" data-i18n="th_dept">部門</th>
+                                <th class="p-3.5 font-semibold" data-i18n="th_room_name">諸室名称</th>
+                                <th class="p-3.5 font-semibold text-right" data-i18n="th_area">面積 (m²)</th>
+                                <th class="p-3.5 font-semibold text-center" data-i18n="th_count">数量</th>
+                                <th class="p-3.5 font-semibold text-right" data-i18n="th_subtotal">小計 (m²)</th>
+                                <th class="p-3.5 font-semibold text-center" data-i18n="th_action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roomsTableBody" class="divide-y divide-slate-100 text-slate-700">
                             <!-- Populated via JS -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-slate-50 font-bold text-slate-900 border-t border-slate-200">
+                                <td colspan="4" class="p-3.5 text-right" data-i18n="th_total">合計延床面積</td>
+                                <td id="tableTotalArea" class="p-3.5 text-right text-blue-600">0 m²</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Card View Container (Hidden by default) -->
+                <div id="cardViewContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Export & Share -->
+        <section id="content-export" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                    <h3 class="font-bold text-base text-slate-900 flex items-center space-x-2">
+                        <i class="fa-solid fa-file-arrow-down text-blue-600"></i>
+                        <span data-i18n="export_title">基本構想レポート・データエクスポート</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5" data-i18n="export_subtitle">作成した基本構想データやレイアウトを多様なフォーマットで出力できます</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- PDF Export -->
+                    <div class="border border-slate-200 rounded-xl p-5 hover:border-blue-500 transition flex flex-col justify-between space-y-4 bg-slate-50/50">
+                        <div>
+                            <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center text-lg mb-3">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-sm" data-i18n="exp_pdf_title">PDF レポート</h4>
+                            <p class="text-xs text-slate-500 mt-1" data-i18n="exp_pdf_desc">基本構想の概要および諸室リストをまとめた公式レポート帳票を出力。</p>
                         </div>
+                        <button id="exportPdfBtn" class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-download"></i>
+                            <span data-i18n="btn_export_pdf">PDFダウンロード</span>
+                        </button>
                     </div>
 
-                    <div>
-                        <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center">
-                            <i class="fa-solid fa-comments text-indigo-600 mr-2"></i>3. 基本構想メモ・留意事項
-                        </h3>
-                        <textarea id="summary-memo-input" placeholder="基本構想に関する特記事項や今後の検討課題を入力してください..." class="w-full h-32 p-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50"></textarea>
+                    <!-- Excel Export -->
+                    <div class="border border-slate-200 rounded-xl p-5 hover:border-blue-500 transition flex flex-col justify-between space-y-4 bg-slate-50/50">
+                        <div>
+                            <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg mb-3">
+                                <i class="fa-solid fa-file-excel"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-sm" data-i18n="exp_excel_title">Excel ワークシート</h4>
+                            <p class="text-xs text-slate-500 mt-1" data-i18n="exp_excel_desc">必要諸室の積算データと面積計算表をExcel形式(.xlsx)で出力。</p>
+                        </div>
+                        <button id="exportExcelBtn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-download"></i>
+                            <span data-i18n="btn_export_excel">Excelダウンロード</span>
+                        </button>
+                    </div>
+
+                    <!-- CSV Export -->
+                    <div class="border border-slate-200 rounded-xl p-5 hover:border-blue-500 transition flex flex-col justify-between space-y-4 bg-slate-50/50">
+                        <div>
+                            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg mb-3">
+                                <i class="fa-solid fa-file-csv"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-sm" data-i18n="exp_csv_title">CSV データ</h4>
+                            <p class="text-xs text-slate-500 mt-1" data-i18n="exp_csv_desc">表計算ソフトやGIS連携に便利な汎用CSVファイルを出力。</p>
+                        </div>
+                        <button id="exportCsvBtn" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-download"></i>
+                            <span data-i18n="btn_export_csv">CSVダウンロード</span>
+                        </button>
+                    </div>
+
+                    <!-- Text Export -->
+                    <div class="border border-slate-200 rounded-xl p-5 hover:border-blue-500 transition flex flex-col justify-between space-y-4 bg-slate-50/50">
+                        <div>
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg mb-3">
+                                <i class="fa-solid fa-file-lines"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-sm" data-i18n="exp_txt_title">テキスト要約</h4>
+                            <p class="text-xs text-slate-500 mt-1" data-i18n="exp_txt_desc">構想概要と集計結果をテキスト形式でクリップボードへコピーまたは保存。</p>
+                        </div>
+                        <button id="exportTxtBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-copy"></i>
+                            <span data-i18n="btn_export_txt">テキストコピー</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -308,576 +375,1019 @@
 
     </main>
 
-    <!-- Modal: Add / Edit Room -->
-    <div id="room-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
-            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
-                <h3 id="modal-title" class="font-bold text-base">諸室・機能要件の追加</h3>
-                <button onclick="app.addRoomModalClose()" class="text-indigo-200 hover:text-white p-1">
+    <!-- Add Room Modal -->
+    <div id="roomModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-900 text-lg flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                    <span data-i18n="modal_title">新規諸室の追加</span>
+                </h3>
+                <button id="closeRoomModal" class="text-slate-400 hover:text-slate-600 p-1">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-            <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-                <input type="hidden" id="modal-room-id">
+            <form id="roomForm" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">諸室・機能名称 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="modal-room-name" placeholder="例: 多目的ホール、事務室、駐車場" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="modal_lbl_dept">部門分類</label>
+                    <input type="text" id="modalDept" required placeholder="例: 1階 管理・窓口部門" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="modal_lbl_name">諸室名称</label>
+                    <input type="text" id="modalName" required placeholder="例: 多目的ホール" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">カテゴリ</label>
-                        <select id="modal-room-category" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
-                            <option value="事務・管理">事務・管理</option>
-                            <option value="集会・交流">集会・交流</option>
-                            <option value="福祉・健康">福祉・健康</option>
-                            <option value="バックヤード・共用">バックヤード・共用</option>
-                            <option value="外構・駐車場">外構・駐車場</option>
-                        </select>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="modal_lbl_area">単室面積 (m²)</label>
+                        <input type="number" id="modalArea" step="0.1" min="1" required placeholder="150" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">想定面積 (m²)</label>
-                        <input type="number" id="modal-room-area" value="50" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-xs font-medium text-slate-600 mb-1" data-i18n="modal_lbl_count">数量</label>
+                        <input type="number" id="modalCount" min="1" value="1" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">重要度・優先度</label>
-                        <select id="modal-room-priority" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
-                            <option value="必須">必須 (A)</option>
-                            <option value="推奨">推奨 (B)</option>
-                            <option value="検討">検討 (C)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">利用者想定</label>
-                        <input type="text" id="modal-room-users" placeholder="例: 一般市民、職員" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
-                    </div>
+                <div class="pt-3 flex justify-end space-x-3">
+                    <button type="button" id="cancelRoomModal" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition" data-i18n="btn_cancel">キャンセル</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-sm" data-i18n="btn_save">保存する</button>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">機能要件・特記事項</label>
-                    <textarea id="modal-room-notes" placeholder="バリアフリー対応、音響設備、採光などの要件..." class="w-full h-20 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
-                </div>
-            </div>
-            <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end space-x-2">
-                <button onclick="app.addRoomModalClose()" class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl transition">
-                    キャンセル
-                </button>
-                <button onclick="app.saveRoomFromModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow transition">
-                    保存する
-                </button>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
-        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
-        <span id="toast-message" class="text-sm font-medium">通知メッセージ</span>
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-sm">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMsg">操作が完了しました</span>
     </div>
 
-    <!-- Application Logic -->
+    <!-- Script Logic -->
     <script>
-        class PublicFacilityPlanner {
-            constructor() {
-                // Initial Sample Data for Rooms
-                this.rooms = [
-                    { id: '1', name: '市民ラビー・エントランス', category: '集会・交流', area: 120, priority: '必須', users: '一般市民・来庁者', notes: '開放感のある吹き抜け構造、総合案内設置' },
-                    { id: '2', name: '多目的ホール（300席）', category: '集会・交流', area: 350, priority: '必須', users: '地域住民・団体', notes: '可動式観覧席、音響・照明設備完備' },
-                    { id: '3', name: '行政事務室・窓口', category: '事務・管理', area: 200, priority: '必須', users: '職員・市民', notes: 'ワンストップサービス対応のカウンター配置' },
-                    { id: '4', name: '相談室・会議室 (3室)', category: '事務・管理', area: 90, priority: '推奨', users: '市民・相談員', notes: 'プライバシー防音配慮' },
-                    { id: '5', name: '健康増進・フィットネスルーム', category: '福祉・健康', area: 150, priority: '推奨', users: '市民全般', notes: '床面衝撃吸収構造' },
-                    { id: '6', name: '来庁者用駐車場 (50台)', category: '外構・駐車場', area: 750, priority: '必須', users: '一般車両', notes: 'EV充電器4基、思いやり駐車スペース確保' },
-                ];
-
-                this.reqViewMode = 'card'; // 'card' or 'table'
-                this.canvas = null;
-                this.selectedObject = null;
-                this.activeTab = 'requirements';
-
-                this.init();
+        // --- 1. Internationalization (i18n) Data ---
+        const translations = {
+            ja: {
+                app_title: "公共施設基本構想プラットフォーム",
+                app_subtitle: "Public Facility Basic Concept & Layout Planner",
+                tab_overview: "概要・方針",
+                tab_layout: "配置図・レイアウト",
+                tab_rooms: "必要諸室計画",
+                tab_export: "データ出力・共有",
+                ov_c1_title: "基本理念と目的",
+                ov_c1_desc: "地域コミュニティの活性化、防災拠点の強化、および持続可能な行政サービスの提供を一体化させた複合公共施設の整備を目指します。",
+                ov_status_active: "策定フェーズ",
+                ov_c2_title: "総延床面積シミュレーション",
+                ov_c2_desc: "必要諸室データに基づき、自動計算された総床面積と敷地適正配置の指標をリアルタイムに集計します。",
+                ov_total_area: "現在の総面積目安",
+                ov_c3_title: "防災・環境配慮",
+                ov_c3_desc: "太陽光発電・蓄電池設備の導入、ZEB化による省エネルギー性能の確保、災害時の避難所としての機能強化を徹底。",
+                ov_target_standard: "目標基準",
+                ov_form_title: "基本構想プロジェクト概要設定",
+                lbl_proj_name: "プロジェクト名称",
+                lbl_location: "建設予定地",
+                lbl_target_year: "目標開設年度",
+                lbl_budget: "概算事業費目安",
+                layout_title: "インタラクティブ平面配置・外構レイアウト",
+                layout_subtitle: "図形やゾーンをキャンバスに追加して敷地計画をシミュレーションします（タッチ＆マウス対応）",
+                btn_add_building: "本館棟追加",
+                btn_add_parking: "駐車場追加",
+                btn_add_green: "緑地ゾーン",
+                btn_add_road: "アクセス道路",
+                lbl_layer_ctrl: "レイヤー操作:",
+                btn_forward: "前面へ",
+                btn_backward: "背面へ",
+                btn_delete: "選択項目削除",
+                btn_clear: "すべてクリア",
+                layout_hint: "図形をクリック・タッチしてドラッグで移動、角のハンドルでリサイズが可能です。",
+                rooms_title: "必要諸室・床面積積算リスト",
+                rooms_subtitle: "各部門別の必要諸室と床面積を管理します（PC・スマートフォン両対応）",
+                view_table: "テーブル",
+                view_card: "カード",
+                btn_add_room: "諸室追加",
+                th_dept: "部門",
+                th_room_name: "諸室名称",
+                th_area: "面積 (m²)",
+                th_count: "数量",
+                th_subtotal: "小計 (m²)",
+                th_action: "操作",
+                th_total: "合計延床面積",
+                export_title: "基本構想レポート・データエクスポート",
+                export_subtitle: "作成した基本構想データやレイアウトを多様なフォーマットで出力できます",
+                exp_pdf_title: "PDF レポート",
+                exp_pdf_desc: "基本構想の概要および諸室リストをまとめた公式レポート帳票を出力。",
+                btn_export_pdf: "PDFダウンロード",
+                exp_excel_title: "Excel ワークシート",
+                exp_excel_desc: "必要諸室の積算データと面積計算表をExcel形式(.xlsx)で出力。",
+                btn_export_excel: "Excelダウンロード",
+                exp_csv_title: "CSV データ",
+                exp_csv_desc: "表計算ソフトやGIS連携に便利な汎用CSVファイルを出力。",
+                btn_export_csv: "CSVダウンロード",
+                exp_txt_title: "テキスト要約",
+                exp_txt_desc: "構想概要と集計結果をテキスト形式でクリップボードへコピーまたは保存。",
+                btn_export_txt: "テキストコピー",
+                modal_title: "新規諸室の追加",
+                modal_lbl_dept: "部門分類",
+                modal_lbl_name: "諸室名称",
+                modal_lbl_area: "単室面積 (m²)",
+                modal_lbl_count: "数量",
+                btn_cancel: "キャンセル",
+                btn_save: "保存する"
+            },
+            en: {
+                app_title: "Public Facility Basic Concept Platform",
+                app_subtitle: "Public Facility Basic Concept & Layout Planner",
+                tab_overview: "Overview",
+                tab_layout: "Layout Canvas",
+                tab_rooms: "Room Planning",
+                tab_export: "Export & Share",
+                ov_c1_title: "Vision & Objectives",
+                ov_c1_desc: "Aiming to develop a multi-purpose public facility that integrates community revitalization, disaster prevention enhancement, and sustainable administrative services.",
+                ov_status_active: "Planning Phase",
+                ov_c2_title: "Total Floor Area Simulation",
+                ov_c2_desc: "Aggregates total floor area and site allocation indices automatically calculated based on room requirement data.",
+                ov_total_area: "Est. Total Area",
+                ov_c3_title: "Disaster & Eco-Friendly",
+                ov_c3_desc: "Installing solar power, battery storage, ensuring energy efficiency via ZEB standards, and reinforcing disaster evacuation shelter functions.",
+                ov_target_standard: "Target Standard",
+                ov_form_title: "Project Overview Settings",
+                lbl_proj_name: "Project Name",
+                lbl_location: "Planned Site",
+                lbl_target_year: "Target Opening Year",
+                lbl_budget: "Estimated Budget",
+                layout_title: "Interactive Site Layout Planner",
+                layout_subtitle: "Simulate site planning by adding shapes and zones to the canvas (Touch & Mouse supported)",
+                btn_add_building: "Add Building",
+                btn_add_parking: "Add Parking",
+                btn_add_green: "Green Zone",
+                btn_add_road: "Access Road",
+                lbl_layer_ctrl: "Layers:",
+                btn_forward: "Bring Forward",
+                btn_backward: "Send Backward",
+                btn_delete: "Delete Selected",
+                btn_clear: "Clear All",
+                layout_hint: "Click/touch and drag to move shapes, use corner handles to resize.",
+                rooms_title: "Room Requirements & Area List",
+                rooms_subtitle: "Manage required rooms and floor areas by department (Responsive table & card view)",
+                view_table: "Table",
+                view_card: "Cards",
+                btn_add_room: "Add Room",
+                th_dept: "Department",
+                th_room_name: "Room Name",
+                th_area: "Area (m²)",
+                th_count: "Count",
+                th_subtotal: "Subtotal (m²)",
+                th_action: "Action",
+                th_total: "Total Gross Floor Area",
+                export_title: "Basic Concept Report & Data Export",
+                export_subtitle: "Export your basic concept data and layout into various formats",
+                exp_pdf_title: "PDF Report",
+                exp_pdf_desc: "Generate official report document summarizing basic concept and room lists.",
+                btn_export_pdf: "Download PDF",
+                exp_excel_title: "Excel Worksheet",
+                exp_excel_desc: "Export room calculation data and area summary in Excel (.xlsx) format.",
+                btn_export_excel: "Download Excel",
+                exp_csv_title: "CSV Data",
+                exp_csv_desc: "Export universal CSV file for spreadsheets and GIS integration.",
+                btn_export_csv: "Download CSV",
+                exp_txt_title: "Text Summary",
+                exp_txt_desc: "Copy or save the concept summary and aggregate results in text format.",
+                btn_export_txt: "Copy Text",
+                modal_title: "Add New Room",
+                modal_lbl_dept: "Department",
+                modal_lbl_name: "Room Name",
+                modal_lbl_area: "Unit Area (m²)",
+                modal_lbl_count: "Count",
+                btn_cancel: "Cancel",
+                btn_save: "Save Room"
+            },
+            zh: {
+                app_title: "公共设施基本构想平台",
+                app_subtitle: "Public Facility Basic Concept & Layout Planner",
+                tab_overview: "概述与方针",
+                tab_layout: "平面总图与布局",
+                tab_rooms: "房间需求规划",
+                tab_export: "数据导出与共享",
+                ov_c1_title: "基本理念与目标",
+                ov_c1_desc: "旨在开发集社区活化、防灾据点强化以及可持续行政服务提供于一体的综合性公共设施。",
+                ov_status_active: "规划阶段",
+                ov_c2_title: "总建筑面积模拟",
+                ov_c2_desc: "根据房间需求数据，实时汇总自动计算的总建筑面积和场地配置指标。",
+                ov_total_area: "当前总面积估计",
+                ov_c3_title: "防灾与环保",
+                ov_c3_desc: "引入太阳能发电与蓄电池设备，通过ZEB标准确保节能性能，全面强化防灾避难所功能。",
+                ov_target_standard: "目标标准",
+                ov_form_title: "项目基本概述设置",
+                lbl_proj_name: "项目名称",
+                lbl_location: "拟建地点",
+                lbl_target_year: "目标开放年度",
+                lbl_budget: "估计预算",
+                layout_title: "交互式平面配置与外构布局",
+                layout_subtitle: "在画布上添加图形和区域以模拟场地规划（支持触摸与鼠标）",
+                btn_add_building: "添加主楼",
+                btn_add_parking: "添加停车场",
+                btn_add_green: "绿化带",
+                btn_add_road: "通道道路",
+                lbl_layer_ctrl: "图层操作:",
+                btn_forward: "置于顶层",
+                btn_backward: "置于底层",
+                btn_delete: "删除所选",
+                btn_clear: "全部清除",
+                layout_hint: "点击或触摸并拖动以移动图形，使用角柄调整大小。",
+                rooms_title: "需求房间与面积明细表",
+                rooms_subtitle: "按部门管理需求房间和建筑面积（支持PC与移动端双视图）",
+                view_table: "表格",
+                view_card: "卡片",
+                btn_add_room: "添加房间",
+                th_dept: "部门",
+                th_room_name: "房间名称",
+                th_area: "面积 (m²)",
+                th_count: "数量",
+                th_subtotal: "小计 (m²)",
+                th_action: "操作",
+                th_total: "总建筑面积",
+                export_title: "基本构想报告与数据导出",
+                export_subtitle: "以多种格式导出基本构想数据和布局方案",
+                exp_pdf_title: "PDF 报告",
+                exp_pdf_desc: "生成汇总基本构想概述和房间列表的官方报告文档。",
+                btn_export_pdf: "下载 PDF",
+                exp_excel_title: "Excel 工作表",
+                exp_excel_desc: "以 Excel (.xlsx) 格式导出房间核算数据和面积汇总表。",
+                btn_export_excel: "下载 Excel",
+                exp_csv_title: "CSV 数据",
+                exp_csv_desc: "导出适用于电子表格和GIS集成的通用CSV文件。",
+                btn_export_csv: "下载 CSV",
+                exp_txt_title: "文本摘要",
+                exp_txt_desc: "以文本格式复制或保存构想概述和汇总结果。",
+                btn_export_txt: "复制文本",
+                modal_title: "添加新房间",
+                modal_lbl_dept: "部门分类",
+                modal_lbl_name: "房间名称",
+                modal_lbl_area: "单室面积 (m²)",
+                modal_lbl_count: "数量",
+                btn_cancel: "取消",
+                btn_save: "保存"
+            },
+            ko: {
+                app_title: "공공시설 기본구상 플랫폼",
+                app_subtitle: "Public Facility Basic Concept & Layout Planner",
+                tab_overview: "개요 및 방침",
+                tab_layout: "배치도 및 레이아웃",
+                tab_rooms: "필요실 계획",
+                tab_export: "데이터 출력 및 공유",
+                ov_c1_title: "기본이념 및 목적",
+                ov_c1_desc: "지역 커뮤니티 활성화, 방재 거점 강화, 지속 가능한 행정 서비스 제공을 일체화한 복합 공공시설 조성을 목표로 합니다.",
+                ov_status_active: "수립 단계",
+                ov_c2_title: "총 연면적 시뮬레이션",
+                ov_c2_desc: "필요실 데이터에 기반하여 자동 계산된 총 면적과 부지 적정 배치 지표를 실시간으로 집계합니다.",
+                ov_total_area: "현재 총 면적 기준",
+                ov_c3_title: "방재 및 친환경",
+                ov_c3_desc: "태양광 발전 및 축전지 설비 도입, ZEB화를 통한 에너지 절감 성능 확보, 재해 시 대피소 기능 강화.",
+                ov_target_standard: "목표 기준",
+                ov_form_title: "기본구상 프로젝트 개요 설정",
+                lbl_proj_name: "프로젝트 명칭",
+                lbl_location: "건립 예정지",
+                lbl_target_year: "목표 개관 연도",
+                lbl_budget: "개략 사업비",
+                layout_title: "인터랙티브 평면 배치 및 외구 레이아웃",
+                layout_subtitle: "캔버스에 도형과 구역을 추가하여 부지 계획을 시뮬레이션합니다 (터치 및 마우스 지원)",
+                btn_add_building: "본관동 추가",
+                btn_add_parking: "주차장 추가",
+                btn_add_green: "녹지 구역",
+                btn_add_road: "진입 도로",
+                lbl_layer_ctrl: "레이어 조작:",
+                btn_forward: "앞으로",
+                btn_backward: "뒤로",
+                btn_delete: "선택 항목 삭제",
+                btn_clear: "전체 초기화",
+                layout_hint: "도형을 클릭/터치하여 드래그로 이동하고 모서리 핸들로 크기를 조절할 수 있습니다.",
+                rooms_title: "필요실 및 면적 산출 목록",
+                rooms_subtitle: "부문별 필요실과 면적을 관리합니다 (PC 및 스마트폰 대응)",
+                view_table: "테이블",
+                view_card: "카드",
+                btn_add_room: "실 추가",
+                th_dept: "부문",
+                th_room_name: "실 명칭",
+                th_area: "면적 (m²)",
+                th_count: "수량",
+                th_subtotal: "소계 (m²)",
+                th_action: "조작",
+                th_total: "총 연면적",
+                export_title: "기본구상 리포트 및 데이터 내보내기",
+                export_subtitle: "작성한 기본구상 데이터와 레이아웃을 다양한 포맷으로 출력할 수 있습니다",
+                exp_pdf_title: "PDF 리포트",
+                exp_pdf_desc: "기본구상 개요 및 필요실 목록을 정리한 공식 리포트 양식 출력.",
+                btn_export_pdf: "PDF 다운로드",
+                exp_excel_title: "Excel 워크시트",
+                exp_excel_desc: "필요실 산출 데이터와 면적 계산표를 Excel(.xlsx) 형식으로 출력.",
+                btn_export_excel: "Excel 다운로드",
+                exp_csv_title: "CSV 데이터",
+                exp_csv_desc: "스프레드시트 및 GIS 연동에 유용한 범용 CSV 파일 출력.",
+                btn_export_csv: "CSV 다운로드",
+                exp_txt_title: "텍스트 요약",
+                exp_txt_desc: "구상 개요와 집계 결과를 텍스트 형식으로 클립보드 복사 또는 저장.",
+                btn_export_txt: "텍스트 복사",
+                modal_title: "신규 실 추가",
+                modal_lbl_dept: "부문 분류",
+                modal_lbl_name: "실 명칭",
+                modal_lbl_area: "단실 면적 (m²)",
+                modal_lbl_count: "수량",
+                btn_cancel: "취소",
+                btn_save: "저장하기"
+            },
+            fr: {
+                app_title: "Plateforme de Conception d'Équipements Publics",
+                app_subtitle: "Public Facility Basic Concept & Layout Planner",
+                tab_overview: "Aperçu & Objectifs",
+                tab_layout: "Plan & Aménagement",
+                tab_rooms: "Planification des Espaces",
+                tab_export: "Export & Partage",
+                ov_c1_title: "Vision & Objectifs",
+                ov_c1_desc: "Viser le développement d'un équipement public multifonctionnel intégrant la revitalisation communautaire et la prévention des risques.",
+                ov_status_active: "Phase de Planification",
+                ov_c2_title: "Simulation de la Surface Totale",
+                ov_c2_desc: "Agrégation en temps réel de la surface totale calculée automatiquement basée sur les besoins.",
+                ov_total_area: "Surface Totale Est.",
+                ov_c3_title: "Sécurité & Écologie",
+                ov_c3_desc: "Intégration de l'énergie solaire, stockage par batterie, respect des normes ZEB et renforcement des abris d'urgence.",
+                ov_target_standard: "Standard Cible",
+                ov_form_title: "Paramètres du Projet de Base",
+                lbl_proj_name: "Nom du Projet",
+                lbl_location: "Site Prévu",
+                lbl_target_year: "Année d'Ouverture Cible",
+                lbl_budget: "Budget Estimé",
+                layout_title: "Plan d'Aménagement Interactif",
+                layout_subtitle: "Simulez l'aménagement en ajoutant des formes et des zones (Tactile & Souris pris en charge)",
+                btn_add_building: "Ajouter Bâtiment",
+                btn_add_parking: "Ajouter Parking",
+                btn_add_green: "Zone Verte",
+                btn_add_road: "Route d'Accès",
+                lbl_layer_ctrl: "Calques:",
+                btn_forward: "Avancer",
+                btn_backward: "Reculer",
+                btn_delete: "Supprimer Sélection",
+                btn_clear: "Tout Effacer",
+                layout_hint: "Cliquez/touchez et faites glisser pour déplacer, utilisez les poignées pour redimensionner.",
+                rooms_title: "Liste des Besoins en Espaces",
+                rooms_subtitle: "Gérez les espaces requis et les surfaces par département (Vue tableau & cartes)",
+                view_table: "Tableau",
+                view_card: "Cartes",
+                btn_add_room: "Ajouter un Espace",
+                th_dept: "Département",
+                th_room_name: "Nom de la Pièce",
+                th_area: "Surface (m²)",
+                th_count: "Nombre",
+                th_subtotal: "Sous-total (m²)",
+                th_action: "Action",
+                th_total: "Surface Totale Brute",
+                export_title: "Rapport et Exportation des Données",
+                export_subtitle: "Exportez vos données de conception et agencements dans divers formats",
+                exp_pdf_title: "Rapport PDF",
+                exp_pdf_desc: "Générez un rapport officiel résumant le concept de base et les listes d'espaces.",
+                btn_export_pdf: "Télécharger PDF",
+                exp_excel_title: "Feuille Excel",
+                exp_excel_desc: "Exportez les données de calcul des espaces au format Excel (.xlsx).",
+                btn_export_excel: "Télécharger Excel",
+                exp_csv_title: "Données CSV",
+                exp_csv_desc: "Exportez un fichier CSV universel pour tableurs et intégration SIG.",
+                btn_export_csv: "Télécharger CSV",
+                exp_txt_title: "Résumé Texte",
+                exp_txt_desc: "Copiez ou sauvegardez le résumé du concept et les résultats agrégés.",
+                btn_export_txt: "Copier Texte",
+                modal_title: "Ajouter un Nouvel Espace",
+                modal_lbl_dept: "Département",
+                modal_lbl_name: "Nom de la Pièce",
+                modal_lbl_area: "Surface Unitaire (m²)",
+                modal_lbl_count: "Nombre",
+                btn_cancel: "Annuler",
+                btn_save: "Enregistrer"
+            },
+            es: {
+                app_title: "Plataforma de Concepto Básico de Instalaciones",
+                app_subtitle: "Public Facility Basic Concept & Layout Planner",
+                tab_overview: "Resumen y Objetivos",
+                tab_layout: "Plano y Distribución",
+                tab_rooms: "Planificación de Espacios",
+                tab_export: "Exportar y Compartir",
+                ov_c1_title: "Visión y Objetivos",
+                ov_c1_desc: "Apunta a desarrollar una instalación pública multifuncional que integre revitalización comunitaria y prevención de desastres.",
+                ov_status_active: "Fase de Planificación",
+                ov_c2_title: "Simulación de Superficie Total",
+                ov_c2_desc: "Agregación en tiempo real de la superficie total calculada automáticamente basada en las necesidades de espacios.",
+                ov_total_area: "Superficie Total Est.",
+                ov_c3_title: "Seguridad y Ecología",
+                ov_c3_desc: "Instalación de energía solar, almacenamiento en baterías, cumplimiento de estándares ZEB y refugios de emergencia.",
+                ov_target_standard: "Estándar Objetivo",
+                ov_form_title: "Configuración del Proyecto Base",
+                lbl_proj_name: "Nombre del Proyecto",
+                lbl_location: "Sitio Previsto",
+                lbl_target_year: "Año de Apertura",
+                lbl_budget: "Presupuesto Estimado",
+                layout_title: "Planificador Interactivo de Distribución",
+                layout_subtitle: "Simule la planificación agregando formas y zonas al lienzo (Soporte táctil y ratón)",
+                btn_add_building: "Añadir Edificio",
+                btn_add_parking: "Añadir Parking",
+                btn_add_green: "Zona Verde",
+                btn_add_road: "Camino de Acceso",
+                lbl_layer_ctrl: "Capas:",
+                btn_forward: "Traer al Frente",
+                btn_backward: "Enviar al Fondo",
+                btn_delete: "Eliminar Selección",
+                btn_clear: "Borrar Todo",
+                layout_hint: "Haga clic/toque y arrastre para mover figuras, use los tiradores de las esquinas para redimensionar.",
+                rooms_title: "Lista de Necesidades de Espacios",
+                rooms_subtitle: "Gestione las habitaciones requeridas y áreas por departamento (Vista tabla y tarjetas)",
+                view_table: "Tabla",
+                view_card: "Tarjetas",
+                btn_add_room: "Añadir Espacio",
+                th_dept: "Departamento",
+                th_room_name: "Nombre de Sala",
+                th_area: "Área (m²)",
+                th_count: "Cantidad",
+                th_subtotal: "Subtotal (m²)",
+                th_action: "Acción",
+                th_total: "Área Bruta Total",
+                export_title: "Informe de Concepto y Exportación de Datos",
+                export_subtitle: "Exporte sus datos de concepto básico y diseño en varios formatos",
+                exp_pdf_title: "Informe PDF",
+                exp_pdf_desc: "Genere un documento de informe oficial que resuma el concepto básico y las listas de salas.",
+                btn_export_pdf: "Descargar PDF",
+                exp_excel_title: "Hoja de Excel",
+                exp_excel_desc: "Exporte los datos de cálculo de habitaciones en formato Excel (.xlsx).",
+                btn_export_excel: "Descargar Excel",
+                exp_csv_title: "Datos CSV",
+                exp_csv_desc: "Exporte un archivo CSV universal para hojas de cálculo e integración SIG.",
+                btn_export_csv: "Descargar CSV",
+                exp_txt_title: "Resumen de Texto",
+                exp_txt_desc: "Copie o guarde el resumen del concepto y los resultados agregados en texto.",
+                btn_export_txt: "Copiar Texto",
+                modal_title: "Añadir Nueva Sala",
+                modal_lbl_dept: "Departamento",
+                modal_lbl_name: "Nombre de Sala",
+                modal_lbl_area: "Área Unitaria (m²)",
+                modal_lbl_count: "Cantidad",
+                btn_cancel: "Cancelar",
+                btn_save: "Guardar"
             }
+        };
 
-            init() {
-                this.renderRooms();
-                this.updateStats();
-                this.initCanvas();
-                this.setupEventListeners();
-                
-                document.getElementById('report-timestamp').innerText = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-            }
+        let currentLang = 'ja';
 
-            // Tab Switching
-            switchTab(tabId) {
-                this.activeTab = tabId;
-                ['requirements', 'layout', 'summary'].forEach(t => {
-                    const sec = document.getElementById(`tab-${t}`);
-                    const btn = document.getElementById(`tab-btn-${t}`);
-                    if (t === tabId) {
-                        sec.classList.remove('hidden');
-                        btn.className = "py-3 px-4 text-sm font-semibold border-b-2 border-white text-white flex items-center space-x-2 whitespace-nowrap transition";
-                        if (t === 'layout' && this.canvas) {
-                            setTimeout(() => this.resizeCanvasToContainer(), 50);
-                        }
-                        if (t === 'summary') {
-                            this.updateSummaryData();
-                        }
-                    } else {
-                        sec.classList.add('hidden');
-                        btn.className = "py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-indigo-200 hover:text-white flex items-center space-x-2 whitespace-nowrap transition";
-                    }
-                });
-            }
-
-            // Requirements View Switcher (Card vs Table)
-            setReqView(mode) {
-                this.reqViewMode = mode;
-                const cardBtn = document.getElementById('view-card-btn');
-                const tableBtn = document.getElementById('view-table-btn');
-                if (mode === 'card') {
-                    cardBtn.className = "px-3 py-1.5 rounded-md bg-white text-indigo-700 shadow-sm transition";
-                    tableBtn.className = "px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition";
-                } else {
-                    tableBtn.className = "px-3 py-1.5 rounded-md bg-white text-indigo-700 shadow-sm transition";
-                    cardBtn.className = "px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition";
+        function updateLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            if (!t) return;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    el.textContent = t[key];
                 }
-                this.renderRooms();
-            }
-
-            // Render Requirements List
-            renderRooms() {
-                const container = document.getElementById('requirements-content-container');
-                const search = (document.getElementById('room-search-input')?.value || '').toLowerCase();
-                const category = document.getElementById('room-category-filter')?.value || '';
-
-                const filtered = this.rooms.filter(r => {
-                    const matchSearch = r.name.toLowerCase().includes(search) || r.notes.toLowerCase().includes(search);
-                    const matchCat = !category || r.category === category;
-                    return matchSearch && matchCat;
-                });
-
-                if (filtered.length === 0) {
-                    container.innerHTML = `
-                        <div class="bg-white rounded-xl p-10 text-center border border-slate-200">
-                            <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-3"></i>
-                            <p class="text-slate-600 font-medium text-sm">該当する諸室・機能要件が見つかりません</p>
-                            <button onclick="app.addRoomModalOpen()" class="mt-3 inline-flex items-center space-x-1 text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-2 rounded-lg">
-                                <i class="fa-solid fa-plus"></i><span>新規追加する</span>
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                if (this.reqViewMode === 'card') {
-                    let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
-                    filtered.forEach(r => {
-                        const priorityColor = r.priority === '必須' ? 'bg-rose-100 text-rose-700 border-rose-200' : (r.priority === '推奨' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-slate-100 text-slate-700 border-slate-200');
-                        html += `
-                            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between">
-                                <div>
-                                    <div class="flex justify-between items-start mb-2">
-                                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600">${r.category}</span>
-                                        <span class="text-xs font-bold px-2 py-0.5 rounded border ${priorityColor}">${r.priority}</span>
-                                    </div>
-                                    <h4 class="font-bold text-slate-800 text-base mb-1">${r.name}</h4>
-                                    <p class="text-xs text-slate-500 mb-3 line-clamp-2">${r.notes || '特記事項なし'}</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between text-xs text-slate-600 pt-3 border-t border-slate-100 mb-3">
-                                        <span><i class="fa-solid fa-maximize mr-1 text-slate-400"></i><b>${r.area}</b> m²</span>
-                                        <span><i class="fa-solid fa-users mr-1 text-slate-400"></i>${r.users || '一般'}</span>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <button onclick="app.editRoom('${r.id}')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg text-xs font-semibold transition touch-manipulation">
-                                            <i class="fa-solid fa-pen mr-1"></i>編集
-                                        </button>
-                                        <button onclick="app.deleteRoom('${r.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-xs transition touch-manipulation">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    // Table View
-                    let html = `
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-sm">
-                                <thead>
-                                    <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 text-xs">
-                                        <th class="p-3 font-semibold">諸室名称</th>
-                                        <th class="p-3 font-semibold">カテゴリ</th>
-                                        <th class="p-3 font-semibold text-right">面積 (m²)</th>
-                                        <th class="p-3 font-semibold">優先度</th>
-                                        <th class="p-3 font-semibold">想定利用者</th>
-                                        <th class="p-3 font-semibold">要件メモ</th>
-                                        <th class="p-3 font-semibold text-center">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                    `;
-                    filtered.forEach(r => {
-                        html += `
-                            <tr class="hover:bg-slate-50/80 transition">
-                                <td class="p-3 font-bold text-slate-800">${r.name}</td>
-                                <td class="p-3 text-slate-600 text-xs"><span class="bg-slate-100 px-2 py-1 rounded">${r.category}</span></td>
-                                <td class="p-3 text-right font-mono font-semibold">${r.area}</td>
-                                <td class="p-3"><span class="text-xs px-2 py-0.5 rounded font-semibold ${r.priority === '必須' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}">${r.priority}</span></td>
-                                <td class="p-3 text-slate-600 text-xs">${r.users}</td>
-                                <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${r.notes}</td>
-                                <td class="p-3 text-center space-x-1">
-                                    <button onclick="app.editRoom('${r.id}')" class="text-indigo-600 hover:text-indigo-800 p-1.5"><i class="fa-solid fa-pen"></i></button>
-                                    <button onclick="app.deleteRoom('${r.id}')" class="text-rose-500 hover:text-rose-700 p-1.5"><i class="fa-solid fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
-                    container.innerHTML = html;
-                }
-            }
-
-            filterRooms() {
-                this.renderRooms();
-            }
-
-            updateStats() {
-                const totalRooms = this.rooms.length;
-                const totalArea = this.rooms.reduce((sum, r) => sum + Number(r.area), 0);
-                const reqCount = this.rooms.filter(r => r.priority === '必須').length;
-                const reqRate = totalRooms > 0 ? Math.round((reqCount / totalRooms) * 100) : 0;
-                // Estimated Budget: approx 350,000 JPY per m² for public building
-                const estBudget = Math.round(totalArea * 35 / 10000) * 10000; // in 10k yen units approx or generic scale
-
-                document.getElementById('stat-total-rooms').innerText = `${totalRooms} 室`;
-                document.getElementById('stat-total-area').innerText = `${totalArea.toLocaleString()} m²`;
-                document.getElementById('stat-req-rate').innerText = `${reqRate}%`;
-                document.getElementById('stat-est-budget').innerText = `${(totalArea * 38).toLocaleString()} 万円`;
-            }
-
-            // Modal Handlers
-            addRoomModalOpen() {
-                document.getElementById('modal-title').innerText = '諸室・機能要件の追加';
-                document.getElementById('modal-room-id').value = '';
-                document.getElementById('modal-room-name').value = '';
-                document.getElementById('modal-room-area').value = '50';
-                document.getElementById('modal-room-users').value = '';
-                document.getElementById('modal-room-notes').value = '';
-                document.getElementById('room-modal').classList.remove('hidden');
-            }
-
-            editRoom(id) {
-                const r = this.rooms.find(item => item.id === id);
-                if (!r) return;
-                document.getElementById('modal-title').innerText = '諸室・機能要件の編集';
-                document.getElementById('modal-room-id').value = r.id;
-                document.getElementById('modal-room-name').value = r.name;
-                document.getElementById('modal-room-category').value = r.category;
-                document.getElementById('modal-room-area').value = r.area;
-                document.getElementById('modal-room-priority').value = r.priority;
-                document.getElementById('modal-room-users').value = r.users;
-                document.getElementById('modal-room-notes').value = r.notes;
-                document.getElementById('room-modal').classList.remove('hidden');
-            }
-
-            addRoomModalClose() {
-                document.getElementById('room-modal').classList.add('hidden');
-            }
-
-            saveRoomFromModal() {
-                const id = document.getElementById('modal-room-id').value;
-                const name = document.getElementById('modal-room-name').value.trim();
-                const category = document.getElementById('modal-room-category').value;
-                const area = Number(document.getElementById('modal-room-area').value) || 0;
-                const priority = document.getElementById('modal-room-priority').value;
-                const users = document.getElementById('modal-room-users').value.trim();
-                const notes = document.getElementById('modal-room-notes').value.trim();
-
-                if (!name) {
-                    this.showToast('諸室名称を入力してください', 'error');
-                    return;
-                }
-
-                if (id) {
-                    const idx = this.rooms.findIndex(item => item.id === id);
-                    if (idx !== -1) {
-                        this.rooms[idx] = { id, name, category, area, priority, users, notes };
-                    }
-                    this.showToast('諸室情報を更新しました');
-                } else {
-                    const newObj = { id: Date.now().toString(), name, category, area, priority, users, notes };
-                    this.rooms.push(newObj);
-                    this.showToast('新しい諸室を追加しました');
-                }
-
-                this.addRoomModalClose();
-                this.renderRooms();
-                this.updateStats();
-            }
-
-            deleteRoom(id) {
-                if (confirm('この諸室要件を削除してもよろしいですか？')) {
-                    this.rooms = this.rooms.filter(item => item.id !== id);
-                    this.renderRooms();
-                    this.updateStats();
-                    this.showToast('諸室を削除しました');
-                }
-            }
-
-            // Fabric.js Layout & Exterior Editor
-            initCanvas() {
-                const canvasEl = document.getElementById('layout-canvas');
-                // Initialize Fabric canvas with touch settings enabled
-                this.canvas = new fabric.Canvas('layout-canvas', {
-                    backgroundColor: '#f8fafc',
-                    selection: true,
-                    preserveObjectStacking: true
-                });
-
-                // Add default layout stamp elements for initial guidance
-                this.loadDefaultLayoutStamps();
-
-                // Event listeners for selection
-                this.canvas.on('selection:created', (e) => this.onObjectSelected(e.selected[0]));
-                this.canvas.on('selection:updated', (e) => this.onObjectSelected(e.selected[0]));
-                this.canvas.on('selection:cleared', () => this.onObjectCleared());
-
-                // Responsive Canvas resizing
-                window.addEventListener('resize', () => this.resizeCanvasToContainer());
-                this.resizeCanvasToContainer();
-            }
-
-            loadDefaultLayoutStamps() {
-                // Main Building Stamp
-                const mainBldg = new fabric.Rect({
-                    left: 150, top: 120, width: 220, height: 140,
-                    fill: '#4f46e5', rx: 8, ry: 8, stroke: '#312e81', strokeWidth: 2
-                });
-                const mainText = new fabric.Text('本館棟 (管理・集会)', {
-                    left: 170, top: 180, fontSize: 14, fill: '#ffffff', fontWeight: 'bold'
-                });
-                const group1 = new fabric.Group([mainBldg, mainText], { left: 150, top: 120 });
-                group1.customType = '本館棟';
-                group1.customLabel = '本館棟 (管理・集会)';
-
-                // Parking Stamp
-                const parkRect = new fabric.Rect({
-                    left: 120, top: 300, width: 280, height: 100,
-                    fill: '#10b981', rx: 6, ry: 6, stroke: '#047857', strokeWidth: 2
-                });
-                const parkText = new fabric.Text('来庁者駐車場 (50台)', {
-                    left: 150, top: 340, fontSize: 13, fill: '#ffffff', fontWeight: 'bold'
-                });
-                const group2 = new fabric.Group([parkRect, parkText], { left: 120, top: 300 });
-                group2.customType = '駐車場';
-                group2.customLabel = '来庁者駐車場 (50台)';
-
-                this.canvas.add(group1, group2);
-                this.canvas.renderAll();
-            }
-
-            resizeCanvasToContainer() {
-                const wrapper = document.getElementById('canvas-wrapper');
-                if (!wrapper || !this.canvas) return;
-                const containerWidth = Math.min(wrapper.parentElement.clientWidth - 32, 650);
-                const containerHeight = Math.min(window.innerHeight * 0.55, 480);
-                
-                this.canvas.setDimensions({ width: containerWidth, height: containerHeight });
-                this.canvas.calcOffset();
-                this.canvas.renderAll();
-            }
-
-            addCanvasShape(type) {
-                let rectColor = '#4f46e5', labelText = '新棟';
-                if (type === 'hall') { rectColor = '#6366f1'; labelText = 'ホール・講堂'; }
-                else if (type === 'parking') { rectColor = '#10b981'; labelText = '駐車場ゾーン'; }
-                else if (type === 'greenery') { rectColor = '#22c55e'; labelText = '緑地・広場'; }
-                else if (type === 'road') { rectColor = '#64748b'; labelText = 'アクセス道路'; }
-                else if (type === 'entrance') { rectColor = '#f59e0b'; labelText = 'メイン出入口'; }
-
-                const rect = new fabric.Rect({
-                    left: 0, top: 0, width: 140, height: 90,
-                    fill: rectColor, rx: 6, ry: 6, stroke: '#ffffff', strokeWidth: 2
-                });
-                const text = new fabric.Text(labelText, {
-                    left: 15, top: 35, fontSize: 12, fill: '#ffffff', fontWeight: 'bold'
-                });
-                const group = new fabric.Group([rect, text], { left: 50 + Math.random() * 50, top: 50 + Math.random() * 50 });
-                group.customType = type;
-                group.customLabel = labelText;
-
-                this.canvas.add(group);
-                this.canvas.setActiveObject(group);
-                this.canvas.renderAll();
-                this.showToast(`${labelText} を配置しました`);
-            }
-
-            onObjectSelected(obj) {
-                this.selectedObject = obj;
-                const panel = document.getElementById('selected-object-panel');
-                panel.classList.remove('hidden');
-                document.getElementById('selected-obj-type').innerText = obj.customType || 'オブジェクト';
-                
-                // Get label from internal text if group
-                let currentLbl = obj.customLabel || '';
-                if (obj.type === 'group' && obj._objects && obj._objects[1]) {
-                    currentLbl = obj._objects[1].text || currentLbl;
-                }
-                document.getElementById('obj-label-input').value = currentLbl;
-            }
-
-            onObjectCleared() {
-                this.selectedObject = null;
-                document.getElementById('selected-object-panel').classList.add('hidden');
-            }
-
-            updateSelectedLabel(newVal) {
-                if (!this.selectedObject) return;
-                this.selectedObject.customLabel = newVal;
-                if (this.selectedObject.type === 'group' && this.selectedObject._objects && this.selectedObject._objects[1]) {
-                    this.selectedObject._objects[1].set({ text: newVal });
-                    this.canvas.renderAll();
-                }
-            }
-
-            bringForward() {
-                if (!this.selectedObject) return;
-                this.canvas.bringForward(this.selectedObject);
-                this.canvas.renderAll();
-                this.showToast('前面へ移動しました');
-            }
-
-            deleteSelectedObject() {
-                if (!this.selectedObject) return;
-                this.canvas.remove(this.selectedObject);
-                this.canvas.discardActiveObject();
-                this.canvas.renderAll();
-                this.onObjectCleared();
-                this.showToast('オブジェクトを削除しました');
-            }
-
-            clearCanvas() {
-                if (confirm('配置図上のすべてのオブジェクトをクリアしますか？')) {
-                    this.canvas.clear();
-                    this.canvas.setBackgroundColor('#f8fafc', () => this.canvas.renderAll());
-                    this.onObjectCleared();
-                    this.showToast('キャンバスをクリアしました');
-                }
-            }
-
-            downloadCanvasImage() {
-                const dataURL = this.canvas.toDataURL({ format: 'png', quality: 1.0 });
-                const link = document.createElement('a');
-                link.download = 'public_facility_layout.png';
-                link.href = dataURL;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                this.showToast('レイアウト画像をダウンロードしました');
-            }
-
-            toggleSidebarMobile() {
-                const body = document.getElementById('sidebar-body');
-                const icon = document.getElementById('sidebar-toggle-icon');
-                body.classList.toggle('hidden');
-                icon.classList.toggle('fa-chevron-up');
-                icon.classList.toggle('fa-chevron-down');
-            }
-
-            // Summary Data Calculation
-            updateSummaryData() {
-                const totalRooms = this.rooms.length;
-                const totalArea = this.rooms.reduce((sum, r) => sum + Number(r.area), 0);
-                const totalCost = totalArea * 38; // 380,000 JPY per m²
-
-                document.getElementById('summary-total-rooms').innerText = `${totalRooms} 室`;
-                document.getElementById('summary-total-area').innerText = `${totalArea.toLocaleString()} m²`;
-                document.getElementById('summary-total-cost').innerText = `${totalCost.toLocaleString()} 万円`;
-
-                // Category Breakdown
-                const catMap = {};
-                this.rooms.forEach(r => {
-                    catMap[r.category] = (catMap[r.category] || 0) + Number(r.area);
-                });
-
-                let catHtml = '';
-                for (const [cat, area] of Object.entries(catMap)) {
-                    const ratio = totalArea > 0 ? Math.round((area / totalArea) * 100) : 0;
-                    catHtml += `
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center text-sm">
-                            <span class="font-semibold text-slate-700">${cat}</span>
-                            <div class="flex items-center space-x-3">
-                                <span class="font-mono text-slate-600">${area} m² (${ratio}%)</span>
-                                <div class="w-24 bg-slate-200 h-2 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="bg-indigo-600 h-full rounded-full" style="width: ${ratio}%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                document.getElementById('summary-category-breakdown').innerHTML = catHtml;
-            }
-
-            // Export Project JSON
-            exportProject() {
-                const projectData = {
-                    rooms: this.rooms,
-                    memo: document.getElementById('summary-memo-input')?.value || '',
-                    timestamp: new Date().toISOString()
-                };
-                const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.download = 'public_facility_concept_data.json';
-                link.href = url;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                this.showToast('プロジェクトデータをエクスポートしました');
-            }
-
-            resetAll() {
-                if (confirm('すべてのデータ（諸室・レイアウト）を初期状態にリセットしますか？')) {
-                    localStorage.clear();
-                    location.reload();
-                }
-            }
-
-            // Toast Notification
-            showToast(message, type = 'success') {
-                const toast = document.getElementById('toast');
-                const msgEl = document.getElementById('toast-message');
-                const iconEl = document.getElementById('toast-icon');
-
-                msgEl.innerText = message;
-                if (type === 'error') {
-                    iconEl.className = 'fa-solid fa-circle-exclamation text-rose-400';
-                } else {
-                    iconEl.className = 'fa-solid fa-circle-check text-emerald-400';
-                }
-
-                toast.classList.remove('translate-y-20', 'opacity-0');
-                setTimeout(() => {
-                    toast.classList.add('translate-y-20', 'opacity-0');
-                }, 3000);
-            }
-
-            setupEventListeners() {
-                // Prevent accidental mobile zoom glitches on touch inputs if any
-            }
+            });
         }
 
-        // Initialize App on Load
-        let app;
-        window.onload = () => {
-            app = new PublicFacilityPlanner();
+        document.getElementById('langSelect').addEventListener('change', (e) => {
+            updateLanguage(e.target.value);
+            showToast('言語を切り替えました / Language changed');
+        });
+
+        // --- 2. Dark Mode Toggle ---
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            if (document.documentElement.classList.contains('dark')) {
+                themeIcon.className = "fa-solid fa-sun text-amber-400";
+                document.body.className = "bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-colors duration-200";
+            } else {
+                themeIcon.className = "fa-solid fa-moon text-slate-600";
+                document.body.className = "bg-slate-50 text-slate-800 min-h-screen flex flex-col transition-colors duration-200";
+            }
+        });
+
+        // --- 3. Tab Navigation Logic ---
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.getAttribute('data-tab');
+
+                tabBtns.forEach(b => {
+                    b.className = "tab-btn flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-medium text-sm transition flex items-center justify-center space-x-2 text-slate-600 hover:bg-slate-100";
+                });
+                btn.className = "tab-btn flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-medium text-sm transition flex items-center justify-center space-x-2 bg-blue-600 text-white shadow-sm";
+
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                const activeContent = document.getElementById(`content-${targetTab}`);
+                if (activeContent) {
+                    activeContent.classList.remove('hidden');
+                    // If layout tab is activated, re-render Fabric canvas to fix dimensions
+                    if (targetTab === 'layout' && window.siteCanvasInstance) {
+                        setTimeout(() => {
+                            resizeCanvas();
+                        }, 50);
+                    }
+                }
+            });
+        });
+
+        // --- 4. Room Management (State & UI) ---
+        let roomsData = [
+            { id: 1, dept: "1階 管理・窓口部門", name: "総合受付・エントランスホール", area: 350, count: 1 },
+            { id: 2, dept: "1階 管理・窓口部門", name: "市民窓口カウンター", area: 280, count: 1 },
+            { id: 3, dept: "2階 文化・交流部門", name: "多目的ホール (客席収納式)", area: 850, count: 1 },
+            { id: 4, dept: "2階 文化・交流部門", name: "市民ギャラリー・展示ロビー", area: 200, count: 2 },
+            { id: 5, dept: "3階 子育て・福祉部門", name: "子育て世代活動支援センター", area: 320, count: 1 },
+            { id: 6, dept: "3階 子育て・福祉部門", name: "多世代交流サロン・図書コーナー", area: 400, count: 1 },
+            { id: 7, dept: "地下・共用部門", name: "機械室・電気室・防災備蓄倉庫", area: 450, count: 3 }
+        ];
+
+        let currentViewMode = 'table'; // 'table' or 'card'
+
+        function renderRooms() {
+            const tbody = document.getElementById('roomsTableBody');
+            const cardContainer = document.getElementById('cardViewContainer');
+            tbody.innerHTML = '';
+            cardContainer.innerHTML = '';
+
+            let totalAreaSum = 0;
+
+            roomsData.forEach(room => {
+                const subtotal = room.area * room.count;
+                totalAreaSum += subtotal;
+
+                // Table Row
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition";
+                tr.innerHTML = `
+                    <td class="p-3.5 text-xs font-medium text-slate-600">${room.dept}</td>
+                    <td class="p-3.5 font-semibold text-slate-900">${room.name}</td>
+                    <td class="p-3.5 text-right font-mono">${room.area.toLocaleString()} m²</td>
+                    <td class="p-3.5 text-center font-mono">${room.count}</td>
+                    <td class="p-3.5 text-right font-mono font-bold text-blue-600">${subtotal.toLocaleString()} m²</td>
+                    <td class="p-3.5 text-center">
+                        <button onclick="deleteRoom(${room.id})" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="削除">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Card Item
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-3 hover:border-blue-400 transition";
+                card.innerHTML = `
+                    <div>
+                        <span class="inline-block px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full mb-2">${room.dept}</span>
+                        <h4 class="font-bold text-slate-900 text-base">${room.name}</h4>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100">
+                        <div>
+                            <span class="text-slate-400 block" data-i18n="th_area">単室面積</span>
+                            <span class="font-mono font-medium text-slate-700">${room.area.toLocaleString()} m²</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block" data-i18n="th_count">数量</span>
+                            <span class="font-mono font-medium text-slate-700">${room.count}</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-xs text-slate-400 block" data-i18n="th_subtotal">小計面積</span>
+                            <span class="font-mono font-bold text-blue-600 text-sm">${subtotal.toLocaleString()} m²</span>
+                        </div>
+                        <button onclick="deleteRoom(${room.id})" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-medium transition flex items-center space-x-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>削除</span>
+                        </button>
+                    </div>
+                `;
+                cardContainer.appendChild(card);
+            });
+
+            // Update Total Displays
+            document.getElementById('tableTotalArea').textContent = totalAreaSum.toLocaleString() + " m²";
+            document.getElementById('totalAreaDisplay').textContent = totalAreaSum.toLocaleString() + " m²";
+        }
+
+        window.deleteRoom = function(id) {
+            roomsData = roomsData.filter(r => r.id !== id);
+            renderRooms();
+            showToast('諸室データを削除しました');
+        };
+
+        // View Mode Toggle (Table vs Card)
+        const viewTableBtn = document.getElementById('viewTableBtn');
+        const viewCardBtn = document.getElementById('viewCardBtn');
+        const tableViewContainer = document.getElementById('tableViewContainer');
+        const cardViewContainer = document.getElementById('cardViewContainer');
+
+        viewTableBtn.addEventListener('click', () => {
+            currentViewMode = 'table';
+            viewTableBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-blue-600 shadow-xs transition flex items-center space-x-1";
+            viewCardBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center space-x-1";
+            tableViewContainer.classList.remove('hidden');
+            cardViewContainer.classList.add('hidden');
+        });
+
+        viewCardBtn.addEventListener('click', () => {
+            currentViewMode = 'card';
+            viewCardBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-blue-600 shadow-xs transition flex items-center space-x-1";
+            viewTableBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center space-x-1";
+            cardViewContainer.classList.remove('hidden');
+            tableViewContainer.classList.add('hidden');
+        });
+
+        // Room Modal Logic
+        const roomModal = document.getElementById('roomModal');
+        const openAddRoomModal = document.getElementById('openAddRoomModal');
+        const closeRoomModal = document.getElementById('closeRoomModal');
+        const cancelRoomModal = document.getElementById('cancelRoomModal');
+        const roomForm = document.getElementById('roomForm');
+
+        openAddRoomModal.addEventListener('click', () => roomModal.classList.remove('hidden'));
+        closeRoomModal.addEventListener('click', () => roomModal.classList.add('hidden'));
+        cancelRoomModal.addEventListener('click', () => roomModal.classList.add('hidden'));
+
+        roomForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const dept = document.getElementById('modalDept').value;
+            const name = document.getElementById('modalName').value;
+            const area = parseFloat(document.getElementById('modalArea').value);
+            const count = parseInt(document.getElementById('modalCount').value);
+
+            const newRoom = {
+                id: Date.now(),
+                dept,
+                name,
+                area,
+                count
+            };
+
+            roomsData.push(newRoom);
+            renderRooms();
+            roomModal.classList.add('hidden');
+            roomForm.reset();
+            showToast('新しい諸室を追加しました');
+        });
+
+        // --- 5. Fabric.js Interactive Canvas Implementation ---
+        let canvas;
+        function initCanvas() {
+            const containerWidth = Math.min(window.innerWidth - 64, 800);
+            const containerHeight = 450;
+
+            canvas = new fabric.Canvas('siteCanvas', {
+                width: containerWidth,
+                height: containerHeight,
+                backgroundColor: '#f8fafc',
+                selection: true
+            });
+
+            window.siteCanvasInstance = canvas;
+
+            // Draw initial site boundary grid/rect
+            const siteBoundary = new fabric.Rect({
+                left: 50,
+                top: 40,
+                width: containerWidth - 100,
+                height: containerHeight - 80,
+                fill: '#f1f5f9',
+                stroke: '#cbd5e1',
+                strokeWidth: 2,
+                strokeDashArray: [5, 5],
+                rx: 12,
+                ry: 12,
+                selectable: false,
+                evented: false
+            });
+            canvas.add(siteBoundary);
+
+            // Add default Main Building shape
+            addShapeToCanvas('本館棟 (Main Bldg)', 180, 100, 220, 140, '#2563eb', 'building');
+            // Add default Parking shape
+            addShapeToCanvas('駐車場 (Parking)', 440, 100, 160, 100, '#475569', 'parking');
+            // Add default Green area
+            addShapeToCanvas('緑地広場 (Green)', 180, 260, 220, 110, '#16a34a', 'green');
+
+            updateCanvasObjCount();
+
+            canvas.on('object:added', updateCanvasObjCount);
+            canvas.on('object:removed', updateCanvasObjCount);
+        }
+
+        function addShapeToCanvas(label, left, top, width, height, color, type) {
+            let shape;
+            if (type === 'green') {
+                shape = new fabric.Rect({
+                    left: left,
+                    top: top,
+                    width: width,
+                    height: height,
+                    fill: color,
+                    rx: 20,
+                    ry: 20,
+                    opacity: 0.85
+                });
+            } else if (type === 'parking') {
+                shape = new fabric.Rect({
+                    left: left,
+                    top: top,
+                    width: width,
+                    height: height,
+                    fill: color,
+                    rx: 6,
+                    ry: 6,
+                    opacity: 0.9
+                });
+            } else {
+                shape = new fabric.Rect({
+                    left: left,
+                    top: top,
+                    width: width,
+                    height: height,
+                    fill: color,
+                    rx: 8,
+                    ry: 8,
+                    shadow: 'rgba(0,0,0,0.15) 0px 4px 12px',
+                    opacity: 0.95
+                });
+            }
+
+            const text = new fabric.Text(label, {
+                fontSize: 14,
+                fontFamily: 'Inter, sans-serif',
+                fill: '#ffffff',
+                fontWeight: 'bold',
+                originX: 'center',
+                originY: 'center',
+                left: left + width / 2,
+                top: top + height / 2
+            });
+
+            const group = new fabric.Group([shape, text], {
+                left: left,
+                top: top,
+                subTargetCheck: false
+            });
+
+            canvas.add(group);
+            canvas.setActiveObject(group);
+            canvas.renderAll();
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            const parent = canvas.lowerCanvasEl.parentElement;
+            if (!parent) return;
+            const newWidth = Math.min(parent.clientWidth - 16, 800);
+            canvas.setDimensions({ width: newWidth, height: 450 });
+            canvas.renderAll();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function updateCanvasObjCount() {
+            if (!canvas) return;
+            const count = canvas.getObjects().filter(obj => obj.type === 'group').length;
+            document.getElementById('canvasObjCount').textContent = `配置要素数: ${count}`;
+        }
+
+        // Canvas Toolbar Event Listeners
+        document.getElementById('addMainBuilding').addEventListener('click', () => {
+            addShapeToCanvas('増設棟 / 別館', 100, 120, 180, 120, '#1d4ed8', 'building');
+            showToast('本館棟を追加しました');
+        });
+
+        document.getElementById('addParking').addEventListener('click', () => {
+            addShapeToCanvas('臨時駐車場', 320, 240, 150, 90, '#334155', 'parking');
+            showToast('駐車場を追加しました');
+        });
+
+        document.getElementById('addGreenery').addEventListener('click', () => {
+            addShapeToCanvas('ビオトープ・庭園', 120, 280, 200, 100, '#15803d', 'green');
+            showToast('緑地ゾーンを追加しました');
+        });
+
+        document.getElementById('addRoad').addEventListener('click', () => {
+            addShapeToCanvas('アクセス道路', 300, 80, 220, 50, '#d97706', 'parking');
+            showToast('アクセス道路を追加しました');
+        });
+
+        document.getElementById('bringForward').addEventListener('click', () => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.bringForward(activeObj);
+                canvas.renderAll();
+                showToast('前面へ移動しました');
+            } else {
+                showToast('オブジェクトを選択してください');
+            }
+        });
+
+        document.getElementById('sendBackward').addEventListener('click', () => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.sendBackwards(activeObj);
+                canvas.renderAll();
+                showToast('背面へ移動しました');
+            } else {
+                showToast('オブジェクトを選択してください');
+            }
+        });
+
+        document.getElementById('deleteSelected').addEventListener('click', () => {
+            const activeObjs = canvas.getActiveObjects();
+            if (activeObjs.length > 0) {
+                activeObjs.forEach(obj => {
+                    if (obj !== canvas.getObjects()[0]) { // Don't delete background boundary
+                        canvas.remove(obj);
+                    }
+                });
+                canvas.discardActiveObject();
+                canvas.renderAll();
+                showToast('選択項目を削除しました');
+            } else {
+                showToast('削除する項目を選択してください');
+            }
+        });
+
+        document.getElementById('clearCanvas').addEventListener('click', () => {
+            if (confirm('配置したすべての要素をクリアしますか？')) {
+                const objs = canvas.getObjects();
+                // Keep only index 0 (boundary)
+                for (let i = objs.length - 1; i > 0; i--) {
+                    canvas.remove(objs[i]);
+                }
+                canvas.renderAll();
+                showToast('キャンバスをクリアしました');
+            }
+        });
+
+        // --- 6. Export Functionality (PDF, Excel, CSV, Text) ---
+
+        // PDF Export using jsPDF
+        document.getElementById('exportPdfBtn').addEventListener('click', () => {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const projName = document.getElementById('projName').value;
+                const projLocation = document.getElementById('projLocation').value;
+                const projYear = document.getElementById('projYear').value;
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.text("Public Facility Basic Concept Report", 14, 20);
+
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Project Name: ${projName}`, 14, 32);
+                doc.text(`Planned Location: ${projLocation}`, 14, 40);
+                doc.text(`Target Year: ${projYear}`, 14, 48);
+
+                doc.line(14, 55, 196, 55);
+
+                doc.setFont("helvetica", "bold");
+                doc.text("Room Requirements & Area Summary:", 14, 65);
+
+                let y = 75;
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text("Department", 14, y);
+                doc.text("Room Name", 70, y);
+                doc.text("Area", 150, y);
+                doc.text("Subtotal", 175, y);
+
+                y += 6;
+                doc.setFont("helvetica", "normal");
+                let totalArea = 0;
+
+                roomsData.forEach(r => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    const sub = r.area * r.count;
+                    totalArea += sub;
+                    doc.text(r.dept.substring(0, 22), 14, y);
+                    doc.text(r.name.substring(0, 32), 70, y);
+                    doc.text(`${r.area} m2`, 150, y);
+                    doc.text(`${sub} m2`, 175, y);
+                    y += 8;
+                });
+
+                y += 5;
+                doc.setFont("helvetica", "bold");
+                doc.text(`Total Gross Floor Area: ${totalArea.toLocaleString()} m2`, 14, y);
+
+                doc.save("facility_basic_concept_report.pdf");
+                showToast('PDFレポートを出力しました');
+            } catch (err) {
+                console.error(err);
+                showToast('PDF出力に失敗しました');
+            }
+        });
+
+        // Excel Export using SheetJS
+        document.getElementById('exportExcelBtn').addEventListener('click', () => {
+            try {
+                const excelData = roomsData.map(r => ({
+                    "部門": r.dept,
+                    "諸室名称": r.name,
+                    "単室面積 (m²)": r.area,
+                    "数量": r.count,
+                    "小計面積 (m²)": r.area * r.count
+                }));
+
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "必要諸室計画");
+
+                XLSX.writeFile(workbook, "facility_room_requirements.xlsx");
+                showToast('Excelワークシートを出力しました');
+            } catch (err) {
+                console.error(err);
+                showToast('Excel出力に失敗しました');
+            }
+        });
+
+        // CSV Export
+        document.getElementById('exportCsvBtn').addEventListener('click', () => {
+            try {
+                let csvContent = "\uFEFF部門,諸室名称,単室面積(m2),数量,小計面積(m2)\n";
+                roomsData.forEach(r => {
+                    csvContent += `"${r.dept}","${r.name}",${r.area},${r.count},${r.area * r.count}\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "facility_room_requirements.csv";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast('CSVデータを出力しました');
+            } catch (err) {
+                console.error(err);
+                showToast('CSV出力に失敗しました');
+            }
+        });
+
+        // Text Export / Copy
+        document.getElementById('exportTxtBtn').addEventListener('click', () => {
+            try {
+                const projName = document.getElementById('projName').value;
+                const projLocation = document.getElementById('projLocation').value;
+                const projYear = document.getElementById('projYear').value;
+                const projBudget = document.getElementById('projBudget').value;
+
+                let totalArea = roomsData.reduce((acc, r) => acc + (r.area * r.count), 0);
+
+                let text = `【公共施設基本構想サマリー】\n`;
+                text += `■ プロジェクト名称: ${projName}\n`;
+                text += `■ 建設予定地: ${projLocation}\n`;
+                text += `■ 目標開設年度: ${projYear}\n`;
+                text += `■ 概算事業費目安: ${projBudget}\n`;
+                text += `■ 総延床面積目安: ${totalArea.toLocaleString()} m²\n\n`;
+                text += `【必要諸室リスト】\n`;
+                roomsData.forEach((r, i) => {
+                    text += `${i+1}. [${r.dept}] ${r.name} - ${r.area}m² × ${r.count} = ${r.area * r.count}m²\n`;
+                });
+
+                // Copy to clipboard
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                showToast('テキスト要約をクリップボードにコピーしました');
+            } catch (err) {
+                console.error(err);
+                showToast('テキストコピーに失敗しました');
+            }
+        });
+
+        // --- 7. Toast Notification Helper ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // --- Initialization on Window Load ---
+        window.onload = function() {
+            renderRooms();
+            initCanvas();
         };
     </script>
 </body>
