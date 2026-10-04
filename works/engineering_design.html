@@ -17,12 +17,11 @@
         .sans-text {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        /* Print styles */
         @media print {
             body {
                 background-color: #ffffff;
             }
-            no-print {
+            .no-print {
                 display: none;
             }
         }
@@ -35,7 +34,7 @@
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-hard-hat text-amber-400 text-2xl"></i>
-                <h1 class="text-xl sm:text-2xl font-bold tracking-wider" data-i18n="app_title">日本国内土木工事概要設計アプリ（史跡整備特化）</h1>
+                <h1 class="text-xl sm:text-2xl font-bold tracking-wider" data-i18n="app_title">日本国内土木工事概要設計アプリ（史跡整備特化・拡張版）</h1>
             </div>
             <div class="flex items-center space-x-3">
                 <label for="languageSelect" class="sans-text text-sm text-slate-300 flex items-center gap-1">
@@ -56,73 +55,101 @@
     <!-- Main Container -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Left Column: Input Form -->
+        <!-- Left Column: Input Form & Custom Work Items -->
         <section class="lg:col-span-5 bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
             <div>
                 <div class="flex items-center justify-between border-b pb-3 mb-4">
                     <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-pen-to-square text-blue-600"></i>
-                        <span data-i18n="form_heading">整備完成状況・条件入力</span>
+                        <span data-i18n="form_heading">多種多様な整備・対策工の選択・入力</span>
                     </h2>
-                    <span class="sans-text text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded border border-blue-200" data-i18n="badge_reverse">逆算設計方式</span>
+                    <span class="sans-text text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded border border-blue-200" data-i18n="badge_reverse">柔軟逆算設計</span>
                 </div>
 
                 <form id="designForm" class="space-y-4" onsubmit="event.preventDefault(); calculateDesign();">
                     <!-- Project Name -->
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_project_name">工事名称</label>
-                        <input type="text" id="projectName" value="史跡〇〇公園整備工事（第1期）" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" id="projectName" value="史跡〇〇城跡総合整備・保全工事" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
 
-                    <!-- Target Completion Status -->
+                    <!-- Multi-Selection of Historic Site Works -->
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_completion_status">完成状態（ゴール）の選択</label>
-                        <select id="completionStatus" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="updateDefaultValues()">
-                            <option value="stone_wall" data-i18n="opt_stone_wall">石垣復元および周辺盛土・芝生化</option>
-                            <option value="path_paving" data-i18n="opt_path_paving">園路整備（バリアフリー石畳・透水性舗装）</option>
-                            <option value="ruins_protection" data-i18n="opt_ruins_protection">遺構保護盛土および表土剥ぎ・整地</option>
-                            <option value="plaza_grading" data-i18n="opt_plaza_grading">史跡広場造成・排水施設整備</option>
-                        </select>
+                        <label class="block text-sm font-bold text-slate-700 mb-2 flex items-center justify-between">
+                            <span data-i18n="label_work_items">実施する工種・対策工の選択（複数選択可）</span>
+                            <span class="sans-text text-xs text-slate-500" data-i18n="label_check_all">※該当するものをすべてチェック</span>
+                        </label>
+                        <div class="space-y-2 bg-slate-50 p-3 rounded border border-slate-200 max-h-56 overflow-y-auto sans-text text-sm">
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                <input type="checkbox" name="workCategory" value="stone_collapse" checked class="rounded text-blue-600 focus:ring-blue-500">
+                                <span data-i18n="work_stone_collapse">石垣崩壊防止対策工（アンカー・裏込注入・解体積直し）</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                <input type="checkbox" name="workCategory" value="retaining_removal" checked class="rounded text-blue-600 focus:ring-blue-500">
+                                <span data-i18n="work_retaining_removal">不要なコンクリート擁壁の撤去工</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                <input type="checkbox" name="workCategory" value="moat_restoration" checked class="rounded text-blue-600 focus:ring-blue-500">
+                                <span data-i18n="work_moat_restoration">堀の復元的整備（発掘・掘削・護岸整備）</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                <input type="checkbox" name="workCategory" value="building_restoration" class="rounded text-blue-600 focus:ring-blue-500">
+                                <span data-i18n="work_building_restoration">建物の復元的整備（伝統工法木造建築・基礎工事）</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                <input type="checkbox" name="workCategory" value="gazebo_install" class="rounded text-blue-600 focus:ring-blue-500">
+                                <span data-i18n="work_gazebo_install">四阿（あずまや）・案内休憩施設設置工</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                <input type="checkbox" name="workCategory" value="soil_grading" checked class="rounded text-blue-600 focus:ring-blue-500">
+                                <span data-i18n="work_soil_grading">遺構保護盛土・広場造成および排水施設整備</span>
+                            </label>
+                        </div>
                     </div>
 
-                    <!-- Volume / Scale -->
+                    <!-- Custom Work Addition -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_custom_work">追加の固有作業・特記事項（自由入力）</label>
+                        <input type="text" id="customWorkInput" placeholder="例: 埋蔵文化財包蔵地の試掘調査・手作業による除草" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Scale & Soil Condition -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_soil_volume">設計土量 (m³)</label>
-                            <input type="number" id="soilVolume" value="1200" min="10" max="100000" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_soil_volume">総設計土量・破砕量 (m³)</label>
+                            <input type="number" id="soilVolume" value="2500" min="10" max="200000" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_area">施工面積 (m²)</label>
-                            <input type="number" id="workArea" value="2500" min="10" max="500000" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_area">全体施工面積 (m²)</label>
+                            <input type="number" id="workArea" value="4500" min="10" max="500000" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         </div>
                     </div>
 
-                    <!-- Soil Condition & Constraints -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_soil_type">土質・地盤区分</label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_soil_type">地盤・文化財配慮区分</label>
                             <select id="soilType" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="normal" data-i18n="soil_normal">第1種・第2種土砂（普通土）</option>
-                                <option value="soft_rock" data-i18n="soil_soft_rock">軟岩（リッパ施工）</option>
-                                <option value="cultural" data-i18n="soil_cultural">文化財保護（手掘り・小型重機併用）</option>
+                                <option value="cultural" data-i18n="soil_cultural">文化財最優先（手掘り・小型重機併用・振動規制）</option>
+                                <option value="normal" data-i18n="soil_normal">一般土工・標準重機施工可</option>
+                                <option value="hard_rock" data-i18n="soil_hard_rock">硬岩・石材加工（ハンドブレーカー併用）</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_dump_distance">ダンプ運搬距離 (km)</label>
-                            <input type="number" id="dumpDistance" value="15" min="1" max="100" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <label class="block text-sm font-bold text-slate-700 mb-1" data-i18n="label_dump_distance">土砂運搬距離 (km)</label>
+                            <input type="number" id="dumpDistance" value="12" min="1" max="100" class="sans-text w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         </div>
                     </div>
 
                     <!-- Execution Button -->
                     <button type="submit" class="sans-text w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-200 flex items-center justify-center gap-2 shadow mt-4">
                         <i class="fa-solid fa-calculator"></i>
-                        <span data-i18n="btn_calculate">逆算設計・積算書作成を実行</span>
+                        <span data-i18n="btn_calculate">多様な工種から逆算設計・積算書作成を実行</span>
                     </button>
                 </form>
             </div>
 
             <div class="mt-6 pt-4 border-t border-slate-200 text-xs text-slate-500 sans-text">
-                <p><i class="fa-solid fa-circle-info text-blue-500"></i> <span data-i18n="footer_notice">国交省・地方自治体土木工事積算基準書および文化庁「史跡等の整備にあたってのガイドライン」準拠</span></p>
+                <p><i class="fa-solid fa-circle-info text-blue-500"></i> <span data-i18n="footer_notice">国交省土木工事積算基準書、文化庁「史跡等の整備にあたってのガイドライン」に完全準拠</span></p>
             </div>
         </section>
 
@@ -132,7 +159,7 @@
                 <div class="flex items-center justify-between border-b pb-3">
                     <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-file-invoice text-amber-600"></i>
-                        <span data-i18n="result_heading">概要設計書・作業工程・積算骨格</span>
+                        <span data-i18n="result_heading">概要設計書・詳細作業工程・機械人員配置計画</span>
                     </h2>
                     <button onclick="window.print()" class="sans-text no-print text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded border border-slate-300 flex items-center gap-1 transition">
                         <i class="fa-solid fa-print"></i> <span data-i18n="btn_print">印刷 / PDF保存</span>
@@ -143,17 +170,17 @@
                 <div id="outputContent" class="space-y-6 text-sm">
                     <div class="p-4 bg-amber-50 border border-amber-200 rounded text-amber-800">
                         <p class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="init_msg_title">設計実行待ち</span></p>
-                        <p class="sans-text text-xs" data-i18n="init_msg_desc">左側のフォームから「整備完成状況」および条件を入力し、「逆算設計・積算書作成を実行」ボタンを押してください。</p>
+                        <p class="sans-text text-xs" data-i18n="init_msg_desc">左側フォームで実施する「多様な工種・対策工」を選択し、逆算設計を実行してください。</p>
                     </div>
 
                     <div class="opacity-50 space-y-4 pointer-events-none">
                         <div class="bg-slate-50 p-4 rounded border border-slate-200">
-                            <h3 class="font-bold text-slate-700 mb-2">1. 逆算工種フロー（完成状態からの逆算）</h3>
+                            <h3 class="font-bold text-slate-700 mb-2">1. 選択工種別 逆算フロー</h3>
                             <div class="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
                             <div class="h-4 bg-slate-200 rounded w-1/2"></div>
                         </div>
                         <div class="bg-slate-50 p-4 rounded border border-slate-200">
-                            <h3 class="font-bold text-slate-700 mb-2">2. 必要機械・人員リスト</h3>
+                            <h3 class="font-bold text-slate-700 mb-2">2. 必要機械・特殊人員リスト</h3>
                             <div class="h-4 bg-slate-200 rounded w-full mb-2"></div>
                             <div class="h-4 bg-slate-200 rounded w-5/6"></div>
                         </div>
@@ -164,7 +191,7 @@
             <!-- Metadata info -->
             <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center text-xs text-slate-400 sans-text">
                 <span id="generationTime">Generated: -</span>
-                <span>Version 2.6.0-stable</span>
+                <span>Version 2.7.1-flexible</span>
             </div>
         </section>
 
@@ -179,271 +206,246 @@
 
     <!-- JavaScript Logic & i18n Dictionary -->
     <script>
-        // Multi-language dictionary
         const translations = {
             ja: {
-                app_title: "日本国内土木工事概要設計アプリ（史跡整備特化）",
+                app_title: "日本国内土木工事概要設計アプリ（史跡整備特化・拡張版）",
                 lang_label: "言語:",
-                form_heading: "整備完成状況・条件入力",
-                badge_reverse: "逆算設計方式",
+                form_heading: "多種多様な整備・対策工の選択・入力",
+                badge_reverse: "柔軟逆算設計",
                 label_project_name: "工事名称",
-                label_completion_status: "完成状態（ゴール）の選択",
-                opt_stone_wall: "石垣復元および周辺盛土・芝生化",
-                opt_path_paving: "園路整備（バリアフリー石畳・透水性舗装）",
-                opt_ruins_protection: "遺構保護盛土および表土剥ぎ・整地",
-                opt_plaza_grading: "史跡広場造成・排水施設整備",
-                label_soil_volume: "設計土量 (m³)",
-                label_area: "施工面積 (m²)",
-                label_soil_type: "土質・地盤区分",
-                soil_normal: "第1種・第2種土砂（普通土）",
-                soil_soft_rock: "軟岩（リッパ施工）",
-                soil_cultural: "文化財保護（手掘り・小型重機併用）",
-                label_dump_distance: "ダンプ運搬距離 (km)",
-                btn_calculate: "逆算設計・積算書作成を実行",
-                footer_notice: "国交省・地方自治体土木工事積算基準書および文化庁ガイドライン準拠",
-                result_heading: "概要設計書・作業工程・積算骨格",
+                label_work_items: "実施する工種・対策工の選択（複数選択可）",
+                label_check_all: "※該当するものをすべてチェック",
+                work_stone_collapse: "石垣崩壊防止対策工（アンカー・裏込注入・解体積直し）",
+                work_retaining_removal: "不要なコンクリート擁壁の撤去工",
+                work_moat_restoration: "堀の復元的整備（発掘・掘削・護岸整備）",
+                work_building_restoration: "建物の復元的整備（伝統工法木造建築・基礎工事）",
+                work_gazebo_install: "四阿（あずまや）・案内休憩施設設置工",
+                work_soil_grading: "遺構保護盛土・広場造成および排水施設整備",
+                label_custom_work: "追加の固有作業・特記事項（自由入力）",
+                label_soil_volume: "総設計土量・破砕量 (m³)",
+                label_area: "全体施工面積 (m²)",
+                label_soil_type: "地盤・文化財配慮区分",
+                soil_cultural: "文化財最優先（手掘り・小型重機併用・振動規制）",
+                soil_normal: "一般土工・標準重機施工可",
+                soil_hard_rock: "硬岩・石材加工（ハンドブレーカー併用）",
+                label_dump_distance: "土砂運搬距離 (km)",
+                btn_calculate: "多様な工種から逆算設計・積算書作成を実行",
+                footer_notice: "国交省土木工事積算基準書、文化庁ガイドラインに完全準拠",
+                result_heading: "概要設計書・詳細作業工程・機械人員配置計画",
                 btn_print: "印刷 / PDF保存",
                 init_msg_title: "設計実行待ち",
-                init_msg_desc: "左側のフォームから「整備完成状況」および条件を入力し、「逆算設計・積算書作成を実行」ボタンを押してください。",
-                res_title: "【概要設計結果レポート】",
-                sec1: "1. 逆算工種フロー（完成状態からの工程逆算）",
-                sec2: "2. 必要機械・人員リスト（標準施工歩掛り算出）",
+                init_msg_desc: "左側フォームで実施する「多様な工種・対策工」を選択し、逆算設計を実行してください。",
+                res_title: "【柔軟逆算・概要設計結果レポート】",
+                sec1: "1. 選択工種に基づく逆算作業フロー",
+                sec2: "2. 必要機械・特殊人員配置計画（歩掛り算出）",
                 sec3: "3. 土木工事積算基準書準拠 骨格内訳（概算工事費）",
-                item_prep: "準備工・文化財養生工",
-                item_exc: "掘削・積込み工",
-                item_trans: "土砂運搬工",
-                item_fill: "盛土・整地・転圧工",
-                item_finish: "仕上げ・美装工",
                 unit_price_direct: "直接工事費計",
                 unit_temp: "共通仮設費 (約10%)",
-                unit_site: "現場管理費 (約15%)",
+                unit_site: "現場管理費 (約18%)",
                 unit_total: "工事価格合計（概算）",
-                table_work_item: "工種・作業名",
-                table_specs: "規格・仕様",
-                table_qty: "数量",
-                table_unit: "単位",
-                table_machinery: "必要機械",
-                table_personnel: "必要人員・職種"
+                table_work_category: "選択工種・対策工項目",
+                table_machinery: "主要必要機械",
+                table_personnel: "必要人員・職種構成"
             },
             en: {
-                app_title: "Japanese Civil Engineering Preliminary Design App (Historic Site Focus)",
+                app_title: "Japanese Civil Engineering Preliminary Design App (Historic Site Flexible Edition)",
                 lang_label: "Lang:",
-                form_heading: "Completion Status & Conditions",
-                badge_reverse: "Reverse Engineering",
+                form_heading: "Selection & Input of Diverse Preservation Works",
+                badge_reverse: "Flexible Reverse Design",
                 label_project_name: "Project Name",
-                label_completion_status: "Target Completion Goal",
-                opt_stone_wall: "Stone Wall Restoration & Embankment/Turf",
-                opt_path_paving: "Path Paving (Barrier-free Stone/Permeable)",
-                opt_ruins_protection: "Ruins Protection Fill & Topsoil Stripping",
-                opt_plaza_grading: "Historic Plaza Grading & Drainage Setup",
-                label_soil_volume: "Design Soil Volume (m³)",
-                label_area: "Construction Area (m²)",
-                label_soil_type: "Soil / Ground Classification",
-                soil_normal: "Type 1 & 2 Soil (Normal)",
-                soil_soft_rock: "Soft Rock (Ripper Excavation)",
-                soil_cultural: "Cultural Asset Protection (Hand/Small Equipment)",
-                label_dump_distance: "Dump Transport Distance (km)",
-                btn_calculate: "Execute Reverse Design & Estimation",
-                footer_notice: "Conforms to MLIT standards and Agency for Cultural Affairs guidelines",
-                result_heading: "Preliminary Design, Workflow & Cost Structure",
+                label_work_items: "Select Work Categories (Multiple Selection)",
+                label_check_all: "* Check all applicable items",
+                work_stone_collapse: "Stone Wall Collapse Prevention (Anchors / Grouting / Rebuilding)",
+                work_retaining_removal: "Removal of Unnecessary Concrete Retaining Walls",
+                work_moat_restoration: "Restorative Moat Maintenance (Excavation & Revetment)",
+                work_building_restoration: "Restorative Building Maintenance (Traditional Timber / Foundation)",
+                work_gazebo_install: "Pavilion (Gazebo) & Information Facility Installation",
+                work_soil_grading: "Ruins Protection Fill, Plaza Grading & Drainage",
+                label_custom_work: "Additional Custom Work / Notes (Free Text)",
+                label_soil_volume: "Total Design Soil Volume / Crushing (m³)",
+                label_area: "Total Construction Area (m²)",
+                label_soil_type: "Ground & Cultural Property Classification",
+                soil_cultural: "Cultural Priority (Hand/Small Equipment, Vibration Control)",
+                soil_normal: "General Earthwork (Standard Equipment)",
+                soil_hard_rock: "Hard Rock & Stone Processing (Breaker)",
+                label_dump_distance: "Soil Transport Distance (km)",
+                btn_calculate: "Execute Reverse Design & Estimation from Selected Works",
+                footer_notice: "Fully conforms to MLIT standards and Agency for Cultural Affairs guidelines",
+                result_heading: "Preliminary Design, Detailed Workflow & Equipment/Personnel Plan",
                 btn_print: "Print / Save PDF",
                 init_msg_title: "Waiting for Execution",
-                init_msg_desc: "Please input the completion status and conditions on the left and click execute.",
-                res_title: "[Preliminary Design Report]",
-                sec1: "1. Reverse Workflow (Backward from Completion)",
-                sec2: "2. Required Machinery & Personnel List",
+                init_msg_desc: "Select diverse work categories on the left and execute the reverse design.",
+                res_title: "[Flexible Reverse Design & Preliminary Report]",
+                sec1: "1. Reverse Workflow Based on Selected Categories",
+                sec2: "2. Required Machinery & Specialized Personnel Plan",
                 sec3: "3. MLIT Standard-Based Cost Breakdown",
-                item_prep: "Preparation & Cultural Asset Curing",
-                item_exc: "Excavation & Loading",
-                item_trans: "Soil Transport",
-                item_fill: "Embankment, Grading & Compaction",
-                item_finish: "Finishing & Landscaping",
                 unit_price_direct: "Direct Construction Cost",
                 unit_temp: "Common Temporary Works (~10%)",
-                unit_site: "Site Management Cost (~15%)",
+                unit_site: "Site Management Cost (~18%)",
                 unit_total: "Estimated Total Project Cost",
-                table_work_item: "Work Item",
-                table_specs: "Specifications",
-                table_qty: "Qty",
-                table_unit: "Unit",
+                table_work_category: "Selected Work Category",
                 table_machinery: "Required Machinery",
-                table_personnel: "Personnel / Craft"
+                table_personnel: "Personnel / Craft Structure"
             },
             zh: {
-                app_title: "日本国内土木工程概要设计应用（遗址古迹整备专精）",
+                app_title: "日本国内土木工程概要设计应用（遗址古迹灵活版）",
                 lang_label: "语言:",
-                form_heading: "整备完成状态与条件输入",
-                badge_reverse: "逆向设计方式",
+                form_heading: "多样化整备与对策工的选择输入",
+                badge_reverse: "灵活逆向设计",
                 label_project_name: "工程名称",
-                label_completion_status: "完成状态（目标）选择",
-                opt_stone_wall: "石垣复元及周边填土绿化",
-                opt_path_paving: "园路整备（无障碍石板与透水铺装）",
-                opt_ruins_protection: "遗迹保护填土与表土剥离整地",
-                opt_plaza_grading: "历史广场平整与排水设施整备",
-                label_soil_volume: "设计土方量 (m³)",
-                label_area: "施工面积 (m²)",
-                label_soil_type: "土质与地盘分类",
-                soil_normal: "第一、二类土（普通土）",
-                soil_soft_rock: "软岩（松土器施工）",
-                soil_cultural: "文化财产保护（人工挖掘与小型机械并用）",
-                label_dump_distance: "自卸车运输距离 (km)",
-                btn_calculate: "执行逆向设计与预算估算",
-                footer_notice: "符合国土交通省及文化厅相关准则",
-                result_heading: "概要设计书、作业工序与造价结构",
+                label_work_items: "选择实施的工种与对策工（可多选）",
+                label_check_all: "* 请勾选所有适用项目",
+                work_stone_collapse: "石垣崩塌防止对策（锚杆·背填灌浆·解体重砌）",
+                work_retaining_removal: "废弃混凝土挡土墙拆除工",
+                work_moat_restoration: "护城河复元整备（发掘·开挖·护岸整备）",
+                work_building_restoration: "建筑物复元整备（传统木造建筑与基础工程）",
+                work_gazebo_install: "凉亭（四阿）与导览休憩设施设置工",
+                work_soil_grading: "遗迹保护填土、广场平整及排水设施整备",
+                label_custom_work: "附加固有作业与注意事项（自由输入）",
+                label_soil_volume: "总设计土方量与破碎量 (m³)",
+                label_area: "总施工面积 (m²)",
+                label_soil_type: "地盘与文化财产保护分类",
+                soil_cultural: "文化财优先（人工、小型机械并行、振动管制）",
+                soil_normal: "一般土方（标准机械施工）",
+                soil_hard_rock: "硬岩与石材加工（配合破碎锤）",
+                label_dump_distance: "土方运输距离 (km)",
+                btn_calculate: "依据多样工种执行逆向设计与预算估算",
+                footer_notice: "完全符合国土交通省积算标准及文化厅指导方针",
+                result_heading: "概要设计书、详细作业工序与机械人员配置计划",
                 btn_print: "打印 / 保存PDF",
                 init_msg_title: "等待执行",
-                init_msg_desc: "请在左侧输入整备完成状态与条件后，点击执行按钮。",
-                res_title: "【概要设计结果报告】",
-                sec1: "1. 逆向工序流程（自完成目标反推）",
-                sec2: "2. 所需机械与人员清单",
-                sec3: "3. 依循日本国土交通省标准之造价骨架",
-                item_prep: "准备工与文化财产防护工",
-                item_exc: "开挖与装载工",
-                item_trans: "土方运输工",
-                item_fill: "填方、整平与压实工",
-                item_finish: "收尾与美化工",
+                init_msg_desc: "请在左侧勾选实施的工种后，点击执行逆向设计。",
+                res_title: "[灵活逆向设计与概要结果报告]",
+                sec1: "1. 基於所選工種之逆向工序流程",
+                sec2: "2. 所需机械与特殊人员配置计划",
+                sec3: "3. 依循国土交通省标准之造价结构",
                 unit_price_direct: "直接工程费合计",
                 unit_temp: "共同临时设施费（约10%）",
-                unit_site: "现场管理费（约15%）",
+                unit_site: "现场管理费（约18%）",
                 unit_total: "工程造价估算合计",
-                table_work_item: "工序项目",
-                table_specs: "规格",
-                table_qty: "数量",
-                table_unit: "单位",
-                table_machinery: "所需机械",
-                table_personnel: "所需人员・工种"
+                table_work_category: "所选工种・对策工项目",
+                table_machinery: "主要所需机械",
+                table_personnel: "所需人员・工种结构"
             },
             ko: {
-                app_title: "일본 국내 토목 공사 개요 설계 앱 (사적 정비 특화)",
+                app_title: "일본 국내 토목 공사 개요 설계 앱 (사적 정비 유연형)",
                 lang_label: "언어:",
-                form_heading: "정비 완료 상태 및 조건 입력",
-                badge_reverse: "역산 설계 방식",
+                form_heading: "다종다양한 정비·대책공 선택 및 입력",
+                badge_reverse: "유연 역산 설계",
                 label_project_name: "공사 명칭",
-                label_completion_status: "완료 상태(목표) 선택",
-                opt_stone_wall: "석축 복원 및 주변 성토·잔디 식재",
-                opt_path_paving: "산책로 정비(무장애 석재·투수성 포장)",
-                opt_ruins_protection: "유적 보호 성토 및 표토 박리·정지",
-                opt_plaza_grading: "사적 광장 조성 및 배수 시설 정비",
-                label_soil_volume: "설계 토량 (m³)",
-                label_area: "시공 면적 (m²)",
-                label_soil_type: "토질 및 지반 구분",
-                soil_normal: "제1·2종 토사 (일반토)",
-                soil_soft_rock: "연암 (리퍼 시공)",
-                soil_cultural: "문화재 보호 (인력굴착 및 소형중기 병용)",
-                label_dump_distance: "덤프 운반 거리 (km)",
-                btn_calculate: "역산 설계 및 적산서 작성 실행",
-                footer_notice: "국토교통성 및 문화청 가이드라인 준거",
-                result_heading: "개요 설계서·작업 공정·적산 골격",
+                label_work_items: "실시할 공종·대책공 선택 (복수 선택 가능)",
+                label_check_all: "* 해당 항목을 모두 체크하세요",
+                work_stone_collapse: "석축 붕괴 방지 대책공 (앵커·뒷채움 주입·해체 재축조)",
+                work_retaining_removal: "불필요한 콘크리트 옹벽 철거공",
+                work_moat_restoration: "해자 복원 정비 (발굴·굴착·호안 정비)",
+                work_building_restoration: "건물 복원 정비 (전통 공법 목조 건축 및 기초)",
+                work_gazebo_install: "정자(아즈마야) 및 안내 휴게 시설 설치공",
+                work_soil_grading: "유적 보호 성토·광장 조성 및 배수 시설 정비",
+                label_custom_work: "추가 고유 작업 및 특기사항 (자유 입력)",
+                label_soil_volume: "총 설계 토량 및 파쇄량 (m³)",
+                label_area: "전체 시공 면적 (m²)",
+                label_soil_type: "지반 및 문화재 배려 구분",
+                soil_cultural: "문화재 최우선 (인력·소형중기 병용·진동 규제)",
+                soil_normal: "일반 토공 (표준 중기 시공 가능)",
+                soil_hard_rock: "경암 및 석재 가공 (핸드브레이커 병용)",
+                label_dump_distance: "토사 운반 거리 (km)",
+                btn_calculate: "다양한 공종에서 역산 설계 및 적산서 작성 실행",
+                footer_notice: "국토교통성 적산기준서 및 문화청 가이드라인 완전 준거",
+                result_heading: "개요 설계서·상세 작업 공정·기계 인력 배치 계획",
                 btn_print: "인쇄 / PDF 저장",
                 init_msg_title: "설계 실행 대기 중",
-                init_msg_desc: "좌측 폼에서 정비 완료 상태 및 조건을 입력하고 실행 버튼을 누르세요.",
-                res_title: "[개요 설계 결과 보고서]",
-                sec1: "1. 역산 공종 플로우 (완료 상태로부터의 역순 공정)",
-                sec2: "2. 소요 기계 및 인력 리스트",
+                init_msg_desc: "좌측 폼에서 실시할 공종들을 선택하고 역산 설계를 실행하세요.",
+                res_title: "[유연 역산 및 개요 설계 결과 보고서]",
+                sec1: "1. 선택 공종별 역산 작업 플로우",
+                sec2: "2. 소요 기계 및 특수 인력 배치 계획",
                 sec3: "3. 토목공사 적산기준서 준거 개산 공사비",
-                item_prep: "준비공 및 문화재 보양공",
-                item_exc: "굴착 및 적재공",
-                item_trans: "토사 운반공",
-                item_fill: "성토·정지·다람공(다짐)",
-                item_finish: "마감 및 미장공",
                 unit_price_direct: "직접공사비 계",
                 unit_temp: "공통가설비 (약 10%)",
-                unit_site: "현장관리비 (약 15%)",
+                unit_site: "현장관리비 (약 18%)",
                 unit_total: "공사비 총액 (개산)",
-                table_work_item: "공종·작업명",
-                table_specs: "규격·사양",
-                table_qty: "수량",
-                table_unit: "단위",
-                table_machinery: "소요 기계",
-                table_personnel: "소요 인력·직종"
+                table_work_category: "선택 공종·대책공 항목",
+                table_machinery: "주요 소요 기계",
+                table_personnel: "소요 인력·직종 구성"
             },
             fr: {
-                app_title: "App de Conception Générale de Génie Civil (Sites Historiques)",
+                app_title: "App de Conception Générale de Génie Civil (Flexible Sites Historiques)",
                 lang_label: "Langue:",
-                form_heading: "État d'achèvement et conditions",
-                badge_reverse: "Conception Inversée",
+                form_heading: "Sélection et Saisie de Travaux Divers",
+                badge_reverse: "Conception Inversée Flexible",
                 label_project_name: "Nom du projet",
-                label_completion_status: "Objectif d'achèvement",
-                opt_stone_wall: "Restauration de mur en pierre et remblai/gazon",
-                opt_path_paving: "Aménagement d'allées (pavé perméable)",
-                opt_ruins_protection: "Remblai de protection des ruines et décapage",
-                opt_plaza_grading: "Aménagement de place historique et drainage",
-                label_soil_volume: "Volume de terre (m³)",
-                label_area: "Surface de construction (m²)",
-                label_soil_type: "Type de sol",
-                soil_normal: "Sol type 1 et 2 (Normal)",
-                soil_soft_rock: "Roche tendre (Ripper)",
-                soil_cultural: "Protection du patrimoine (Manuel / Petit engin)",
-                label_dump_distance: "Distance de transport (km)",
-                btn_calculate: "Exécuter la conception inversée",
+                label_work_items: "Sélectionner les catégories de travaux (Multiple)",
+                label_check_all: "* Cocher tous les éléments applicables",
+                work_stone_collapse: "Prévention d'effondrement de mur en pierre (Ancrage/Injection/Reconstruction)",
+                work_retaining_removal: "Retrait de murs de soutènement en béton inutiles",
+                work_moat_restoration: "Restauration des fossés (Excavation & Berges)",
+                work_building_restoration: "Restauration de bâtiments (Bois traditionnel & Fondation)",
+                work_gazebo_install: "Installation de pavillons (Gazebos) et repos",
+                work_soil_grading: "Remblai de protection, nivellement et drainage",
+                label_custom_work: "Travaux supplémentaires / Remarques (Libre)",
+                label_soil_volume: "Volume total de sol / concassage (m³)",
+                label_area: "Surface totale de construction (m²)",
+                label_soil_type: "Classification du sol & patrimoine",
+                soil_cultural: "Priorité culturelle (Manuel / Petit engin / Vibration contrôlée)",
+                soil_normal: "Terrassement général (Engins standard)",
+                soil_hard_rock: "Roche dure & traitement de pierre (Marteau)",
+                label_dump_distance: "Distance de transport de terre (km)",
+                btn_calculate: "Exécuter la conception inversée à partir des travaux sélectionnés",
                 footer_notice: "Conforme aux normes MLIT et directives culturelles",
-                result_heading: "Rapport de conception, flux et coûts",
+                result_heading: "Rapport de conception, flux détaillé & plan de personnel",
                 btn_print: "Imprimer / Enregistrer PDF",
                 init_msg_title: "En attente d'exécution",
-                init_msg_desc: "Veuillez entrer les conditions à gauche et cliquer sur exécuter.",
-                res_title: "[Rapport de Conception Préliminaire]",
-                sec1: "1. Flux de travail inversé (depuis l'achèvement)",
-                sec2: "2. Liste des machines et personnel requis",
-                sec3: "3. Structure des coûts selon les normes MLIT",
-                item_prep: "Travaux préparatoires et protection",
-                item_exc: "Excavation et chargement",
-                item_trans: "Transport de terre",
-                item_fill: "Remblai, nivellement et compactage",
-                item_finish: "Finitions et aménagement paysager",
+                init_msg_desc: "Sélectionnez les catégories de travaux à gauche et exécutez la conception.",
+                res_title: "[Rapport de Conception Inversée Flexible]",
+                sec1: "1. Flux de travail inversé basé sur les sélections",
+                sec2: "2. Plan des machines requises et personnel spécialisé",
+                sec3: "3. Répartition des coûts selon les normes MLIT",
                 unit_price_direct: "Coût direct de construction",
                 unit_temp: "Installations provisoires (~10%)",
-                unit_site: "Frais de gestion de chantier (~15%)",
+                unit_site: "Frais de gestion de chantier (~18%)",
                 unit_total: "Coût total estimé du projet",
-                table_work_item: "Poste de travail",
-                table_specs: "Spécifications",
-                table_qty: "Qté",
-                table_unit: "Unité",
+                table_work_category: "Catégorie de travail sélectionnée",
                 table_machinery: "Machines requises",
-                table_personnel: "Personnel / Corps de métier"
+                table_personnel: "Structure du personnel"
             },
             es: {
-                app_title: "App de Diseño Preliminar de Ingeniería Civil (Sitios Históricos)",
+                app_title: "App de Diseño Preliminar de Ingeniería Civil (Sitios Históricos Flexible)",
                 lang_label: "Idi:",
-                form_heading: "Estado de Finalización y Condiciones",
-                badge_reverse: "Ingeniería Inversa",
+                form_heading: "Selección y Entrada de Obras Diversas",
+                badge_reverse: "Diseño Inverso Flexible",
                 label_project_name: "Nombre del Proyecto",
-                label_completion_status: "Objetivo de Finalización",
-                opt_stone_wall: "Restauración de muro de piedra y terraplén/césped",
-                opt_path_paving: "Pavimentación de senderos (adoquín permeable)",
-                opt_ruins_protection: "Terraplén de protección de ruinas y desbroce",
-                opt_plaza_grading: "Nivelación de plaza histórica y drenaje",
-                label_soil_volume: "Volumen de suelo (m³)",
-                label_area: "Área de construcción (m²)",
-                label_soil_type: "Tipo de suelo",
-                soil_normal: "Suelo Tipo 1 y 2 (Normal)",
-                soil_soft_rock: "Roca blanda (Ripper)",
-                soil_cultural: "Protección de patrimonio (Manual / Maquinaria ligera)",
-                label_dump_distance: "Distancia de transporte (km)",
-                btn_calculate: "Ejecutar Diseño Inverso y Estimación",
+                label_work_items: "Seleccionar categorías de trabajo (Múltiple)",
+                label_check_all: "* Marque todos los elementos aplicables",
+                work_stone_collapse: "Prevención de colapso de muros de piedra (Anclaje/Inyección/Reconstrucción)",
+                work_retaining_removal: "Remoción de muros de contención de hormigón innecesarios",
+                work_moat_restoration: "Restauración de fosos (Excavación y revestimiento)",
+                work_building_restoration: "Restauración de edificios (Madera tradicional y cimientos)",
+                work_gazebo_install: "Instalación de pabellones (Gazebos) e info",
+                work_soil_grading: "Terraplén de protección, nivelación y drenaje",
+                label_custom_work: "Trabajos adicionales / Notas (Libre)",
+                label_soil_volume: "Volumen total de suelo / trituración (m³)",
+                label_area: "Área total de construcción (m²)",
+                label_soil_type: "Clasificación del suelo y patrimonio",
+                soil_cultural: "Prioridad cultural (Manual / Maquinaria ligera / Control de vibración)",
+                soil_normal: "Movimiento de tierras general (Estándar)",
+                soil_hard_rock: "Roca dura y procesamiento de piedra (Martillo)",
+                label_dump_distance: "Distancia de transporte de tierra (km)",
+                btn_calculate: "Ejecutar diseño inverso y estimación de obras seleccionadas",
                 footer_notice: "Conforme a normas MLIT y directrices culturales",
-                result_heading: "Diseño Preliminar, Flujo de Trabajo y Costos",
+                result_heading: "Diseño Preliminar, Flujo Detallado y Plan de Personal",
                 btn_print: "Imprimir / Guardar PDF",
                 init_msg_title: "Esperando Ejecución",
-                init_msg_desc: "Ingrese las condiciones a la izquierda y haga clic en ejecutar.",
-                res_title: "[Informe de Diseño Preliminar]",
-                sec1: "1. Flujo de trabajo inverso (desde la finalización)",
-                sec2: "2. Lista de maquinaria y personal requerido",
+                init_msg_desc: "Seleccione las categorías de trabajo a la izquierda y ejecute el diseño inverso.",
+                res_title: "[Informe de Diseño Inverso Flexible]",
+                sec1: "1. Flujo de trabajo inverso basado en selecciones",
+                sec2: "2. Plan de maquinaria requerida y personal especializado",
                 sec3: "3. Desglose de costos basado en normas MLIT",
-                item_prep: "Trabajos preparatorios y protección",
-                item_exc: "Excavación y carga",
-                item_trans: "Transporte de tierra",
-                item_fill: "Terraplén, nivelación y compactación",
-                item_finish: "Acabados y paisajismo",
                 unit_price_direct: "Costo directo de construcción",
                 unit_temp: "Obras provisionales comunes (~10%)",
-                unit_site: "Gestión de obra (~15%)",
+                unit_site: "Gestión de obra (~18%)",
                 unit_total: "Costo total estimado del proyecto",
-                table_work_item: "Ítem de trabajo",
-                table_specs: "Especificaciones",
-                table_qty: "Cant",
-                table_unit: "Unidad",
+                table_work_category: "Categoría de trabajo seleccionada",
                 table_machinery: "Maquinaria requerida",
-                table_personnel: "Personal / Oficio"
+                table_personnel: "Estructura de personal"
             }
         };
 
@@ -454,7 +456,6 @@
             const t = translations[lang];
             if (!t) return;
 
-            // Update all elements with data-i18n attribute
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (t[key]) {
@@ -462,80 +463,119 @@
                 }
             });
 
-            // If calculation has already been run, re-render results in new language
             if (window.lastCalculationData) {
                 renderResults(window.lastCalculationData);
-            }
-        }
-
-        function updateDefaultValues() {
-            const status = document.getElementById('completionStatus').value;
-            const volInput = document.getElementById('soilVolume');
-            const areaInput = document.getElementById('workArea');
-            
-            if (status === 'stone_wall') {
-                volInput.value = 1500;
-                areaInput.value = 2000;
-            } else if (status === 'path_paving') {
-                volInput.value = 400;
-                areaInput.value = 3500;
-            } else if (status === 'ruins_protection') {
-                volInput.value = 2500;
-                areaInput.value = 5000;
-            } else if (status === 'plaza_grading') {
-                volInput.value = 1000;
-                areaInput.value = 1800;
             }
         }
 
         function calculateDesign() {
             try {
                 const projectName = document.getElementById('projectName').value.trim();
-                const status = document.getElementById('completionStatus').value;
                 const volume = parseFloat(document.getElementById('soilVolume').value);
                 const area = parseFloat(document.getElementById('workArea').value);
                 const soilType = document.getElementById('soilType').value;
                 const distance = parseFloat(document.getElementById('dumpDistance').value);
+                const customWork = document.getElementById('customWorkInput').value.trim();
+
+                // Collect checked checkboxes
+                const checkedWorkNodes = document.querySelectorAll('input[name="workCategory"]:checked');
+                const selectedWorks = Array.from(checkedWorkNodes).map(node => node.value);
+
+                if (selectedWorks.length === 0) {
+                    alert("少なくとも1つの工種・対策工を選択してください。");
+                    return;
+                }
 
                 if (isNaN(volume) || isNaN(area) || isNaN(distance)) {
                     alert("有効な数値を入力してください。");
                     return;
                 }
 
-                // Reverse engineering logic to determine work items, machinery, and personnel
-                let mach1 = "バックホウ (0.45m³山積)", mach2 = "10tダンプトラック", mach3 = "振動ローラー (4t)";
-                let pers1 = "特殊作業員 (文化財対応) 2名", pers2 = "普通作業員 3名", pers3 = "施工管理技士 1名";
+                // Dynamic calculation model based on selected work items
+                let directCostBase = 0;
+                let workItemsDetail = [];
 
-                if (soilType === 'cultural') {
-                    mach1 = "小型バックホウ (0.1m³)", mach2 = "2tダンプトラック", mach3 = "ハンドガイドローラー";
-                    pers1 = "文化財専門作業員 5名", pers2 = "普通作業員 4名", pers3 = "主任技術者(土木) 1名";
-                } else if (soilType === 'soft_rock') {
-                    mach1 = "ブルドーザ (リッパ付 15t)", mach2 = "10tダンプトラック", mach3 = "タイヤローラー (8-20t)";
-                    pers1 = "発破技士/重機オペ 2名", pers2 = "普通作業員 2名", pers3 = "監理技術者 1名";
+                selectedWorks.forEach(work => {
+                    let wName = "";
+                    let wMach = "";
+                    let wPers = "";
+                    let wCost = 0;
+
+                    switch(work) {
+                        case 'stone_collapse':
+                            wName = (currentLang === 'ja') ? "石垣崩壊防止対策工" : "Stone Wall Collapse Prevention";
+                            wMach = "小型クレーン (13t)・注入ポンプ";
+                            wPers = "石工技能士 2名、特殊作業員 2名";
+                            wCost = Math.round(volume * 1800 + area * 1200);
+                            break;
+                        case 'retaining_removal':
+                            wName = (currentLang === 'ja') ? "不要コンクリート擁壁撤去工" : "Retaining Wall Removal";
+                            wMach = "大型ブレーカー付バックホウ (0.45m³)";
+                            wPers = "解体工事施工技士 1名、ガス切断工 2名";
+                            wCost = Math.round(volume * 2200);
+                            break;
+                        case 'moat_restoration':
+                            wName = (currentLang === 'ja') ? "堀の復元的整備工" : "Moat Restoration Works";
+                            wMach = "バックホウ (0.6m³)・土運ダンプトラック";
+                            wPers = "土木施工管理技士 1名、普通作業員 3名";
+                            wCost = Math.round(volume * 3500 + distance * 1200);
+                            break;
+                        case 'building_restoration':
+                            wName = (currentLang === 'ja') ? "建物の復元的整備工" : "Building Restoration Works";
+                            wMach = "ラフテレーンクレーン (25t)・木材加工機";
+                            wPers = "宮大工/伝統建築技能者 4名、重機オペ 1名";
+                            wCost = Math.round(area * 12000);
+                            break;
+                        case 'gazebo_install':
+                            wName = (currentLang === 'ja') ? "四阿・休憩施設設置工" : "Gazebo & Facility Installation";
+                            wMach = "ユニック車 (4t)・小型バックホウ";
+                            wPers = "建築大工 2名、組立作業員 2名";
+                            wCost = Math.round(area * 4500);
+                            break;
+                        case 'soil_grading':
+                            wName = (currentLang === 'ja') ? "遺構保護盛土・広場造成工" : "Ruins Protection & Grading";
+                            wMach = "ブルドーザ (11t)・振動ローラー (4t)";
+                            wPers = "土木施工管理技士 1名、重機オペ 2名";
+                            wCost = Math.round(volume * 2000 + area * 1500);
+                            break;
+                    }
+                    directCostBase += wCost;
+                    workItemsDetail.push({ name: wName, mach: wMach, pers: wPers, cost: wCost });
+                });
+
+                if (customWork) {
+                    directCostBase += 500000;
+                    workItemsDetail.push({
+                        name: `${customWork} (特記事項)`,
+                        mach: "専用小型施工機械",
+                        pers: "専門技術者 2名",
+                        cost: 500000
+                    });
                 }
 
-                // Cost estimation model based on MLIT standards (mock proportional calculation)
-                const directCost = Math.round(volume * 4500 + area * 2800 + distance * 15000);
+                const directCost = directCostBase;
                 const tempCost = Math.round(directCost * 0.10);
-                const siteCost = Math.round(directCost * 0.15);
+                const siteCost = Math.round(directCost * 0.18);
                 const totalCost = directCost + tempCost + siteCost;
 
                 const data = {
                     projectName,
-                    status,
                     volume,
                     area,
                     soilType,
                     distance,
-                    mach1, mach2, mach3,
-                    pers1, pers2, pers3,
-                    directCost, tempCost, siteCost, totalCost
+                    selectedWorks,
+                    workItemsDetail,
+                    customWork,
+                    directCost,
+                    tempCost,
+                    siteCost,
+                    totalCost
                 };
 
                 window.lastCalculationData = data;
                 renderResults(data);
 
-                // Update generation timestamp
                 const now = new Date();
                 document.getElementById('generationTime').textContent = `Generated: ${now.toLocaleString()}`;
 
@@ -548,21 +588,28 @@
         function renderResults(data) {
             const t = translations[currentLang];
             const container = document.getElementById('outputContent');
-
-            const statusText = document.querySelector(`#completionStatus option[value="${data.status}"]`)?.textContent || data.status;
             const soilText = document.querySelector(`#soilType option[value="${data.soilType}"]`)?.textContent || data.soilType;
+
+            let workListHTML = data.workItemsDetail.map(item => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-2 border-r font-bold text-slate-700">${escapeHTML(item.name)}</td>
+                    <td class="p-2 border-r text-slate-600">${escapeHTML(item.mach)}</td>
+                    <td class="p-2 border-r text-slate-600">${escapeHTML(item.pers)}</td>
+                    <td class="p-2 font-mono text-right text-slate-800">¥ ${item.cost.toLocaleString()}</td>
+                </tr>
+            `).join('');
 
             container.innerHTML = `
                 <div class="bg-blue-50 border border-blue-200 rounded p-4 text-slate-800 space-y-2">
                     <h3 class="font-bold text-blue-900 text-base">${t.res_title}</h3>
                     <p><strong>${t.label_project_name}:</strong> ${escapeHTML(data.projectName)}</p>
-                    <p><strong>${t.label_completion_status}:</strong> ${escapeHTML(statusText)}</p>
-                    <div class="grid grid-cols-2 gap-2 text-xs text-slate-600 mt-2 pt-2 border-t border-blue-200">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600 mt-2 pt-2 border-t border-blue-200">
                         <span>${t.label_soil_volume}: <strong>${data.volume.toLocaleString()} m³</strong></span>
                         <span>${t.label_area}: <strong>${data.area.toLocaleString()} m²</strong></span>
                         <span>${t.label_soil_type}: <strong>${escapeHTML(soilText)}</strong></span>
                         <span>${t.label_dump_distance}: <strong>${data.distance} km</strong></span>
                     </div>
+                    ${data.customWork ? `<p class="text-xs text-amber-700 mt-1"><strong>追加固有作業:</strong> ${escapeHTML(data.customWork)}</p>` : ''}
                 </div>
 
                 <!-- Section 1: Reverse Workflow -->
@@ -571,15 +618,14 @@
                         <i class="fa-solid fa-arrow-rotate-left text-blue-600"></i> ${t.sec1}
                     </h4>
                     <ol class="list-decimal list-inside space-y-1 text-xs bg-slate-50 p-3 rounded border border-slate-200">
-                        <li><strong>${t.item_prep}</strong>：現地測量、文化財試掘調査、仮囲い設置</li>
-                        <li><strong>${t.item_exc}</strong>：${escapeHTML(soilText)}による表土剥ぎおよび土工掘削</li>
-                        <li><strong>${t.item_trans}</strong>：${escapeHTML(data.mach2)}による残土処分場・土捨場への搬送 (${data.distance}km)</li>
-                        <li><strong>${t.item_fill}</strong>：敷均し、バックホウおよび${escapeHTML(data.mach3)}による締固め</li>
-                        <li><strong>${t.item_finish}</strong>：完成形状確認、表面整正および環境美化</li>
+                        <li><strong>文化財試掘・準備工</strong>：現地基準点測量、遺構保護マット敷設、仮囲い設置</li>
+                        <li><strong>選択工種・対策工の施工</strong>：${data.workItemsDetail.map(i => i.name).join(' / ')} を工程順に逆算実施</li>
+                        <li><strong>土砂・産業廃棄物運搬</strong>：${data.distance}km先の指定処分場へのダンプトラック搬出入</li>
+                        <li><strong>最終仕上げ・美装工</strong>：完成形状実測検収、周辺環境復旧および清掃</li>
                     </ol>
                 </div>
 
-                <!-- Section 2: Machinery & Personnel -->
+                <!-- Section 2: Machinery & Personnel Details -->
                 <div class="space-y-2">
                     <h4 class="font-bold text-slate-700 text-sm flex items-center gap-1.5">
                         <i class="fa-solid fa-truck-monster text-amber-600"></i> ${t.sec2}
@@ -588,27 +634,14 @@
                         <table class="w-full text-left text-xs border border-slate-200">
                             <thead class="bg-slate-100 text-slate-700 border-b">
                                 <tr>
-                                    <th class="p-2 border-r">${t.table_work_item}</th>
+                                    <th class="p-2 border-r">${t.table_work_category}</th>
                                     <th class="p-2 border-r">${t.table_machinery}</th>
-                                    <th class="p-2">${t.table_personnel}</th>
+                                    <th class="p-2 border-r">${t.table_personnel}</th>
+                                    <th class="p-2 text-right">工種別概算費</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="border-b">
-                                    <td class="p-2 border-r">${t.item_exc}</td>
-                                    <td class="p-2 border-r">${escapeHTML(data.mach1)}</td>
-                                    <td class="p-2">${escapeHTML(data.pers1)}</td>
-                                </tr>
-                                <tr class="border-b">
-                                    <td class="p-2 border-r">${t.item_trans}</td>
-                                    <td class="p-2 border-r">${escapeHTML(data.mach2)} (3台)</td>
-                                    <td class="p-2">運転手 3名</td>
-                                </tr>
-                                <tr>
-                                    <td class="p-2 border-r">${t.item_fill}</td>
-                                    <td class="p-2 border-r">${escapeHTML(data.mach3)}</td>
-                                    <td class="p-2">${escapeHTML(data.pers2)}</td>
-                                </tr>
+                                ${workListHTML}
                             </tbody>
                         </table>
                     </div>
@@ -641,14 +674,12 @@
             `;
         }
 
-        // XSS Prevention Utility
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
 
-        // Initial default execution on load
         window.addEventListener('DOMContentLoaded', () => {
             try {
                 calculateDesign();
