@@ -2,60 +2,6 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <!-- スマホでの拡大縮小による座標ズレを防ぐため、user-scalable=no を指定 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>公共施設基本構想アプリ - Public Facility Basic Concept Planner</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Fabric.js for Advanced Canvas Layout Editor (v5.3.1 supports touch events) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/531/fabric.min.js"></script>
-    <!-- SheetJS (xlsx) for Table Export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- jsPDF for Vector PDF Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <style>
-        /* システムフォントおよびMS明朝指定（文字化け・フォント崩れ防止） */
-        body {
-            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent; /* スマホタップ時の青いハイライトを消す */
-        }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        /* スマホ向けキャンバス最適化設定 */
-        .canvas-container {
-            margin: 0 auto;
-            touch-action: none; /* スマホでのスワイプ・スクロール干渉を防止 */
-        }
-        /* スクロール領域の確保 */
-        .scrollable-x {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
-
-    <!-- Header -->
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex items-center space-x-2">
-                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10スマートフォンのブラウザ環境（iOS Safari、Android Chromeなど）において、Fabric.jsのキャンバス要素がタッチイベントを正しく取得できていない（スクロールイベントと競合している）、および非表示タブから切り替えた際の座標ズレが原因と推測されます。
-
-この課題を根本的に解決するため、以下の改善を行った完全なHTMLコードを作成しました。
-
-1. **タッチイベントの競合排除**: キャンバスのラッパーに `touch-action: none;` と `user-select: none;` を付与し、さらに `<meta viewport>` で `maximum-scale=1.0, user-scalable=no` を指定することで、ピンチズームやブラウザのスクロール処理によるタッチ操作の妨害を完全に遮断しました。
-2. **座標（Offset）の動的再計算**: タブ切り替え時や画面リサイズ時に `canvas.calcOffset()` とリサイズ関数を強制実行し、スマホの画面幅に合わせてキャンバス座標を正確にマッピングし直す処理を実装しました。
-3. **ボタン・UIの堅牢化**: スマホの狭い画面でも押しやすいようボタンサイズを調整し、確実な `onclick` バインディングと `try-catch` によるエラーハンドリングを徹底しました。
-
-以下が完成した単一HTMLファイルです。
-
-```html
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
     <!-- スマホでの誤作動（ズームや意図しないスクロール）を防ぎ、タッチ操作を安定させるための必須設定 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>公共施設基本構想アプリ - Public Facility Basic Concept Planner</title>
