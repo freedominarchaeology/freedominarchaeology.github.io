@@ -1,1221 +1,1221 @@
-<!DOCTYPE html>  
-<html lang="ja">  
-<head>  
-<meta charset="UTF-8">  
-<meta name="viewport" content="width=device-width, initial-scale=1.0">  
-<title>出勤日・機械稼働管理システム（発注者・現場提出用）</title>  
-<style>  
-/* --- Pure CSS Base Styles --- */  
-* { box-sizing: border-box; margin: 0; padding: 0; }  
-body {  
-  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;  
-  background-color: #f0f2f5;  
-  color: #1a1a1a;  
-  line-height: 1.5;  
-  padding: 10px;  
-}  
-.container {  
-  max-width: 1200px;  
-  margin: 0 auto;  
-  background-color: #ffffff;  
-  border: 1px solid #ccc;  
-  padding: 15px;  
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);  
-}  
-header {  
-  border-bottom: 2px solid #333;  
-  padding-bottom: 10px;  
-  margin-bottom: 15px;  
-  display: flex;  
-  justify-content: space-between;  
-  align-items: center;  
-  flex-wrap: wrap;  
-  gap: 10px;  
-}  
-h1 { font-size: 1.4rem; font-weight: bold; }  
-.header-actions {  
-  display: flex;  
-  align-items: center;  
-  gap: 10px;  
-  flex-wrap: wrap;  
-}  
-select, input, button, textarea {  
-  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;  
-  font-size: 0.95rem;  
-  padding: 5px 8px;  
-  border: 1px solid #777;  
-  border-radius: 2px;  
-  background-color: #fff;  
-}  
-button {  
-  background-color: #e1e1e1;  
-  color: #000;  
-  cursor: pointer;  
-  border: 1px solid #666;  
-  padding: 6px 12px;  
-  font-weight: bold;  
-}  
-button:hover { background-color: #d0d0d0; }  
-button.primary { background-color: #2b579a; color: #fff; border-color: #1b365d; }  
-button.primary:hover { background-color: #1b365d; }  
-button.danger { background-color: #a80000; color: #fff; border-color: #780000; }  
-button.danger:hover { background-color: #780000; }  
-button.success { background-color: #107c41; color: #fff; border-color: #0b502a; }  
-button.success:hover { background-color: #0b502a; }  
-  
-/* Tabs */  
-.nav-tabs {  
-  display: flex;  
-  border-bottom: 1px solid #000;  
-  margin-bottom: 15px;  
-  background-color: #f9f9f9;  
-  flex-wrap: wrap;  
-}  
-.tab-btn {  
-  padding: 8px 16px;  
-  border: 1px solid #ccc;  
-  border-bottom: none;  
-  background-color: #eaeaea;  
-  margin-right: 4px;  
-  border-radius: 4px 4px 0 0;  
-  cursor: pointer;  
-}  
-.tab-btn.active {  
-  background-color: #fff;  
-  border-top: 3px solid #2b579a;  
-  border-bottom: 1px solid #fff;  
-  font-weight: bold;  
-  margin-bottom: -1px;  
-}  
-.tab-content { display: none; }  
-.tab-content.active { display: block; }  
-  
-/* Forms & Grid */  
-.panel {  
-  border: 1px solid #ccc;  
-  padding: 12px;  
-  margin-bottom: 15px;  
-  background-color: #fafafa;  
-}  
-.panel-title {  
-  font-weight: bold;  
-  border-bottom: 1px dashed #aaa;  
-  padding-bottom: 5px;  
-  margin-bottom: 10px;  
-  font-size: 1.05rem;  
-}  
-.form-grid {  
-  display: grid;  
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));  
-  gap: 10px;  
-}  
-.form-group {  
-  display: flex;  
-  flex-direction: column;  
-}  
-.form-group label {  
-  font-size: 0.85rem;  
-  font-weight: bold;  
-  margin-bottom: 3px;  
-}  
-.input-with-assist {  
-  display: flex;  
-  gap: 3px;  
-  align-items: center;  
-}  
-.input-with-assist input {  
-  flex: 1;  
-  min-width: 0;  
-}  
-.btn-assist {  
-  padding: 3px 6px;  
-  font-size: 0.8rem;  
-  min-width: 30px;  
-  background: #e6e6e6;  
-}  
-  
-/* Quick chips */  
-.chip-container {  
-  display: flex;  
-  flex-wrap: wrap;  
-  gap: 5px;  
-  margin-top: 4px;  
-}  
-.chip {  
-  font-size: 0.75rem;  
-  background: #e1edf7;  
-  border: 1px solid #a3c2e0;  
-  padding: 2px 6px;  
-  border-radius: 3px;  
-  cursor: pointer;  
-}  
-.chip:hover { background: #cce0f2; }  
-  
-/* Tables */  
-.table-wrapper {  
-  width: 100%;  
-  overflow-x: auto;  
-  margin-bottom: 15px;  
-}  
-table {  
-  width: 100%;  
-  border-collapse: collapse;  
-  font-size: 0.9rem;  
-  background-color: #fff;  
-}  
-th, td {  
-  border: 1px solid #888;  
-  padding: 6px 8px;  
-  text-align: left;  
-}  
-th { background-color: #f0f0f0; font-weight: bold; }  
-td.num, th.num { text-align: right; }  
-tr:nth-child(even) { background-color: #fcfcfc; }  
-  
-/* Modal */  
-.modal-overlay {  
-  display: none;  
-  position: fixed;  
-  top: 0; left: 0; width: 100%; height: 100%;  
-  background: rgba(0,0,0,0.5);  
-  z-index: 1000;  
-  justify-content: center;  
-  align-items: center;  
-}  
-.modal-overlay.active { display: flex; }  
-.modal-box {  
-  background: #fff;  
-  border: 2px solid #333;  
-  width: 90%;  
-  max-width: 850px;  
-  max-height: 90vh;  
-  overflow-y: auto;  
-  padding: 20px;  
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);  
-}  
-.modal-header {  
-  display: flex;  
-  justify-content: space-between;  
-  align-items: center;  
-  border-bottom: 2px solid #333;  
-  padding-bottom: 8px;  
-  margin-bottom: 15px;  
-}  
-  
-/* Print Specific Rules */  
-#print-area { display: none; }  
-@media print {  
-  body * { visibility: hidden; }  
-  .container, .modal-overlay { display: none !important; }  
-  #print-area, #print-area * { visibility: visible; }  
-  #print-area {  
-    display: block !important;  
-    position: absolute;  
-    left: 0; top: 0; width: 100%;  
-    margin: 0; padding: 0;  
-    font-family: 'MS Mincho', 'MS 明朝', serif;  
-  }  
-  .report-print-container {  
-    width: 100%;  
-    max-width: 100%;  
-    padding: 12mm;  
-    box-sizing: border-box;  
-  }  
-  .report-table {  
-    width: 100%;  
-    border-collapse: collapse;  
-    margin-top: 15px;  
-  }  
-  .report-table th, .report-table td {  
-    border: 1px solid #000;  
-    padding: 6px 8px;  
-    font-size: 10pt;  
-  }  
-  .report-title {  
-    text-align: center;  
-    font-size: 18pt;  
-    font-weight: bold;  
-    letter-spacing: 2px;  
-    margin-bottom: 15px;  
-    border-bottom: 2px solid #000;  
-    padding-bottom: 5px;  
-  }  
-}  
-</style>  
-</head>  
-<body>  
-  
-<div class="container">  
-  <!-- Header -->  
-  <header>  
-    <div>  
-      <h1>出勤日・機械稼働管理システム</h1>  
-      <span style="font-size: 0.8rem; color: #555;">発注者提出・現場集計・予算対応版</span>  
-    </div>  
-    <div class="header-actions">  
-      <button onclick="openExportModal()" class="success">📥 データ出力</button>  
-      <button onclick="openImportModal()">📤 データ取込</button>  
-      <button onclick="triggerPrintPreview()" class="primary">🖨️ 集計表 印刷プレビュー</button>  
-    </div>  
-  </header>  
-  
-  <!-- Navigation Tabs -->  
-  <div class="nav-tabs">  
-    <button class="tab-btn active" onclick="switchTab('daily')" id="tab-btn-daily">日別稼働入力</button>  
-    <button class="tab-btn" onclick="switchTab('monthly')" id="tab-btn-monthly">稼働・予算集計表</button>  
-    <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">機械・項目マスター設定</button>  
-    <button class="tab-btn" onclick="switchTab('data')" id="tab-btn-data">バックアップ・管理</button>  
-  </div>  
-  
-  <!-- Tab 1: Daily Entry -->  
-  <div id="tab-daily" class="tab-content active">  
-    <div class="panel">  
-      <div class="panel-title">日次出勤・機械稼働データ入力</div>  
-      <form id="daily-form" onsubmit="saveDailyRecord(event)">  
-        <div class="form-grid">  
-          <div class="form-group">  
-            <label>日付 *</label>  
-            <input type="date" id="input-date" required onchange="onDateChange()">  
-          </div>  
-  
-          <div class="form-group">  
-            <label>現場名 *</label>  
-            <div class="input-with-assist">  
-              <input type="text" id="input-site" list="site-history-list" placeholder="例: 〇〇作業所" required>  
-              <select id="site-master-dropdown" onchange="applyMasterSite(this.value)" style="max-width: 120px;">  
-                <option value="">(選択)</option>  
-              </select>  
-            </div>  
-            <datalist id="site-history-list"></datalist>  
-            <div class="chip-container" id="site-recents"></div>  
-          </div>  
-  
-          <div class="form-group">  
-            <label>作業員数 (人工)</label>  
-            <div class="input-with-assist">  
-              <input type="number" id="input-workers" min="0" step="0.5" placeholder="未入力(0)">  
-              <button type="button" class="btn-assist" onclick="addValue('input-workers', 1)">+1</button>  
-              <button type="button" class="btn-assist" onclick="addValue('input-workers', 2)">+2</button>  
-            </div>  
-          </div>  
-  
-          <!-- Dynamic Machinery Inputs Container -->  
-          <div id="dynamic-machinery-inputs" style="grid-column: 1 / -1;" class="form-grid"></div>  
-  
-          <div class="form-group" style="grid-column: 1 / -1;">  
-            <label>作業メモ・備考</label>  
-            <input type="text" id="input-note" placeholder="作業内容や連絡事項など">  
-          </div>  
-        </div>  
-  
-        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">  
-          <button type="submit" class="primary">保存 / 更新</button>  
-          <button type="button" onclick="resetForm()">フォームクリア</button>  
-          <button type="button" onclick="copyPreviousDayRecord()">前日データを複製</button>  
-        </div>  
-      </form>  
-    </div>  
-  
-    <!-- Daily Log List (Ascending Order) -->  
-    <div class="panel">  
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">  
-        <div class="panel-title" style="margin: 0;">当月作業登録履歴（日付昇順）</div>  
-        <div>  
-          <label>表示年月:</label>  
-          <input type="month" id="filter-month" onchange="renderDailyTable()">  
-        </div>  
-      </div>  
-        
-      <div class="table-wrapper">  
-        <table>  
-          <thead>  
-            <tr id="daily-table-head"></tr>  
-          </thead>  
-          <tbody id="daily-table-body"></tbody>  
-        </table>  
-      </div>  
-    </div>  
-  </div>  
-  
-  <!-- Tab 2: Aggregation Summary -->  
-  <div id="tab-monthly" class="tab-content">  
-    <div class="panel">  
-      <div class="panel-title">報告・提出用 集計期間設定</div>  
-      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">  
-        <div>  
-          <label>集計モード:</label>  
-          <select id="calc-mode" onchange="toggleCalcMode()">  
-            <option value="single">単月集計</option>  
-            <option value="range">複数月一括集計</option>  
-          </select>  
-        </div>  
-  
-        <div id="single-month-picker">  
-          <label>対象月:</label>  
-          <input type="month" id="target-month" onchange="renderSummary()">  
-        </div>  
-  
-        <div id="range-month-picker" style="display: none; gap: 5px; align-items: center;">  
-          <label>開始月:</label>  
-          <input type="month" id="target-month-from" onchange="renderSummary()">  
-          <span>～</span>  
-          <label>終了月:</label>  
-          <input type="month" id="target-month-to" onchange="renderSummary()">  
-        </div>  
-  
-        <div>  
-          <label>現場絞り込み:</label>  
-          <select id="filter-site-select" onchange="renderSummary()">  
-            <option value="ALL">全現場を対象</option>  
-          </select>  
-        </div>  
-  
-        <button onclick="triggerPrintPreview()" class="primary">🖨️ 集計表プレビュー・印刷</button>  
-      </div>  
-    </div>  
-  
-    <!-- Aggregation Summary Display -->  
-    <div class="panel">  
-      <div class="panel-title">出勤・機械稼働・金額 集計結果</div>  
-      <div class="table-wrapper">  
-        <table>  
-          <thead>  
-            <tr>  
-              <th>項目名</th>  
-              <th class="num">数量 / 延べ日数</th>  
-              <th>単位</th>  
-              <th class="num">単価(税抜)</th>
-              <th class="num">金額(税抜)</th>
-            </tr>  
-          </thead>  
-          <tbody id="summary-table-body"></tbody>
-          <tfoot id="summary-table-foot" style="background-color: #f0f0f0; font-weight: bold;"></tfoot>
-        </table>  
-      </div>  
-    </div>  
-  </div>  
-  
-  <!-- Tab 3: Settings -->  
-  <div id="tab-settings" class="tab-content">  
-    <div class="panel">  
-      <div class="panel-title">管理・稼働項目設定</div>  
-      <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">予算管理用の消費税率や、各項目の名称・単位・単価を設定できます。</p>  
-      
-      <!-- 消費税設定 -->
-      <div style="margin-bottom: 15px; padding: 10px; background-color: #e6f2ff; border: 1px solid #b3d9ff; border-radius: 4px;">
-        <label style="font-weight: bold;">一律 消費税率 (%): </label>
-        <input type="number" id="setting-tax-rate" min="0" step="0.1" style="width: 80px;">
-        <span style="font-size: 0.8rem; margin-left: 10px;">※将来の税率変更時はここを変更してください</span>
-      </div>
-
-      <div class="table-wrapper">  
-        <table>  
-          <thead>  
-            <tr>  
-              <th>項目名称</th>  
-              <th>単位</th>  
-              <th>単価(税抜)</th>
-              <th>操作</th>  
-            </tr>  
-          </thead>  
-          <tbody id="machinery-settings-body"></tbody>  
-        </table>  
-      </div>  
-      <button onclick="addMachinerySettingRow()">+ 新規項目を追加</button>  
-      <button onclick="saveMachinerySettings()" class="primary">設定変更を保存</button>  
-    </div>  
-  
-    <!-- Master Sites -->  
-    <div class="panel">  
-      <div class="panel-title">現場名マスター管理</div>  
-      <div style="display: flex; gap: 10px; margin-bottom: 10px;">  
-        <input type="text" id="new-master-site" placeholder="新規現場名を入力" style="flex: 1;">  
-        <button onclick="addMasterSite()" class="success">追加</button>  
-      </div>  
-      <div id="master-sites-list" class="chip-container"></div>  
-    </div>  
-  </div>  
-  
-  <!-- Tab 4: Data Management & Backup -->  
-  <div id="tab-data" class="tab-content">  
-    <div class="panel">  
-      <div class="panel-title">データバックアップ・各種ファイル出力</div>  
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">  
-        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">  
-          <h4 style="margin-bottom: 8px;">データ出力</h4>  
-          <div style="display: flex; flex-direction: column; gap: 8px;">  
-            <button onclick="exportData('json')" class="primary">JSON形式 (完全バックアップ)</button>  
-            <button onclick="exportData('csv')">CSV形式 (Excel等で閲覧可能)</button>  
-          </div>  
-        </div>  
-  
-        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">  
-          <h4 style="margin-bottom: 8px;">データ取込</h4>  
-          <input type="file" id="import-file-input" accept=".json" style="margin-bottom: 10px; width: 100%;">  
-          <button onclick="executeImport()" class="success">JSONから復元</button>  
-        </div>  
-  
-        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">  
-          <h4 style="margin-bottom: 8px;">データ全消去</h4>  
-          <button onclick="clearAllData()" class="danger">全ての登録データを初期化</button>  
-        </div>  
-      </div>  
-    </div>  
-  </div>  
-</div>  
-  
-<!-- Modal: Print Preview -->  
-<div id="print-modal" class="modal-overlay">  
-  <div class="modal-box">  
-    <div class="modal-header">  
-      <h3>集計報告書 印刷プレビュー</h3>  
-      <button onclick="closePrintModal()">✕ 閉じる</button>  
-    </div>  
-      
-    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">  
-      <button onclick="executePrint()" class="primary" style="font-size: 1.1rem; padding: 8px 16px;">🖨️ 印刷実行 (A4)</button>  
-      <span style="font-size: 0.85rem; color: #666;">※発注者・監督へ提出できる無駄な表記のない集計レイアウトです</span>  
-    </div>  
-  
-    <!-- Preview Canvas Area -->  
-    <div id="modal-preview-content" style="border: 1px solid #999; padding: 20px; background: #fff;"></div>  
-  </div>  
-</div>  
-  
-<!-- Hidden Container Dedicated to Print output -->  
-<div id="print-area"></div>  
-  
-<script>  
-/* ==========================================================================  
-   State & Storage Management  
-   ========================================================================== */  
-const APP_STORAGE_KEY = 'WORK_LOG_REPORTS_V1';  
-  
-let appState = {  
-  settings: {  
-    taxRate: 10, // 消費税率 (%)
-    workerUnit: '人工',
-    workerPrice: 0, // 作業員の単価
-    machinery: [  
-      { id: 'm1', name: 'バックホウ (0.25m3)', unit: '日/台', price: 0 },  
-      { id: 'm2', name: '2tダンプトラック', unit: '日/台', price: 0 },  
-      { id: 'm3', name: '発電機 2.5kVA', unit: '日/台', price: 0 }  
-    ],  
-    masterSites: ['本社ビル現場', '〇〇駅前道路工事', '△△邸外構工事']  
-  },  
-  records: {} // Format: { "YYYY-MM-DD": { site, workers, machinery: { m1: val, ... }, note } }  
-};  
-  
-window.addEventListener('DOMContentLoaded', () => {  
-  loadDataFromStorage();  
-  setCurrentDateDefault();  
-  renderDynamicInputs();  
-  renderDailyTable();  
-  renderMasterSiteOptions();  
-  renderSummary();  
-});  
-  
-function loadDataFromStorage() {  
-  try {  
-    const raw = localStorage.getItem(APP_STORAGE_KEY);  
-    if (raw) {  
-      const parsed = JSON.parse(raw);  
-      appState = Object.assign({}, appState, parsed);  
-
-      // 後方互換性 (古いバックアップから復元した際に未定義の値を補完)
-      if (appState.settings.taxRate === undefined) appState.settings.taxRate = 10;
-      if (appState.settings.workerPrice === undefined) appState.settings.workerPrice = 0;
-      appState.settings.machinery.forEach(m => {
-        if (m.price === undefined) m.price = 0;
-      });
-    }  
-  } catch (e) {  
-    console.error('Failed to load storage data:', e);  
-  }  
-}  
-  
-function saveDataToStorage() {  
-  try {  
-    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));  
-  } catch (e) {  
-    alert('データ保存に失敗しました。');  
-  }  
-}  
-
-// 金額フォーマット関数
-function formatCurrency(num) {
-  return Math.floor(num).toLocaleString() + '円';
-}
-  
-function setCurrentDateDefault() {  
-  const today = new Date().toISOString().split('T')[0];  
-  document.getElementById('input-date').value = today;  
-  document.getElementById('filter-month').value = today.substring(0, 7);  
-  document.getElementById('target-month').value = today.substring(0, 7);  
-  document.getElementById('target-month-from').value = today.substring(0, 7);  
-  document.getElementById('target-month-to').value = today.substring(0, 7);  
-}  
-  
-function addValue(inputId, delta) {  
-  const el = document.getElementById(inputId);  
-  if (!el) return;  
-  let current = parseFloat(el.value);  
-  if (isNaN(current)) current = 0;  
-  el.value = (current + delta).toFixed(delta % 1 === 0 ? 0 : 1);  
-}  
-  
-function switchTab(tabKey) {  
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));  
-  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));  
+<!DOCTYPE html>    
+<html lang="ja">    
+<head>    
+<meta charset="UTF-8">    
+<meta name="viewport" content="width=device-width, initial-scale=1.0">    
+<title>出勤日・機械稼働管理システム（発注者・現場提出用）</title>    
+<style>    
+/* --- Pure CSS Base Styles --- */    
+* { box-sizing: border-box; margin: 0; padding: 0; }    
+body {    
+  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;    
+  background-color: #f0f2f5;    
+  color: #1a1a1a;    
+  line-height: 1.5;    
+  padding: 10px;    
+}    
+.container {    
+  max-width: 1200px;    
+  margin: 0 auto;    
+  background-color: #ffffff;    
+  border: 1px solid #ccc;    
+  padding: 15px;    
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);    
+}    
+header {    
+  border-bottom: 2px solid #333;    
+  padding-bottom: 10px;    
+  margin-bottom: 15px;    
+  display: flex;    
+  justify-content: space-between;    
+  align-items: center;    
+  flex-wrap: wrap;    
+  gap: 10px;    
+}    
+h1 { font-size: 1.4rem; font-weight: bold; }    
+.header-actions {    
+  display: flex;    
+  align-items: center;    
+  gap: 10px;    
+  flex-wrap: wrap;    
+}    
+select, input, button, textarea {    
+  font-family: 'MS Mincho', 'MS 明朝', 'Hiragino Mincho ProN', 'Yu Mincho', serif;    
+  font-size: 0.95rem;    
+  padding: 5px 8px;    
+  border: 1px solid #777;    
+  border-radius: 2px;    
+  background-color: #fff;    
+}    
+button {    
+  background-color: #e1e1e1;    
+  color: #000;    
+  cursor: pointer;    
+  border: 1px solid #666;    
+  padding: 6px 12px;    
+  font-weight: bold;    
+}    
+button:hover { background-color: #d0d0d0; }    
+button.primary { background-color: #2b579a; color: #fff; border-color: #1b365d; }    
+button.primary:hover { background-color: #1b365d; }    
+button.danger { background-color: #a80000; color: #fff; border-color: #780000; }    
+button.danger:hover { background-color: #780000; }    
+button.success { background-color: #107c41; color: #fff; border-color: #0b502a; }    
+button.success:hover { background-color: #0b502a; }    
     
-  document.getElementById(`tab-btn-${tabKey}`).classList.add('active');  
-  document.getElementById(`tab-${tabKey}`).classList.add('active');  
-  
-  if (tabKey === 'daily') renderDailyTable();  
-  if (tabKey === 'monthly') renderSummary();  
-  if (tabKey === 'settings') renderSettings();  
-}  
-  
-/* ==========================================================================  
-   Form & Daily Entry Handling  
-   ========================================================================== */  
-function renderDynamicInputs() {  
-  const container = document.getElementById('dynamic-machinery-inputs');  
-  container.innerHTML = '';  
-  
-  appState.settings.machinery.forEach(item => {  
-    const div = document.createElement('div');  
-    div.className = 'form-group';  
-    div.innerHTML = `  
-      <label>${escapeHtml(item.name)} (${escapeHtml(item.unit)})</label>  
-      <div class="input-with-assist">  
-        <input type="number" id="input-machinery-${item.id}" min="0" step="0.5" placeholder="未入力(0)">  
-        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 0.5)">+0.5</button>  
-        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 1)">+1</button>  
-      </div>  
-    `;  
-    container.appendChild(div);  
-  });  
-}  
-  
-function renderMasterSiteOptions() {  
-  const dropdown = document.getElementById('site-master-dropdown');  
-  dropdown.innerHTML = '<option value="">(選択)</option>';  
-  appState.settings.masterSites.forEach(site => {  
-    const opt = document.createElement('option');  
-    opt.value = site;  
-    opt.textContent = site;  
-    dropdown.appendChild(opt);  
-  });  
-  
-  const datalist = document.getElementById('site-history-list');  
-  datalist.innerHTML = '';  
-  const siteSelect = document.getElementById('filter-site-select');  
-  const currentSiteVal = siteSelect.value;  
-  siteSelect.innerHTML = '<option value="ALL">全現場を対象</option>';  
-  
-  const uniqueSites = [...new Set(Object.values(appState.records).map(r => r.site))];  
-  uniqueSites.forEach(site => {  
-    if (site) {  
-      const opt = document.createElement('option');  
-      opt.value = site;  
-      datalist.appendChild(opt);  
-  
-      const opt2 = document.createElement('option');  
-      opt2.value = site;  
-      opt2.textContent = site;  
-      siteSelect.appendChild(opt2);  
-    }  
-  });  
-  siteSelect.value = currentSiteVal || 'ALL';  
-  
-  const recentContainer = document.getElementById('site-recents');  
-  recentContainer.innerHTML = '';  
-  uniqueSites.slice(-4).reverse().forEach(site => {  
-    const chip = document.createElement('span');  
-    chip.className = 'chip';  
-    chip.textContent = site;  
-    chip.onclick = () => { document.getElementById('input-site').value = site; };  
-    recentContainer.appendChild(chip);  
-  });  
-}  
-  
-function applyMasterSite(val) {  
-  if (val) document.getElementById('input-site').value = val;  
-}  
-  
-function onDateChange() {  
-  const dateVal = document.getElementById('input-date').value;  
-  if (!dateVal) return;  
-  
-  const rec = appState.records[dateVal];  
-  if (rec) {  
-    document.getElementById('input-site').value = rec.site || '';  
-    document.getElementById('input-workers').value = (rec.workers && rec.workers !== 0) ? rec.workers : '';  
-    appState.settings.machinery.forEach(m => {  
-      const el = document.getElementById(`input-machinery-${m.id}`);  
-      if (el) el.value = (rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : '';  
-    });  
-    document.getElementById('input-note').value = rec.note || '';  
-  } else {  
-    document.getElementById('input-site').value = '';  
-    document.getElementById('input-workers').value = '';  
-    appState.settings.machinery.forEach(m => {  
-      const el = document.getElementById(`input-machinery-${m.id}`);  
-      if (el) el.value = '';  
-    });  
-    document.getElementById('input-note').value = '';  
-  }  
-}  
-  
-function saveDailyRecord(e) {  
-  e.preventDefault();  
-  const dateVal = document.getElementById('input-date').value;  
-  const siteVal = document.getElementById('input-site').value.trim();  
-  
-  if (!dateVal || !siteVal) {  
-    alert('日付と現場名は必須です。');  
-    return;  
-  }  
-  
-  const workers = parseFloat(document.getElementById('input-workers').value) || 0;  
-  const machinery = {};  
-  appState.settings.machinery.forEach(m => {  
-    const el = document.getElementById(`input-machinery-${m.id}`);  
-    machinery[m.id] = el ? (parseFloat(el.value) || 0) : 0;  
-  });  
-  
-  appState.records[dateVal] = {  
-    site: siteVal,  
-    workers: workers,  
-    machinery: machinery,  
-    note: document.getElementById('input-note').value.trim()  
-  };  
-  
-  saveDataToStorage();  
-  renderMasterSiteOptions();  
-  renderDailyTable();  
-  alert(`${dateVal} の実績を保存しました。`);  
-}  
-  
-function resetForm() {  
-  document.getElementById('daily-form').reset();  
-  setCurrentDateDefault();  
-  onDateChange();  
-}  
-  
-function copyPreviousDayRecord() {  
-  const currentDate = document.getElementById('input-date').value;  
-  if (!currentDate) return;  
-  
-  const curr = new Date(currentDate);  
-  curr.setDate(curr.getDate() - 1);  
-  const prevDateStr = curr.toISOString().split('T')[0];  
-  
-  const prevRec = appState.records[prevDateStr];  
-  if (!prevRec) {  
-    alert(`前日 (${prevDateStr}) のデータが見つかりません。`);  
-    return;  
-  }  
-  
-  document.getElementById('input-site').value = prevRec.site || '';  
-  document.getElementById('input-workers').value = prevRec.workers || '';  
-  appState.settings.machinery.forEach(m => {  
-    const el = document.getElementById(`input-machinery-${m.id}`);  
-    if (el) el.value = (prevRec.machinery && prevRec.machinery[m.id]) ? prevRec.machinery[m.id] : '';  
-  });  
-  document.getElementById('input-note').value = prevRec.note || '';  
-}  
-  
-function renderDailyTable() {  
-  const targetMonth = document.getElementById('filter-month').value;  
-  const headRow = document.getElementById('daily-table-head');  
-  const tbody = document.getElementById('daily-table-body');  
-  
-  let headHtml = `<th>日付</th><th>現場名</th><th class="num">作業員(人工)</th>`;  
-  appState.settings.machinery.forEach(m => {  
-    headHtml += `<th class="num">${escapeHtml(m.name)}</th>`;  
-  });  
-  headHtml += `<th>備考</th><th>操作</th>`;  
-  headRow.innerHTML = headHtml;  
-  
-  tbody.innerHTML = '';  
-  
-  const dates = Object.keys(appState.records)  
-    .filter(d => d.startsWith(targetMonth))  
-    .sort((a, b) => a.localeCompare(b));  
-  
-  if (dates.length === 0) {  
-    tbody.innerHTML = `<tr><td colspan="${4 + appState.settings.machinery.length}" style="text-align:center; color:#888;">データが登録されていません。</td></tr>`;  
-    return;  
-  }  
-  
-  dates.forEach(dateStr => {  
-    const rec = appState.records[dateStr];  
-    const tr = document.createElement('tr');  
-      
-    let rowHtml = `<td>${dateStr}</td><td>${escapeHtml(rec.site)}</td><td class="num">${rec.workers || 0}</td>`;  
-    appState.settings.machinery.forEach(m => {  
-      const val = (rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0;  
-      rowHtml += `<td class="num">${val}</td>`;  
-    });  
-    rowHtml += `<td>${escapeHtml(rec.note || '')}</td>`;  
-    rowHtml += `<td>  
-      <button onclick="loadRecordToForm('${dateStr}')" style="padding:2px 6px;">編集</button>  
-      <button onclick="deleteRecord('${dateStr}')" class="danger" style="padding:2px 6px;">削除</button>  
-    </td>`;  
-  
-    tr.innerHTML = rowHtml;  
-    tbody.appendChild(tr);  
-  });  
-}  
-  
-function loadRecordToForm(dateStr) {  
-  document.getElementById('input-date').value = dateStr;  
-  onDateChange();  
-  window.scrollTo({ top: 0, behavior: 'smooth' });  
-}  
-  
-function deleteRecord(dateStr) {  
-  if (confirm(`${dateStr} のデータを削除しますか？`)) {  
-    delete appState.records[dateStr];  
-    saveDataToStorage();  
-    renderDailyTable();  
-    renderSummary();  
-  }  
-}  
-  
-/* ==========================================================================  
-   Summary Calculations  
-   ========================================================================== */  
-function toggleCalcMode() {  
-  const mode = document.getElementById('calc-mode').value;  
-  document.getElementById('single-month-picker').style.display = mode === 'single' ? 'block' : 'none';  
-  document.getElementById('range-month-picker').style.display = mode === 'range' ? 'flex' : 'none';  
-  renderSummary();  
-}  
-  
-function getFilteredDatesForSummary() {  
-  const mode = document.getElementById('calc-mode').value;  
-  const selectedSite = document.getElementById('filter-site-select').value;  
-  const allDates = Object.keys(appState.records);  
-  
-  let filtered = [];  
-  if (mode === 'single') {  
-    const targetMonth = document.getElementById('target-month').value;  
-    filtered = allDates.filter(d => d.startsWith(targetMonth));  
-  } else {  
-    const fromMonth = document.getElementById('target-month-from').value;  
-    const toMonth = document.getElementById('target-month-to').value;  
-    if (!fromMonth || !toMonth) return [];  
-    filtered = allDates.filter(d => {  
-      const m = d.substring(0, 7);  
-      return m >= fromMonth && m <= toMonth;  
-    });  
-  }  
-  
-  if (selectedSite && selectedSite !== 'ALL') {  
-    filtered = filtered.filter(d => appState.records[d].site === selectedSite);  
-  }  
-  
-  return filtered;  
-}  
-  
-function renderSummary() {  
-  const targetDates = getFilteredDatesForSummary();  
-  const tbody = document.getElementById('summary-table-body');  
-  const tfoot = document.getElementById('summary-table-foot');
-  
-  tbody.innerHTML = '';  
-  tfoot.innerHTML = '';
-  
-  let totalWorkers = 0;  
-  const machineryTotals = {};  
-  appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });  
-  
-  targetDates.forEach(d => {  
-    const rec = appState.records[d];  
-    totalWorkers += (parseFloat(rec.workers) || 0);  
-    if (rec.machinery) {  
-      appState.settings.machinery.forEach(m => {  
-        machineryTotals[m.id] += (parseFloat(rec.machinery[m.id]) || 0);  
-      });  
-    }  
-  });  
-
-  let subtotal = 0;
-  const workerAmount = totalWorkers * appState.settings.workerPrice;
-  subtotal += workerAmount;
-  
-  let html = `<tr>  
-    <td>作業員</td>  
-    <td class="num">${totalWorkers}</td>  
-    <td>${escapeHtml(appState.settings.workerUnit)}</td>  
-    <td class="num">${formatCurrency(appState.settings.workerPrice)}</td>
-    <td class="num">${formatCurrency(workerAmount)}</td>
-  </tr>`;  
-  
-  appState.settings.machinery.forEach(m => {  
-    const qty = machineryTotals[m.id] || 0;
-    const amt = qty * m.price;
-    subtotal += amt;
-    html += `<tr>  
-      <td>${escapeHtml(m.name)}</td>  
-      <td class="num">${qty}</td>  
-      <td>${escapeHtml(m.unit)}</td>  
-      <td class="num">${formatCurrency(m.price)}</td>
-      <td class="num">${formatCurrency(amt)}</td>
-    </tr>`;  
-  });  
-  
-  tbody.innerHTML = html;  
-
-  // 予算(消費税)の計算
-  const taxRate = appState.settings.taxRate;
-  const taxAmount = Math.floor(subtotal * taxRate / 100);
-  const grandTotal = subtotal + taxAmount;
-
-  let footHtml = `
-    <tr>
-      <td colspan="4" style="text-align:right;">小計 (税抜)</td>
-      <td class="num">${formatCurrency(subtotal)}</td>
-    </tr>
-    <tr>
-      <td colspan="4" style="text-align:right;">消費税 (${taxRate}%)</td>
-      <td class="num">${formatCurrency(taxAmount)}</td>
-    </tr>
-    <tr>
-      <td colspan="4" style="text-align:right;">合計 (税込)</td>
-      <td class="num" style="color:#a80000; font-size:1.1em;">${formatCurrency(grandTotal)}</td>
-    </tr>
-  `;
-  tfoot.innerHTML = footHtml;
-}  
-  
-/* ==========================================================================  
-   Clean Print Output (For Client / Inspector Submission)  
-   ========================================================================== */  
-function triggerPrintPreview() {  
-  const targetDates = getFilteredDatesForSummary();  
-  const mode = document.getElementById('calc-mode').value;  
-  const selectedSite = document.getElementById('filter-site-select').value;  
-  
-  let periodStr = '';  
-  if (mode === 'single') {  
-    periodStr = document.getElementById('target-month').value + ' 分';  
-  } else {  
-    periodStr = `${document.getElementById('target-month-from').value} ～ ${document.getElementById('target-month-to').value} 分`;  
-  }  
-  
-  const siteLabel = selectedSite === 'ALL' ? '全現場対象' : `現場: ${selectedSite}`;  
-  
-  let totalWorkers = 0;  
-  const machineryTotals = {};  
-  appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });  
-  
-  targetDates.forEach(d => {  
-    const rec = appState.records[d];  
-    totalWorkers += (parseFloat(rec.workers) || 0);  
-    if (rec.machinery) {  
-      appState.settings.machinery.forEach(m => {  
-        machineryTotals[m.id] += (parseFloat(rec.machinery[m.id]) || 0);  
-      });  
-    }  
-  });  
-  
-  let subtotal = 0;
-  const workerAmount = totalWorkers * appState.settings.workerPrice;
-  subtotal += workerAmount;
-
-  let summaryRows = `<tr>  
-    <td>作業員</td>  
-    <td style="text-align:right;">${totalWorkers}</td>  
-    <td>${escapeHtml(appState.settings.workerUnit)}</td>  
-    <td style="text-align:right;">${formatCurrency(appState.settings.workerPrice)}</td>
-    <td style="text-align:right;">${formatCurrency(workerAmount)}</td>
-  </tr>`;  
-  
-  appState.settings.machinery.forEach(m => {  
-    const qty = machineryTotals[m.id] || 0;
-    const amt = qty * m.price;
-    subtotal += amt;
-    summaryRows += `<tr>  
-      <td>${escapeHtml(m.name)}</td>  
-      <td style="text-align:right;">${qty}</td>  
-      <td>${escapeHtml(m.unit)}</td>  
-      <td style="text-align:right;">${formatCurrency(m.price)}</td>
-      <td style="text-align:right;">${formatCurrency(amt)}</td>
-    </tr>`;  
-  });  
-  
-  const taxRate = appState.settings.taxRate;
-  const taxAmount = Math.floor(subtotal * taxRate / 100);
-  const grandTotal = subtotal + taxAmount;
-
-  summaryRows += `
-    <tr style="background:#f9f9f9; font-weight:bold;">
-      <td colspan="4" style="text-align:right;">小計 (税抜)</td>
-      <td style="text-align:right;">${formatCurrency(subtotal)}</td>
-    </tr>
-    <tr style="background:#f9f9f9; font-weight:bold;">
-      <td colspan="4" style="text-align:right;">消費税 (${taxRate}%)</td>
-      <td style="text-align:right;">${formatCurrency(taxAmount)}</td>
-    </tr>
-    <tr style="background:#f9f9f9; font-weight:bold;">
-      <td colspan="4" style="text-align:right;">合計 (税込)</td>
-      <td style="text-align:right; font-size:1.1em;">${formatCurrency(grandTotal)}</td>
-    </tr>
-  `;
-
-  // Daily Detail Rows for Audit  
-  let detailRows = '';  
-  targetDates.sort().forEach(d => {  
-    const rec = appState.records[d];  
-    detailRows += `<tr>  
-      <td>${d}</td>  
-      <td>${escapeHtml(rec.site)}</td>  
-      <td style="text-align:right;">${rec.workers || 0}</td>`;  
-    appState.settings.machinery.forEach(m => {  
-      detailRows += `<td style="text-align:right;">${(rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0}</td>`;  
-    });  
-    detailRows += `<td>${escapeHtml(rec.note || '')}</td></tr>`;  
-  });  
-  
-  const printHtml = `  
-    <div class="report-print-container">  
-      <div class="report-title">作業出勤・機械稼働 状況集計表</div>  
+/* Tabs */    
+.nav-tabs {    
+  display: flex;    
+  border-bottom: 1px solid #000;    
+  margin-bottom: 15px;    
+  background-color: #f9f9f9;    
+  flex-wrap: wrap;    
+}    
+.tab-btn {    
+  padding: 8px 16px;    
+  border: 1px solid #ccc;    
+  border-bottom: none;    
+  background-color: #eaeaea;    
+  margin-right: 4px;    
+  border-radius: 4px 4px 0 0;    
+  cursor: pointer;    
+}    
+.tab-btn.active {    
+  background-color: #fff;    
+  border-top: 3px solid #2b579a;    
+  border-bottom: 1px solid #fff;    
+  font-weight: bold;    
+  margin-bottom: -1px;    
+}    
+.tab-content { display: none; }    
+.tab-content.active { display: block; }    
+    
+/* Forms & Grid */    
+.panel {    
+  border: 1px solid #ccc;    
+  padding: 12px;    
+  margin-bottom: 15px;    
+  background-color: #fafafa;    
+}    
+.panel-title {    
+  font-weight: bold;    
+  border-bottom: 1px dashed #aaa;    
+  padding-bottom: 5px;    
+  margin-bottom: 10px;    
+  font-size: 1.05rem;    
+}    
+.form-grid {    
+  display: grid;    
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));    
+  gap: 10px;    
+}    
+.form-group {    
+  display: flex;    
+  flex-direction: column;    
+}    
+.form-group label {    
+  font-size: 0.85rem;    
+  font-weight: bold;    
+  margin-bottom: 3px;    
+}    
+.input-with-assist {    
+  display: flex;    
+  gap: 3px;    
+  align-items: center;    
+}    
+.input-with-assist input {    
+  flex: 1;    
+  min-width: 0;    
+}    
+.btn-assist {    
+  padding: 3px 6px;    
+  font-size: 0.8rem;    
+  min-width: 30px;    
+  background: #e6e6e6;    
+}    
+    
+/* Quick chips */    
+.chip-container {    
+  display: flex;    
+  flex-wrap: wrap;    
+  gap: 5px;    
+  margin-top: 4px;    
+}    
+.chip {    
+  font-size: 0.75rem;    
+  background: #e1edf7;    
+  border: 1px solid #a3c2e0;    
+  padding: 2px 6px;    
+  border-radius: 3px;    
+  cursor: pointer;    
+}    
+.chip:hover { background: #cce0f2; }    
+    
+/* Tables */    
+.table-wrapper {    
+  width: 100%;    
+  overflow-x: auto;    
+  margin-bottom: 15px;    
+}    
+table {    
+  width: 100%;    
+  border-collapse: collapse;    
+  font-size: 0.9rem;    
+  background-color: #fff;    
+}    
+th, td {    
+  border: 1px solid #888;    
+  padding: 6px 8px;    
+  text-align: left;    
+}    
+th { background-color: #f0f0f0; font-weight: bold; }    
+td.num, th.num { text-align: right; }    
+tr:nth-child(even) { background-color: #fcfcfc; }    
+    
+/* Modal */    
+.modal-overlay {    
+  display: none;    
+  position: fixed;    
+  top: 0; left: 0; width: 100%; height: 100%;    
+  background: rgba(0,0,0,0.5);    
+  z-index: 1000;    
+  justify-content: center;    
+  align-items: center;    
+}    
+.modal-overlay.active { display: flex; }    
+.modal-box {    
+  background: #fff;    
+  border: 2px solid #333;    
+  width: 90%;    
+  max-width: 850px;    
+  max-height: 90vh;    
+  overflow-y: auto;    
+  padding: 20px;    
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);    
+}    
+.modal-header {    
+  display: flex;    
+  justify-content: space-between;    
+  align-items: center;    
+  border-bottom: 2px solid #333;    
+  padding-bottom: 8px;    
+  margin-bottom: 15px;    
+}    
+    
+/* Print Specific Rules */    
+#print-area { display: none; }    
+@media print {    
+  body * { visibility: hidden; }    
+  .container, .modal-overlay { display: none !important; }    
+  #print-area, #print-area * { visibility: visible; }    
+  #print-area {    
+    display: block !important;    
+    position: absolute;    
+    left: 0; top: 0; width: 100%;    
+    margin: 0; padding: 0;    
+    font-family: 'MS Mincho', 'MS 明朝', serif;    
+  }    
+  .report-print-container {    
+    width: 100%;    
+    max-width: 100%;    
+    padding: 12mm;    
+    box-sizing: border-box;    
+  }    
+  .report-table {    
+    width: 100%;    
+    border-collapse: collapse;    
+    margin-top: 15px;    
+  }    
+  .report-table th, .report-table td {    
+    border: 1px solid #000;    
+    padding: 6px 8px;    
+    font-size: 10pt;    
+  }    
+  .report-title {    
+    text-align: center;    
+    font-size: 18pt;    
+    font-weight: bold;    
+    letter-spacing: 2px;    
+    margin-bottom: 15px;    
+    border-bottom: 2px solid #000;    
+    padding-bottom: 5px;    
+  }    
+}    
+</style>    
+</head>    
+<body>    
+    
+<div class="container">    
+  <!-- Header -->    
+  <header>    
+    <div>    
+      <h1>出勤日・機械稼働管理システム</h1>    
+      <span style="font-size: 0.8rem; color: #555;">発注者提出・現場集計・予算対応版</span>    
+    </div>    
+    <div class="header-actions">    
+      <button onclick="openExportModal()" class="success">📥 データ出力</button>    
+      <button onclick="openImportModal()">📤 データ取込</button>    
+      <button onclick="triggerPrintPreview()" class="primary">🖨️ 集計表 印刷プレビュー</button>    
+    </div>    
+  </header>    
+    
+  <!-- Navigation Tabs -->    
+  <div class="nav-tabs">    
+    <button class="tab-btn active" onclick="switchTab('daily')" id="tab-btn-daily">日別稼働入力</button>    
+    <button class="tab-btn" onclick="switchTab('monthly')" id="tab-btn-monthly">稼働・予算集計表</button>    
+    <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">機械・項目マスター設定</button>    
+    <button class="tab-btn" onclick="switchTab('data')" id="tab-btn-data">バックアップ・管理</button>    
+  </div>    
+    
+  <!-- Tab 1: Daily Entry -->    
+  <div id="tab-daily" class="tab-content active">    
+    <div class="panel">    
+      <div class="panel-title">日次出勤・機械稼働データ入力</div>    
+      <form id="daily-form" onsubmit="saveDailyRecord(event)">    
+        <div class="form-grid">    
+          <div class="form-group">    
+            <label>日付 *</label>    
+            <input type="date" id="input-date" required onchange="onDateChange()">    
+          </div>    
+    
+          <div class="form-group">    
+            <label>現場名 *</label>    
+            <div class="input-with-assist">    
+              <input type="text" id="input-site" list="site-history-list" placeholder="例: 〇〇作業所" required>    
+              <select id="site-master-dropdown" onchange="applyMasterSite(this.value)" style="max-width: 120px;">    
+                <option value="">(選択)</option>    
+              </select>    
+            </div>    
+            <datalist id="site-history-list"></datalist>    
+            <div class="chip-container" id="site-recents"></div>    
+          </div>    
+    
+          <div class="form-group">    
+            <label>作業員数 (人工)</label>    
+            <div class="input-with-assist">    
+              <input type="number" id="input-workers" min="0" step="0.5" placeholder="未入力(0)">    
+              <button type="button" class="btn-assist" onclick="addValue('input-workers', 1)">+1</button>    
+              <button type="button" class="btn-assist" onclick="addValue('input-workers', 2)">+2</button>    
+            </div>    
+          </div>    
+    
+          <!-- Dynamic Machinery Inputs Container -->    
+          <div id="dynamic-machinery-inputs" style="grid-column: 1 / -1;" class="form-grid"></div>    
+    
+          <div class="form-group" style="grid-column: 1 / -1;">    
+            <label>作業メモ・備考</label>    
+            <input type="text" id="input-note" placeholder="作業内容や連絡事項など">    
+          </div>    
+        </div>    
+    
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">    
+          <button type="submit" class="primary">保存 / 更新</button>    
+          <button type="button" onclick="resetForm()">フォームクリア</button>    
+          <button type="button" onclick="copyPreviousDayRecord()">前日データを複製</button>    
+        </div>    
+      </form>    
+    </div>    
+    
+    <!-- Daily Log List (Ascending Order) -->    
+    <div class="panel">    
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">    
+        <div class="panel-title" style="margin: 0;">当月作業登録履歴（日付昇順）</div>    
+        <div>    
+          <label>表示年月:</label>    
+          <input type="month" id="filter-month" onchange="renderDailyTable()">    
+        </div>    
+      </div>    
+          
+      <div class="table-wrapper">    
+        <table>    
+          <thead>    
+            <tr id="daily-table-head"></tr>    
+          </thead>    
+          <tbody id="daily-table-body"></tbody>    
+        </table>    
+      </div>    
+    </div>    
+  </div>    
+    
+  <!-- Tab 2: Aggregation Summary -->    
+  <div id="tab-monthly" class="tab-content">    
+    <div class="panel">    
+      <div class="panel-title">報告・提出用 集計期間設定</div>    
+      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">    
+        <div>    
+          <label>集計モード:</label>    
+          <select id="calc-mode" onchange="toggleCalcMode()">    
+            <option value="single">単月集計</option>    
+            <option value="range">複数月一括集計</option>    
+          </select>    
+        </div>    
+    
+        <div id="single-month-picker">    
+          <label>対象月:</label>    
+          <input type="month" id="target-month" onchange="renderSummary()">    
+        </div>    
+    
+        <div id="range-month-picker" style="display: none; gap: 5px; align-items: center;">    
+          <label>開始月:</label>    
+          <input type="month" id="target-month-from" onchange="renderSummary()">    
+          <span>～</span>    
+          <label>終了月:</label>    
+          <input type="month" id="target-month-to" onchange="renderSummary()">    
+        </div>    
+    
+        <div>    
+          <label>現場絞り込み:</label>    
+          <select id="filter-site-select" onchange="renderSummary()">    
+            <option value="ALL">全現場を対象</option>    
+          </select>    
+        </div>    
+    
+        <button onclick="triggerPrintPreview()" class="primary">🖨️ 集計表プレビュー・印刷</button>    
+      </div>    
+    </div>    
+    
+    <!-- Aggregation Summary Display -->    
+    <div class="panel">    
+      <div class="panel-title">出勤・機械稼働・金額 集計結果</div>    
+      <div class="table-wrapper">    
+        <table>    
+          <thead>    
+            <tr>    
+              <th>項目名</th>    
+              <th class="num">数量 / 延べ日数</th>    
+              <th>単位</th>    
+              <th class="num">単価(税抜)</th>  
+              <th class="num">金額(税抜)</th>  
+            </tr>    
+          </thead>    
+          <tbody id="summary-table-body"></tbody>  
+          <tfoot id="summary-table-foot" style="background-color: #f0f0f0; font-weight: bold;"></tfoot>  
+        </table>    
+      </div>    
+    </div>    
+  </div>    
+    
+  <!-- Tab 3: Settings -->    
+  <div id="tab-settings" class="tab-content">    
+    <div class="panel">    
+      <div class="panel-title">管理・稼働項目設定</div>    
+      <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">予算管理用の消費税率や、各項目の名称・単位・単価を設定できます。</p>    
         
-      <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:10pt;">  
-        <div><strong>【対象期間】:</strong> ${periodStr} (${siteLabel})</div>  
-        <div><strong>出力日:</strong> ${new Date().toLocaleDateString('ja-JP')}</div>  
+      <!-- 消費税設定 -->  
+      <div style="margin-bottom: 15px; padding: 10px; background-color: #e6f2ff; border: 1px solid #b3d9ff; border-radius: 4px;">  
+        <label style="font-weight: bold;">一律 消費税率 (%): </label>  
+        <input type="number" id="setting-tax-rate" min="0" step="0.1" style="width: 80px;">  
+        <span style="font-size: 0.8rem; margin-left: 10px;">※将来の税率変更時はここを変更してください</span>  
       </div>  
   
-      <h4 style="font-size:11pt; margin-bottom:5px; border-left:4px solid #333; padding-left:6px;">1. 稼働・予算別 累計集計表</h4>  
-      <table class="report-table" style="margin-bottom:20px;">  
-        <thead>  
-          <tr style="background:#f0f0f0;">  
-            <th>項目名称</th>  
-            <th style="text-align:right; width:90px;">数量/累計日</th>  
-            <th style="width:60px;">単位</th>  
-            <th style="text-align:right; width:90px;">単価(税抜)</th>
-            <th style="text-align:right; width:100px;">金額(税抜)</th>
-          </tr>  
-        </thead>  
-        <tbody>  
-          ${summaryRows}  
-        </tbody>  
-      </table>  
+      <div class="table-wrapper">    
+        <table>    
+          <thead>    
+            <tr>    
+              <th>項目名称</th>    
+              <th>単位</th>    
+              <th>単価(税抜)</th>  
+              <th>操作</th>    
+            </tr>    
+          </thead>    
+          <tbody id="machinery-settings-body"></tbody>    
+        </table>    
+      </div>    
+      <button onclick="addMachinerySettingRow()">+ 新規項目を追加</button>    
+      <button onclick="saveMachinerySettings()" class="primary">設定変更を保存</button>    
+    </div>    
+    
+    <!-- Master Sites -->    
+    <div class="panel">    
+      <div class="panel-title">現場名マスター管理</div>    
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">    
+        <input type="text" id="new-master-site" placeholder="新規現場名を入力" style="flex: 1;">    
+        <button onclick="addMasterSite()" class="success">追加</button>    
+      </div>    
+      <div id="master-sites-list" class="chip-container"></div>    
+    </div>    
+  </div>    
+    
+  <!-- Tab 4: Data Management & Backup -->    
+  <div id="tab-data" class="tab-content">    
+    <div class="panel">    
+      <div class="panel-title">データバックアップ・各種ファイル出力</div>    
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">    
+        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">    
+          <h4 style="margin-bottom: 8px;">データ出力</h4>    
+          <div style="display: flex; flex-direction: column; gap: 8px;">    
+            <button onclick="exportData('json')" class="primary">JSON形式 (完全バックアップ)</button>    
+            <button onclick="exportData('csv')">CSV形式 (Excel等で閲覧可能)</button>    
+          </div>    
+        </div>    
+    
+        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">    
+          <h4 style="margin-bottom: 8px;">データ取込</h4>    
+          <input type="file" id="import-file-input" accept=".json" style="margin-bottom: 10px; width: 100%;">    
+          <button onclick="executeImport()" class="success">JSONから復元</button>    
+        </div>    
+    
+        <div style="border: 1px solid #ddd; padding: 10px; background: #fff;">    
+          <h4 style="margin-bottom: 8px;">データ全消去</h4>    
+          <button onclick="clearAllData()" class="danger">全ての登録データを初期化</button>    
+        </div>    
+      </div>    
+    </div>    
+  </div>    
+</div>    
+    
+<!-- Modal: Print Preview -->    
+<div id="print-modal" class="modal-overlay">    
+  <div class="modal-box">    
+    <div class="modal-header">    
+      <h3>集計報告書 印刷プレビュー</h3>    
+      <button onclick="closePrintModal()">✕ 閉じる</button>    
+    </div>    
+        
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">    
+      <button onclick="executePrint()" class="primary" style="font-size: 1.1rem; padding: 8px 16px;">🖨️ 印刷実行 (A4)</button>    
+      <span style="font-size: 0.85rem; color: #666;">※発注者・監督へ提出できる無駄な表記のない集計レイアウトです</span>    
+    </div>    
+    
+    <!-- Preview Canvas Area -->    
+    <div id="modal-preview-content" style="border: 1px solid #999; padding: 20px; background: #fff;"></div>    
+  </div>    
+</div>    
+    
+<!-- Hidden Container Dedicated to Print output -->    
+<div id="print-area"></div>    
+    
+<script>    
+/* ==========================================================================    
+   State & Storage Management    
+   ========================================================================== */    
+const APP_STORAGE_KEY = 'WORK_LOG_REPORTS_V1';    
+    
+let appState = {    
+  settings: {    
+    taxRate: 10, // 消費税率 (%)  
+    workerUnit: '人工',  
+    workerPrice: 0, // 作業員の単価  
+    machinery: [    
+      { id: 'm1', name: 'バックホウ (0.25m3)', unit: '日/台', price: 0 },    
+      { id: 'm2', name: '2tダンプトラック', unit: '日/台', price: 0 },    
+      { id: 'm3', name: '発電機 2.5kVA', unit: '日/台', price: 0 }    
+    ],    
+    masterSites: ['本社ビル現場', '〇〇駅前道路工事', '△△邸外構工事']    
+  },    
+  records: {} // Format: { "YYYY-MM-DD": { site, workers, machinery: { m1: val, ... }, note } }    
+};    
+    
+window.addEventListener('DOMContentLoaded', () => {    
+  loadDataFromStorage();    
+  setCurrentDateDefault();    
+  renderDynamicInputs();    
+  renderDailyTable();    
+  renderMasterSiteOptions();    
+  renderSummary();    
+});    
+    
+function loadDataFromStorage() {    
+  try {    
+    const raw = localStorage.getItem(APP_STORAGE_KEY);    
+    if (raw) {    
+      const parsed = JSON.parse(raw);    
+      appState = Object.assign({}, appState, parsed);    
   
-      <h4 style="font-size:11pt; margin-bottom:5px; border-left:4px solid #333; padding-left:6px;">2. 日別稼働明細 内訳</h4>  
-      <table class="report-table">  
-        <thead>  
-          <tr style="background:#f0f0f0;">  
-            <th style="width:90px;">日付</th>  
-            <th>現場名</th>  
-            <th style="text-align:right; width:60px;">人工</th>  
-            ${appState.settings.machinery.map(m => `<th style="text-align:right;">${escapeHtml(m.name)}</th>`).join('')}  
-            <th>備考</th>  
-          </tr>  
-        </thead>  
-        <tbody>  
-          ${detailRows || '<tr><td colspan="10" style="text-align:center;">期間中の記録はありません。</td></tr>'}  
-        </tbody>  
-      </table>  
-    </div>  
+      // 後方互換性 (古いバックアップから復元した際に未定義の値を補完)  
+      if (appState.settings.taxRate === undefined) appState.settings.taxRate = 10;  
+      if (appState.settings.workerPrice === undefined) appState.settings.workerPrice = 0;  
+      appState.settings.machinery.forEach(m => {  
+        if (m.price === undefined) m.price = 0;  
+      });  
+    }    
+  } catch (e) {    
+    console.error('Failed to load storage data:', e);    
+  }    
+}    
+    
+function saveDataToStorage() {    
+  try {    
+    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));    
+  } catch (e) {    
+    alert('データ保存に失敗しました。');    
+  }    
+}    
+  
+// 金額フォーマット関数  
+function formatCurrency(num) {  
+  return Math.floor(num).toLocaleString() + '円';  
+}  
+    
+function setCurrentDateDefault() {    
+  const today = new Date().toISOString().split('T')[0];    
+  document.getElementById('input-date').value = today;    
+  document.getElementById('filter-month').value = today.substring(0, 7);    
+  document.getElementById('target-month').value = today.substring(0, 7);    
+  document.getElementById('target-month-from').value = today.substring(0, 7);    
+  document.getElementById('target-month-to').value = today.substring(0, 7);    
+}    
+    
+function addValue(inputId, delta) {    
+  const el = document.getElementById(inputId);    
+  if (!el) return;    
+  let current = parseFloat(el.value);    
+  if (isNaN(current)) current = 0;    
+  el.value = (current + delta).toFixed(delta % 1 === 0 ? 0 : 1);    
+}    
+    
+function switchTab(tabKey) {    
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));    
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));    
+      
+  document.getElementById(`tab-btn-${tabKey}`).classList.add('active');    
+  document.getElementById(`tab-${tabKey}`).classList.add('active');    
+    
+  if (tabKey === 'daily') renderDailyTable();    
+  if (tabKey === 'monthly') renderSummary();    
+  if (tabKey === 'settings') renderSettings();    
+}    
+    
+/* ==========================================================================    
+   Form & Daily Entry Handling    
+   ========================================================================== */    
+function renderDynamicInputs() {    
+  const container = document.getElementById('dynamic-machinery-inputs');    
+  container.innerHTML = '';    
+    
+  appState.settings.machinery.forEach(item => {    
+    const div = document.createElement('div');    
+    div.className = 'form-group';    
+    div.innerHTML = `    
+      <label>${escapeHtml(item.name)} (${escapeHtml(item.unit)})</label>    
+      <div class="input-with-assist">    
+        <input type="number" id="input-machinery-${item.id}" min="0" step="0.5" placeholder="未入力(0)">    
+        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 0.5)">+0.5</button>    
+        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 1)">+1</button>    
+      </div>    
+    `;    
+    container.appendChild(div);    
+  });    
+}    
+    
+function renderMasterSiteOptions() {    
+  const dropdown = document.getElementById('site-master-dropdown');    
+  dropdown.innerHTML = '<option value="">(選択)</option>';    
+  appState.settings.masterSites.forEach(site => {    
+    const opt = document.createElement('option');    
+    opt.value = site;    
+    opt.textContent = site;    
+    dropdown.appendChild(opt);    
+  });    
+    
+  const datalist = document.getElementById('site-history-list');    
+  datalist.innerHTML = '';    
+  const siteSelect = document.getElementById('filter-site-select');    
+  const currentSiteVal = siteSelect.value;    
+  siteSelect.innerHTML = '<option value="ALL">全現場を対象</option>';    
+    
+  const uniqueSites = [...new Set(Object.values(appState.records).map(r => r.site))];    
+  uniqueSites.forEach(site => {    
+    if (site) {    
+      const opt = document.createElement('option');    
+      opt.value = site;    
+      datalist.appendChild(opt);    
+    
+      const opt2 = document.createElement('option');    
+      opt2.value = site;    
+      opt2.textContent = site;    
+      siteSelect.appendChild(opt2);    
+    }    
+  });    
+  siteSelect.value = currentSiteVal || 'ALL';    
+    
+  const recentContainer = document.getElementById('site-recents');    
+  recentContainer.innerHTML = '';    
+  uniqueSites.slice(-4).reverse().forEach(site => {    
+    const chip = document.createElement('span');    
+    chip.className = 'chip';    
+    chip.textContent = site;    
+    chip.onclick = () => { document.getElementById('input-site').value = site; };    
+    recentContainer.appendChild(chip);    
+  });    
+}    
+    
+function applyMasterSite(val) {    
+  if (val) document.getElementById('input-site').value = val;    
+}    
+    
+function onDateChange() {    
+  const dateVal = document.getElementById('input-date').value;    
+  if (!dateVal) return;    
+    
+  const rec = appState.records[dateVal];    
+  if (rec) {    
+    document.getElementById('input-site').value = rec.site || '';    
+    document.getElementById('input-workers').value = (rec.workers && rec.workers !== 0) ? rec.workers : '';    
+    appState.settings.machinery.forEach(m => {    
+      const el = document.getElementById(`input-machinery-${m.id}`);    
+      if (el) el.value = (rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : '';    
+    });    
+    document.getElementById('input-note').value = rec.note || '';    
+  } else {    
+    document.getElementById('input-site').value = '';    
+    document.getElementById('input-workers').value = '';    
+    appState.settings.machinery.forEach(m => {    
+      const el = document.getElementById(`input-machinery-${m.id}`);    
+      if (el) el.value = '';    
+    });    
+    document.getElementById('input-note').value = '';    
+  }    
+}    
+    
+function saveDailyRecord(e) {    
+  e.preventDefault();    
+  const dateVal = document.getElementById('input-date').value;    
+  const siteVal = document.getElementById('input-site').value.trim();    
+    
+  if (!dateVal || !siteVal) {    
+    alert('日付と現場名は必須です。');    
+    return;    
+  }    
+    
+  const workers = parseFloat(document.getElementById('input-workers').value) || 0;    
+  const machinery = {};    
+  appState.settings.machinery.forEach(m => {    
+    const el = document.getElementById(`input-machinery-${m.id}`);    
+    machinery[m.id] = el ? (parseFloat(el.value) || 0) : 0;    
+  });    
+    
+  appState.records[dateVal] = {    
+    site: siteVal,    
+    workers: workers,    
+    machinery: machinery,    
+    note: document.getElementById('input-note').value.trim()    
+  };    
+    
+  saveDataToStorage();    
+  renderMasterSiteOptions();    
+  renderDailyTable();    
+  alert(`${dateVal} の実績を保存しました。`);    
+}    
+    
+function resetForm() {    
+  document.getElementById('daily-form').reset();    
+  setCurrentDateDefault();    
+  onDateChange();    
+}    
+    
+function copyPreviousDayRecord() {    
+  const currentDate = document.getElementById('input-date').value;    
+  if (!currentDate) return;    
+    
+  const curr = new Date(currentDate);    
+  curr.setDate(curr.getDate() - 1);    
+  const prevDateStr = curr.toISOString().split('T')[0];    
+    
+  const prevRec = appState.records[prevDateStr];    
+  if (!prevRec) {    
+    alert(`前日 (${prevDateStr}) のデータが見つかりません。`);    
+    return;    
+  }    
+    
+  document.getElementById('input-site').value = prevRec.site || '';    
+  document.getElementById('input-workers').value = prevRec.workers || '';    
+  appState.settings.machinery.forEach(m => {    
+    const el = document.getElementById(`input-machinery-${m.id}`);    
+    if (el) el.value = (prevRec.machinery && prevRec.machinery[m.id]) ? prevRec.machinery[m.id] : '';    
+  });    
+  document.getElementById('input-note').value = prevRec.note || '';    
+}    
+    
+function renderDailyTable() {    
+  const targetMonth = document.getElementById('filter-month').value;    
+  const headRow = document.getElementById('daily-table-head');    
+  const tbody = document.getElementById('daily-table-body');    
+    
+  let headHtml = `<th>日付</th><th>現場名</th><th class="num">作業員(人工)</th>`;    
+  appState.settings.machinery.forEach(m => {    
+    headHtml += `<th class="num">${escapeHtml(m.name)}</th>`;    
+  });    
+  headHtml += `<th>備考</th><th>操作</th>`;    
+  headRow.innerHTML = headHtml;    
+    
+  tbody.innerHTML = '';    
+    
+  const dates = Object.keys(appState.records)    
+    .filter(d => d.startsWith(targetMonth))    
+    .sort((a, b) => a.localeCompare(b));    
+    
+  if (dates.length === 0) {    
+    tbody.innerHTML = `<tr><td colspan="${4 + appState.settings.machinery.length}" style="text-align:center; color:#888;">データが登録されていません。</td></tr>`;    
+    return;    
+  }    
+    
+  dates.forEach(dateStr => {    
+    const rec = appState.records[dateStr];    
+    const tr = document.createElement('tr');    
+        
+    let rowHtml = `<td>${dateStr}</td><td>${escapeHtml(rec.site)}</td><td class="num">${rec.workers || 0}</td>`;    
+    appState.settings.machinery.forEach(m => {    
+      const val = (rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0;    
+      rowHtml += `<td class="num">${val}</td>`;    
+    });    
+    rowHtml += `<td>${escapeHtml(rec.note || '')}</td>`;    
+    rowHtml += `<td>    
+      <button onclick="loadRecordToForm('${dateStr}')" style="padding:2px 6px;">編集</button>    
+      <button onclick="deleteRecord('${dateStr}')" class="danger" style="padding:2px 6px;">削除</button>    
+    </td>`;    
+    
+    tr.innerHTML = rowHtml;    
+    tbody.appendChild(tr);    
+  });    
+}    
+    
+function loadRecordToForm(dateStr) {    
+  document.getElementById('input-date').value = dateStr;    
+  onDateChange();    
+  window.scrollTo({ top: 0, behavior: 'smooth' });    
+}    
+    
+function deleteRecord(dateStr) {    
+  if (confirm(`${dateStr} のデータを削除しますか？`)) {    
+    delete appState.records[dateStr];    
+    saveDataToStorage();    
+    renderDailyTable();    
+    renderSummary();    
+  }    
+}    
+    
+/* ==========================================================================    
+   Summary Calculations    
+   ========================================================================== */    
+function toggleCalcMode() {    
+  const mode = document.getElementById('calc-mode').value;    
+  document.getElementById('single-month-picker').style.display = mode === 'single' ? 'block' : 'none';    
+  document.getElementById('range-month-picker').style.display = mode === 'range' ? 'flex' : 'none';    
+  renderSummary();    
+}    
+    
+function getFilteredDatesForSummary() {    
+  const mode = document.getElementById('calc-mode').value;    
+  const selectedSite = document.getElementById('filter-site-select').value;    
+  const allDates = Object.keys(appState.records);    
+    
+  let filtered = [];    
+  if (mode === 'single') {    
+    const targetMonth = document.getElementById('target-month').value;    
+    filtered = allDates.filter(d => d.startsWith(targetMonth));    
+  } else {    
+    const fromMonth = document.getElementById('target-month-from').value;    
+    const toMonth = document.getElementById('target-month-to').value;    
+    if (!fromMonth || !toMonth) return [];    
+    filtered = allDates.filter(d => {    
+      const m = d.substring(0, 7);    
+      return m >= fromMonth && m <= toMonth;    
+    });    
+  }    
+    
+  if (selectedSite && selectedSite !== 'ALL') {    
+    filtered = filtered.filter(d => appState.records[d].site === selectedSite);    
+  }    
+    
+  return filtered;    
+}    
+    
+function renderSummary() {    
+  const targetDates = getFilteredDatesForSummary();    
+  const tbody = document.getElementById('summary-table-body');    
+  const tfoot = document.getElementById('summary-table-foot');  
+    
+  tbody.innerHTML = '';    
+  tfoot.innerHTML = '';  
+    
+  let totalWorkers = 0;    
+  const machineryTotals = {};    
+  appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });    
+    
+  targetDates.forEach(d => {    
+    const rec = appState.records[d];    
+    totalWorkers += (parseFloat(rec.workers) || 0);    
+    if (rec.machinery) {    
+      appState.settings.machinery.forEach(m => {    
+        machineryTotals[m.id] += (parseFloat(rec.machinery[m.id]) || 0);    
+      });    
+    }    
+  });    
+  
+  let subtotal = 0;  
+  const workerAmount = totalWorkers * appState.settings.workerPrice;  
+  subtotal += workerAmount;  
+    
+  let html = `<tr>    
+    <td>作業員</td>    
+    <td class="num">${totalWorkers}</td>    
+    <td>${escapeHtml(appState.settings.workerUnit)}</td>    
+    <td class="num">${formatCurrency(appState.settings.workerPrice)}</td>  
+    <td class="num">${formatCurrency(workerAmount)}</td>  
+  </tr>`;    
+    
+  appState.settings.machinery.forEach(m => {    
+    const qty = machineryTotals[m.id] || 0;  
+    const amt = qty * m.price;  
+    subtotal += amt;  
+    html += `<tr>    
+      <td>${escapeHtml(m.name)}</td>    
+      <td class="num">${qty}</td>    
+      <td>${escapeHtml(m.unit)}</td>    
+      <td class="num">${formatCurrency(m.price)}</td>  
+      <td class="num">${formatCurrency(amt)}</td>  
+    </tr>`;    
+  });    
+    
+  tbody.innerHTML = html;    
+  
+  // 予算(消費税)の計算  
+  const taxRate = appState.settings.taxRate;  
+  const taxAmount = Math.floor(subtotal * taxRate / 100);  
+  const grandTotal = subtotal + taxAmount;  
+  
+  let footHtml = `  
+    <tr>  
+      <td colspan="4" style="text-align:right;">小計 (税抜)</td>  
+      <td class="num">${formatCurrency(subtotal)}</td>  
+    </tr>  
+    <tr>  
+      <td colspan="4" style="text-align:right;">消費税 (${taxRate}%)</td>  
+      <td class="num">${formatCurrency(taxAmount)}</td>  
+    </tr>  
+    <tr>  
+      <td colspan="4" style="text-align:right;">合計 (税込)</td>  
+      <td class="num" style="color:#a80000; font-size:1.1em;">${formatCurrency(grandTotal)}</td>  
+    </tr>  
+  `;  
+  tfoot.innerHTML = footHtml;  
+}    
+    
+/* ==========================================================================    
+   Clean Print Output (For Client / Inspector Submission)    
+   ========================================================================== */    
+function triggerPrintPreview() {    
+  const targetDates = getFilteredDatesForSummary();    
+  const mode = document.getElementById('calc-mode').value;    
+  const selectedSite = document.getElementById('filter-site-select').value;    
+    
+  let periodStr = '';    
+  if (mode === 'single') {    
+    periodStr = document.getElementById('target-month').value + ' 分';    
+  } else {    
+    periodStr = `${document.getElementById('target-month-from').value} ～ ${document.getElementById('target-month-to').value} 分`;    
+  }    
+    
+  const siteLabel = selectedSite === 'ALL' ? '全現場対象' : `現場: ${selectedSite}`;    
+    
+  let totalWorkers = 0;    
+  const machineryTotals = {};    
+  appState.settings.machinery.forEach(m => { machineryTotals[m.id] = 0; });    
+    
+  targetDates.forEach(d => {    
+    const rec = appState.records[d];    
+    totalWorkers += (parseFloat(rec.workers) || 0);    
+    if (rec.machinery) {    
+      appState.settings.machinery.forEach(m => {    
+        machineryTotals[m.id] += (parseFloat(rec.machinery[m.id]) || 0);    
+      });    
+    }    
+  });    
+    
+  let subtotal = 0;  
+  const workerAmount = totalWorkers * appState.settings.workerPrice;  
+  subtotal += workerAmount;  
+  
+  let summaryRows = `<tr>    
+    <td>作業員</td>    
+    <td style="text-align:right;">${totalWorkers}</td>    
+    <td>${escapeHtml(appState.settings.workerUnit)}</td>    
+    <td style="text-align:right;">${formatCurrency(appState.settings.workerPrice)}</td>  
+    <td style="text-align:right;">${formatCurrency(workerAmount)}</td>  
+  </tr>`;    
+    
+  appState.settings.machinery.forEach(m => {    
+    const qty = machineryTotals[m.id] || 0;  
+    const amt = qty * m.price;  
+    subtotal += amt;  
+    summaryRows += `<tr>    
+      <td>${escapeHtml(m.name)}</td>    
+      <td style="text-align:right;">${qty}</td>    
+      <td>${escapeHtml(m.unit)}</td>    
+      <td style="text-align:right;">${formatCurrency(m.price)}</td>  
+      <td style="text-align:right;">${formatCurrency(amt)}</td>  
+    </tr>`;    
+  });    
+    
+  const taxRate = appState.settings.taxRate;  
+  const taxAmount = Math.floor(subtotal * taxRate / 100);  
+  const grandTotal = subtotal + taxAmount;  
+  
+  summaryRows += `  
+    <tr style="background:#f9f9f9; font-weight:bold;">  
+      <td colspan="4" style="text-align:right;">小計 (税抜)</td>  
+      <td style="text-align:right;">${formatCurrency(subtotal)}</td>  
+    </tr>  
+    <tr style="background:#f9f9f9; font-weight:bold;">  
+      <td colspan="4" style="text-align:right;">消費税 (${taxRate}%)</td>  
+      <td style="text-align:right;">${formatCurrency(taxAmount)}</td>  
+    </tr>  
+    <tr style="background:#f9f9f9; font-weight:bold;">  
+      <td colspan="4" style="text-align:right;">合計 (税込)</td>  
+      <td style="text-align:right; font-size:1.1em;">${formatCurrency(grandTotal)}</td>  
+    </tr>  
   `;  
   
-  document.getElementById('modal-preview-content').innerHTML = printHtml;  
-  document.getElementById('print-modal').classList.add('active');  
-}  
-  
-function closePrintModal() {  
-  document.getElementById('print-modal').classList.remove('active');  
-}  
-  
-function executePrint() {  
-  const content = document.getElementById('modal-preview-content').innerHTML;  
-  const printArea = document.getElementById('print-area');  
-  printArea.innerHTML = content;  
-  window.print();  
-  setTimeout(() => { printArea.innerHTML = ''; }, 1000);  
-}  
-  
-/* ==========================================================================  
-   Settings Management  
-   ========================================================================== */  
-function renderSettings() {  
-  document.getElementById('setting-tax-rate').value = appState.settings.taxRate;
-  
-  const tbody = document.getElementById('machinery-settings-body');  
-  tbody.innerHTML = '';  
-  
-  let html = `<tr>  
-    <td><input type="text" value="作業員出勤 (人工)" disabled style="background:#eee;"></td>  
-    <td><input type="text" id="setting-worker-unit" value="${escapeHtml(appState.settings.workerUnit)}"></td>  
-    <td><input type="number" id="setting-worker-price" value="${appState.settings.workerPrice}" min="0" step="1"></td>  
-    <td>-</td>  
-  </tr>`;  
-  
-  appState.settings.machinery.forEach(m => {  
-    html += `<tr>  
-      <td><input type="text" id="setting-name-${m.id}" value="${escapeHtml(m.name)}"></td>  
-      <td><input type="text" id="setting-unit-${m.id}" value="${escapeHtml(m.unit)}"></td>  
-      <td><input type="number" id="setting-price-${m.id}" value="${m.price}" min="0" step="1"></td>  
-      <td><button onclick="removeMachinerySettingRow('${m.id}')" class="danger" style="padding:2px 6px;">削除</button></td>  
-    </tr>`;  
-  });  
-  
-  tbody.innerHTML = html;  
-  renderMasterSitesList();  
-}  
-  
-function addMachinerySettingRow() {  
-  const newId = 'm_' + Date.now();  
-  appState.settings.machinery.push({ id: newId, name: '新規項目', unit: '日/台', price: 0 });  
-  renderSettings();  
-}  
-  
-function removeMachinerySettingRow(id) {  
-  if (confirm('この項目を削除しますか？')) {  
-    appState.settings.machinery = appState.settings.machinery.filter(m => m.id !== id);  
-    renderSettings();  
-  }  
-}  
-  
-function saveMachinerySettings() {  
-  appState.settings.taxRate = parseFloat(document.getElementById('setting-tax-rate').value) || 0;
-  appState.settings.workerUnit = document.getElementById('setting-worker-unit').value.trim();  
-  appState.settings.workerPrice = parseFloat(document.getElementById('setting-worker-price').value) || 0;  
-  
-  appState.settings.machinery.forEach(m => {  
-    const nameEl = document.getElementById(`setting-name-${m.id}`);  
-    const unitEl = document.getElementById(`setting-unit-${m.id}`);  
-    const priceEl = document.getElementById(`setting-price-${m.id}`);
+  // Daily Detail Rows for Audit    
+  let detailRows = '';    
+  targetDates.sort().forEach(d => {    
+    const rec = appState.records[d];    
+    detailRows += `<tr>    
+      <td>${d}</td>    
+      <td>${escapeHtml(rec.site)}</td>    
+      <td style="text-align:right;">${rec.workers || 0}</td>`;    
+    appState.settings.machinery.forEach(m => {    
+      detailRows += `<td style="text-align:right;">${(rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0}</td>`;    
+    });    
+    detailRows += `<td>${escapeHtml(rec.note || '')}</td></tr>`;    
+  });    
     
-    if (nameEl) m.name = nameEl.value.trim();  
-    if (unitEl) m.unit = unitEl.value.trim();  
-    if (priceEl) m.price = parseFloat(priceEl.value) || 0;
-  });  
-  
-  saveDataToStorage();  
-  renderDynamicInputs();  
-  renderSummary();  
-  alert('項目設定を更新しました。');  
-}  
-  
-function renderMasterSitesList() {  
-  const container = document.getElementById('master-sites-list');  
-  container.innerHTML = '';  
-  appState.settings.masterSites.forEach((site, index) => {  
-    const chip = document.createElement('span');  
-    chip.className = 'chip';  
-    chip.innerHTML = `${escapeHtml(site)} <strong style="margin-left:5px; color:#a80000; cursor:pointer;">×</strong>`;  
-    chip.onclick = () => removeMasterSite(index);  
-    container.appendChild(chip);  
-  });  
-}  
-  
-function addMasterSite() {  
-  const val = document.getElementById('new-master-site').value.trim();  
-  if (val && !appState.settings.masterSites.includes(val)) {  
-    appState.settings.masterSites.push(val);  
-    document.getElementById('new-master-site').value = '';  
-    saveDataToStorage();  
-    renderMasterSitesList();  
-    renderMasterSiteOptions();  
-  }  
-}  
-  
-function removeMasterSite(index) {  
-  appState.settings.masterSites.splice(index, 1);  
-  saveDataToStorage();  
-  renderMasterSitesList();  
-  renderMasterSiteOptions();  
-}  
-  
-/* ==========================================================================  
-   Backup & Import/Export  
-   ========================================================================== */  
-function openExportModal() { switchTab('data'); }  
-function openImportModal() { switchTab('data'); }  
-  
-function exportData(format) {  
-  const filename = `work_records_${new Date().toISOString().split('T')[0]}`;  
-  
-  if (format === 'json') {  
-    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });  
-    downloadBlob(blob, `${filename}.json`);  
-  } else if (format === 'csv') {  
-    let content = `日付,現場名,作業員数`;  
-    appState.settings.machinery.forEach(m => { content += `,${m.name}`; });  
-    content += `,備考\n`;  
-  
-    Object.keys(appState.records).sort().forEach(d => {  
-      const rec = appState.records[d];  
-      let row = `${d},"${rec.site}",${rec.workers || 0}`;  
-      appState.settings.machinery.forEach(m => {  
-        row += `,${(rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0}`;  
-      });  
-      row += `,"${rec.note || ''}"\n`;  
-      content += row;  
-    });  
-  
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);  
-    const blob = new Blob([bom, content], { type: 'text/csv;charset=utf-8;' });  
-    downloadBlob(blob, `${filename}.csv`);  
-  }  
-}  
-  
-function downloadBlob(blob, fileName) {  
-  const link = document.createElement('a');  
-  link.href = URL.createObjectURL(blob);  
-  link.download = fileName;  
-  link.click();  
-  URL.revokeObjectURL(link.href);  
-}  
-  
-function executeImport() {  
-  const fileInput = document.getElementById('import-file-input');  
-  if (!fileInput.files || fileInput.files.length === 0) {  
-    alert('JSONファイルを選択してください。');  
-    return;  
-  }  
-  
-  const reader = new FileReader();  
-  reader.onload = (e) => {  
-    try {  
-      const imported = JSON.parse(e.target.result);  
-      if (imported.settings && imported.records) {  
-        appState = imported;  
-        saveDataToStorage();  
-        alert('復元が完了しました。');  
-        location.reload();  
-      } else {  
-        alert('データフォーマットが正しくありません。');  
-      }  
-    } catch (err) {  
-      alert('読み込みエラー: ' + err.message);  
-    }  
-  };  
-  reader.readAsText(fileInput.files[0]);  
-}  
-  
-function clearAllData() {  
-  if (confirm('【警告】すべての登録データを初期化しますか？')) {  
-    localStorage.removeItem(APP_STORAGE_KEY);  
-    location.reload();  
-  }  
-}  
-  
-function escapeHtml(str) {  
-  if (!str) return '';  
-  return String(str)  
-    .replace(/&/g, '&amp;')  
-    .replace(/</g, '&lt;')  
-    .replace(/>/g, '&gt;')  
-    .replace(/"/g, '&quot;')  
-    .replace(/'/g, '&#039;');  
-}  
-</script>  
-</body>  
+  const printHtml = `    
+    <div class="report-print-container">    
+      <div class="report-title">作業出勤・機械稼働 状況集計表</div>    
+          
+      <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:10pt;">    
+        <div><strong>【対象期間】:</strong> ${periodStr} (${siteLabel})</div>    
+        <div><strong>出力日:</strong> ${new Date().toLocaleDateString('ja-JP')}</div>    
+      </div>    
+    
+      <h4 style="font-size:11pt; margin-bottom:5px; border-left:4px solid #333; padding-left:6px;">1. 稼働・予算別 累計集計表</h4>    
+      <table class="report-table" style="margin-bottom:20px;">    
+        <thead>    
+          <tr style="background:#f0f0f0;">    
+            <th>項目名称</th>    
+            <th style="text-align:right; width:90px;">数量/累計日</th>    
+            <th style="width:60px;">単位</th>    
+            <th style="text-align:right; width:90px;">単価(税抜)</th>  
+            <th style="text-align:right; width:100px;">金額(税抜)</th>  
+          </tr>    
+        </thead>    
+        <tbody>    
+          ${summaryRows}    
+        </tbody>    
+      </table>    
+    
+      <h4 style="font-size:11pt; margin-bottom:5px; border-left:4px solid #333; padding-left:6px;">2. 日別稼働明細 内訳</h4>    
+      <table class="report-table">    
+        <thead>    
+          <tr style="background:#f0f0f0;">    
+            <th style="width:90px;">日付</th>    
+            <th>現場名</th>    
+            <th style="text-align:right; width:60px;">人工</th>    
+            ${appState.settings.machinery.map(m => `<th style="text-align:right;">${escapeHtml(m.name)}</th>`).join('')}    
+            <th>備考</th>    
+          </tr>    
+        </thead>    
+        <tbody>    
+          ${detailRows || '<tr><td colspan="10" style="text-align:center;">期間中の記録はありません。</td></tr>'}    
+        </tbody>    
+      </table>    
+    </div>    
+  `;    
+    
+  document.getElementById('modal-preview-content').innerHTML = printHtml;    
+  document.getElementById('print-modal').classList.add('active');    
+}    
+    
+function closePrintModal() {    
+  document.getElementById('print-modal').classList.remove('active');    
+}    
+    
+function executePrint() {    
+  const content = document.getElementById('modal-preview-content').innerHTML;    
+  const printArea = document.getElementById('print-area');    
+  printArea.innerHTML = content;    
+  window.print();    
+  setTimeout(() => { printArea.innerHTML = ''; }, 1000);    
+}    
+    
+/* ==========================================================================    
+   Settings Management    
+   ========================================================================== */    
+function renderSettings() {    
+  document.getElementById('setting-tax-rate').value = appState.settings.taxRate;  
+    
+  const tbody = document.getElementById('machinery-settings-body');    
+  tbody.innerHTML = '';    
+    
+  let html = `<tr>    
+    <td><input type="text" value="作業員出勤 (人工)" disabled style="background:#eee;"></td>    
+    <td><input type="text" id="setting-worker-unit" value="${escapeHtml(appState.settings.workerUnit)}"></td>    
+    <td><input type="number" id="setting-worker-price" value="${appState.settings.workerPrice}" min="0" step="1"></td>    
+    <td>-</td>    
+  </tr>`;    
+    
+  appState.settings.machinery.forEach(m => {    
+    html += `<tr>    
+      <td><input type="text" id="setting-name-${m.id}" value="${escapeHtml(m.name)}"></td>    
+      <td><input type="text" id="setting-unit-${m.id}" value="${escapeHtml(m.unit)}"></td>    
+      <td><input type="number" id="setting-price-${m.id}" value="${m.price}" min="0" step="1"></td>    
+      <td><button onclick="removeMachinerySettingRow('${m.id}')" class="danger" style="padding:2px 6px;">削除</button></td>    
+    </tr>`;    
+  });    
+    
+  tbody.innerHTML = html;    
+  renderMasterSitesList();    
+}    
+    
+function addMachinerySettingRow() {    
+  const newId = 'm_' + Date.now();    
+  appState.settings.machinery.push({ id: newId, name: '新規項目', unit: '日/台', price: 0 });    
+  renderSettings();    
+}    
+    
+function removeMachinerySettingRow(id) {    
+  if (confirm('この項目を削除しますか？')) {    
+    appState.settings.machinery = appState.settings.machinery.filter(m => m.id !== id);    
+    renderSettings();    
+  }    
+}    
+    
+function saveMachinerySettings() {    
+  appState.settings.taxRate = parseFloat(document.getElementById('setting-tax-rate').value) || 0;  
+  appState.settings.workerUnit = document.getElementById('setting-worker-unit').value.trim();    
+  appState.settings.workerPrice = parseFloat(document.getElementById('setting-worker-price').value) || 0;    
+    
+  appState.settings.machinery.forEach(m => {    
+    const nameEl = document.getElementById(`setting-name-${m.id}`);    
+    const unitEl = document.getElementById(`setting-unit-${m.id}`);    
+    const priceEl = document.getElementById(`setting-price-${m.id}`);  
+      
+    if (nameEl) m.name = nameEl.value.trim();    
+    if (unitEl) m.unit = unitEl.value.trim();    
+    if (priceEl) m.price = parseFloat(priceEl.value) || 0;  
+  });    
+    
+  saveDataToStorage();    
+  renderDynamicInputs();    
+  renderSummary();    
+  alert('項目設定を更新しました。');    
+}    
+    
+function renderMasterSitesList() {    
+  const container = document.getElementById('master-sites-list');    
+  container.innerHTML = '';    
+  appState.settings.masterSites.forEach((site, index) => {    
+    const chip = document.createElement('span');    
+    chip.className = 'chip';    
+    chip.innerHTML = `${escapeHtml(site)} <strong style="margin-left:5px; color:#a80000; cursor:pointer;">×</strong>`;    
+    chip.onclick = () => removeMasterSite(index);    
+    container.appendChild(chip);    
+  });    
+}    
+    
+function addMasterSite() {    
+  const val = document.getElementById('new-master-site').value.trim();    
+  if (val && !appState.settings.masterSites.includes(val)) {    
+    appState.settings.masterSites.push(val);    
+    document.getElementById('new-master-site').value = '';    
+    saveDataToStorage();    
+    renderMasterSitesList();    
+    renderMasterSiteOptions();    
+  }    
+}    
+    
+function removeMasterSite(index) {    
+  appState.settings.masterSites.splice(index, 1);    
+  saveDataToStorage();    
+  renderMasterSitesList();    
+  renderMasterSiteOptions();    
+}    
+    
+/* ==========================================================================    
+   Backup & Import/Export    
+   ========================================================================== */    
+function openExportModal() { switchTab('data'); }    
+function openImportModal() { switchTab('data'); }    
+    
+function exportData(format) {    
+  const filename = `work_records_${new Date().toISOString().split('T')[0]}`;    
+    
+  if (format === 'json') {    
+    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });    
+    downloadBlob(blob, `${filename}.json`);    
+  } else if (format === 'csv') {    
+    let content = `日付,現場名,作業員数`;    
+    appState.settings.machinery.forEach(m => { content += `,${m.name}`; });    
+    content += `,備考\n`;    
+    
+    Object.keys(appState.records).sort().forEach(d => {    
+      const rec = appState.records[d];    
+      let row = `${d},"${rec.site}",${rec.workers || 0}`;    
+      appState.settings.machinery.forEach(m => {    
+        row += `,${(rec.machinery && rec.machinery[m.id]) ? rec.machinery[m.id] : 0}`;    
+      });    
+      row += `,"${rec.note || ''}"\n`;    
+      content += row;    
+    });    
+    
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);    
+    const blob = new Blob([bom, content], { type: 'text/csv;charset=utf-8;' });    
+    downloadBlob(blob, `${filename}.csv`);    
+  }    
+}    
+    
+function downloadBlob(blob, fileName) {    
+  const link = document.createElement('a');    
+  link.href = URL.createObjectURL(blob);    
+  link.download = fileName;    
+  link.click();    
+  URL.revokeObjectURL(link.href);    
+}    
+    
+function executeImport() {    
+  const fileInput = document.getElementById('import-file-input');    
+  if (!fileInput.files || fileInput.files.length === 0) {    
+    alert('JSONファイルを選択してください。');    
+    return;    
+  }    
+    
+  const reader = new FileReader();    
+  reader.onload = (e) => {    
+    try {    
+      const imported = JSON.parse(e.target.result);    
+      if (imported.settings && imported.records) {    
+        appState = imported;    
+        saveDataToStorage();    
+        alert('復元が完了しました。');    
+        location.reload();    
+      } else {    
+        alert('データフォーマットが正しくありません。');    
+      }    
+    } catch (err) {    
+      alert('読み込みエラー: ' + err.message);    
+    }    
+  };    
+  reader.readAsText(fileInput.files[0]);    
+}    
+    
+function clearAllData() {    
+  if (confirm('【警告】すべての登録データを初期化しますか？')) {    
+    localStorage.removeItem(APP_STORAGE_KEY);    
+    location.reload();    
+  }    
+}    
+    
+function escapeHtml(str) {    
+  if (!str) return '';    
+  return String(str)    
+    .replace(/&/g, '&amp;')    
+    .replace(/</g, '&lt;')    
+    .replace(/>/g, '&gt;')    
+    .replace(/"/g, '&quot;')    
+    .replace(/'/g, '&#039;');    
+}    
+</script>    
+</body>    
 </html>
