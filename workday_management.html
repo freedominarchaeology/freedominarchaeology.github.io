@@ -577,8 +577,8 @@ function renderDynamicInputs() {
       <label>${escapeHtml(item.name)} (${escapeHtml(item.unit)})</label>      
       <div class="input-with-assist">      
         <input type="number" id="input-machinery-${item.id}" min="0" step="0.5" placeholder="未入力(0)">      
-        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 0.5)">+0.5</button>      
         <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 1)">+1</button>      
+        <button type="button" class="btn-assist" onclick="addValue('input-machinery-${item.id}', 1)">+2</button>      
       </div>      
     `;      
     container.appendChild(div);      
