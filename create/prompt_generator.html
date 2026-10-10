@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D & AI Video Prompt Generator</title>
+    <style>
+        :root {
+            --bg-color: #f9f9f9;
+            --container-bg: #ffffff;
+            --text-color: #222222;
+            --border-color: #cccccc;
+            --primary-color: #2c3e50;
+            --accent-color: #2980b9;
+            --accent-hover: #1f618d;
+            --output-bg: #f4f6f7;
+        }
+
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", "Yu Mincho", serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .lang-select select {
+            font-family: inherit;
+            padding: 6px 12px;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        select, input[type="text"], textarea {
+            font-family: inherit;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        button {
+            font-family: inherit;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .output-section {
+            margin-top: 30px;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 20px;
+        }
+
+        .output-box {
+            background: var(--output-bg);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 0.95rem;
+        }
+
+        .copy-btn {
+            background-color: #27ae60;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #219653;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 id="ui-title">3D & AI映像プロンプトジェネレーター</h1>
+        <div class="lang-select">
+            <select id="languageSelector" aria-label="Language Select">
+                <option value="ja" selected>日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <div class="form-group">
+            <label id="label-genre" for="genreSelect">ジャンル・テーマ</label>
+            <select id="genreSelect">
+                <option value="science">科学概念 (相対性理論・量子力学など)</option>
+                <option value="classic">パブリックドメイン文学 (フランケンシュタイン等)</option>
+                <option value="custom">カスタム / その他</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label id="label-subject" for="inputSubject">主題・被写体 (Subject)</label>
+            <input type="text" id="inputSubject" placeholder="例: 重力によって光が曲がる宇宙空間の宇宙船">
+        </div>
+
+        <div class="form-group">
+            <label id="label-action" for="inputAction">動作・カメラワーク (Action & Motion)</label>
+            <input type="text" id="inputAction" placeholder="例: 光速に近いスピードで加速し、時空が歪む様子">
+        </div>
+
+        <div class="form-group">
+            <label id="label-style" for="inputStyle">画風・3Dスタイル (Style & Rendering)</label>
+            <input type="text" id="inputStyle" value="Scientific sci-fi 3D animation, Unreal Engine 5, ray tracing, 8k resolution">
+        </div>
+
+        <div class="form-group">
+            <label id="label-lighting" for="inputLighting">照明と雰囲気 (Lighting & Atmosphere)</label>
+            <input type="text" id="inputLighting" value="Volumetric lighting, deep space black, cosmic glow, lens flare">
+        </div>
+
+        <button id="btnGenerate" type="button">プロンプトを生成する</button>
+
+        <section class="output-section">
+            <label id="label-output" for="outputResult">生成されたプロンプト</label>
+            <div id="outputResult" class="output-box">ここにプロンプトが表示されます...</div>
+            <button id="btnCopy" class="copy-btn" type="button">クリップボードにコピー</button>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function() {
+        'use strict';
+
+        // 多言語辞書データ
+        const translations = {
+            ja: {
+                title: "3D & AI映像プロンプトジェネレーター",
+                genreLabel: "ジャンル・テーマ",
+                scienceOpt: "科学概念 (相対性理論・量子力学など)",
+                classicOpt: "パブリックドメイン文学 (フランケンシュタイン等)",
+                customOpt: "カスタム / その他",
+                subjectLabel: "主題・被写体 (Subject)",
+                actionLabel: "動作・カメラワーク (Action & Motion)",
+                styleLabel: "画風・3Dスタイル (Style & Rendering)",
+                lightingLabel: "照明と雰囲気 (Lighting & Atmosphere)",
+                generateBtn: "プロンプトを生成する",
+                outputLabel: "生成されたプロンプト",
+                copyBtn: "クリップボードにコピー",
+                copied: "コピーしました！",
+                placeholderSubject: "例: 重力によって光が曲がる宇宙空間の宇宙船",
+                placeholderAction: "例: 光速に近いスピードで加速し、時空が歪む様子"
+            },
+            en: {
+                title: "3D & AI Video Prompt Generator",
+                genreLabel: "Genre / Theme",
+                scienceOpt: "Scientific Concept (Relativity, Quantum, etc.)",
+                classicOpt: "Public Domain Literature (Frankenstein, etc.)",
+                customOpt: "Custom / Other",
+                subjectLabel: "Subject",
+                actionLabel: "Action & Motion",
+                styleLabel: "Style & Rendering",
+                lightingLabel: "Lighting & Atmosphere",
+                generateBtn: "Generate Prompt",
+                outputLabel: "Generated Prompt",
+                copyBtn: "Copy to Clipboard",
+                copied: "Copied!",
+                placeholderSubject: "e.g., Spaceship bending light via gravity in deep space",
+                placeholderAction: "e.g., Accelerating near light speed with spacetime warping"
+            },
+            zh: {
+                title: "3D 与 AI 视频提示词生成器",
+                genreLabel: "流派 / 主题",
+                scienceOpt: "科学概念 (相对论、量子力学等)",
+                classicOpt: "公共领域文学 (科学怪人等)",
+                customOpt: "自定义 / 其他",
+                subjectLabel: "主体 (Subject)",
+                actionLabel: "动作与运镜 (Action & Motion)",
+                styleLabel: "风格与渲染 (Style & Rendering)",
+                lightingLabel: "光照与氛围 (Lighting & Atmosphere)",
+                generateBtn: "生成提示词",
+                outputLabel: "生成的提示词",
+                copyBtn: "复制到剪贴板",
+                copied: "已复制！",
+                placeholderSubject: "例如：深空中因引力而使光线弯曲的飞船",
+                placeholderAction: "例如：以接近光速加速，时空发生扭曲"
+            },
+            ko: {
+                title: "3D 및 AI 영상 프롬프트 제너레이터",
+                genreLabel: "장르 / 테마",
+                scienceOpt: "과학적 개념 (상대성 이론, 양자역학 등)",
+                classicOpt: "공공누리 문학 (프랑켄슈타인 등)",
+                customOpt: "커스텀 / 기타",
+                subjectLabel: "주제 (Subject)",
+                actionLabel: "동작 및 카메라 워크 (Action & Motion)",
+                styleLabel: "화풍 및 3D 스타일 (Style & Rendering)",
+                lightingLabel: "조명 및 분위기 (Lighting & Atmosphere)",
+                generateBtn: "프롬프트 생성",
+                outputLabel: "생성된 프롬프트",
+                copyBtn: "클립보드에 복사",
+                copied: "복사되었습니다!",
+                placeholderSubject: "예: 중력에 의해 빛이 휘어지는 우주 공간의 우주선",
+                placeholderAction: "예: 광속에 가까운 속도로 가속하며 시공간이 일그러지는 모습"
+            },
+            fr: {
+                title: "Générateur de Prompts Vidéo 3D & IA",
+                genreLabel: "Genre / Thème",
+                scienceOpt: "Concept Scientifique (Relativité, etc.)",
+                classicOpt: "Littérature du Domaine Public (Frankenstein, etc.)",
+                customOpt: "Personnalisé / Autre",
+                subjectLabel: "Sujet (Subject)",
+                actionLabel: "Action & Mouvement",
+                styleLabel: "Style & Rendu (Style & Rendering)",
+                lightingLabel: "Éclairage et Atmosphère",
+                generateBtn: "Générer le Prompt",
+                outputLabel: "Prompt Généré",
+                copyBtn: "Copier dans le Presse-papier",
+                copied: "Copié !",
+                placeholderSubject: "ex: Vaisseau spatial courbant la lumière par gravité",
+                placeholderAction: "ex: Accélération proche de la vitesse de la lumière"
+            },
+            es: {
+                title: "Generador de Prompts de Video 3D e IA",
+                genreLabel: "Género / Tema",
+                scienceOpt: "Concepto Científico (Relatividad, etc.)",
+                classicOpt: "Literatura de Dominio Público (Frankenstein, etc.)",
+                customOpt: "Personalizado / Otro",
+                subjectLabel: "Sujeto (Subject)",
+                actionLabel: "Acción y Movimiento",
+                styleLabel: "Estilo y Renderizado",
+                lightingLabel: "Iluminación y Atmósfera",
+                generateBtn: "Generar Prompt",
+                outputLabel: "Prompt Generado",
+                copyBtn: "Copiar al Portapapeles",
+                copied: "¡Copiado!",
+                placeholderSubject: "ej: Nave espacial curvando la luz por gravedad",
+                placeholderAction: "ej: Aceleración cercana a la velocidad de la luz"
+            }
+        };
+
+        // DOM要素のキャッシュ（メモリ効率化・無駄な走査の削減）
+        const elements = {
+            title: document.getElementById('ui-title'),
+            langSel: document.getElementById('languageSelector'),
+            labelGenre: document.getElementById('label-genre'),
+            genreSel: document.getElementById('genreSelect'),
+            labelSubject: document.getElementById('label-subject'),
+            inputSubject: document.getElementById('inputSubject'),
+            labelAction: document.getElementById('label-action'),
+            inputAction: document.getElementById('inputAction'),
+            labelStyle: document.getElementById('label-style'),
+            inputStyle: document.getElementById('inputStyle'),
+            labelLighting: document.getElementById('label-lighting'),
+            inputLighting: document.getElementById('inputLighting'),
+            btnGen: document.getElementById('btnGenerate'),
+            labelOutput: document.getElementById('label-output'),
+            outputRes: document.getElementById('outputResult'),
+            btnCopy: document.getElementById('btnCopy')
+        };
+
+        // UIテキストの切り替え関数
+        function updateLanguage(lang) {
+            const t = translations[lang] || translations.ja;
+            elements.title.textContent = t.title;
+            elements.labelGenre.textContent = t.genreLabel;
+            elements.genreSel.options[0].text = t.scienceOpt;
+            elements.genreSel.options[1].text = t.classicOpt;
+            elements.genreSel.options[2].text = t.customOpt;
+            elements.labelSubject.textContent = t.subjectLabel;
+            elements.inputSubject.placeholder = t.placeholderSubject;
+            elements.labelAction.textContent = t.actionLabel;
+            elements.inputAction.placeholder = t.placeholderAction;
+            elements.labelStyle.textContent = t.styleLabel;
+            elements.labelLighting.textContent = t.lightingLabel;
+            elements.btnGen.textContent = t.generateBtn;
+            elements.labelOutput.textContent = t.outputLabel;
+            elements.btnCopy.textContent = t.copyBtn;
+        }
+
+        // プロンプト生成処理
+        function generatePrompt() {
+            const subject = elements.inputSubject.value.trim() || elements.inputSubject.placeholder;
+            const action = elements.inputAction.value.trim() || elements.inputAction.placeholder;
+            const style = elements.inputStyle.value.trim();
+            const lighting = elements.inputLighting.value.trim();
+
+            const promptText = 
+`- Subject: ${subject}
+- Action & Motion: ${action}
+- Style & Rendering: ${style}
+- Lighting & Atmosphere: ${lighting}
+- Composition & Technical: Cinematic 16:9, anamorphic lens, high-end 3D production`;
+
+            // textContentによる安全な出力（XSS対策）
+            elements.outputRes.textContent = promptText;
+        }
+
+        // コピー処理
+        function copyToClipboard() {
+            const text = elements.outputRes.textContent;
+            const currentLang = elements.langSel.value;
+            const t = translations[currentLang] || translations.ja;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = elements.btnCopy.textContent;
+                elements.btnCopy.textContent = t.copied;
+                setTimeout(() => {
+                    elements.btnCopy.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // イベントリスナーの登録
+        elements.langSel.addEventListener('change', (e) => {
+            updateLanguage(e.target.value);
+        });
+
+        elements.btnGen.addEventListener('click', generatePrompt);
+        elements.btnCopy.addEventListener('click', copyToClipboard);
+
+        // クリーンアップ処理（ページ破棄時のメモリ解放配慮）
+        window.addEventListener('unload', function() {
+            // 参照の解放
+            for (let key in elements) {
+                elements[key] = null;
+            }
+        }, { once: true });
+
+    })();
+</script>
+
+</body>
+</html>
