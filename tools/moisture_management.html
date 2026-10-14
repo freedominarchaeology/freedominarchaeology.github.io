@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>める体調管理 - 飲水量チェック</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kusumi: {
+                            bg: '#F7F5F0',
+                            card: '#FFFFFF',
+                            primary: '#A3B18A',
+                            secondary: '#D8C3A5',
+                            accent: '#E07A5F',
+                            text: '#4A4A4A',
+                            subtext: '#8C8C8C',
+                            border: '#E8E4DC',
+                            blue: '#8EA8C3',
+                            blueHover: '#7390B0'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"MS Mincho"', '"MS 明朝"', '"Hiragino Mincho ProN"', 'serif'],
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F7F5F0;
+            color: #4A4A4A;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 20px -2px rgba(163, 177, 138, 0.15);
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-kusumi-primary selection:text-white">
+
+    <header class="w-full bg-white/80 backdrop-blur-md border-b border-kusumi-border sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <span class="w-9 h-9 rounded-full bg-kusumi-blue/20 flex items-center justify-center text-kusumi-blue">
+                    <i class="fa-solid fa-droplet"></i>
+                </span>
+                <h1 class="text-lg md:text-xl font-serif font-bold tracking-wide text-kusumi-text" data-i18n="app_title">める体調管理</h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <!-- Language Selector -->
+                <div class="relative">
+                    <select id="langSelect" class="bg-kusumi-bg text-sm text-kusumi-text border border-kusumi-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-kusumi-blue cursor-pointer">
+                        <option value="ja">日本語</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
+        
+        <!-- Welcome Card & Daily Summary -->
+        <section class="bg-white rounded-2xl p-6 custom-shadow border border-kusumi-border transition-all">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-sm text-kusumi-subtext font-serif" id="currentDateStr">2026年10月14日 (水)</h2>
+                    <p class="text-xl md:text-2xl font-bold font-serif mt-1 text-kusumi-text" data-i18n="daily_goal_title">本日の水分補給目標</p>
+                </div>
+                <div class="flex items-center space-x-3 bg-kusumi-bg px-4 py-2 rounded-xl border border-kusumi-border">
+                    <div>
+                        <span class="text-xs text-kusumi-subtext block" data-i18n="target_label">目標値</span>
+                        <span id="targetDisplay" class="font-bold text-lg text-kusumi-text">2000 ml</span>
+                    </div>
+                    <button id="openSettingsBtn" class="bg-white hover:bg-kusumi-border text-kusumi-text p-2 rounded-lg border border-kusumi-border transition-all text-sm" title="目標設定">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress Bar & Stats -->
+            <div class="mt-6 space-y-3">
+                <div class="flex justify-between items-end">
+                    <span class="text-3xl md:text-4xl font-bold font-serif text-kusumi-blue" id="currentIntakeDisplay">0 <span class="text-base font-normal text-kusumi-subtext">ml</span></span>
+                    <span class="text-sm font-medium text-kusumi-subtext" id="percentageDisplay">0%</span>
+                </div>
+                <div class="w-full bg-kusumi-bg rounded-full h-4 overflow-hidden border border-kusumi-border p-0.5">
+                    <div id="progressBar" class="bg-gradient-to-r from-kusumi-blue to-[#6284B2] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Quick Add Buttons -->
+            <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button onclick="addWater(150)" class="flex flex-col items-center justify-center p-3 rounded-xl bg-kusumi-bg hover:bg-kusumi-blue/10 border border-kusumi-border transition-all group">
+                    <span class="text-kusumi-blue font-bold text-lg group-hover:scale-110 transition-transform">+150 ml</span>
+                    <span class="text-xs text-kusumi-subtext mt-1" data-i18n="cup_small">コップ小</span>
+                </button>
+                <button onclick="addWater(250)" class="flex flex-col items-center justify-center p-3 rounded-xl bg-kusumi-bg hover:bg-kusumi-blue/10 border border-kusumi-border transition-all group">
+                    <span class="text-kusumi-blue font-bold text-lg group-hover:scale-110 transition-transform">+250 ml</span>
+                    <span class="text-xs text-kusumi-subtext mt-1" data-i18n="cup_normal">コップ中</span>
+                </button>
+                <button onclick="addWater(500)" class="flex flex-col items-center justify-center p-3 rounded-xl bg-kusumi-bg hover:bg-kusumi-blue/10 border border-kusumi-border transition-all group">
+                    <span class="text-kusumi-blue font-bold text-lg group-hover:scale-110 transition-transform">+500 ml</span>
+                    <span class="text-xs text-kusumi-subtext mt-1" data-i18n="bottle">ペットボトル</span>
+                </button>
+                <button onclick="openCustomModal()" class="flex flex-col items-center justify-center p-3 rounded-xl bg-kusumi-blue text-white hover:bg-kusumi-blueHover transition-all shadow-sm">
+                    <span class="font-bold text-lg">+ 自由入力</span>
+                    <span class="text-xs text-white/80 mt-1" data-i18n="custom_input">カスタム</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Tabs / Sections Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- History Section -->
+            <section class="bg-white rounded-2xl p-6 custom-shadow border border-kusumi-border flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-serif font-bold text-lg text-kusumi-text" data-i18n="history_title">本日の飲水履歴</h3>
+                        <button onclick="clearTodayHistory()" class="text-xs text-red-400 hover:text-red-600 transition-colors" data-i18n="reset_history">履歴リセット</button>
+                    </div>
+                    <div id="historyList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <!-- Dynamically populated history -->
+                    </div>
+                </div>
+                <div id="emptyHistory" class="text-center py-8 text-kusumi-subtext text-sm" data-i18n="no_history">
+                    本日の記録はまだありません
+                </div>
+            </section>
+
+            <!-- Chart Section -->
+            <section class="bg-white rounded-2xl p-6 custom-shadow border border-kusumi-border">
+                <h3 class="font-serif font-bold text-lg text-kusumi-text mb-4" data-i18n="weekly_chart_title">過去7日間の推移</h3>
+                <div class="relative h-56 w-full">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Custom Add Modal -->
+    <div id="customModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full custom-shadow border border-kusumi-border">
+            <h3 class="font-serif font-bold text-lg mb-4 text-kusumi-text" data-i18n="custom_modal_title">水分量をカスタム追加</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-kusumi-subtext mb-1" data-i18n="amount_ml">量 (ml)</label>
+                    <input type="number" id="customAmountInput" value="300" min="10" max="5000" class="w-full bg-kusumi-bg border border-kusumi-border rounded-xl px-4 py-2 text-kusumi-text focus:outline-none focus:ring-2 focus:ring-kusumi-blue">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="closeCustomModal()" class="flex-1 bg-kusumi-bg hover:bg-kusumi-border text-kusumi-text py-2.5 rounded-xl border border-kusumi-border transition-all text-sm font-medium" data-i18n="cancel">キャンセル</button>
+                    <button onclick="addCustomWater()" class="flex-1 bg-kusumi-blue hover:bg-kusumi-blueHover text-white py-2.5 rounded-xl transition-all text-sm font-medium shadow-sm" data-i18n="add">追加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full custom-shadow border border-kusumi-border">
+            <h3 class="font-serif font-bold text-lg mb-4 text-kusumi-text" data-i18n="settings_modal_title">目標設定</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-kusumi-subtext mb-1" data-i18n="daily_target_ml">1日の目標飲水量 (ml)</label>
+                    <input type="number" id="targetInput" value="2000" min="500" max="10000" step="100" class="w-full bg-kusumi-bg border border-kusumi-border rounded-xl px-4 py-2 text-kusumi-text focus:outline-none focus:ring-2 focus:ring-kusumi-blue">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="closeSettingsModal()" class="flex-1 bg-kusumi-bg hover:bg-kusumi-border text-kusumi-text py-2.5 rounded-xl border border-kusumi-border transition-all text-sm font-medium" data-i18n="cancel">キャンセル</button>
+                    <button onclick="saveSettings()" class="flex-1 bg-kusumi-blue hover:bg-kusumi-blueHover text-white py-2.5 rounded-xl transition-all text-sm font-medium shadow-sm" data-i18n="save">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast / Custom Alert Box -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-kusumi-text text-white px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 text-sm flex items-center space-x-2">
+        <i class="fa-solid fa-circle-check text-kusumi-primary"></i>
+        <span id="toastMessage">保存しました</span>
+    </div>
+
+    <footer class="w-full py-4 text-center text-xs text-kusumi-subtext border-t border-kusumi-border mt-auto bg-white/40">
+        <p>&copy; 2026 める体調管理 - Hydration Tracker. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Localization Dictionary
+        const i18nData = {
+            ja: {
+                app_title: "める体調管理",
+                daily_goal_title: "本日の水分補給目標",
+                target_label: "目標値",
+                cup_small: "コップ小",
+                cup_normal: "コップ中",
+                bottle: "ペットボトル",
+                custom_input: "カスタム",
+                history_title: "本日の飲水履歴",
+                reset_history: "履歴リセット",
+                no_history: "本日の記録はまだありません",
+                weekly_chart_title: "過去7日間の推移",
+                custom_modal_title: "水分量をカスタム追加",
+                amount_ml: "量 (ml)",
+                cancel: "キャンセル",
+                add: "追加",
+                settings_modal_title: "目標設定",
+                daily_target_ml: "1日の目標飲水量 (ml)",
+                save: "保存",
+                toast_added: " ml 追加しました",
+                toast_reset: "本日の履歴をリセットしました",
+                toast_saved: "目標設定を保存しました"
+            },
+            en: {
+                app_title: "Meru Health Care",
+                daily_goal_title: "Daily Hydration Goal",
+                target_label: "Target",
+                cup_small: "Small Cup",
+                cup_normal: "Glass",
+                bottle: "Bottle",
+                custom_input: "Custom",
+                history_title: "Today's History",
+                reset_history: "Reset History",
+                no_history: "No records for today yet",
+                weekly_chart_title: "Past 7 Days Progress",
+                custom_modal_title: "Add Custom Amount",
+                amount_ml: "Amount (ml)",
+                cancel: "Cancel",
+                add: "Add",
+                settings_modal_title: "Goal Settings",
+                daily_target_ml: "Daily Target (ml)",
+                save: "Save",
+                toast_added: " ml added",
+                toast_reset: "Today's history has been reset",
+                toast_saved: "Settings saved successfully"
+            }
+        };
+
+        // State variables
+        let currentLang = localStorage.getItem('meru_lang') || 'ja';
+        let dailyTarget = parseInt(localStorage.getItem('meru_target')) || 2000;
+        let hydrationLogs = JSON.parse(localStorage.getItem('meru_logs')) || {}; // Format: { 'YYYY-MM-DD': [{amount, time}] }
+        let weeklyChartInstance = null;
+
+        // Date utilities
+        function getTodayKey() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getFormattedDateString() {
+            const d = new Date();
+            const options = currentLang === 'ja' 
+                ? { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }
+                : { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
+            return d.toLocaleDateString(currentLang === 'ja' ? 'ja-JP' : 'en-US', options);
+        }
+
+        // UI Update functions
+        function updateTexts() {
+            try {
+                document.getElementById('currentDateStr').textContent = getFormattedDateString();
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (i18nData[currentLang][key]) {
+                        el.textContent = i18nData[currentLang][key];
+                    }
+                });
+                document.getElementById('langSelect').value = currentLang;
+            } catch (e) {
+                console.error("Error updating texts:", e);
+            }
+        }
+
+        function showToast(message) {
+            try {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                toastMessage.textContent = message;
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 2500);
+            } catch (e) {
+                console.error("Error showing toast:", e);
+            }
+        }
+
+        function renderApp() {
+            try {
+                const todayKey = getTodayKey();
+                const logs = hydrationLogs[todayKey] || [];
+                
+                // Calculate total intake
+                const totalIntake = logs.reduce((sum, item) => sum + item.amount, 0);
+                
+                // Update target and current display
+                document.getElementById('targetDisplay').textContent = `${dailyTarget} ml`;
+                document.getElementById('currentIntakeDisplay').innerHTML = `${totalIntake} <span class="text-base font-normal text-kusumi-subtext">ml</span>`;
+                
+                // Update progress bar & percentage
+                const percentage = Math.min(Math.round((totalIntake / dailyTarget) * 100), 100);
+                const rawPercentage = Math.round((totalIntake / dailyTarget) * 100);
+                document.getElementById('percentageDisplay').textContent = `${rawPercentage}%`;
+                document.getElementById('progressBar').style.width = `${percentage}%`;
+
+                // Render History List
+                const historyListEl = document.getElementById('historyList');
+                const emptyHistoryEl = document.getElementById('emptyHistory');
+                historyListEl.innerHTML = '';
+
+                if (logs.length === 0) {
+                    emptyHistoryEl.classList.remove('hidden');
+                } else {
+                    emptyHistoryEl.classList.add('hidden');
+                    // Render in reverse chronological order
+                    [...logs].reverse().forEach((item, index) => {
+                        const div = document.createElement('div');
+                        div.className = "flex justify-between items-center bg-kusumi-bg px-4 py-2.5 rounded-xl border border-kusumi-border text-sm";
+                        div.innerHTML = `
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-droplet text-kusumi-blue text-xs"></i>
+                                <span class="font-bold text-kusumi-text">+${item.amount} ml</span>
+                            </div>
+                            <span class="text-xs text-kusumi-subtext">${item.time}</span>
+                        `;
+                        historyListEl.appendChild(div);
+                    });
+                }
+
+                renderChart();
+            } catch (e) {
+                console.error("Error rendering app:", e);
+            }
+        }
+
+        // Hydration Actions
+        function addWater(amount) {
+            try {
+                const todayKey = getTodayKey();
+                if (!hydrationLogs[todayKey]) {
+                    hydrationLogs[todayKey] = [];
+                }
+                const now = new Date();
+                const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                
+                hydrationLogs[todayKey].push({ amount: amount, time: timeStr });
+                localStorage.setItem('meru_logs', JSON.stringify(hydrationLogs));
+                
+                renderApp();
+                showToast(amount + (currentLang === 'ja' ? i18nData.ja.toast_added : i18nData.en.toast_added));
+            } catch (e) {
+                console.error("Error adding water:", e);
+            }
+        }
+
+        function clearTodayHistory() {
+            try {
+                const todayKey = getTodayKey();
+                hydrationLogs[todayKey] = [];
+                localStorage.setItem('meru_logs', JSON.stringify(hydrationLogs));
+                renderApp();
+                showToast(currentLang === 'ja' ? i18nData.ja.toast_reset : i18nData.en.toast_reset);
+            } catch (e) {
+                console.error("Error clearing history:", e);
+            }
+        }
+
+        // Modals management
+        function openCustomModal() {
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+        function closeCustomModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+        function addCustomWater() {
+            const val = parseInt(document.getElementById('customAmountInput').value);
+            if (!isNaN(val) && val > 0) {
+                addWater(val);
+                closeCustomModal();
+            }
+        }
+
+        function openSettingsBtnClick() {
+            document.getElementById('targetInput').value = dailyTarget;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+        function saveSettings() {
+            const val = parseInt(document.getElementById('targetInput').value);
+            if (!isNaN(val) && val >= 100) {
+                dailyTarget = val;
+                localStorage.setItem('meru_target', dailyTarget);
+                closeSettingsModal();
+                renderApp();
+                showToast(currentLang === 'ja' ? i18nData.ja.toast_saved : i18nData.en.toast_saved);
+            }
+        }
+
+        // Chart Rendering (Past 7 days)
+        function renderChart() {
+            try {
+                const ctx = document.getElementById('weeklyChart').getContext('2d');
+                
+                // Generate last 7 days keys and labels
+                const labels = [];
+                const dataValues = [];
+                const targetValues = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const dateKey = `${year}-${month}-${day}`;
+                    
+                    const labelStr = `${d.getMonth() + 1}/${d.getDate()}`;
+                    labels.push(labelStr);
+                    
+                    const logs = hydrationLogs[dateKey] || [];
+                    const total = logs.reduce((sum, item) => sum + item.amount, 0);
+                    dataValues.push(total);
+                    targetValues.push(dailyTarget);
+                }
+
+                if (weeklyChartInstance) {
+                    weeklyChartInstance.destroy();
+                }
+
+                weeklyChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: currentLang === 'ja' ? '飲水量 (ml)' : 'Intake (ml)',
+                                data: dataValues,
+                                backgroundColor: '#8EA8C3',
+                                borderRadius: 6,
+                            },
+                            {
+                                label: currentLang === 'ja' ? '目標 (ml)' : 'Target (ml)',
+                                data: targetValues,
+                                type: 'line',
+                                borderColor: '#E07A5F',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                borderDash: [4, 4]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#E8E4DC'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error rendering chart:", e);
+            }
+        }
+
+        // Event Listeners setup
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                // Settings button listener
+                document.getElementById('openSettingsBtn').addEventListener('click', openSettingsBtnClick);
+
+                // Language change listener
+                document.getElementById('langSelect').addEventListener('change', (e) => {
+                    currentLang = e.target.value;
+                    localStorage.setItem('meru_lang', currentLang);
+                    updateTexts();
+                    renderApp();
+                });
+
+                // Initial setup
+                updateTexts();
+                renderApp();
+            } catch (e) {
+                console.error("Initialization error:", e);
+            }
+        });
+
+        // Memory cleanup / Garbage collection preparation on window unload
+        window.addEventListener('beforeunload', () => {
+            try {
+                if (weeklyChartInstance) {
+                    weeklyChartInstance.destroy();
+                    weeklyChartInstance = null;
+                }
+            } catch (e) {
+                // Silent cleanup error catch
+            }
+        });
+    </script>
+</body>
+</html>
