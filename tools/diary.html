@@ -490,18 +490,26 @@
             }
         }
 
-        // Backup Function (Export JSON)
+        // Backup Function (Export JSON via Blob)
         function handleBackup() {
             try {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.diaries, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
+                const jsonString = JSON.stringify(state.diaries, null, 2);
+                const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
                 
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = url;
                 const dateString = formatDateKey(new Date());
-                downloadAnchor.setAttribute("download", `stellar_diary_backup_${dateString}.json`);
+                downloadAnchor.download = `stellar_diary_backup_${dateString}.json`;
+                
                 document.body.appendChild(downloadAnchor);
                 downloadAnchor.click();
-                downloadAnchor.remove();
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(downloadAnchor);
+                    URL.revokeObjectURL(url);
+                }, 100);
 
                 showToast(translations[state.currentLang].backup_success, 'success');
             } catch (e) {
