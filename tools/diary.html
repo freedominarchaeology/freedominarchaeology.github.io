@@ -61,6 +61,19 @@
                 </h1>
             </div>
             <div class="flex items-center space-x-4">
+                <!-- Backup & Restore Buttons -->
+                <div class="flex items-center space-x-2">
+                    <button id="backup-btn" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1.5 shadow-sm" title="バックアップ（JSONエクスポート）">
+                        <i class="fa-solid fa-download"></i>
+                        <span data-i18n="backup">バックアップ</span>
+                    </button>
+                    <label class="cursor-pointer px-3.5 py-2 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1.5 shadow-sm" title="復旧（JSONインポート）">
+                        <i class="fa-solid fa-upload"></i>
+                        <span data-i18n="restore">復旧</span>
+                        <input type="file" id="restore-input" accept=".json" class="hidden">
+                    </label>
+                </div>
+
                 <!-- Language Selector -->
                 <div class="relative">
                     <select id="lang-select" class="appearance-none bg-sky-50 border border-sky-200 text-sky-800 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 pr-8 cursor-pointer shadow-sm transition hover:bg-sky-100">
@@ -226,6 +239,11 @@
                 saved_success: "日記を保存しました",
                 deleted_success: "日記を削除しました",
                 confirm_delete: "この日の日記を削除してもよろしいですか？",
+                backup: "バックアップ",
+                restore: "復旧",
+                backup_success: "バックアップファイルをダウンロードしました",
+                restore_success: "日記データを正常に復旧しました",
+                restore_error: "バックアップファイルの読み込みに失敗しました（無効な形式です）",
                 dateFormat: (y, m, d) => `${y}年${m}月${d}日`
             },
             en: {
@@ -246,6 +264,11 @@
                 saved_success: "Diary saved successfully",
                 deleted_success: "Diary deleted successfully",
                 confirm_delete: "Are you sure you want to delete this diary?",
+                backup: "Backup",
+                restore: "Restore",
+                backup_success: "Backup file downloaded successfully",
+                restore_success: "Diary data restored successfully",
+                restore_error: "Failed to restore backup file (invalid format)",
                 dateFormat: (y, m, d) => `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]} ${d}, ${y}`
             },
             zh: {
@@ -266,6 +289,11 @@
                 saved_success: "日记保存成功",
                 deleted_success: "日记删除成功",
                 confirm_delete: "确定要删除这篇日记吗？",
+                backup: "备份",
+                restore: "恢复",
+                backup_success: "备份文件已成功下载",
+                restore_success: "日记数据恢复成功",
+                restore_error: "恢复备份文件失败（格式无效）",
                 dateFormat: (y, m, d) => `${y}年${m}月${d}日`
             },
             ko: {
@@ -286,6 +314,11 @@
                 saved_success: "일기가 저장되었습니다",
                 deleted_success: "일기가 삭제되었습니다",
                 confirm_delete: "이 날의 일기를 삭제하시겠습니까?",
+                backup: "백업",
+                restore: "복구",
+                backup_success: "백업 파일이 다운로드되었습니다",
+                restore_success: "일기 데이터가 성공적으로 복구되었습니다",
+                restore_error: "백업 파일 복구에 실패했습니다 (잘못된 형식)",
                 dateFormat: (y, m, d) => `${y}년 ${m}월 ${d}일`
             },
             fr: {
@@ -306,6 +339,11 @@
                 saved_success: "Journal enregistré avec succès",
                 deleted_success: "Journal supprimé",
                 confirm_delete: "Êtes-vous sûr de vouloir supprimer ce journal ?",
+                backup: "Sauvegarde",
+                restore: "Restaurer",
+                backup_success: "Fichier de sauvegarde téléchargé",
+                restore_success: "Données du journal restaurées avec succès",
+                restore_error: "Échec de la restauration (format invalide)",
                 dateFormat: (y, m, d) => `${d} ${['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][m-1]} ${y}`
             },
             es: {
@@ -326,6 +364,11 @@
                 saved_success: "Diario guardado con éxito",
                 deleted_success: "Diario eliminado",
                 confirm_delete: "¿Estás seguro de que deseas eliminar este diario?",
+                backup: "Copia de seguridad",
+                restore: "Restaurar",
+                backup_success: "Archivo de respaldo descargado",
+                restore_success: "Datos del diario restaurados con éxito",
+                restore_error: "Error al restaurar el archivo (formato inválido)",
                 dateFormat: (y, m, d) => `${d} de ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][m-1]} de ${y}`
             }
         };
@@ -358,6 +401,8 @@
         const removePhotoBtn = document.getElementById('remove-photo-btn');
         const saveBtn = document.getElementById('save-btn');
         const deleteBtn = document.getElementById('delete-btn');
+        const backupBtn = document.getElementById('backup-btn');
+        const restoreInput = document.getElementById('restore-input');
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toast-message');
 
@@ -436,8 +481,67 @@
 
                 saveBtn.addEventListener('click', saveDiary);
                 deleteBtn.addEventListener('click', deleteDiary);
+
+                // Backup and Restore listeners
+                backupBtn.addEventListener('click', handleBackup);
+                restoreInput.addEventListener('change', handleRestore);
             } catch (e) {
                 console.error("Error setting up event listeners", e);
+            }
+        }
+
+        // Backup Function (Export JSON)
+        function handleBackup() {
+            try {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.diaries, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                
+                const dateString = formatDateKey(new Date());
+                downloadAnchor.setAttribute("download", `stellar_diary_backup_${dateString}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+
+                showToast(translations[state.currentLang].backup_success, 'success');
+            } catch (e) {
+                console.error("Backup error:", e);
+                showToast("Backup failed", 'error');
+            }
+        }
+
+        // Restore Function (Import JSON)
+        function handleRestore(e) {
+            try {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const parsedData = JSON.parse(event.target.result);
+                        if (parsedData && typeof parsedData === 'object') {
+                            state.diaries = parsedData;
+                            saveDiariesToStorage();
+                            updateUI();
+                            loadSelectedDiary();
+                            showToast(translations[state.currentLang].restore_success, 'success');
+                        } else {
+                            throw new Error("Invalid format");
+                        }
+                    } catch (err) {
+                        console.error("Parse error:", err);
+                        showToast(translations[state.currentLang].restore_error, 'error');
+                    } finally {
+                        // Reset file input value so the same file can be selected again if needed
+                        restoreInput.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            } catch (e) {
+                console.error("Restore error:", e);
+                showToast(translations[state.currentLang].restore_error, 'error');
+                restoreInput.value = '';
             }
         }
 
@@ -460,6 +564,8 @@
                 selectedDateTitle.textContent = t.diary_form_title;
                 deleteBtn.querySelector('span').textContent = t.delete;
                 saveBtn.querySelector('span').textContent = t.save;
+                document.querySelector('[data-i18n="backup"]').textContent = t.backup;
+                document.querySelector('[data-i18n="restore"]').textContent = t.restore;
                 document.querySelector('[data-i18n="title_label"]').textContent = t.title_label;
                 document.querySelector('[data-i18n="content_label"]').textContent = t.content_label;
                 document.querySelector('[data-i18n="photo_label"]').textContent = t.photo_label;
