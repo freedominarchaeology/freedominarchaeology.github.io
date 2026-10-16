@@ -76,10 +76,10 @@
                     Stellar Diary
                 </h1>
             </div>
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3">
                 <!-- PDF Export Menu Dropdown -->
                 <div class="relative">
-                    <select id="pdf-export-select" class="appearance-none bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs sm:text-sm font-semibold rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 pr-8 cursor-pointer shadow-sm transition hover:bg-indigo-100">
+                    <select id="pdf-export-select" class="appearance-none bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs sm:text-sm font-semibold rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 pr-6 sm:p-2.5 sm:pr-8 cursor-pointer shadow-sm transition hover:bg-indigo-100">
                         <option value="" disabled selected data-i18n="pdf_menu_title">📄 PDF出力...</option>
                         <option value="day" data-i18n="pdf_day">日毎出力 (選択中)</option>
                         <option value="month" data-i18n="pdf_month">月毎出力 (表示中)</option>
@@ -90,22 +90,22 @@
                     </div>
                 </div>
 
-                <!-- Backup & Restore Buttons (Restored) -->
-                <div class="hidden sm:flex items-center space-x-2">
-                    <button id="backup-btn" class="px-3 py-2 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1.5 shadow-sm" title="バックアップ">
+                <!-- Backup & Restore Buttons (常時表示するように修正) -->
+                <div class="flex items-center space-x-1.5 sm:space-x-2">
+                    <button id="backup-btn" class="px-2.5 py-2 sm:px-3 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1 shadow-sm" title="バックアップ">
                         <i class="fa-solid fa-download"></i>
-                        <span data-i18n="backup">バックアップ</span>
+                        <span class="hidden md:inline" data-i18n="backup">バックアップ</span>
                     </button>
-                    <label class="cursor-pointer px-3 py-2 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1.5 shadow-sm" title="復旧">
+                    <label class="cursor-pointer px-2.5 py-2 sm:px-3 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1 shadow-sm" title="復旧">
                         <i class="fa-solid fa-upload"></i>
-                        <span data-i18n="restore">復旧</span>
+                        <span class="hidden md:inline" data-i18n="restore">復旧</span>
                         <input type="file" id="restore-input" accept=".json" class="hidden">
                     </label>
                 </div>
 
                 <!-- Language Selector -->
                 <div class="relative">
-                    <select id="lang-select" class="appearance-none bg-sky-50 border border-sky-200 text-sky-800 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 pr-8 cursor-pointer shadow-sm transition hover:bg-sky-100">
+                    <select id="lang-select" class="appearance-none bg-sky-50 border border-sky-200 text-sky-800 text-xs sm:text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2 pr-6 sm:p-2.5 sm:pr-8 cursor-pointer shadow-sm transition hover:bg-sky-100">
                         <option value="ja">日本語</option>
                         <option value="en">English</option>
                         <option value="zh">中文</option>
@@ -562,7 +562,6 @@
                 saveBtn.addEventListener('click', saveDiary);
                 deleteBtn.addEventListener('click', deleteDiary);
 
-                // Backup and Restore listeners restored
                 backupBtn.addEventListener('click', handleBackup);
                 restoreInput.addEventListener('change', handleRestore);
             } catch (e) {
