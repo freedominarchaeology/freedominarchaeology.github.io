@@ -569,7 +569,7 @@
             }
         }
 
-        // PDF Export Handler (Day, Month, Year)
+        // PDF Export Handler with Dynamic Filename Support
         function exportPDF(mode) {
             try {
                 let htmlContent = '';
@@ -577,18 +577,18 @@
                 const year = state.currentDate.getFullYear();
                 const month = state.currentDate.getMonth() + 1;
 
+                // Set dynamic document title for automatic PDF filename
                 if (mode === 'day') {
                     const entry = state.diaries[state.selectedDateStr];
                     if (!entry) {
                         alert(t.no_entry_alert);
                         return;
                     }
-                    const parts = state.selectedDateStr.split('-');
-                    const dateFormatted = t.dateFormat(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+                    document.title = `Stellar_Diary_${state.selectedDateStr}`;
 
                     htmlContent = `
                         <div style="font-family: 'MS Mincho', 'MS 明朝', serif; padding: 20px; color: #1e293b;">
-                            <h1 style="font-size: 24px; border-bottom: 2px solid #0ea5e9; padding-bottom: 8px; margin-bottom: 16px;">Stellar Diary - ${dateFormatted}</h1>
+                            <h1 style="font-size: 24px; border-bottom: 2px solid #0ea5e9; padding-bottom: 8px; margin-bottom: 16px;">Stellar Diary - ${state.selectedDateStr}</h1>
                             <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">${escapeHtml(entry.title || '(無題)')}</h2>
                             <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 20px;">${escapeHtml(entry.content || '')}</div>
                             ${entry.photo ? `<div style="margin-top: 20px;"><img src="${entry.photo}" style="max-width: 100%; max-height: 400px; border-radius: 8px;" /></div>` : ''}
@@ -602,6 +602,7 @@
                         alert(t.no_entry_alert);
                         return;
                     }
+                    document.title = `Stellar_Diary_${year}_${String(month).padStart(2, '0')}`;
 
                     htmlContent = `
                         <div style="font-family: 'MS Mincho', 'MS 明朝', serif; padding: 20px; color: #1e293b;">
@@ -609,11 +610,9 @@
                     `;
                     matchingKeys.forEach(k => {
                         const entry = state.diaries[k];
-                        const parts = k.split('-');
-                        const dateFormatted = t.dateFormat(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
                         htmlContent += `
                             <div style="margin-bottom: 30px; page-break-inside: avoid; border-bottom: 1px dashed #cbd5e1; padding-bottom: 20px;">
-                                <h3 style="font-size: 14px; color: #0284c7; margin-bottom: 4px;">${dateFormatted}</h3>
+                                <h3 style="font-size: 14px; color: #0284c7; margin-bottom: 4px;">${k}</h3>
                                 <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${escapeHtml(entry.title || '(無題)')}</h2>
                                 <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 12px;">${escapeHtml(entry.content || '')}</div>
                                 ${entry.photo ? `<div><img src="${entry.photo}" style="max-width: 100%; max-height: 300px; border-radius: 6px;" /></div>` : ''}
@@ -629,6 +628,7 @@
                         alert(t.no_entry_alert);
                         return;
                     }
+                    document.title = `Stellar_Diary_${year}`;
 
                     htmlContent = `
                         <div style="font-family: 'MS Mincho', 'MS 明朝', serif; padding: 20px; color: #1e293b;">
@@ -636,11 +636,9 @@
                     `;
                     matchingKeys.forEach(k => {
                         const entry = state.diaries[k];
-                        const parts = k.split('-');
-                        const dateFormatted = t.dateFormat(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
                         htmlContent += `
                             <div style="margin-bottom: 30px; page-break-inside: avoid; border-bottom: 1px dashed #cbd5e1; padding-bottom: 20px;">
-                                <h3 style="font-size: 14px; color: #0284c7; margin-bottom: 4px;">${dateFormatted}</h3>
+                                <h3 style="font-size: 14px; color: #0284c7; margin-bottom: 4px;">${k}</h3>
                                 <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${escapeHtml(entry.title || '(無題)')}</h2>
                                 <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 12px;">${escapeHtml(entry.content || '')}</div>
                                 ${entry.photo ? `<div><img src="${entry.photo}" style="max-width: 100%; max-height: 300px; border-radius: 6px;" /></div>` : ''}
@@ -652,6 +650,11 @@
 
                 printArea.innerHTML = htmlContent;
                 window.print();
+
+                // Restore default document title after printing dialog closes
+                setTimeout(() => {
+                    document.title = "Stellar Diary - カレンダー日記帳";
+                }, 1000);
             } catch (e) {
                 console.error("PDF Export error:", e);
                 alert("PDF出力に失敗しました。");
@@ -762,7 +765,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Compress to JPEG with 0.7 quality to prevent storage overflow / crash
                         state.currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
                         photoPreview.src = state.currentPhotoBase64;
                         photoPreviewContainer.classList.remove('hidden');
