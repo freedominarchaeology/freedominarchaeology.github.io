@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced ToDo List</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <h1 id="app-title" class="text-2xl font-bold tracking-wide text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-indigo-600"></i> ToDo List
+            </h1>
+            <div class="flex items-center gap-3">
+                <!-- Language Selector -->
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-globe text-slate-400"></i>
+                    <select id="lang-select" class="bg-slate-100 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none cursor-pointer">
+                        <option value="ja">日本語</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
+                        <option value="ko">한국어</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
+        
+        <!-- Input & Action Bar Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+            <form id="todo-form" class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-grow">
+                    <input type="text" id="todo-input" required
+                        class="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-slate-700 placeholder-slate-400"
+                        placeholder="新しいやること・タスクを入力...">
+                </div>
+                <button type="submit" id="add-btn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-sm shadow-indigo-100 cursor-pointer">
+                    <i class="fa-solid fa-plus"></i> <span data-i18n="add">追加</span>
+                </button>
+            </form>
+
+            <!-- Backup & Export Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pt-6 border-t border-slate-100 text-sm">
+                <div class="flex flex-wrap items-center gap-2">
+                    <label for="import-file" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg transition cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-upload"></i> <span data-i18n="import">インポート</span>
+                    </label>
+                    <input type="file" id="import-file" accept=".json" class="hidden">
+
+                    <button id="export-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-download"></i> <span data-i18n="export">エクスポート</span>
+                    </button>
+                </div>
+
+                <button id="pdf-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm shadow-emerald-100 cursor-pointer">
+                    <i class="fa-solid fa-file-pdf"></i> <span data-i18n="pdf">PDF出力</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Todo List Area (Target for PDF) -->
+        <div id="pdf-export-area" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-indigo-500"></i> <span data-i18n="task_list">やること一覧</span>
+                </h2>
+                <span id="task-counter" class="text-xs bg-indigo-50 text-indigo-600 font-medium px-2.5 py-1 rounded-full">0 items</span>
+            </div>
+
+            <!-- List container -->
+            <ul id="todo-list" class="space-y-3">
+                <!-- Dynamically populated items -->
+            </ul>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="text-center py-12 text-slate-400 hidden">
+                <i class="fa-regular fa-folder-open text-4xl mb-3"></i>
+                <p data-i18n="no_tasks">タスクがありません。新しいタスクを追加してください。</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+        <p>&copy; 2026 Advanced ToDo App. All rights reserved.</p>
+    </footer>
+
+    <!-- Application Script with Memory Optimization & Error Handling -->
+    <script>
+        (function() {
+            'use strict';
+
+            // --- Translations Dictionary ---
+            const translations = {
+                ja: {
+                    title: "やることリスト",
+                    add: "追加",
+                    import: "インポート",
+                    export: "バックアップ",
+                    pdf: "PDF出力",
+                    task_list: "やること一覧",
+                    placeholder: "新しいやること・タスクを入力...",
+                    no_tasks: "タスクがありません。新しいタスクを追加してください。",
+                    items_count: "{count} 件のタスク",
+                    alert_empty: "タスクの内容を入力してください。",
+                    alert_import_error: "バックアップファイルの読み込みに失敗しました。"
+                },
+                en: {
+                    title: "ToDo List",
+                    add: "Add",
+                    import: "Import",
+                    export: "Backup",
+                    pdf: "Export PDF",
+                    task_list: "Task List",
+                    placeholder: "Enter a new task...",
+                    no_tasks: "No tasks found. Add a new task above.",
+                    items_count: "{count} items",
+                    alert_empty: "Please enter task content.",
+                    alert_import_error: "Failed to read backup file."
+                },
+                zh: {
+                    title: "待办事项列表",
+                    add: "添加",
+                    import: "导入",
+                    export: "备份",
+                    pdf: "导出PDF",
+                    task_list: "任务列表",
+                    placeholder: "输入新任务...",
+                    no_tasks: "暂无任务，请在上方添加新任务。",
+                    items_count: "{count} 项任务",
+                    alert_empty: "请输入任务内容。",
+                    alert_import_error: "读取备份文件失败。"
+                },
+                ko: {
+                    title: "할 일 목록",
+                    add: "추가",
+                    import: "가져오기",
+                    export: "백업",
+                    pdf: "PDF 내보내기",
+                    task_list: "작업 목록",
+                    placeholder: "새로운 할 일을 입력하세요...",
+                    no_tasks: "작업이 없습니다. 새로운 작업을 추가해주세요.",
+                    items_count: "{count} 개",
+                    alert_empty: "작업 내용을 입력해주세요.",
+                    alert_import_error: "백업 파일 읽기에 실패했습니다."
+                },
+                fr: {
+                    title: "Liste de tâches",
+                    add: "Ajouter",
+                    import: "Importer",
+                    export: "Sauvegarder",
+                    pdf: "Exporter en PDF",
+                    task_list: "Liste des tâches",
+                    placeholder: "Entrez une nouvelle tâche...",
+                    no_tasks: "Aucune tâche. Ajoutez-en une nouvelle ci-dessus.",
+                    items_count: "{count} éléments",
+                    alert_empty: "Veuillez entrer le contenu de la tâche.",
+                    alert_import_error: "Échec de la lecture du fichier de sauvegarde."
+                },
+                es: {
+                    title: "Lista de pendientes",
+                    add: "Añadir",
+                    import: "Importar",
+                    export: "Respaldo",
+                    pdf: "Exportar PDF",
+                    task_list: "Lista de tareas",
+                    placeholder: "Introduzca una nueva tarea...",
+                    no_tasks: "No hay tareas. Añada una nueva arriba.",
+                    items_count: "{count} elementos",
+                    alert_empty: "Por favor, introduzca el contenido de la tarea.",
+                    alert_import_error: "Error al leer el archivo de respaldo."
+                }
+            };
+
+            let currentLang = 'ja';
+            let todos = [];
+
+            // DOM Elements Cache
+            const dom = {
+                title: document.getElementById('app-title'),
+                form: document.getElementById('todo-form'),
+                input: document.getElementById('todo-input'),
+                list: document.getElementById('todo-list'),
+                counter: document.getElementById('task-counter'),
+                emptyState: document.getElementById('empty-state'),
+                langSelect: document.getElementById('lang-select'),
+                exportBtn: document.getElementById('export-btn'),
+                importFile: document.getElementById('import-file'),
+                pdfBtn: document.getElementById('pdf-btn'),
+                exportArea: document.getElementById('pdf-export-area')
+            };
+
+            // Initialize App safely
+            function init() {
+                try {
+                    loadFromStorage();
+                    setupEventListeners();
+                    updateLanguage();
+                    render();
+                } catch (error) {
+                    console.error("Initialization error:", error);
+                }
+            }
+
+            // LocalStorage operations with error handling
+            function loadFromStorage() {
+                try {
+                    const saved = localStorage.getItem('advanced_todos_v1');
+                    if (saved) {
+                        todos = JSON.parse(saved);
+                        if (!Array.isArray(todos)) todos = [];
+                    }
+                } catch (e) {
+                    console.error("Failed to load storage:", e);
+                    todos = [];
+                }
+            }
+
+            function saveToStorage() {
+                try {
+                    localStorage.setItem('advanced_todos_v1', JSON.stringify(todos));
+                } catch (e) {
+                    console.error("Failed to save storage:", e);
+                }
+            }
+
+            // UI Translation handler
+            function updateLanguage() {
+                currentLang = dom.langSelect.value;
+                const t = translations[currentLang] || translations['ja'];
+
+                dom.title.innerHTML = `<i class="fa-solid fa-list-check text-indigo-600"></i> ${t.title}`;
+                dom.input.placeholder = t.placeholder;
+                
+                // Update elements with data-i18n attribute
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (t[key]) {
+                        el.textContent = t[key];
+                    }
+                });
+
+                renderCounter();
+                if (todos.length === 0) {
+                    dom.emptyState.querySelector('p').textContent = t.no_tasks;
+                }
+            }
+
+            // Render Task Counter
+            function renderCounter() {
+                const t = translations[currentLang] || translations['ja'];
+                const countText = (t.items_count || "{count} items").replace('{count}', todos.length);
+                dom.counter.textContent = countText;
+            }
+
+            // Render Main ToDo List
+            function render() {
+                try {
+                    dom.list.innerHTML = '';
+                    
+                    if (todos.length === 0) {
+                        dom.emptyState.classList.remove('hidden');
+                    } else {
+                        dom.emptyState.classList.add('hidden');
+
+                        todos.forEach((todo, index) => {
+                            const li = document.createElement('li');
+                            li.className = `flex items-center justify-between p-3.5 rounded-xl border transition ${
+                                todo.completed ? 'bg-slate-50 border-slate-200 text-slate-400' : 'bg-white border-slate-200 text-slate-700 shadow-xs'
+                            }`;
+                            li.dataset.index = index;
+
+                            // Left side: Checkbox and Text
+                            const leftDiv = document.createElement('div');
+                            leftDiv.className = 'flex items-center gap-3 flex-grow min-w-0 mr-3';
+
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.checked = !!todo.completed;
+                            checkbox.className = 'w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer';
+                            checkbox.addEventListener('change', () => toggleComplete(index));
+
+                            const span = document.createElement('span');
+                            span.className = `truncate text-sm sm:text-base ${todo.completed ? 'line-through text-slate-400' : 'text-slate-700'}`;
+                            span.textContent = todo.text;
+
+                            leftDiv.appendChild(checkbox);
+                            leftDiv.appendChild(span);
+
+                            // Right side: Action Buttons (Up, Down, Delete)
+                            const rightDiv = document.createElement('div');
+                            rightDiv.className = 'flex items-center gap-1 shrink-0';
+
+                            // Up Button
+                            const upBtn = document.createElement('button');
+                            upBtn.type = 'button';
+                            upBtn.title = 'Move Up';
+                            upBtn.className = `p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition cursor-pointer ${index === 0 ? 'opacity-30 pointer-events-none' : ''}`;
+                            upBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+                            upBtn.addEventListener('click', () => moveTask(index, -1));
+
+                            // Down Button
+                            const downBtn = document.createElement('button');
+                            downBtn.type = 'button';
+                            downBtn.title = 'Move Down';
+                            downBtn.className = `p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition cursor-pointer ${index === todos.length - 1 ? 'opacity-30 pointer-events-none' : ''}`;
+                            downBtn.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+                            downBtn.addEventListener('click', () => moveTask(index, 1));
+
+                            // Delete Button
+                            const delBtn = document.createElement('button');
+                            delBtn.type = 'button';
+                            delBtn.title = 'Delete';
+                            delBtn.className = 'p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer';
+                            delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                            delBtn.addEventListener('click', () => deleteTask(index));
+
+                            rightDiv.appendChild(upBtn);
+                            rightDiv.appendChild(downBtn);
+                            rightDiv.appendChild(delBtn);
+
+                            li.appendChild(leftDiv);
+                            li.appendChild(rightDiv);
+                            dom.list.appendChild(li);
+                        });
+                    }
+
+                    renderCounter();
+                } catch (error) {
+                    console.error("Render error:", error);
+                }
+            }
+
+            // Task Operations
+            function addTask(text) {
+                try {
+                    if (!text.trim()) return;
+                    todos.push({ text: text.trim(), completed: false });
+                    saveToStorage();
+                    render();
+                } catch (error) {
+                    console.error("Add task error:", error);
+                }
+            }
+
+            function toggleComplete(index) {
+                try {
+                    if (todos[index]) {
+                        todos[index].completed = !todos[index].completed;
+                        saveToStorage();
+                        render();
+                    }
+                } catch (error) {
+                    console.error("Toggle complete error:", error);
+                }
+            }
+
+            function deleteTask(index) {
+                try {
+                    todos.splice(index, 1);
+                    saveToStorage();
+                    render();
+                } catch (error) {
+                    console.error("Delete task error:", error);
+                }
+            }
+
+            function moveTask(index, direction) {
+                try {
+                    const targetIndex = index + direction;
+                    if (targetIndex < 0 || targetIndex >= todos.length) return;
+                    const temp = todos[index];
+                    todos[index] = todos[targetIndex];
+                    todos[targetIndex] = temp;
+                    saveToStorage();
+                    render();
+                } catch (error) {
+                    console.error("Move task error:", error);
+                }
+            }
+
+            // Backup & Export Functions
+            function exportBackup() {
+                try {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(todos, null, 2));
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `todo_backup_${new Date().toISOString().slice(0,10)}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                } catch (error) {
+                    console.error("Export error:", error);
+                }
+            }
+
+            function importBackup(event) {
+                try {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const parsed = JSON.parse(e.target.result);
+                            if (Array.isArray(parsed)) {
+                                todos = parsed;
+                                saveToStorage();
+                                render();
+                            } else {
+                                alert(translations[currentLang].alert_import_error);
+                            }
+                        } catch (err) {
+                            alert(translations[currentLang].alert_import_error);
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = ''; // Reset file input
+                } catch (error) {
+                    console.error("Import error:", error);
+                }
+            }
+
+            function exportPDF() {
+                try {
+                    const element = dom.exportArea;
+                    const opt = {
+                        margin:       10,
+                        filename:     `todo_list_${new Date().toISOString().slice(0,10)}.pdf`,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, useCORS: true },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+                    html2pdf().from(element).set(opt).save();
+                } catch (error) {
+                    console.error("PDF Export error:", error);
+                }
+            }
+
+            // Event Listeners Setup
+            function setupEventListeners() {
+                dom.form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const text = dom.input.value;
+                    if (!text.trim()) {
+                        alert(translations[currentLang].alert_empty);
+                        return;
+                    }
+                    addTask(text);
+                    dom.input.value = '';
+                });
+
+                dom.langSelect.addEventListener('change', updateLanguage);
+                dom.exportBtn.addEventListener('click', exportBackup);
+                dom.importFile.addEventListener('change', importBackup);
+                dom.pdfBtn.addEventListener('click', exportPDF);
+            }
+
+            // Run initialization on DOMContentLoaded
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // Memory cleanup on unload
+            window.addEventListener('beforeunload', () => {
+                try {
+                    // Clear references to prevent memory leaks
+                    todos = null;
+                } catch(e) {}
+            });
+
+        })();
+    </script>
+</body>
+</html>
