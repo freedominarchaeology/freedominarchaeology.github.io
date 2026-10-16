@@ -399,16 +399,23 @@
                 }
             }
 
-            // Backup & Export Functions
+            // Backup & Export Functions (Blob & ObjectURL approach for stability)
             function exportBackup() {
                 try {
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(todos, null, 2));
+                    const blob = new Blob([JSON.stringify(todos, null, 2)], { type: 'application/json;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
                     const downloadAnchor = document.createElement('a');
-                    downloadAnchor.setAttribute("href", dataStr);
-                    downloadAnchor.setAttribute("download", `todo_backup_${new Date().toISOString().slice(0,10)}.json`);
+                    downloadAnchor.href = url;
+                    downloadAnchor.download = `todo_backup_${new Date().toISOString().slice(0,10)}.json`;
+                    
                     document.body.appendChild(downloadAnchor);
                     downloadAnchor.click();
-                    downloadAnchor.remove();
+                    
+                    // Cleanup
+                    setTimeout(() => {
+                        document.body.removeChild(downloadAnchor);
+                        URL.revokeObjectURL(url);
+                    }, 100);
                 } catch (error) {
                     console.error("Export error:", error);
                 }
