@@ -90,7 +90,7 @@
                     </div>
                 </div>
 
-                <!-- Backup & Restore Buttons -->
+                <!-- Backup & Restore Buttons (Restored) -->
                 <div class="hidden sm:flex items-center space-x-2">
                     <button id="backup-btn" class="px-3 py-2 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition flex items-center space-x-1.5 shadow-sm" title="バックアップ">
                         <i class="fa-solid fa-download"></i>
@@ -562,10 +562,72 @@
                 saveBtn.addEventListener('click', saveDiary);
                 deleteBtn.addEventListener('click', deleteDiary);
 
+                // Backup and Restore listeners restored
                 backupBtn.addEventListener('click', handleBackup);
                 restoreInput.addEventListener('change', handleRestore);
             } catch (e) {
                 console.error("Error setting up event listeners", e);
+            }
+        }
+
+        // Backup Function (Export JSON via Blob)
+        function handleBackup() {
+            try {
+                const jsonString = JSON.stringify(state.diaries, null, 2);
+                const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = url;
+                const dateString = formatDateKey(new Date());
+                downloadAnchor.download = `stellar_diary_backup_${dateString}.json`;
+                
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(downloadAnchor);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                showToast(translations[state.currentLang].backup_success, 'success');
+            } catch (e) {
+                console.error("Backup error:", e);
+                showToast("Backup failed", 'error');
+            }
+        }
+
+        // Restore Function (Import JSON)
+        function handleRestore(e) {
+            try {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const parsedData = JSON.parse(event.target.result);
+                        if (parsedData && typeof parsedData === 'object') {
+                            state.diaries = parsedData;
+                            saveDiariesToStorage();
+                            updateUI();
+                            loadSelectedDiary();
+                            showToast(translations[state.currentLang].restore_success, 'success');
+                        } else {
+                            throw new Error("Invalid format");
+                        }
+                    } catch (err) {
+                        console.error("Parse error:", err);
+                        showToast(translations[state.currentLang].restore_error, 'error');
+                    } finally {
+                        restoreInput.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            } catch (e) {
+                console.error("Restore error:", e);
+                showToast(translations[state.currentLang].restore_error, 'error');
+                restoreInput.value = '';
             }
         }
 
@@ -577,7 +639,6 @@
                 const year = state.currentDate.getFullYear();
                 const month = state.currentDate.getMonth() + 1;
 
-                // Set dynamic document title for automatic PDF filename
                 if (mode === 'day') {
                     const entry = state.diaries[state.selectedDateStr];
                     if (!entry) {
@@ -651,7 +712,6 @@
                 printArea.innerHTML = htmlContent;
                 window.print();
 
-                // Restore default document title after printing dialog closes
                 setTimeout(() => {
                     document.title = "Stellar Diary - カレンダー日記帳";
                 }, 1000);
@@ -669,67 +729,6 @@
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
-        }
-
-        // Backup Function (Export JSON via Blob)
-        function handleBackup() {
-            try {
-                const jsonString = JSON.stringify(state.diaries, null, 2);
-                const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
-                const url = URL.createObjectURL(blob);
-                
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.href = url;
-                const dateString = formatDateKey(new Date());
-                downloadAnchor.download = `stellar_diary_backup_${dateString}.json`;
-                
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(downloadAnchor);
-                    URL.revokeObjectURL(url);
-                }, 100);
-
-                showToast(translations[state.currentLang].backup_success, 'success');
-            } catch (e) {
-                console.error("Backup error:", e);
-                showToast("Backup failed", 'error');
-            }
-        }
-
-        // Restore Function (Import JSON)
-        function handleRestore(e) {
-            try {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const parsedData = JSON.parse(event.target.result);
-                        if (parsedData && typeof parsedData === 'object') {
-                            state.diaries = parsedData;
-                            saveDiariesToStorage();
-                            updateUI();
-                            loadSelectedDiary();
-                            showToast(translations[state.currentLang].restore_success, 'success');
-                        } else {
-                            throw new Error("Invalid format");
-                        }
-                    } catch (err) {
-                        console.error("Parse error:", err);
-                        showToast(translations[state.currentLang].restore_error, 'error');
-                    } finally {
-                        restoreInput.value = '';
-                    }
-                };
-                reader.readAsText(file);
-            } catch (e) {
-                console.error("Restore error:", e);
-                showToast(translations[state.currentLang].restore_error, 'error');
-                restoreInput.value = '';
-            }
         }
 
         // Photo Handling & Compression (Memory Optimization)
