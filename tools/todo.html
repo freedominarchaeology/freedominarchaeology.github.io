@@ -67,13 +67,18 @@
                     <input type="file" id="import-file" accept=".json" class="hidden">
 
                     <button id="export-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-download"></i> <span data-i18n="export">エクスポート</span>
+                        <i class="fa-solid fa-download"></i> <span data-i18n="export">バックアップ</span>
                     </button>
                 </div>
 
-                <button id="pdf-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm shadow-emerald-100 cursor-pointer">
-                    <i class="fa-solid fa-file-pdf"></i> <span data-i18n="pdf">PDF出力</span>
-                </button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="reset-btn" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer border border-rose-200">
+                        <i class="fa-solid fa-trash-can"></i> <span data-i18n="reset">一括削除</span>
+                    </button>
+                    <button id="pdf-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm shadow-emerald-100 cursor-pointer">
+                        <i class="fa-solid fa-file-pdf"></i> <span data-i18n="pdf">PDF出力</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -117,78 +122,90 @@
                     add: "追加",
                     import: "インポート",
                     export: "バックアップ",
+                    reset: "一括削除",
                     pdf: "PDF出力",
                     task_list: "やること一覧",
                     placeholder: "新しいやること・タスクを入力...",
                     no_tasks: "タスクがありません。新しいタスクを追加してください。",
                     items_count: "{count} 件のタスク",
                     alert_empty: "タスクの内容を入力してください。",
-                    alert_import_error: "バックアップファイルの読み込みに失敗しました。"
+                    alert_import_error: "バックアップファイルの読み込みに失敗しました。",
+                    confirm_reset: "すべてのタスクを削除してもよろしいですか？"
                 },
                 en: {
                     title: "ToDo List",
                     add: "Add",
                     import: "Import",
                     export: "Backup",
+                    reset: "Reset All",
                     pdf: "Export PDF",
                     task_list: "Task List",
                     placeholder: "Enter a new task...",
                     no_tasks: "No tasks found. Add a new task above.",
                     items_count: "{count} items",
                     alert_empty: "Please enter task content.",
-                    alert_import_error: "Failed to read backup file."
+                    alert_import_error: "Failed to read backup file.",
+                    confirm_reset: "Are you sure you want to delete all tasks?"
                 },
                 zh: {
                     title: "待办事项列表",
                     add: "添加",
                     import: "导入",
                     export: "备份",
+                    reset: "清空全部",
                     pdf: "导出PDF",
                     task_list: "任务列表",
                     placeholder: "输入新任务...",
                     no_tasks: "暂无任务，请在上方添加新任务。",
                     items_count: "{count} 项任务",
                     alert_empty: "请输入任务内容。",
-                    alert_import_error: "读取备份文件失败。"
+                    alert_import_error: "读取备份文件失败。",
+                    confirm_reset: "确定要删除所有任务吗？"
                 },
                 ko: {
                     title: "할 일 목록",
                     add: "추가",
                     import: "가져오기",
                     export: "백업",
+                    reset: "전체 삭제",
                     pdf: "PDF 내보내기",
                     task_list: "작업 목록",
                     placeholder: "새로운 할 일을 입력하세요...",
                     no_tasks: "작업이 없습니다. 새로운 작업을 추가해주세요.",
                     items_count: "{count} 개",
                     alert_empty: "작업 내용을 입력해주세요.",
-                    alert_import_error: "백업 파일 읽기에 실패했습니다."
+                    alert_import_error: "백업 파일 읽기에 실패했습니다.",
+                    confirm_reset: "모든 작업을 삭제하시겠습니까?"
                 },
                 fr: {
                     title: "Liste de tâches",
                     add: "Ajouter",
                     import: "Importer",
                     export: "Sauvegarder",
+                    reset: "Tout effacer",
                     pdf: "Exporter en PDF",
                     task_list: "Liste des tâches",
                     placeholder: "Entrez une nouvelle tâche...",
                     no_tasks: "Aucune tâche. Ajoutez-en une nouvelle ci-dessus.",
                     items_count: "{count} éléments",
                     alert_empty: "Veuillez entrer le contenu de la tâche.",
-                    alert_import_error: "Échec de la lecture du fichier de sauvegarde."
+                    alert_import_error: "Échec de la lecture du fichier de sauvegarde.",
+                    confirm_reset: "Êtes-vous sûr de vouloir supprimer toutes les tâches ?"
                 },
                 es: {
                     title: "Lista de pendientes",
                     add: "Añadir",
                     import: "Importar",
                     export: "Respaldo",
+                    reset: "Borrar todo",
                     pdf: "Exportar PDF",
                     task_list: "Lista de tareas",
                     placeholder: "Introduzca una nueva tarea...",
                     no_tasks: "No hay tareas. Añada una nueva arriba.",
                     items_count: "{count} elementos",
                     alert_empty: "Por favor, introduzca el contenido de la tarea.",
-                    alert_import_error: "Error al leer el archivo de respaldo."
+                    alert_import_error: "Error al leer el archivo de respaldo.",
+                    confirm_reset: "¿Está seguro de que desea eliminar todas las tareas?"
                 }
             };
 
@@ -206,6 +223,7 @@
                 langSelect: document.getElementById('lang-select'),
                 exportBtn: document.getElementById('export-btn'),
                 importFile: document.getElementById('import-file'),
+                resetBtn: document.getElementById('reset-btn'),
                 pdfBtn: document.getElementById('pdf-btn'),
                 exportArea: document.getElementById('pdf-export-area')
             };
@@ -385,6 +403,20 @@
                 }
             }
 
+            function resetAllTasks() {
+                try {
+                    const t = translations[currentLang] || translations['ja'];
+                    if (todos.length === 0) return;
+                    if (confirm(t.confirm_reset)) {
+                        todos = [];
+                        saveToStorage();
+                        render();
+                    }
+                } catch (error) {
+                    console.error("Reset tasks error:", error);
+                }
+            }
+
             function moveTask(index, direction) {
                 try {
                     const targetIndex = index + direction;
@@ -479,6 +511,7 @@
                 dom.langSelect.addEventListener('change', updateLanguage);
                 dom.exportBtn.addEventListener('click', exportBackup);
                 dom.importFile.addEventListener('change', importBackup);
+                dom.resetBtn.addEventListener('click', resetAllTasks);
                 dom.pdfBtn.addEventListener('click', exportPDF);
             }
 
@@ -492,7 +525,6 @@
             // Memory cleanup on unload
             window.addEventListener('beforeunload', () => {
                 try {
-                    // Clear references to prevent memory leaks
                     todos = null;
                 } catch(e) {}
             });
