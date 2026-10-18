@@ -19,7 +19,7 @@
     }
   </script>
   <style>
-    /* 印刷専用スタイル (A3横向き印刷最適化) */
+    /* 印刷専用スタイル (A3/A4横向き印刷最適化) */
     @media print {
       body {
         background-color: #ffffff !important;
@@ -181,7 +181,7 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 mb-1">生年月日 (YYYY-MM-DD)</label>
+            <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 mb-1">生年月日 (年月日)</label>
             <input type="date" id="field-birth" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm">
           </div>
 
@@ -298,7 +298,7 @@
           modalTitleEdit: '人物情報の編集',
           modalTitleNew: '新しい人物の登録',
           nameLabel: '氏名 *',
-          birthLabel: '生年月日 (YYYY-MM-DD)',
+          birthLabel: '生年月日 (年月日)',
           deathLabel: '没年月日（任意）',
           noteLabel: 'メモ・備考',
           addRelLabel: '家族関係を追加',
@@ -468,7 +468,7 @@
           modalTitleEdit: 'Editar persona',
           modalTitleNew: 'Agregar nueva persona',
           nameLabel: 'Nombre completo *',
-          birthLabel: 'Fecha de nacimiento (AAAA-MM-JJ)',
+          birthLabel: 'Fecha de nacimiento (AAAA-MM-DD)',
           deathLabel: 'Fecha de fallecimiento (Opcional)',
           noteLabel: 'Notas',
           addRelLabel: 'Agregar relación familiar',
@@ -536,7 +536,7 @@
         return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
       }
 
-      // 精密な年齢計算
+      // 精密な年齢計算（日単位）
       function calculateAge(birthDateStr, deathDateStr) {
         if (!birthDateStr) return null;
         const birthDate = new Date(birthDateStr);
@@ -556,7 +556,7 @@
       // LocalStorage同期
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_data_v3');
+          const stored = localStorage.getItem('family_tree_data_v4');
           if (stored) {
             const parsed = JSON.parse(stored);
             familyData = parsed.nodes || {};
@@ -571,7 +571,7 @@
 
       function saveStorage() {
         try {
-          localStorage.setItem('family_tree_data_v3', JSON.stringify({ nodes: familyData, rootId: rootId }));
+          localStorage.setItem('family_tree_data_v4', JSON.stringify({ nodes: familyData, rootId: rootId }));
         } catch (e) {
           console.error(e);
         }
@@ -712,7 +712,7 @@
 
         unitDiv.appendChild(pairWrapper);
 
-        // --- 子供たちのブロック ---
+        // --- 子供たち（および兄弟）のブロック ---
         const validChildren = (person.childrenIds || []).filter(cid => familyData[cid] && !renderedSet.has(cid));
 
         if (validChildren.length > 0) {
@@ -838,7 +838,7 @@
         elements.linkModal.classList.add('hidden');
       }
 
-      // ノード連結処理（兄弟の場合は共通の両親を共有させる）
+      // ノード連結処理（兄弟の場合は親の子供リストに追加して同層横並びにする）
       function connectNodes(sourceId, targetId, relType) {
         if (!sourceId || !targetId || !familyData[sourceId] || !familyData[targetId]) return;
 
@@ -863,15 +863,31 @@
           if (!source.childrenIds.includes(targetId)) source.childrenIds.push(targetId);
           if (!target.parentIds.includes(sourceId)) target.parentIds.push(sourceId);
         } else if (relType === 'sibling') {
-          // 兄弟関係：本人の持つすべての親をターゲットにも共有させる
-          source.parentIds.forEach(pId => {
-            if (!target.parentIds.includes(pId)) target.parentIds.push(pId);
-            const parent = familyData[pId];
-            if (parent && parent.childrenIds && !parent.childrenIds.includes(targetId)) {
-              parent.childrenIds.push(targetId);
-            }
-          });
-          // もし本人に親がいない場合、ダミーの親を生成するか、少なくとも親を共有させる基盤を作る
+          // 本人に親が設定されている場合、その親の子供として追加
+          if (source.parentIds.length > 0) {
+            source.parentIds.forEach(pId => {
+              if (!target.parentIds.includes(pId)) target.parentIds.push(pId);
+              const parent = familyData[pId];
+              if (parent && parent.childrenIds && !parent.childrenIds.includes(targetId)) {
+                parent.childrenIds.push(targetId);
+              }
+            });
+          } else {
+            // 本人に親がいない場合、仮の親ノードを自動補完作成して兄弟を正しく並べる
+            const dummyParentId = generateId();
+            familyData[dummyParentId] = {
+              id: dummyParentId,
+              name: '親（未登録）',
+              birth: '',
+              death: '',
+              note: '',
+              parentIds: [],
+              spouseIds: [],
+              childrenIds: [sourceId, targetId]
+            };
+            source.parentIds.push(dummyParentId);
+            target.parentIds.push(dummyParentId);
+          }
         }
 
         saveStorage();
@@ -968,18 +984,7 @@
           const newId = generateId();
           familyData[newId] = { id: newId, name: '', birth: '', death: '', note: '', parentIds: [], spouseIds: [], childrenIds: [] };
           
-          if (linkContext.relType === 'sibling') {
-            // 新規作成された兄弟に現在の本人の親を引き継がせる
-            const sourcePerson = familyData[linkContext.sourceId];
-            if (sourcePerson && sourcePerson.parentIds) {
-              sourcePerson.parentIds.forEach(pId => {
-                familyData[newId].parentIds.push(pId);
-                familyData[pId].childrenIds.push(newId);
-              });
-            }
-          } else {
-            connectNodes(linkContext.sourceId, newId, linkContext.relType);
-          }
+          connectNodes(linkContext.sourceId, newId, linkContext.relType);
 
           closeLinkModal();
           openEditModal(newId);
