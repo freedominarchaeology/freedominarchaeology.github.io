@@ -179,15 +179,62 @@
           <input type="text" id="field-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm" placeholder="例: 山田 太郎">
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 mb-1">生年月日 (年月日)</label>
-            <input type="date" id="field-birth" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm">
+        <!-- 生年月日（年・月・日 個別入力） -->
+        <div>
+          <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 mb-1">生年月日</label>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <input type="number" id="field-birth-y" placeholder="年 (例: 1980)" min="1000" max="9999" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div>
+              <select id="field-birth-m" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                <option value="">月を選択</option>
+                <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+                <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+                <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+                <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+              </select>
+            </div>
+            <div>
+              <select id="field-birth-d" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                <option value="">日を選択</option>
+                <!-- 1〜31日 -->
+                <script>
+                  for(let i=1; i<=31; i++) {
+                    document.write(`<option value="${String(i).padStart(2,'0')}">${i}日</option>`);
+                  }
+                </script>
+              </select>
+            </div>
           </div>
+        </div>
 
-          <div>
-            <label id="lbl-death" class="block text-xs font-semibold text-slate-600 mb-1">没年月日（任意）</label>
-            <input type="date" id="field-death" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm">
+        <!-- 没年月日（年・月・日 個別入力） -->
+        <div>
+          <label id="lbl-death" class="block text-xs font-semibold text-slate-600 mb-1">没年月日（任意）</label>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <input type="number" id="field-death-y" placeholder="年 (例: 2020)" min="1000" max="9999" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div>
+              <select id="field-death-m" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                <option value="">月を選択</option>
+                <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+                <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+                <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+                <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+              </select>
+            </div>
+            <div>
+              <select id="field-death-d" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                <option value="">日を選択</option>
+                <script>
+                  for(let i=1; i<=31; i++) {
+                    document.write(`<option value="${String(i).padStart(2,'0')}">${i}日</option>`);
+                  }
+                </script>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -298,7 +345,7 @@
           modalTitleEdit: '人物情報の編集',
           modalTitleNew: '新しい人物の登録',
           nameLabel: '氏名 *',
-          birthLabel: '生年月日 (年月日)',
+          birthLabel: '生年月日',
           deathLabel: '没年月日（任意）',
           noteLabel: 'メモ・備考',
           addRelLabel: '家族関係を追加',
@@ -332,7 +379,7 @@
           modalTitleEdit: 'Edit Person Details',
           modalTitleNew: 'Add New Person',
           nameLabel: 'Full Name *',
-          birthLabel: 'Date of Birth (YYYY-MM-DD)',
+          birthLabel: 'Date of Birth',
           deathLabel: 'Date of Death (Optional)',
           noteLabel: 'Notes / Bio',
           addRelLabel: 'Add Family Relation',
@@ -366,7 +413,7 @@
           modalTitleEdit: '编辑成员信息',
           modalTitleNew: '添加新成员',
           nameLabel: '姓名 *',
-          birthLabel: '出生日期 (YYYY-MM-DD)',
+          birthLabel: '出生日期',
           deathLabel: '逝世日期（可选）',
           noteLabel: '备注',
           addRelLabel: '添加亲属关系',
@@ -400,7 +447,7 @@
           modalTitleEdit: '인물 정보 수정',
           modalTitleNew: '새 인물 등록',
           nameLabel: '성명 *',
-          birthLabel: '생년월일 (YYYY-MM-DD)',
+          birthLabel: '생년월일',
           deathLabel: '사망년월일 (선택)',
           noteLabel: '메모',
           addRelLabel: '가족 관계 추가',
@@ -434,7 +481,7 @@
           modalTitleEdit: 'Modifier le membre',
           modalTitleNew: 'Ajouter un membre',
           nameLabel: 'Nom complet *',
-          birthLabel: 'Date de naissance (AAAA-MM-JJ)',
+          birthLabel: 'Date de naissance',
           deathLabel: 'Date de décès (Optionnel)',
           noteLabel: 'Notes',
           addRelLabel: 'Ajouter un lien familial',
@@ -468,7 +515,7 @@
           modalTitleEdit: 'Editar persona',
           modalTitleNew: 'Agregar nueva persona',
           nameLabel: 'Nombre completo *',
-          birthLabel: 'Fecha de nacimiento (AAAA-MM-DD)',
+          birthLabel: 'Fecha de nacimiento',
           deathLabel: 'Fecha de fallecimiento (Opcional)',
           noteLabel: 'Notas',
           addRelLabel: 'Agregar relación familiar',
@@ -515,8 +562,12 @@
         personForm: document.getElementById('person-form'),
         fieldId: document.getElementById('field-id'),
         fieldName: document.getElementById('field-name'),
-        fieldBirth: document.getElementById('field-birth'),
-        fieldDeath: document.getElementById('field-death'),
+        fieldBirthY: document.getElementById('field-birth-y'),
+        fieldBirthM: document.getElementById('field-birth-m'),
+        fieldBirthD: document.getElementById('field-birth-d'),
+        fieldDeathY: document.getElementById('field-death-y'),
+        fieldDeathM: document.getElementById('field-death-m'),
+        fieldDeathD: document.getElementById('field-death-d'),
         fieldNote: document.getElementById('field-note'),
         relationsGroup: document.getElementById('relations-group'),
         btnAddParent: document.getElementById('btn-add-parent'),
@@ -553,10 +604,30 @@
         return age >= 0 ? age : 0;
       }
 
+      // 日付の組み立て (YYYY-MM-DD形式)
+      function assembleDate(y, m, d) {
+        if (!y) return '';
+        const year = String(y).padStart(4, '0');
+        const month = m ? String(m).padStart(2, '0') : '01';
+        const day = d ? String(d).padStart(2, '0') : '01';
+        return `${year}-${month}-${day}`;
+      }
+
+      // 日付の分解 (YYYY-MM-DD -> {y, m, d})
+      function parseDate(dateStr) {
+        if (!dateStr) return { y: '', m: '', d: '' };
+        const parts = dateStr.split('-');
+        return {
+          y: parts[0] || '',
+          m: parts[1] || '',
+          d: parts[2] || ''
+        };
+      }
+
       // LocalStorage同期
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_data_v4');
+          const stored = localStorage.getItem('family_tree_data_v5');
           if (stored) {
             const parsed = JSON.parse(stored);
             familyData = parsed.nodes || {};
@@ -571,7 +642,7 @@
 
       function saveStorage() {
         try {
-          localStorage.setItem('family_tree_data_v4', JSON.stringify({ nodes: familyData, rootId: rootId }));
+          localStorage.setItem('family_tree_data_v5', JSON.stringify({ nodes: familyData, rootId: rootId }));
         } catch (e) {
           console.error(e);
         }
@@ -617,7 +688,6 @@
         renderTree();
       }
 
-      // 視点切り替えドロップダウン更新
       function updateRootSelectOptions() {
         elements.rootSelect.innerHTML = '';
         const keys = Object.keys(familyData);
@@ -657,7 +727,7 @@
         }
       }
 
-      // 再帰的ツリー構造組み立て
+      // 家系図ツリー構築 (正しい階層・兄弟横並びロジック)
       function buildSubTree(personId, renderedSet) {
         if (!personId || !familyData[personId] || renderedSet.has(personId)) {
           return null;
@@ -712,7 +782,7 @@
 
         unitDiv.appendChild(pairWrapper);
 
-        // --- 子供たち（および兄弟）のブロック ---
+        // --- 子供たちのブロック ---
         const validChildren = (person.childrenIds || []).filter(cid => familyData[cid] && !renderedSet.has(cid));
 
         if (validChildren.length > 0) {
@@ -752,7 +822,7 @@
         return unitDiv;
       }
 
-      // 人物カード要素生成
+      // 人物カード生成
       function createPersonCard(person, dict) {
         const card = document.createElement('div');
         card.className = 'tree-node bg-white border border-slate-300 hover:border-amber-500 rounded-xl p-3 shadow-sm hover:shadow-md transition w-44 flex-shrink-0 cursor-pointer group relative';
@@ -791,8 +861,19 @@
       function openModal(titleText, personData = {}) {
         elements.fieldId.value = personData.id || '';
         elements.fieldName.value = personData.name || '';
-        elements.fieldBirth.value = personData.birth || '';
-        elements.fieldDeath.value = personData.death || '';
+        
+        // 生年月日分解セット
+        const b = parseDate(personData.birth);
+        elements.fieldBirthY.value = b.y;
+        elements.fieldBirthM.value = b.m;
+        elements.fieldBirthD.value = b.d;
+
+        // 没年月日分解セット
+        const d = parseDate(personData.death);
+        elements.fieldDeathY.value = d.y;
+        elements.fieldDeathM.value = d.m;
+        elements.fieldDeathD.value = d.d;
+
         elements.fieldNote.value = personData.note || '';
 
         if (personData.id) {
@@ -838,7 +919,7 @@
         elements.linkModal.classList.add('hidden');
       }
 
-      // ノード連結処理（兄弟の場合は親の子供リストに追加して同層横並びにする）
+      // ノード連結処理（兄弟は親を共有し、子供リストの同じ層に横並びさせる）
       function connectNodes(sourceId, targetId, relType) {
         if (!sourceId || !targetId || !familyData[sourceId] || !familyData[targetId]) return;
 
@@ -863,7 +944,6 @@
           if (!source.childrenIds.includes(targetId)) source.childrenIds.push(targetId);
           if (!target.parentIds.includes(sourceId)) target.parentIds.push(sourceId);
         } else if (relType === 'sibling') {
-          // 本人に親が設定されている場合、その親の子供として追加
           if (source.parentIds.length > 0) {
             source.parentIds.forEach(pId => {
               if (!target.parentIds.includes(pId)) target.parentIds.push(pId);
@@ -873,11 +953,11 @@
               }
             });
           } else {
-            // 本人に親がいない場合、仮の親ノードを自動補完作成して兄弟を正しく並べる
+            // 親が未設定の場合、仮想の親を作成して本人と兄弟をその子供として紐付ける
             const dummyParentId = generateId();
             familyData[dummyParentId] = {
               id: dummyParentId,
-              name: '親（未登録）',
+              name: '両親（未登録）',
               birth: '',
               death: '',
               note: '',
@@ -887,6 +967,9 @@
             };
             source.parentIds.push(dummyParentId);
             target.parentIds.push(dummyParentId);
+            if (rootId === sourceId) {
+              rootId = dummyParentId; // 視点を親に押し上げて家系図構造を綺麗にする
+            }
           }
         }
 
@@ -921,8 +1004,8 @@
           if (!pId || !familyData[pId]) return;
 
           familyData[pId].name = elements.fieldName.value.trim();
-          familyData[pId].birth = elements.fieldBirth.value;
-          familyData[pId].death = elements.fieldDeath.value;
+          familyData[pId].birth = assembleDate(elements.fieldBirthY.value, elements.fieldBirthM.value, elements.fieldBirthD.value);
+          familyData[pId].death = assembleDate(elements.fieldDeathY.value, elements.fieldDeathM.value, elements.fieldDeathD.value);
           familyData[pId].note = elements.fieldNote.value.trim();
 
           saveStorage();
