@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>家系図アプリ - Family Tree</title>
+  <title>家系図アプリ - Traditional Family Tree</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -19,7 +19,7 @@
     }
   </script>
   <style>
-    /* 印刷専用スタイル (A3/A4横向き印刷最適化) */
+    /* 印刷専用スタイル */
     @media print {
       body {
         background-color: #ffffff !important;
@@ -51,7 +51,6 @@
       }
     }
 
-    /* カスタムスクロールバー */
     ::-webkit-scrollbar {
       width: 10px;
       height: 10px;
@@ -145,7 +144,7 @@
             <svg class="w-5 h-5 mr-1.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
             家系図
           </h2>
-          <span class="text-xs text-slate-400 hidden sm:inline">（ドラッグやスクロールで広い領域を操作できます）</span>
+          <span class="text-xs text-slate-400 hidden sm:inline">（古い世代が上、新しい世代が下に配置されます）</span>
         </div>
         <button id="btn-clear-all" class="text-xs text-rose-500 hover:text-rose-700 transition">
           <span id="lbl-clear-all">すべてのデータを削除</span>
@@ -624,7 +623,7 @@
       // LocalStorage同期
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_data_v7');
+          const stored = localStorage.getItem('family_tree_data_v8');
           if (stored) {
             const parsed = JSON.parse(stored);
             familyData = parsed.nodes || {};
@@ -639,7 +638,7 @@
 
       function saveStorage() {
         try {
-          localStorage.setItem('family_tree_data_v7', JSON.stringify({ nodes: familyData, rootId: rootId }));
+          localStorage.setItem('family_tree_data_v8', JSON.stringify({ nodes: familyData, rootId: rootId }));
         } catch (e) {
           console.error(e);
         }
@@ -724,7 +723,7 @@
         }
       }
 
-      // 家系図ツリー構築（系統樹モデル：本人の上には本人の親、配偶者の上には配偶者の親がそれぞれの頭上に独立して縦に伸びる）
+      // 世代の絶対判定およびツリー再帰描画（古い世代が上、新しい世代が下のルールに厳密に準拠）
       function buildSubTree(personId, renderedSet) {
         if (!personId || !familyData[personId] || renderedSet.has(personId)) {
           return null;
@@ -737,7 +736,7 @@
         const unitDiv = document.createElement('div');
         unitDiv.className = 'flex flex-col items-center flex-shrink-0 relative';
 
-        // --- 本人の親（上方向） ---
+        // --- 本人の親（古い世代＝上） ---
         const myParents = (person.parentIds || []).filter(pid => familyData[pid] && !renderedSet.has(pid));
         if (myParents.length > 0) {
           const parentsRow = document.createElement('div');
@@ -753,7 +752,7 @@
           unitDiv.appendChild(line);
         }
 
-        // --- 本人 ＋ 配偶者 のペアブロック（各配偶者の親はそれぞれの頭上に独立して配置） ---
+        // --- 本人 ＋ 配偶者（同じ世代＝横並び） ---
         const pairWrapper = document.createElement('div');
         pairWrapper.className = 'flex items-center space-x-3 flex-shrink-0 relative z-10 items-start';
 
@@ -763,19 +762,19 @@
         primaryCol.appendChild(createPersonCard(person, dict));
         pairWrapper.appendChild(primaryCol);
 
-        // 配偶者たちの列
+        // 配偶者の列
         if (person.spouseIds && person.spouseIds.length > 0) {
           person.spouseIds.forEach(spouseId => {
             if (familyData[spouseId] && !renderedSet.has(spouseId)) {
               renderedSet.add(spouseId);
               const spouse = familyData[spouseId];
 
-              // 婚姻線（横線）
+              // 夫婦の水平線
               const conn = document.createElement('div');
               conn.className = 'w-4 h-0.5 bg-pink-400 flex-shrink-0 self-center';
               pairWrapper.appendChild(conn);
 
-              // 配偶者の列（配偶者の親をそれぞれの頭上に配置）
+              // 配偶者の列（配偶者の親は配偶者の頭上に配置＝絶対的な世代整合性）
               const spouseCol = document.createElement('div');
               spouseCol.className = 'flex flex-col items-center flex-shrink-0';
 
@@ -802,7 +801,7 @@
 
         unitDiv.appendChild(pairWrapper);
 
-        // --- 子供たちのブロック ---
+        // --- 子供たち（新しい世代＝下へ展開） ---
         const validChildren = (person.childrenIds || []).filter(cid => familyData[cid] && !renderedSet.has(cid));
 
         if (validChildren.length > 0) {
@@ -937,7 +936,7 @@
         elements.linkModal.classList.add('hidden');
       }
 
-      // ノード連結処理
+      // 世代リンクの厳格化接続
       function connectNodes(sourceId, targetId, relType) {
         if (!sourceId || !targetId || !familyData[sourceId] || !familyData[targetId]) return;
 
