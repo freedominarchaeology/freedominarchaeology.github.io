@@ -624,7 +624,7 @@
       // LocalStorage同期
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_data_v6');
+          const stored = localStorage.getItem('family_tree_data_v7');
           if (stored) {
             const parsed = JSON.parse(stored);
             familyData = parsed.nodes || {};
@@ -639,7 +639,7 @@
 
       function saveStorage() {
         try {
-          localStorage.setItem('family_tree_data_v6', JSON.stringify({ nodes: familyData, rootId: rootId }));
+          localStorage.setItem('family_tree_data_v7', JSON.stringify({ nodes: familyData, rootId: rootId }));
         } catch (e) {
           console.error(e);
         }
@@ -724,7 +724,7 @@
         }
       }
 
-      // 家系図ツリー構築（配偶者の親・兄弟を含む全ネットワーク対応）
+      // 家系図ツリー構築（系統樹モデル：本人の上には本人の親、配偶者の上には配偶者の親がそれぞれの頭上に独立して縦に伸びる）
       function buildSubTree(personId, renderedSet) {
         if (!personId || !familyData[personId] || renderedSet.has(personId)) {
           return null;
@@ -737,52 +737,65 @@
         const unitDiv = document.createElement('div');
         unitDiv.className = 'flex flex-col items-center flex-shrink-0 relative';
 
-        // --- 親の表示（上方向：自身の親 ＋ 配偶者の親も含める） ---
-        const parentIdsSet = new Set(person.parentIds || []);
-        // 配偶者の親も上層に統合表示する
-        if (person.spouseIds) {
-          person.spouseIds.forEach(sId => {
-            if (familyData[sId] && familyData[sId].parentIds) {
-              familyData[sId].parentIds.forEach(spId => parentIdsSet.add(spId));
-            }
-          });
-        }
-
-        const unrenderedParents = Array.from(parentIdsSet).filter(pid => familyData[pid] && !renderedSet.has(pid));
-        if (unrenderedParents.length > 0) {
+        // --- 本人の親（上方向） ---
+        const myParents = (person.parentIds || []).filter(pid => familyData[pid] && !renderedSet.has(pid));
+        if (myParents.length > 0) {
           const parentsRow = document.createElement('div');
           parentsRow.className = 'flex items-center space-x-6 flex-shrink-0 mb-3';
-
-          unrenderedParents.forEach(pid => {
+          myParents.forEach(pid => {
             const pTree = buildSubTree(pid, renderedSet);
             if (pTree) parentsRow.appendChild(pTree);
           });
-
           unitDiv.appendChild(parentsRow);
 
-          const parentConnectLine = document.createElement('div');
-          parentConnectLine.className = 'w-0.5 h-4 bg-slate-400 flex-shrink-0';
-          unitDiv.appendChild(parentConnectLine);
+          const line = document.createElement('div');
+          line.className = 'w-0.5 h-4 bg-slate-400 flex-shrink-0';
+          unitDiv.appendChild(line);
         }
 
-        // --- 本人 ＋ 配偶者 のペアブロック ---
+        // --- 本人 ＋ 配偶者 のペアブロック（各配偶者の親はそれぞれの頭上に独立して配置） ---
         const pairWrapper = document.createElement('div');
-        pairWrapper.className = 'flex items-center space-x-3 flex-shrink-0 relative z-10';
+        pairWrapper.className = 'flex items-center space-x-3 flex-shrink-0 relative z-10 items-start';
 
-        const primaryCard = createPersonCard(person, dict);
-        pairWrapper.appendChild(primaryCard);
+        // 本人の列
+        const primaryCol = document.createElement('div');
+        primaryCol.className = 'flex flex-col items-center flex-shrink-0';
+        primaryCol.appendChild(createPersonCard(person, dict));
+        pairWrapper.appendChild(primaryCol);
 
+        // 配偶者たちの列
         if (person.spouseIds && person.spouseIds.length > 0) {
           person.spouseIds.forEach(spouseId => {
             if (familyData[spouseId] && !renderedSet.has(spouseId)) {
               renderedSet.add(spouseId);
+              const spouse = familyData[spouseId];
 
+              // 婚姻線（横線）
               const conn = document.createElement('div');
-              conn.className = 'w-4 h-0.5 bg-pink-400 flex-shrink-0';
+              conn.className = 'w-4 h-0.5 bg-pink-400 flex-shrink-0 self-center';
               pairWrapper.appendChild(conn);
 
-              const spouseCard = createPersonCard(familyData[spouseId], dict);
-              pairWrapper.appendChild(spouseCard);
+              // 配偶者の列（配偶者の親をそれぞれの頭上に配置）
+              const spouseCol = document.createElement('div');
+              spouseCol.className = 'flex flex-col items-center flex-shrink-0';
+
+              const spouseParents = (spouse.parentIds || []).filter(pid => familyData[pid] && !renderedSet.has(pid));
+              if (spouseParents.length > 0) {
+                const spParentsRow = document.createElement('div');
+                spParentsRow.className = 'flex items-center space-x-4 flex-shrink-0 mb-3';
+                spouseParents.forEach(pid => {
+                  const spTree = buildSubTree(pid, renderedSet);
+                  if (spTree) spParentsRow.appendChild(spTree);
+                });
+                spouseCol.appendChild(spParentsRow);
+
+                const spLine = document.createElement('div');
+                spLine.className = 'w-0.5 h-4 bg-slate-400 flex-shrink-0';
+                spouseCol.appendChild(spLine);
+              }
+
+              spouseCol.appendChild(createPersonCard(spouse, dict));
+              pairWrapper.appendChild(spouseCol);
             }
           });
         }
