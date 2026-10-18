@@ -19,7 +19,7 @@
     }
   </script>
   <style>
-    /* 印刷専用スタイル (PDF/印刷最適化) */
+    /* 印刷専用スタイル (A4/A3横向き印刷最適化) */
     @media print {
       body {
         background-color: #ffffff !important;
@@ -29,14 +29,10 @@
       .no-print {
         display: none !important;
       }
-      .print-only {
-        display: block !important;
-      }
       #main-container {
         padding: 0 !important;
         margin: 0 !important;
         max-width: 100% !important;
-        box-shadow: none !important;
       }
       #tree-canvas-container {
         border: none !important;
@@ -50,36 +46,39 @@
         background: #ffffff !important;
       }
       @page {
-        size: A4 landscape;
+        size: A3 landscape;
         margin: 10mm;
       }
     }
 
     /* カスタムスクロールバー */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
     }
     ::-webkit-scrollbar-track {
       background: #f1f5f9;
     }
     ::-webkit-scrollbar-thumb {
       background: #cbd5e1;
-      border-radius: 4px;
+      border-radius: 5px;
     }
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
 
-    /* ノード間の接続線の表現 */
-    .tree-branch-line {
-      position: absolute;
+    /* ツリー線のスタイル定義 */
+    .tree-branch-vertical {
+      width: 2px;
       background-color: #94a3b8;
-      z-index: 0;
+    }
+    .tree-branch-horizontal {
+      height: 2px;
+      background-color: #94a3b8;
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-amber-200">
 
   <!-- ヘッダー / 操作バー -->
   <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30 no-print">
@@ -91,35 +90,41 @@
         <h1 id="app-title" class="text-xl font-bold tracking-tight font-serif text-amber-100">家系図アプリ</h1>
       </div>
 
-      <div class="flex items-center space-x-2 sm:space-x-4">
-        <!-- 多言語対応選択 -->
-        <div class="relative">
-          <select id="lang-select" class="bg-slate-800 text-slate-200 text-xs sm:text-sm rounded-lg px-2 sm:px-3 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
-            <option value="ja">日本語</option>
-            <option value="en">English</option>
-            <option value="zh">中文</option>
-            <option value="ko">한국어</option>
-            <option value="fr">Français</option>
-            <option value="es">Español</option>
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- 基準ルート選択 -->
+        <div class="relative flex items-center">
+          <label for="root-select" class="text-xs text-slate-400 mr-1 hidden sm:inline" id="lbl-view-root">視点:</label>
+          <select id="root-select" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <!-- 動的追加 -->
           </select>
         </div>
 
-        <!-- バックアップ出力 -->
-        <button id="btn-export" class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition">
-          <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <!-- 言語選択 -->
+        <select id="lang-select" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+          <option value="ko">한국어</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+
+        <!-- バックアップ保存 -->
+        <button id="btn-export" class="inline-flex items-center px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition">
+          <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           <span id="lbl-export">バックアップ</span>
         </button>
 
         <!-- インポート -->
-        <label class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition cursor-pointer">
-          <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        <label class="inline-flex items-center px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
           <span id="lbl-import">復元</span>
           <input type="file" id="file-import" accept=".json" class="hidden">
         </label>
 
-        <!-- PDF/印刷 -->
-        <button id="btn-print" class="inline-flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-medium rounded-lg shadow transition">
-          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+        <!-- 印刷 / PDF -->
+        <button id="btn-print" class="inline-flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded-lg shadow transition">
+          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           <span id="lbl-print">印刷 / PDF</span>
         </button>
       </div>
@@ -127,51 +132,52 @@
   </header>
 
   <!-- メインコンテンツ -->
-  <main id="main-container" class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col space-y-6">
+  <main id="main-container" class="flex-grow max-w-full w-full p-4 sm:p-6 flex flex-col space-y-4">
     
-    <!-- 空データ時の説明 兼 登録ボタン -->
-    <div id="empty-state" class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center my-auto transition-all no-print">
-      <div class="max-w-md mx-auto space-y-4">
-        <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
-        </div>
-        <h2 id="empty-title" class="text-xl font-bold text-slate-800 font-serif">家系図データが登録されていません</h2>
-        <p id="empty-desc" class="text-slate-500 text-sm">最初の人物（あなた、またはご先祖様など）を登録して家系図の作成を開始しましょう。</p>
-        <button id="btn-add-root" class="inline-flex items-center px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-lg shadow-md transition transform active:scale-95">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-          <span id="lbl-add-first">最初の人物を登録する</span>
-        </button>
+    <!-- 空データ表示 -->
+    <div id="empty-state" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center my-auto transition-all no-print max-w-md mx-auto">
+      <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
       </div>
+      <h2 id="empty-title" class="text-xl font-bold text-slate-800 font-serif mb-2">家系図データがありません</h2>
+      <p id="empty-desc" class="text-slate-500 text-xs mb-6">最初の人物（ご自身またはご先祖様）を登録して家系図の作成を開始しましょう。</p>
+      <button id="btn-add-root" class="inline-flex items-center px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-xl shadow-md transition transform active:scale-95 text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+        <span id="lbl-add-first">最初の人物を登録する</span>
+      </button>
     </div>
 
     <!-- 家系図キャンバス領域 -->
-    <div id="tree-section" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-grow flex flex-col hidden overflow-hidden relative">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-100 no-print">
-        <h2 id="tree-title" class="text-lg font-bold text-slate-800 font-serif flex items-center">
-          <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-          家系図プレビュー
-        </h2>
-        <button id="btn-clear-all" class="text-xs text-rose-500 hover:text-rose-700 hover:underline transition">
+    <div id="tree-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex-grow flex flex-col hidden overflow-hidden relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 no-print flex-shrink-0">
+        <div class="flex items-center space-x-3">
+          <h2 id="tree-title" class="text-base font-bold text-slate-800 font-serif flex items-center">
+            <svg class="w-5 h-5 mr-1.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            家系図
+          </h2>
+          <span class="text-xs text-slate-400 hidden sm:inline">（ドラッグやスクロールで広い領域を操作できます）</span>
+        </div>
+        <button id="btn-clear-all" class="text-xs text-rose-500 hover:text-rose-700 transition">
           <span id="lbl-clear-all">すべてのデータを削除</span>
         </button>
       </div>
 
-      <!-- インタラクティブツリー容器 -->
-      <div id="tree-canvas-container" class="flex-grow overflow-auto p-8 relative min-h-[500px] flex justify-center items-start">
-        <div id="tree-root-view" class="flex flex-col items-center space-y-12 relative min-w-max">
-          <!-- JSで動的にツリー構造をレンダリング -->
+      <!-- スクロール可能な広大キャンバス (レイアウト崩れを防ぐ flex-nowrap / min-w-max 構造) -->
+      <div id="tree-canvas-container" class="flex-grow overflow-auto p-8 relative min-h-[550px] flex justify-center items-start cursor-grab active:cursor-grabbing">
+        <div id="tree-root-view" class="flex flex-col items-center min-w-max flex-shrink-0 pb-16">
+          <!-- JSで動的にツリー構築 -->
         </div>
       </div>
     </div>
   </main>
 
-  <!-- 編集・新規登録モーダル -->
+  <!-- 人物編集・詳細ダイアログ -->
   <div id="person-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-    <div class="bg-white rounded-xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden transform transition-all">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden transform transition-all">
       <div class="bg-slate-800 px-6 py-4 flex items-center justify-between">
-        <h3 id="modal-title" class="text-lg font-bold text-white font-serif">人物情報の編集</h3>
+        <h3 id="modal-title" class="text-base font-bold text-white font-serif">人物情報の編集</h3>
         <button id="btn-modal-close" class="text-slate-400 hover:text-white transition">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
 
@@ -179,40 +185,40 @@
         <input type="hidden" id="field-id">
 
         <div>
-          <label id="lbl-name" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">氏名 *</label>
-          <input type="text" id="field-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition" placeholder="例: 山田 太郎">
+          <label id="lbl-name" class="block text-xs font-semibold text-slate-600 mb-1">氏名 *</label>
+          <input type="text" id="field-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm" placeholder="例: 山田 太郎">
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">生年月日</label>
-            <input type="date" id="field-birth" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+            <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 mb-1">生年月日 (YYYY-MM-DD)</label>
+            <input type="date" id="field-birth" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm">
           </div>
 
           <div>
-            <label id="lbl-death" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">没年月日（任意）</label>
-            <input type="date" id="field-death" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+            <label id="lbl-death" class="block text-xs font-semibold text-slate-600 mb-1">没年月日（任意）</label>
+            <input type="date" id="field-death" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm">
           </div>
         </div>
 
         <div>
-          <label id="lbl-note" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">メモ・備考</label>
-          <textarea id="field-note" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm" placeholder="出生地、称号、メモなど"></textarea>
+          <label id="lbl-note" class="block text-xs font-semibold text-slate-600 mb-1">メモ・備考</label>
+          <textarea id="field-note" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-xs" placeholder="出生地、称号、メモなど"></textarea>
         </div>
 
-        <!-- 関連人物追加ボタンエリア (文字表記の明瞭化) -->
-        <div id="relations-group" class="pt-2 border-t border-slate-100 space-y-2">
-          <p id="lbl-add-rel" class="text-xs font-semibold text-slate-500 mb-2">家族関係を追加</p>
+        <!-- 関連人物追加ボタン群 -->
+        <div id="relations-group" class="pt-3 border-t border-slate-100 space-y-2">
+          <p id="lbl-add-rel" class="text-xs font-semibold text-slate-500">家族関係を追加</p>
           <div class="grid grid-cols-3 gap-2">
-            <button type="button" id="btn-add-parent" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium rounded-lg border border-indigo-200 transition flex items-center justify-center">
+            <button type="button" id="btn-add-parent" class="px-2.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium rounded-lg border border-indigo-200 transition flex items-center justify-center">
               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
               <span id="lbl-add-parent-text">親を追加</span>
             </button>
-            <button type="button" id="btn-add-spouse" class="px-3 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-medium rounded-lg border border-pink-200 transition flex items-center justify-center">
+            <button type="button" id="btn-add-spouse" class="px-2.5 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-medium rounded-lg border border-pink-200 transition flex items-center justify-center">
               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
               <span id="lbl-add-spouse-text">配偶者を追加</span>
             </button>
-            <button type="button" id="btn-add-child" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg border border-emerald-200 transition flex items-center justify-center">
+            <button type="button" id="btn-add-child" class="px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg border border-emerald-200 transition flex items-center justify-center">
               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
               <span id="lbl-add-child-text">子供を追加</span>
             </button>
@@ -224,10 +230,10 @@
             <span id="lbl-delete">削除</span>
           </button>
           <div class="flex space-x-2">
-            <button type="button" id="btn-modal-cancel" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium rounded-lg transition">
+            <button type="button" id="btn-modal-cancel" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium rounded-lg transition">
               <span id="lbl-cancel">キャンセル</span>
             </button>
-            <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg shadow transition">
+            <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded-lg shadow transition">
               <span id="lbl-save">保存</span>
             </button>
           </div>
@@ -236,31 +242,69 @@
     </div>
   </div>
 
+  <!-- 既存人物との紐付け選択モーダル -->
+  <div id="link-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden">
+      <div class="bg-slate-800 px-6 py-4 flex items-center justify-between">
+        <h3 id="link-modal-title" class="text-base font-bold text-white font-serif">家族関係の登録方法</h3>
+        <button id="btn-link-close" class="text-slate-400 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- 新規作成ボタン -->
+        <button id="btn-create-new-rel" class="w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow transition flex items-center justify-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          <span id="lbl-create-new-rel">新規の人物を作成して追加</span>
+        </button>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-3 text-slate-400 text-xs">または</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <!-- 既存メンバーから選択 -->
+        <div>
+          <label id="lbl-select-existing" class="block text-xs font-semibold text-slate-600 mb-1">登録済みの人物から選択して追加</label>
+          <select id="select-existing-person" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs bg-white">
+            <!-- 動的追加 -->
+          </select>
+          <button id="btn-confirm-link" class="w-full mt-3 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-medium transition">
+            <span id="lbl-confirm-link">選択した人物を連結する</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white no-print">
     &copy; 家系図アプリ - Safe & Secure Client-side Family Tree Builder
   </footer>
 
-  <!-- アプリケーションロジック -->
+  <!-- アプリケーションスクリプト -->
   <script>
     (function () {
       'use strict';
 
-      // 辞書データ (多言語対応)
+      // 多言語辞書
       const translations = {
         ja: {
           appTitle: '家系図アプリ',
           exportBtn: 'バックアップ',
           importBtn: '復元',
           printBtn: '印刷 / PDF',
-          emptyTitle: '家系図データが登録されていません',
-          emptyDesc: '最初の人物（あなた、またはご先祖様など）を登録して家系図の作成を開始しましょう。',
+          viewRootLabel: '視点:',
+          emptyTitle: '家系図データがありません',
+          emptyDesc: '最初の人物（ご自身またはご先祖様）を登録して家系図の作成を開始しましょう。',
           addFirstBtn: '最初の人物を登録する',
-          treeTitle: '家系図プレビュー',
+          treeTitle: '家系図',
           clearAll: 'すべてのデータを削除',
           modalTitleEdit: '人物情報の編集',
           modalTitleNew: '新しい人物の登録',
           nameLabel: '氏名 *',
-          birthLabel: '生年月日',
+          birthLabel: '生年月日 (YYYY-MM-DD)',
           deathLabel: '没年月日（任意）',
           noteLabel: 'メモ・備考',
           addRelLabel: '家族関係を追加',
@@ -273,22 +317,27 @@
           ageFormat: '({age}歳)',
           ageAtDeathFormat: '(享年{age}歳)',
           confirmClear: '本当にすべてのデータを削除しますか？この操作は取り消せません。',
-          confirmDeletePerson: 'この人物を削除してもよろしいですか？'
+          confirmDeletePerson: 'この人物を削除してもよろしいですか？',
+          linkTitle: '家族関係の登録方法',
+          createNewRel: '新規の人物を作成して追加',
+          selectExisting: '登録済みの人物から選択して追加',
+          confirmLink: '選択した人物を連結する'
         },
         en: {
-          appTitle: 'Family Tree Builder',
+          appTitle: 'Family Tree',
           exportBtn: 'Export',
           importBtn: 'Import',
           printBtn: 'Print / PDF',
+          viewRootLabel: 'Focus:',
           emptyTitle: 'No Family Tree Data',
           emptyDesc: 'Start building your family tree by adding the first member.',
           addFirstBtn: 'Add First Person',
-          treeTitle: 'Family Tree Preview',
+          treeTitle: 'Family Tree',
           clearAll: 'Clear All Data',
           modalTitleEdit: 'Edit Person Details',
           modalTitleNew: 'Add New Person',
           nameLabel: 'Full Name *',
-          birthLabel: 'Date of Birth',
+          birthLabel: 'Date of Birth (YYYY-MM-DD)',
           deathLabel: 'Date of Death (Optional)',
           noteLabel: 'Notes / Bio',
           addRelLabel: 'Add Family Relation',
@@ -300,23 +349,28 @@
           save: 'Save',
           ageFormat: '(Age {age})',
           ageAtDeathFormat: '(Aged {age})',
-          confirmClear: 'Are you sure you want to clear all data? This action cannot be undone.',
-          confirmDeletePerson: 'Are you sure you want to delete this person?'
+          confirmClear: 'Are you sure you want to clear all data?',
+          confirmDeletePerson: 'Are you sure you want to delete this person?',
+          linkTitle: 'Add Relation Method',
+          createNewRel: 'Create & Add New Person',
+          selectExisting: 'Select from Existing Members',
+          confirmLink: 'Link Selected Person'
         },
         zh: {
           appTitle: '家谱应用',
           exportBtn: '导出备份',
           importBtn: '导入复原',
           printBtn: '打印 / PDF',
+          viewRootLabel: '视角:',
           emptyTitle: '暂无家谱数据',
-          emptyDesc: '请添加第一个成员（您自己或祖先）以开始创建家谱。',
+          emptyDesc: '请添加第一个成员以开始创建家谱。',
           addFirstBtn: '添加第一个成员',
-          treeTitle: '家谱预览',
+          treeTitle: '家谱',
           clearAll: '清空所有数据',
           modalTitleEdit: '编辑成员信息',
           modalTitleNew: '添加新成员',
           nameLabel: '姓名 *',
-          birthLabel: '出生日期',
+          birthLabel: '出生日期 (YYYY-MM-DD)',
           deathLabel: '逝世日期（可选）',
           noteLabel: '备注',
           addRelLabel: '添加亲属关系',
@@ -328,23 +382,28 @@
           save: '保存',
           ageFormat: '({age}岁)',
           ageAtDeathFormat: '(享年{age}岁)',
-          confirmClear: '确定要清空所有数据吗？此操作无法撤销。',
-          confirmDeletePerson: '确定要删除此成员吗？'
+          confirmClear: '确定要清空所有数据吗？',
+          confirmDeletePerson: '确定要删除此成员吗？',
+          linkTitle: '添加亲属关系方式',
+          createNewRel: '创建新人物并添加',
+          selectExisting: '从已有成员中选择并关联',
+          confirmLink: '关联所选人物'
         },
         ko: {
-          appTitle: '족보 / 가계도 앱',
+          appTitle: '가계도 앱',
           exportBtn: '백업 내보내기',
           importBtn: '복원하기',
           printBtn: '인쇄 / PDF',
+          viewRootLabel: '기준:',
           emptyTitle: '가계도 데이터가 없습니다',
-          emptyDesc: '첫 번째 인물(본인 또는 조상)을 등록하여 가계도를 작성해보세요.',
+          emptyDesc: '첫 번째 인물을 등록하여 가계도를 작성해보세요.',
           addFirstBtn: '첫 번째 인물 등록',
-          treeTitle: '가계도 미리보기',
+          treeTitle: '가계도',
           clearAll: '모든 데이터 삭제',
           modalTitleEdit: '인물 정보 수정',
           modalTitleNew: '새 인물 등록',
           nameLabel: '성명 *',
-          birthLabel: '생년월일',
+          birthLabel: '생년월일 (YYYY-MM-DD)',
           deathLabel: '사망년월일 (선택)',
           noteLabel: '메모',
           addRelLabel: '가족 관계 추가',
@@ -356,25 +415,30 @@
           save: '저장',
           ageFormat: '({age}세)',
           ageAtDeathFormat: '(향년 {age}세)',
-          confirmClear: '모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-          confirmDeletePerson: '이 인물을 삭제하시겠습니까?'
+          confirmClear: '모든 데이터를 삭제하시겠습니까?',
+          confirmDeletePerson: '이 인물을 삭제하시겠습니까?',
+          linkTitle: '가족 관계 추가 방식',
+          createNewRel: '새 인물 생성 후 추가',
+          selectExisting: '기존 인물 중에서 선택하여 연결',
+          confirmLink: '선택한 인물 연결'
         },
         fr: {
           appTitle: 'Arbre Généalogique',
           exportBtn: 'Exporter',
           importBtn: 'Importer',
           printBtn: 'Imprimer / PDF',
-          emptyTitle: 'Aucune donnée généalogique',
+          viewRootLabel: 'Focus:',
+          emptyTitle: 'Aucune donnée',
           emptyDesc: 'Commencez votre arbre en ajoutant la première personne.',
           addFirstBtn: 'Ajouter la 1ère personne',
-          treeTitle: 'Aperçu de l\'arbre',
+          treeTitle: 'Arbre Généalogique',
           clearAll: 'Effacer tout',
           modalTitleEdit: 'Modifier le membre',
           modalTitleNew: 'Ajouter un membre',
           nameLabel: 'Nom complet *',
-          birthLabel: 'Date de naissance',
-          deathLabel: 'Date de décès (optionnel)',
-          noteLabel: 'Notes / Bio',
+          birthLabel: 'Date de naissance (AAAA-MM-JJ)',
+          deathLabel: 'Date de décès (Optionnel)',
+          noteLabel: 'Notes',
           addRelLabel: 'Ajouter un lien familial',
           addParent: 'Ajouter Parent',
           addSpouse: 'Ajouter Conjoint',
@@ -383,25 +447,30 @@
           cancel: 'Annuler',
           save: 'Enregistrer',
           ageFormat: '({age} ans)',
-          ageAtDeathFormat: '(Décédé(e) à {age} ans)',
+          ageAtDeathFormat: '(Décédé à {age} ans)',
           confirmClear: 'Voulez-vous vraiment tout effacer ?',
-          confirmDeletePerson: 'Voulez-vous vraiment supprimer cette personne ?'
+          confirmDeletePerson: 'Voulez-vous vraiment supprimer cette personne ?',
+          linkTitle: 'Méthode d\'ajout',
+          createNewRel: 'Créer une nouvelle personne',
+          selectExisting: 'Sélectionner une personne existante',
+          confirmLink: 'Lier la personne sélectionnée'
         },
         es: {
           appTitle: 'Árbol Genealógico',
           exportBtn: 'Exportar',
           importBtn: 'Importar',
           printBtn: 'Imprimir / PDF',
+          viewRootLabel: 'Enfoque:',
           emptyTitle: 'Sin datos del árbol',
-          emptyDesc: 'Comience a crear su árbol genealógico agregando a la primera persona.',
+          emptyDesc: 'Comience a crear su árbol agregando a la primera persona.',
           addFirstBtn: 'Agregar primera persona',
-          treeTitle: 'Vista previa del árbol',
+          treeTitle: 'Árbol Genealógico',
           clearAll: 'Borrar todo',
           modalTitleEdit: 'Editar persona',
           modalTitleNew: 'Agregar nueva persona',
           nameLabel: 'Nombre completo *',
-          birthLabel: 'Fecha de nacimiento',
-          deathLabel: 'Fecha de fallecimiento (opcional)',
+          birthLabel: 'Fecha de nacimiento (AAAA-MM-DD)',
+          deathLabel: 'Fecha de fallecimiento (Opcional)',
           noteLabel: 'Notas',
           addRelLabel: 'Agregar relación familiar',
           addParent: 'Agregar Padre/Madre',
@@ -413,27 +482,31 @@
           ageFormat: '({age} años)',
           ageAtDeathFormat: '(Falleció a los {age} años)',
           confirmClear: '¿Está seguro de que desea borrar todos los datos?',
-          confirmDeletePerson: '¿Está seguro de que desea eliminar a esta persona?'
+          confirmDeletePerson: '¿Está seguro de que desea eliminar a esta persona?',
+          linkTitle: 'Método de agregar relación',
+          createNewRel: 'Crear nueva persona',
+          selectExisting: 'Seleccionar persona existente',
+          confirmLink: 'Vincular persona seleccionada'
         }
       };
 
-      // アプリケーション状態管理
+      // 状態管理
       let currentLang = 'ja';
-      let familyData = {}; // ID -> Person Object
-      let rootId = null;   // 最上位・基準ノードID
+      let familyData = {}; // ID -> Person
+      let rootId = null;   // 表示基準ルートID
+      let linkContext = { sourceId: null, relType: null }; // 関係追加一時保持
 
-      // 世代モデル：Person Structure
-      // { id, name, birth, death, note, parentIds: [], spouseIds: [], childrenIds: [] }
-
-      // DOM要素キャッシュ
+      // DOMキャッシュ
       const elements = {
         langSelect: document.getElementById('lang-select'),
+        rootSelect: document.getElementById('root-select'),
         btnExport: document.getElementById('btn-export'),
         fileImport: document.getElementById('file-import'),
         btnPrint: document.getElementById('btn-print'),
         emptyState: document.getElementById('empty-state'),
         btnAddRoot: document.getElementById('btn-add-root'),
         treeSection: document.getElementById('tree-section'),
+        treeCanvasContainer: document.getElementById('tree-canvas-container'),
         treeRootView: document.getElementById('tree-root-view'),
         btnClearAll: document.getElementById('btn-clear-all'),
         personModal: document.getElementById('person-modal'),
@@ -449,15 +522,20 @@
         btnAddParent: document.getElementById('btn-add-parent'),
         btnAddSpouse: document.getElementById('btn-add-spouse'),
         btnAddChild: document.getElementById('btn-add-child'),
-        btnDeletePerson: document.getElementById('btn-delete-person')
+        btnDeletePerson: document.getElementById('btn-delete-person'),
+        linkModal: document.getElementById('link-modal'),
+        btnLinkClose: document.getElementById('btn-link-close'),
+        btnCreateNewRel: document.getElementById('btn-create-new-rel'),
+        selectExistingPerson: document.getElementById('select-existing-person'),
+        btnConfirmLink: document.getElementById('btn-confirm-link')
       };
 
-      // ID生成（堅牢な一意ID）
+      // 一意ID生成
       function generateId() {
         return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
       }
 
-      // 年齢計算関数
+      // 精密な年齢計算
       function calculateAge(birthDateStr, deathDateStr) {
         if (!birthDateStr) return null;
         const birthDate = new Date(birthDateStr);
@@ -474,17 +552,17 @@
         return age >= 0 ? age : 0;
       }
 
-      // ストレージ読み込み＆書き込み
+      // LocalStorage同期
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_data');
+          const stored = localStorage.getItem('family_tree_data_v2');
           if (stored) {
             const parsed = JSON.parse(stored);
             familyData = parsed.nodes || {};
             rootId = parsed.rootId || null;
           }
         } catch (e) {
-          console.error('Failed to load local storage:', e);
+          console.error(e);
           familyData = {};
           rootId = null;
         }
@@ -492,14 +570,13 @@
 
       function saveStorage() {
         try {
-          const dataToSave = { nodes: familyData, rootId: rootId };
-          localStorage.setItem('family_tree_data', JSON.stringify(dataToSave));
+          localStorage.setItem('family_tree_data_v2', JSON.stringify({ nodes: familyData, rootId: rootId }));
         } catch (e) {
-          console.error('Failed to save to local storage:', e);
+          console.error(e);
         }
       }
 
-      // 多言語切替表示の適用
+      // 言語更新
       function updateLanguage(lang) {
         currentLang = translations[lang] ? lang : 'ja';
         const dict = translations[currentLang];
@@ -508,6 +585,7 @@
         document.getElementById('lbl-export').textContent = dict.exportBtn;
         document.getElementById('lbl-import').textContent = dict.importBtn;
         document.getElementById('lbl-print').textContent = dict.printBtn;
+        document.getElementById('lbl-view-root').textContent = dict.viewRootLabel;
         document.getElementById('empty-title').textContent = dict.emptyTitle;
         document.getElementById('empty-desc').textContent = dict.emptyDesc;
         document.getElementById('lbl-add-first').textContent = dict.addFirstBtn;
@@ -528,10 +606,35 @@
         document.getElementById('lbl-cancel').textContent = dict.cancel;
         document.getElementById('lbl-save').textContent = dict.save;
 
+        document.getElementById('link-modal-title').textContent = dict.linkTitle;
+        document.getElementById('lbl-create-new-rel').textContent = dict.createNewRel;
+        document.getElementById('lbl-select-existing').textContent = dict.selectExisting;
+        document.getElementById('lbl-confirm-link').textContent = dict.confirmLink;
+
+        updateRootSelectOptions();
         renderTree();
       }
 
-      // ツリー再描画メイン処理 (重複レンダリングの完全防止)
+      // 視点切り替えドロップダウン更新
+      function updateRootSelectOptions() {
+        elements.rootSelect.innerHTML = '';
+        const keys = Object.keys(familyData);
+        if (keys.length === 0) return;
+
+        if (!rootId || !familyData[rootId]) {
+          rootId = keys[0];
+        }
+
+        keys.forEach(id => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = familyData[id].name || '無名';
+          if (id === rootId) opt.selected = true;
+          elements.rootSelect.appendChild(opt);
+        });
+      }
+
+      // メインの家系図描画処理 (折り返しなし・完全に配置崩れを防ぐ構造)
       function renderTree() {
         const keys = Object.keys(familyData);
         if (keys.length === 0 || !rootId || !familyData[rootId]) {
@@ -544,17 +647,16 @@
         elements.treeSection.classList.remove('hidden');
 
         elements.treeRootView.innerHTML = '';
-        const renderedSet = new Set(); // 描画済みIDの追跡
+        const renderedSet = new Set(); // 重複レンダリング防止ガード
 
-        // 基準ルートから探索して描画
-        const treeElement = buildNodeElement(rootId, renderedSet);
-        if (treeElement) {
-          elements.treeRootView.appendChild(treeElement);
+        const treeDOM = buildSubTree(rootId, renderedSet);
+        if (treeDOM) {
+          elements.treeRootView.appendChild(treeDOM);
         }
       }
 
-      // ノードの再帰構築
-      function buildNodeElement(personId, renderedSet) {
+      // 再帰的ツリー構造組み立て (最上位の親から子供へ降りる階層構築)
+      function buildSubTree(personId, renderedSet) {
         if (!personId || !familyData[personId] || renderedSet.has(personId)) {
           return null;
         }
@@ -563,83 +665,109 @@
         const person = familyData[personId];
         const dict = translations[currentLang];
 
-        // 階層コンテナ
-        const container = document.createElement('div');
-        container.className = 'flex flex-col items-center relative';
+        // 1つのノードユニット (折り返し禁止 flex-shrink-0)
+        const unitDiv = document.createElement('div');
+        unitDiv.className = 'flex flex-col items-center flex-shrink-0 relative';
 
-        // 1. 本人 ＆ 配偶者カード領域
+        // --- 親の表示（上方向へ探索・表示） ---
+        const unrenderedParents = (person.parentIds || []).filter(pid => familyData[pid] && !renderedSet.has(pid));
+        if (unrenderedParents.length > 0) {
+          const parentsRow = document.createElement('div');
+          parentsRow.className = 'flex items-center space-x-6 flex-shrink-0 mb-3';
+
+          unrenderedParents.forEach(pid => {
+            const pTree = buildSubTree(pid, renderedSet);
+            if (pTree) parentsRow.appendChild(pTree);
+          });
+
+          unitDiv.appendChild(parentsRow);
+
+          // 親から下への接続線
+          const parentConnectLine = document.createElement('div');
+          parentConnectLine.className = 'w-0.5 h-4 bg-slate-400 flex-shrink-0';
+          unitDiv.appendChild(parentConnectLine);
+        }
+
+        // --- 本人 ＋ 配偶者 のペアブロック ---
         const pairWrapper = document.createElement('div');
-        pairWrapper.className = 'flex items-center space-x-4 relative z-10';
+        pairWrapper.className = 'flex items-center space-x-3 flex-shrink-0 relative z-10';
 
         // 本人カード
-        const primaryCard = createPersonCardHTML(person, dict);
+        const primaryCard = createPersonCard(person, dict);
         pairWrapper.appendChild(primaryCard);
 
-        // 配偶者カード
+        // 配偶者カード群
         if (person.spouseIds && person.spouseIds.length > 0) {
           person.spouseIds.forEach(spouseId => {
             if (familyData[spouseId] && !renderedSet.has(spouseId)) {
               renderedSet.add(spouseId);
-              const spouseCard = createPersonCardHTML(familyData[spouseId], dict);
-              
-              // 配偶者との接続線 (横線)
-              const connLine = document.createElement('div');
-              connLine.className = 'w-4 h-0.5 bg-pink-400';
-              
-              pairWrapper.appendChild(connLine);
+
+              // 婚姻線 (ピンクの横線)
+              const conn = document.createElement('div');
+              conn.className = 'w-4 h-0.5 bg-pink-400 flex-shrink-0';
+              pairWrapper.appendChild(conn);
+
+              const spouseCard = createPersonCard(familyData[spouseId], dict);
               pairWrapper.appendChild(spouseCard);
             }
           });
         }
 
-        container.appendChild(pairWrapper);
+        unitDiv.appendChild(pairWrapper);
 
-        // 2. 子供領域
+        // --- 子供たちのブロック ---
         const validChildren = (person.childrenIds || []).filter(cid => familyData[cid] && !renderedSet.has(cid));
-        
+
         if (validChildren.length > 0) {
-          // 下方向への接続垂直線
-          const verticalDown = document.createElement('div');
-          verticalDown.className = 'w-0.5 h-6 bg-slate-300';
-          container.appendChild(verticalDown);
+          // 親ブロックから下へ伸びる直線
+          const downLine = document.createElement('div');
+          downLine.className = 'w-0.5 h-6 bg-slate-400 flex-shrink-0';
+          unitDiv.appendChild(downLine);
 
-          // 子グループコンテナ
-          const childrenGroup = document.createElement('div');
-          childrenGroup.className = 'flex space-x-8 relative pt-4';
+          // 子供たちを並べる横一列コンテナ (絶対折り返さない)
+          const childrenContainer = document.createElement('div');
+          childrenContainer.className = 'flex space-x-8 flex-shrink-0 relative pt-3';
 
-          // 子同士をつなぐ上部水平線
+          // 兄弟同士を結ぶ上部水平ガイド線
           if (validChildren.length > 1) {
             const topLine = document.createElement('div');
-            topLine.className = 'absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300';
-            childrenGroup.appendChild(topLine);
+            topLine.className = 'absolute top-0 left-6 right-6 h-0.5 bg-slate-400';
+            childrenContainer.appendChild(topLine);
           }
 
           validChildren.forEach(childId => {
-            const childNode = buildNodeElement(childId, renderedSet);
-            if (childNode) {
-              childrenGroup.appendChild(childNode);
+            // 各子供への引き込み垂直線を持つラップコンテナ
+            const childWrapper = document.createElement('div');
+            childWrapper.className = 'flex flex-col items-center flex-shrink-0 relative';
+
+            if (validChildren.length > 1) {
+              const childInLine = document.createElement('div');
+              childInLine.className = 'w-0.5 h-3 bg-slate-400 absolute -top-3';
+              childWrapper.appendChild(childInLine);
+            }
+
+            const childSubTree = buildSubTree(childId, renderedSet);
+            if (childSubTree) {
+              childWrapper.appendChild(childSubTree);
+              childrenContainer.appendChild(childWrapper);
             }
           });
 
-          container.appendChild(childrenGroup);
+          unitDiv.appendChild(childrenContainer);
         }
 
-        return container;
+        return unitDiv;
       }
 
-      // 単体人物カードHTML要素生成
-      function createPersonCardHTML(person, dict) {
+      // 人物カード要素の生成
+      function createPersonCard(person, dict) {
         const card = document.createElement('div');
-        card.className = 'tree-node bg-white border border-slate-300 rounded-xl p-3 shadow-sm hover:shadow-md transition w-44 flex flex-col justify-between cursor-pointer group relative';
-        
+        card.className = 'tree-node bg-white border border-slate-300 hover:border-amber-500 rounded-xl p-3 shadow-sm hover:shadow-md transition w-44 flex-shrink-0 cursor-pointer group relative';
+
         const ageVal = calculateAge(person.birth, person.death);
         let ageText = '';
         if (ageVal !== null) {
-          if (person.death) {
-            ageText = dict.ageAtDeathFormat.replace('{age}', ageVal);
-          } else {
-            ageText = dict.ageFormat.replace('{age}', ageVal);
-          }
+          ageText = person.death ? dict.ageAtDeathFormat.replace('{age}', ageVal) : dict.ageFormat.replace('{age}', ageVal);
         }
 
         card.innerHTML = `
@@ -662,17 +790,13 @@
         return card;
       }
 
-      // HTMLエスケープ（XSS防止）
+      // XSSエスケープ
       function escapeHTML(str) {
-        return String(str).replace(/[&<>"']/g, function (m) {
-          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-        });
+        return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
       }
 
-      // モーダル操作
+      // モーダル表示
       function openModal(titleText, personData = {}) {
-        const dict = translations[currentLang];
-        document.getElementById('modal-title').textContent = titleText;
         elements.fieldId.value = personData.id || '';
         elements.fieldName.value = personData.name || '';
         elements.fieldBirth.value = personData.birth || '';
@@ -703,60 +827,82 @@
         }
       }
 
-      // 関連人物追加のアクション
-      function handleAddRelation(type) {
-        const currentId = elements.fieldId.value;
-        if (!currentId || !familyData[currentId]) return;
+      // 関連人物の紐付けダイアログを開く
+      function openLinkModal(sourceId, relType) {
+        linkContext = { sourceId, relType };
+        elements.selectExistingPerson.innerHTML = '';
 
-        const newId = generateId();
-        const newPerson = { id: newId, name: '', birth: '', death: '', note: '', parentIds: [], spouseIds: [], childrenIds: [] };
-        
-        if (type === 'parent') {
-          newPerson.childrenIds.push(currentId);
-          familyData[currentId].parentIds = familyData[currentId].parentIds || [];
-          familyData[currentId].parentIds.push(newId);
-          // もし根ノードに親を追加した場合、その親を新しい根（仮）に昇格させる
-          if (rootId === currentId) {
-            rootId = newId;
-          }
-        } else if (type === 'spouse') {
-          newPerson.spouseIds.push(currentId);
-          familyData[currentId].spouseIds = familyData[currentId].spouseIds || [];
-          familyData[currentId].spouseIds.push(newId);
-        } else if (type === 'child') {
-          newPerson.parentIds.push(currentId);
-          familyData[currentId].childrenIds = familyData[currentId].childrenIds || [];
-          familyData[currentId].childrenIds.push(newId);
-        }
-
-        familyData[newId] = newPerson;
-        saveStorage();
-        closeModal();
-        openEditModal(newId);
-      }
-
-      // イベントリスナー設定
-      function setupEventListeners() {
-        // 多言語切り替え
-        elements.langSelect.addEventListener('change', (e) => {
-          updateLanguage(e.target.value);
+        const keys = Object.keys(familyData).filter(id => id !== sourceId);
+        keys.forEach(id => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = familyData[id].name || '無名';
+          elements.selectExistingPerson.appendChild(opt);
         });
 
-        // 最初の人物登録
+        elements.linkModal.classList.remove('hidden');
+      }
+
+      function closeLinkModal() {
+        elements.linkModal.classList.add('hidden');
+      }
+
+      // ２つのノードを双方向に紐付け
+      function connectNodes(sourceId, targetId, relType) {
+        if (!sourceId || !targetId || !familyData[sourceId] || !familyData[targetId]) return;
+
+        const source = familyData[sourceId];
+        const target = familyData[targetId];
+
+        source.parentIds = source.parentIds || [];
+        source.spouseIds = source.spouseIds || [];
+        source.childrenIds = source.childrenIds || [];
+
+        target.parentIds = target.parentIds || [];
+        target.spouseIds = target.spouseIds || [];
+        target.childrenIds = target.childrenIds || [];
+
+        if (relType === 'parent') {
+          if (!source.parentIds.includes(targetId)) source.parentIds.push(targetId);
+          if (!target.childrenIds.includes(sourceId)) target.childrenIds.push(sourceId);
+        } else if (relType === 'spouse') {
+          if (!source.spouseIds.includes(targetId)) source.spouseIds.push(targetId);
+          if (!target.spouseIds.includes(sourceId)) target.spouseIds.push(sourceId);
+        } else if (relType === 'child') {
+          if (!source.childrenIds.includes(targetId)) source.childrenIds.push(targetId);
+          if (!target.parentIds.includes(sourceId)) target.parentIds.push(sourceId);
+        }
+
+        saveStorage();
+      }
+
+      // イベントリスナー構築
+      function setupEventListeners() {
+        // 多言語
+        elements.langSelect.addEventListener('change', e => updateLanguage(e.target.value));
+
+        // 視点ルート切り替え
+        elements.rootSelect.addEventListener('change', e => {
+          rootId = e.target.value;
+          saveStorage();
+          renderTree();
+        });
+
+        // 最初の人物作成
         elements.btnAddRoot.addEventListener('click', () => {
           const newId = generateId();
           familyData[newId] = { id: newId, name: '', birth: '', death: '', note: '', parentIds: [], spouseIds: [], childrenIds: [] };
           rootId = newId;
           saveStorage();
+          updateRootSelectOptions();
           openEditModal(newId);
         });
 
-        // モーダル閉じる
         elements.btnModalClose.addEventListener('click', closeModal);
         elements.btnModalCancel.addEventListener('click', closeModal);
 
-        // フォーム保存
-        elements.personForm.addEventListener('submit', (e) => {
+        // 保存
+        elements.personForm.addEventListener('submit', e => {
           e.preventDefault();
           const pId = elements.fieldId.value;
           if (!pId || !familyData[pId]) return;
@@ -768,6 +914,7 @@
 
           saveStorage();
           closeModal();
+          updateRootSelectOptions();
           renderTree();
         });
 
@@ -778,7 +925,6 @@
 
           const pId = elements.fieldId.value;
           if (pId && familyData[pId]) {
-            // 他のノードからの参照削除
             Object.values(familyData).forEach(p => {
               p.parentIds = (p.parentIds || []).filter(id => id !== pId);
               p.spouseIds = (p.spouseIds || []).filter(id => id !== pId);
@@ -788,33 +934,69 @@
             delete familyData[pId];
 
             if (rootId === pId) {
-              const remainingKeys = Object.keys(familyData);
-              rootId = remainingKeys.length > 0 ? remainingKeys[0] : null;
+              const keys = Object.keys(familyData);
+              rootId = keys.length > 0 ? keys[0] : null;
             }
 
             saveStorage();
             closeModal();
+            updateRootSelectOptions();
             renderTree();
           }
         });
 
-        // 家族関係追加ボタン
-        elements.btnAddParent.addEventListener('click', () => handleAddRelation('parent'));
-        elements.btnAddSpouse.addEventListener('click', () => handleAddRelation('spouse'));
-        elements.btnAddChild.addEventListener('click', () => handleAddRelation('child'));
+        // 関係追加ボタン
+        elements.btnAddParent.addEventListener('click', () => {
+          const currentId = elements.fieldId.value;
+          closeModal();
+          openLinkModal(currentId, 'parent');
+        });
+        elements.btnAddSpouse.addEventListener('click', () => {
+          const currentId = elements.fieldId.value;
+          closeModal();
+          openLinkModal(currentId, 'spouse');
+        });
+        elements.btnAddChild.addEventListener('click', () => {
+          const currentId = elements.fieldId.value;
+          closeModal();
+          openLinkModal(currentId, 'child');
+        });
 
-        // すべて削除
+        // リンクモーダル操作
+        elements.btnLinkClose.addEventListener('click', closeLinkModal);
+
+        // 新規作成して紐付け
+        elements.btnCreateNewRel.addEventListener('click', () => {
+          const newId = generateId();
+          familyData[newId] = { id: newId, name: '', birth: '', death: '', note: '', parentIds: [], spouseIds: [], childrenIds: [] };
+          connectNodes(linkContext.sourceId, newId, linkContext.relType);
+          closeLinkModal();
+          openEditModal(newId);
+        });
+
+        // 既存選択して紐付け
+        elements.btnConfirmLink.addEventListener('click', () => {
+          const targetId = elements.selectExistingPerson.value;
+          if (targetId) {
+            connectNodes(linkContext.sourceId, targetId, linkContext.relType);
+            closeLinkModal();
+            renderTree();
+          }
+        });
+
+        // すべてのデータ削除
         elements.btnClearAll.addEventListener('click', () => {
           const dict = translations[currentLang];
           if (confirm(dict.confirmClear)) {
             familyData = {};
             rootId = null;
             saveStorage();
+            updateRootSelectOptions();
             renderTree();
           }
         });
 
-        // バックアップ (JSONダウンロード)
+        // バックアップJSON
         elements.btnExport.addEventListener('click', () => {
           try {
             const dataStr = JSON.stringify({ nodes: familyData, rootId: rootId }, null, 2);
@@ -822,32 +1004,33 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `family_tree_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            link.download = `family_tree_${new Date().toISOString().slice(0, 10)}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
           } catch (e) {
-            alert('バックアップの出力に失敗しました。');
+            alert('バックアップ出力に失敗しました。');
           }
         });
 
         // インポート
-        elements.fileImport.addEventListener('change', (e) => {
+        elements.fileImport.addEventListener('change', e => {
           const file = e.target.files[0];
           if (!file) return;
 
           const reader = new FileReader();
-          reader.onload = (evt) => {
+          reader.onload = evt => {
             try {
               const imported = JSON.parse(evt.target.result);
               if (imported && imported.nodes) {
                 familyData = imported.nodes;
                 rootId = imported.rootId || Object.keys(familyData)[0] || null;
                 saveStorage();
+                updateRootSelectOptions();
                 renderTree();
               } else {
-                alert('無効なファイル形式です。');
+                alert('無効なファイルフォーマットです。');
               }
             } catch (err) {
               alert('ファイルの読み込みに失敗しました。');
@@ -857,20 +1040,45 @@
           reader.readAsText(file);
         });
 
-        // 印刷 / PDF
-        elements.btnPrint.addEventListener('click', () => {
-          window.print();
+        // 印刷/PDF
+        elements.btnPrint.addEventListener('click', () => window.print());
+
+        // ドラッグ（パン）操作の実装
+        let isDragging = false;
+        let startX, startY, scrollLeft, scrollTop;
+
+        const container = elements.treeCanvasContainer;
+        container.addEventListener('mousedown', e => {
+          if (e.target.closest('.tree-node')) return; // ノードクリック時は無視
+          isDragging = true;
+          startX = e.pageX - container.offsetLeft;
+          startY = e.pageY - container.offsetTop;
+          scrollLeft = container.scrollLeft;
+          scrollTop = container.scrollTop;
+        });
+
+        container.addEventListener('mouseleave', () => isDragging = false);
+        container.addEventListener('mouseup', () => isDragging = false);
+
+        container.addEventListener('mousemove', e => {
+          if (!isDragging) return;
+          e.preventDefault();
+          const x = e.pageX - container.offsetLeft;
+          const y = e.pageY - container.offsetTop;
+          const walkX = (x - startX) * 1.5;
+          const walkY = (y - startY) * 1.5;
+          container.scrollLeft = scrollLeft - walkX;
+          container.scrollTop = scrollTop - walkY;
         });
       }
 
-      // 初期化処理
+      // 初期化
       function init() {
         loadStorage();
         setupEventListeners();
         updateLanguage('ja');
       }
 
-      // 実行開始
       init();
 
     })();
