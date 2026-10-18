@@ -1,1136 +1,879 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家系図アプリケーション - Family Tree Builder</title>
-    
-    <!-- Tailwind CSS (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f4f7f6',
-                            100: '#e3ebe8',
-                            500: '#2c5e50',
-                            600: '#234b40',
-                            700: '#1b3a32',
-                        }
-                    }
-                }
-            }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>家系図アプリ - Family Tree</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"MS Mincho"', '"MS 明朝"', '"Hiragino Mincho ProN"', 'serif'],
+            sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif']
+          }
         }
-    </script>
+      }
+    }
+  </script>
+  <style>
+    /* 印刷専用スタイル (PDF/印刷最適化) */
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      #main-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+      }
+      #tree-canvas-container {
+        border: none !important;
+        overflow: visible !important;
+        background: white !important;
+      }
+      .tree-node {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #1e293b !important;
+        background: #ffffff !important;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+    }
 
-    <!-- Core CSS (フォールバック & 印刷設定) -->
-    <style>
-        /* システムフォントおよび明朝体の指定 */
-        body {
-            font-family: "Hiragino Mincho ProN", "MS Mincho", "MS 明朝", "Yu Mincho", "Georgia", serif;
-            background-color: #f8faf9;
-            color: #2b2b2b;
-            margin: 0;
-            padding: 0;
-            line-height: 1.5;
-        }
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
 
-        /* 印刷・PDF出力用スタイル */
-        @media print {
-            body {
-                background: #ffffff !important;
-                color: #000000 !important;
-            }
-            .no-print {
-                display: none !important;
-            }
-            .print-only {
-                display: block !important;
-            }
-            #tree-container {
-                overflow: visible !important;
-                width: 100% !important;
-                height: auto !important;
-                transform: scale(0.95);
-                transform-origin: top left;
-            }
-            .tree-node-card {
-                box-shadow: none !important;
-                border: 1px solid #666 !important;
-                break-inside: avoid;
-            }
-        }
-
-        /* ツリーコネクタ接続線 */
-        .tree-line {
-            position: absolute;
-            background-color: #718096;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        /* ノードカードスタイル */
-        .tree-node-card {
-            transition: all 0.2s ease-in-out;
-            z-index: 2;
-        }
-        .tree-node-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        /* カスタムスクロールバー */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* CDNフォールバック構造 */
-        .flex-container { display: flex; }
-        .flex-col { flex-direction: column; }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-    </style>
+    /* ノード間の接続線の表現 */
+    .tree-branch-line {
+      position: absolute;
+      background-color: #94a3b8;
+      z-index: 0;
+    }
+  </style>
 </head>
-<body class="bg-stone-50 min-h-screen flex flex-col text-slate-800">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
 
-    <!-- ナビゲーション・ヘッダー（印刷非表示） -->
-    <header class="no-print bg-slate-900 text-stone-100 shadow-md border-b border-slate-700 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center space-x-3">
-                <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <h1 class="text-xl font-bold tracking-wide" id="app-title">家系図アプリケーション</h1>
-            </div>
+  <!-- ヘッダー / 操作バー -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <h1 id="app-title" class="text-xl font-bold tracking-tight font-serif text-amber-100">家系図アプリ</h1>
+      </div>
 
-            <!-- 操作ボタン・言語選択 -->
-            <div class="flex flex-wrap items-center gap-2">
-                <!-- 新規メンバー追加 -->
-                <button id="btn-add-root" class="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-3 py-1.5 rounded flex items-center gap-1 transition shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    <span id="lbl-add-root">新規メンバー追加</span>
-                </button>
-
-                <!-- PDF/印刷 -->
-                <button id="btn-print" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                    <span id="lbl-print">印刷 / PDF</span>
-                </button>
-
-                <!-- 保存 (JSON) -->
-                <button id="btn-export" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    <span id="lbl-export">保存 (JSON)</span>
-                </button>
-
-                <!-- 読み込み (JSON) -->
-                <label class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded cursor-pointer flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    <span id="lbl-import">読み込み</span>
-                    <input type="file" id="file-import" accept=".json" class="hidden">
-                </label>
-
-                <!-- リセット -->
-                <button id="btn-clear" class="bg-red-900/80 hover:bg-red-800 text-red-200 text-sm px-2.5 py-1.5 rounded transition" title="Clear All">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
-
-                <!-- 多言語選択 -->
-                <select id="lang-select" class="bg-slate-800 text-stone-200 border border-slate-600 rounded text-sm px-2 py-1.5 focus:outline-none focus:border-emerald-500">
-                    <option value="ja">日本語</option>
-                    <option value="en">English</option>
-                    <option value="zh">中文</option>
-                    <option value="ko">한국어</option>
-                    <option value="fr">Français</option>
-                    <option value="es">Español</option>
-                </select>
-            </div>
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <!-- 多言語対応選択 -->
+        <div class="relative">
+          <select id="lang-select" class="bg-slate-800 text-slate-200 text-xs sm:text-sm rounded-lg px-2 sm:px-3 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
         </div>
-    </header>
 
-    <!-- メイン表示領域 -->
-    <main class="flex-1 relative overflow-auto p-4 md:p-8" id="main-viewport">
-        <div id="tree-container" class="relative min-w-max min-h-[600px] mx-auto p-8 flex flex-col items-center">
-            <!-- 動的描画エリア -->
+        <!-- バックアップ出力 -->
+        <button id="btn-export" class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition">
+          <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span id="lbl-export">バックアップ</span>
+        </button>
+
+        <!-- インポート -->
+        <label class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition cursor-pointer">
+          <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          <span id="lbl-import">復元</span>
+          <input type="file" id="file-import" accept=".json" class="hidden">
+        </label>
+
+        <!-- PDF/印刷 -->
+        <button id="btn-print" class="inline-flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-medium rounded-lg shadow transition">
+          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          <span id="lbl-print">印刷 / PDF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main id="main-container" class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col space-y-6">
+    
+    <!-- 空データ時の説明 兼 登録ボタン -->
+    <div id="empty-state" class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center my-auto transition-all no-print">
+      <div class="max-w-md mx-auto space-y-4">
+        <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
         </div>
-    </main>
-
-    <!-- トースト通知 -->
-    <div id="toast-message" class="no-print fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 border border-slate-700">
-        <span id="toast-text">メッセージ</span>
+        <h2 id="empty-title" class="text-xl font-bold text-slate-800 font-serif">家系図データが登録されていません</h2>
+        <p id="empty-desc" class="text-slate-500 text-sm">最初の人物（あなた、またはご先祖様など）を登録して家系図の作成を開始しましょう。</p>
+        <button id="btn-add-root" class="inline-flex items-center px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-lg shadow-md transition transform active:scale-95">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          <span id="lbl-add-first">最初の人物を登録する</span>
+        </button>
+      </div>
     </div>
 
-    <!-- メンバー入力・編集モーダル -->
-    <div id="modal-overlay" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-xl shadow-2xl border border-stone-200 w-full max-w-lg p-6 m-4 transform transition-all">
-            <div class="flex justify-between items-center border-b border-stone-200 pb-3 mb-4">
-                <h2 id="modal-title" class="text-lg font-bold text-slate-800">人物情報の編集</h2>
-                <button id="modal-close-btn" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
-            </div>
+    <!-- 家系図キャンバス領域 -->
+    <div id="tree-section" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-grow flex flex-col hidden overflow-hidden relative">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 no-print">
+        <h2 id="tree-title" class="text-lg font-bold text-slate-800 font-serif flex items-center">
+          <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          家系図プレビュー
+        </h2>
+        <button id="btn-clear-all" class="text-xs text-rose-500 hover:text-rose-700 hover:underline transition">
+          <span id="lbl-clear-all">すべてのデータを削除</span>
+        </button>
+      </div>
 
-            <form id="member-form" onsubmit="return false;" class="space-y-4">
-                <input type="hidden" id="edit-id">
-
-                <!-- 氏名 -->
-                <div>
-                    <label id="lbl-form-name" class="block text-sm font-semibold text-slate-700 mb-1">氏名</label>
-                    <input type="text" id="input-name" required class="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                </div>
-
-                <!-- 生年月日 ＆ 没年月日 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label id="lbl-form-birth" class="block text-sm font-semibold text-slate-700 mb-1">生年月日</label>
-                        <input type="date" id="input-birth" class="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label id="lbl-form-death" class="block text-sm font-semibold text-slate-700 mb-1">没年月日（空欄可）</label>
-                        <input type="date" id="input-death" class="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    </div>
-                </div>
-
-                <!-- 性別 / メモ -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label id="lbl-form-gender" class="block text-sm font-semibold text-slate-700 mb-1">性別 / デザイン</label>
-                        <select id="input-gender" class="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <option value="male" id="opt-male">男性</option>
-                            <option value="female" id="opt-female">女性</option>
-                            <option value="other" id="opt-other">その他 / 未指定</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label id="lbl-form-notes" class="block text-sm font-semibold text-slate-700 mb-1">メモ / 続柄など</label>
-                        <input type="text" id="input-notes" class="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="長男, 本家 等">
-                    </div>
-                </div>
-
-                <!-- 関係性（親・配偶者） -->
-                <div class="border-t border-stone-200 pt-4 mt-2">
-                    <h3 id="lbl-relations-title" class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">関係性の設定</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label id="lbl-form-parent" class="block text-xs text-slate-600 mb-1">親を選択</label>
-                            <select id="input-parent-id" class="w-full px-2 py-1.5 border border-stone-300 rounded text-sm focus:outline-none">
-                                <option value="" id="opt-none-parent">なし (ルート)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label id="lbl-form-spouse" class="block text-xs text-slate-600 mb-1">配偶者を選択</label>
-                            <select id="input-spouse-id" class="w-full px-2 py-1.5 border border-stone-300 rounded text-sm focus:outline-none">
-                                <option value="" id="opt-none-spouse">なし</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- アクションボタン -->
-                <div class="flex justify-between items-center pt-4 border-t border-stone-200 mt-6">
-                    <button type="button" id="btn-delete-member" class="bg-red-100 hover:bg-red-200 text-red-700 text-sm px-3 py-2 rounded-md transition hidden">
-                        <span id="lbl-delete">削除</span>
-                    </button>
-                    <div class="flex gap-2 ml-auto">
-                        <button type="button" id="btn-cancel-modal" class="bg-stone-200 hover:bg-stone-300 text-slate-700 text-sm px-4 py-2 rounded-md transition">
-                            <span id="lbl-cancel">キャンセル</span>
-                        </button>
-                        <button type="submit" id="btn-save-member" class="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-4 py-2 rounded-md transition shadow">
-                            <span id="lbl-save">保存</span>
-                        </button>
-                    </div>
-                </div>
-            </form>
+      <!-- インタラクティブツリー容器 -->
+      <div id="tree-canvas-container" class="flex-grow overflow-auto p-8 relative min-h-[500px] flex justify-center items-start">
+        <div id="tree-root-view" class="flex flex-col items-center space-y-12 relative min-w-max">
+          <!-- JSで動的にツリー構造をレンダリング -->
         </div>
+      </div>
     </div>
+  </main>
 
-    <!-- JavaScript ロジック -->
-    <script>
-        /**
-         * 多言語辞書 (i18n)
-         */
-        const i18n = {
-            ja: {
-                title: "家系図アプリケーション",
-                addRoot: "新規メンバー追加",
-                print: "印刷 / PDF",
-                export: "保存 (JSON)",
-                import: "読み込み",
-                editTitle: "人物情報の編集",
-                addTitle: "人物の新規登録",
-                name: "氏名",
-                birth: "生年月日",
-                death: "没年月日（空欄可）",
-                gender: "性別 / デザイン",
-                male: "男性",
-                female: "女性",
-                other: "その他 / 未指定",
-                notes: "メモ / 続柄など",
-                relationsTitle: "関係性の設定",
-                parent: "親を選択",
-                spouse: "配偶者を選択",
-                none: "なし",
-                noneParent: "なし (ルート)",
-                save: "保存",
-                cancel: "キャンセル",
-                delete: "削除",
-                addChild: "子を追加",
-                addSpouse: "配偶者を追加",
-                edit: "編集",
-                agePrefix: "年齢: ",
-                ageSuffix: "歳",
-                deceasedPrefix: "享年: ",
-                deceasedSuffix: "歳",
-                unknownBirth: "生年月日未設定",
-                confirmDelete: "この人物とその関係設定を削除してもよろしいですか？",
-                confirmClear: "すべてのデータを消去して初期化しますか？",
-                importSuccess: "データを正常に読み込みました。",
-                importError: "ファイルの読み込みに失敗しました。正しいJSON形式か確認してください。",
-                noDataTitle: "家系図データが登録されていません",
-                noDataDesc: "「新規メンバー追加」ボタンを押して、最初の人物（始祖・ご自身など）を登録してください。"
-            },
-            en: {
-                title: "Family Tree App",
-                addRoot: "Add New Member",
-                print: "Print / PDF",
-                export: "Export JSON",
-                import: "Import",
-                editTitle: "Edit Person Details",
-                addTitle: "Add New Person",
-                name: "Full Name",
-                birth: "Date of Birth",
-                death: "Date of Death (Optional)",
-                gender: "Gender / Design",
-                male: "Male",
-                female: "Female",
-                other: "Other / Unspecified",
-                notes: "Notes / Relation",
-                relationsTitle: "Relationships",
-                parent: "Select Parent",
-                spouse: "Select Spouse",
-                none: "None",
-                noneParent: "None (Root Person)",
-                save: "Save",
-                cancel: "Cancel",
-                delete: "Delete",
-                addChild: "Add Child",
-                addSpouse: "Add Spouse",
-                edit: "Edit",
-                agePrefix: "Age: ",
-                ageSuffix: " yrs",
-                deceasedPrefix: "Passed at: ",
-                deceasedSuffix: " yrs",
-                unknownBirth: "Birthdate Unknown",
-                confirmDelete: "Are you sure you want to delete this person?",
-                confirmClear: "Are you sure you want to clear all data?",
-                importSuccess: "Data loaded successfully.",
-                importError: "Failed to import file. Please check JSON format.",
-                noDataTitle: "No Family Data Registered",
-                noDataDesc: "Click 'Add New Member' to create the first person in your family tree."
-            },
-            zh: {
-                title: "族谱家系图应用",
-                addRoot: "添加新成员",
-                print: "打印 / PDF",
-                export: "导出 JSON",
-                import: "导入",
-                editTitle: "编辑人员信息",
-                addTitle: "添加新人员",
-                name: "姓名",
-                birth: "出生日期",
-                death: "逝世日期（可选）",
-                gender: "性别",
-                male: "男性",
-                female: "女性",
-                other: "其他",
-                notes: "备注 / 称谓",
-                relationsTitle: "关系设置",
-                parent: "选择父母",
-                spouse: "选择配偶",
-                none: "无",
-                noneParent: "无 (根节点)",
-                save: "保存",
-                cancel: "取消",
-                delete: "删除",
-                addChild: "添加子女",
-                addSpouse: "添加配偶",
-                edit: "编辑",
-                agePrefix: "年龄: ",
-                ageSuffix: "岁",
-                deceasedPrefix: "享年: ",
-                deceasedSuffix: "岁",
-                unknownBirth: "生日不详",
-                confirmDelete: "确定要删除此人及其关联信息吗？",
-                confirmClear: "确定要清空所有数据吗？",
-                importSuccess: "成功导入数据。",
-                importError: "导入失败，请检查文件格式。",
-                noDataTitle: "暂无家谱数据",
-                noDataDesc: "点击“添加新成员”开始创建族谱中的第一个成员。"
-            },
-            ko: {
-                title: "가계도 애플리케이션",
-                addRoot: "새 멤버 추가",
-                print: "인쇄 / PDF",
-                export: "저장 (JSON)",
-                import: "불러오기",
-                editTitle: "인물 정보 수정",
-                addTitle: "새 인물 추가",
-                name: "성명",
-                birth: "생년월일",
-                death: "사망일 (선택)",
-                gender: "성별",
-                male: "남성",
-                female: "여성",
-                other: "기타",
-                notes: "메모 / 관계",
-                relationsTitle: "관계 설정",
-                parent: "부모 선택",
-                spouse: "배우자 선택",
-                none: "없음",
-                noneParent: "없음 (최상위)",
-                save: "저장",
-                cancel: "취소",
-                delete: "삭제",
-                addChild: "자녀 추가",
-                addSpouse: "배우자 추가",
-                edit: "수정",
-                agePrefix: "현재 나이: ",
-                ageSuffix: "세",
-                deceasedPrefix: "향년: ",
-                deceasedSuffix: "세",
-                unknownBirth: "생년월일 미설정",
-                confirmDelete: "이 인물을 삭제하시겠습니까?",
-                confirmClear: "모든 데이터를 초기화하시겠습니까?",
-                importSuccess: "데이터를 성공적으로 불러왔습니다.",
-                importError: "파일을 불러오는데 실패했습니다.",
-                noDataTitle: "등록된 가계도 데이터가 없습니다",
-                noDataDesc: "'새 멤버 추가' 버튼을 눌러 첫 인물을 등록해보세요."
-            },
-            fr: {
-                title: "Arbre Généalogique",
-                addRoot: "Ajouter un membre",
-                print: "Imprimer / PDF",
-                export: "Exporter JSON",
-                import: "Importer",
-                editTitle: "Modifier la personne",
-                addTitle: "Ajouter une personne",
-                name: "Nom complet",
-                birth: "Date de naissance",
-                death: "Date de décès",
-                gender: "Genre",
-                male: "Homme",
-                female: "Femme",
-                other: "Autre",
-                notes: "Notes",
-                relationsTitle: "Relations",
-                parent: "Parent",
-                spouse: "Conjoint(e)",
-                none: "Aucun",
-                noneParent: "Aucun (Racine)",
-                save: "Enregistrer",
-                cancel: "Annuler",
-                delete: "Supprimer",
-                addChild: "Ajouter Enfant",
-                addSpouse: "Ajouter Conjoint",
-                edit: "Éditer",
-                agePrefix: "Âge: ",
-                ageSuffix: " ans",
-                deceasedPrefix: "Décédé à: ",
-                deceasedSuffix: " ans",
-                unknownBirth: "Date inconnue",
-                confirmDelete: "Voulez-vous vraiment supprimer cette personne ?",
-                confirmClear: "Voulez-vous tout réinitialiser ?",
-                importSuccess: "Données importées avec succès.",
-                importError: "Erreur lors de l'importation du fichier.",
-                noDataTitle: "Aucune donnée enregistrée",
-                noDataDesc: "Cliquez sur 'Ajouter un membre' pour commencer à créer votre arbre."
-            },
-            es: {
-                title: "Árbol Genealógico",
-                addRoot: "Añadir Miembro",
-                print: "Imprimir / PDF",
-                export: "Guardar JSON",
-                import: "Cargar JSON",
-                editTitle: "Editar Persona",
-                addTitle: "Añadir Persona",
-                name: "Nombre completo",
-                birth: "Fecha de nacimiento",
-                death: "Fecha de fallecimiento",
-                gender: "Género",
-                male: "Hombre",
-                female: "Mujer",
-                other: "Otro",
-                notes: "Notas",
-                relationsTitle: "Relaciones",
-                parent: "Padre/Madre",
-                spouse: "Cónyuge",
-                none: "Ninguno",
-                noneParent: "Ninguno (Raíz)",
-                save: "Guardar",
-                cancel: "Cancelar",
-                delete: "Eliminar",
-                addChild: "Añadir Hijo/a",
-                addSpouse: "Añadir Cónyuge",
-                edit: "Editar",
-                agePrefix: "Edad: ",
-                ageSuffix: " años",
-                deceasedPrefix: "Falleció a los: ",
-                deceasedSuffix: " años",
-                unknownBirth: "Fecha desconocida",
-                confirmDelete: "¿Está seguro de eliminar esta persona?",
-                confirmClear: "¿Está seguro de borrar todos los datos?",
-                importSuccess: "Datos cargados correctamente.",
-                importError: "Error al cargar el archivo JSON.",
-                noDataTitle: "Sin datos registrados",
-                noDataDesc: "Haga clic en 'Añadir Miembro' para comenzar a crear su árbol."
+  <!-- 編集・新規登録モーダル -->
+  <div id="person-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden transform transition-all">
+      <div class="bg-slate-800 px-6 py-4 flex items-center justify-between">
+        <h3 id="modal-title" class="text-lg font-bold text-white font-serif">人物情報の編集</h3>
+        <button id="btn-modal-close" class="text-slate-400 hover:text-white transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <form id="person-form" class="p-6 space-y-4">
+        <input type="hidden" id="field-id">
+
+        <div>
+          <label id="lbl-name" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">氏名 *</label>
+          <input type="text" id="field-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition" placeholder="例: 山田 太郎">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">生年月日</label>
+            <input type="date" id="field-birth" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+          </div>
+
+          <div>
+            <label id="lbl-death" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">没年月日（任意）</label>
+            <input type="date" id="field-death" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+          </div>
+        </div>
+
+        <div>
+          <label id="lbl-note" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">メモ・備考</label>
+          <textarea id="field-note" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-sm" placeholder="出生地、称号、メモなど"></textarea>
+        </div>
+
+        <!-- 関連人物追加ボタンエリア (文字表記の明瞭化) -->
+        <div id="relations-group" class="pt-2 border-t border-slate-100 space-y-2">
+          <p id="lbl-add-rel" class="text-xs font-semibold text-slate-500 mb-2">家族関係を追加</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="btn-add-parent" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium rounded-lg border border-indigo-200 transition flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+              <span id="lbl-add-parent-text">親を追加</span>
+            </button>
+            <button type="button" id="btn-add-spouse" class="px-3 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-medium rounded-lg border border-pink-200 transition flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+              <span id="lbl-add-spouse-text">配偶者を追加</span>
+            </button>
+            <button type="button" id="btn-add-child" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg border border-emerald-200 transition flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+              <span id="lbl-add-child-text">子供を追加</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-4 flex items-center justify-between border-t border-slate-100">
+          <button type="button" id="btn-delete-person" class="px-3 py-2 text-rose-600 hover:bg-rose-50 text-xs font-medium rounded-lg transition">
+            <span id="lbl-delete">削除</span>
+          </button>
+          <div class="flex space-x-2">
+            <button type="button" id="btn-modal-cancel" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium rounded-lg transition">
+              <span id="lbl-cancel">キャンセル</span>
+            </button>
+            <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg shadow transition">
+              <span id="lbl-save">保存</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white no-print">
+    &copy; 家系図アプリ - Safe & Secure Client-side Family Tree Builder
+  </footer>
+
+  <!-- アプリケーションロジック -->
+  <script>
+    (function () {
+      'use strict';
+
+      // 辞書データ (多言語対応)
+      const translations = {
+        ja: {
+          appTitle: '家系図アプリ',
+          exportBtn: 'バックアップ',
+          importBtn: '復元',
+          printBtn: '印刷 / PDF',
+          emptyTitle: '家系図データが登録されていません',
+          emptyDesc: '最初の人物（あなた、またはご先祖様など）を登録して家系図の作成を開始しましょう。',
+          addFirstBtn: '最初の人物を登録する',
+          treeTitle: '家系図プレビュー',
+          clearAll: 'すべてのデータを削除',
+          modalTitleEdit: '人物情報の編集',
+          modalTitleNew: '新しい人物の登録',
+          nameLabel: '氏名 *',
+          birthLabel: '生年月日',
+          deathLabel: '没年月日（任意）',
+          noteLabel: 'メモ・備考',
+          addRelLabel: '家族関係を追加',
+          addParent: '親を追加',
+          addSpouse: '配偶者を追加',
+          addChild: '子供を追加',
+          delete: '削除',
+          cancel: 'キャンセル',
+          save: '保存',
+          ageFormat: '({age}歳)',
+          ageAtDeathFormat: '(享年{age}歳)',
+          confirmClear: '本当にすべてのデータを削除しますか？この操作は取り消せません。',
+          confirmDeletePerson: 'この人物を削除してもよろしいですか？'
+        },
+        en: {
+          appTitle: 'Family Tree Builder',
+          exportBtn: 'Export',
+          importBtn: 'Import',
+          printBtn: 'Print / PDF',
+          emptyTitle: 'No Family Tree Data',
+          emptyDesc: 'Start building your family tree by adding the first member.',
+          addFirstBtn: 'Add First Person',
+          treeTitle: 'Family Tree Preview',
+          clearAll: 'Clear All Data',
+          modalTitleEdit: 'Edit Person Details',
+          modalTitleNew: 'Add New Person',
+          nameLabel: 'Full Name *',
+          birthLabel: 'Date of Birth',
+          deathLabel: 'Date of Death (Optional)',
+          noteLabel: 'Notes / Bio',
+          addRelLabel: 'Add Family Relation',
+          addParent: 'Add Parent',
+          addSpouse: 'Add Spouse',
+          addChild: 'Add Child',
+          delete: 'Delete',
+          cancel: 'Cancel',
+          save: 'Save',
+          ageFormat: '(Age {age})',
+          ageAtDeathFormat: '(Aged {age})',
+          confirmClear: 'Are you sure you want to clear all data? This action cannot be undone.',
+          confirmDeletePerson: 'Are you sure you want to delete this person?'
+        },
+        zh: {
+          appTitle: '家谱应用',
+          exportBtn: '导出备份',
+          importBtn: '导入复原',
+          printBtn: '打印 / PDF',
+          emptyTitle: '暂无家谱数据',
+          emptyDesc: '请添加第一个成员（您自己或祖先）以开始创建家谱。',
+          addFirstBtn: '添加第一个成员',
+          treeTitle: '家谱预览',
+          clearAll: '清空所有数据',
+          modalTitleEdit: '编辑成员信息',
+          modalTitleNew: '添加新成员',
+          nameLabel: '姓名 *',
+          birthLabel: '出生日期',
+          deathLabel: '逝世日期（可选）',
+          noteLabel: '备注',
+          addRelLabel: '添加亲属关系',
+          addParent: '添加父母',
+          addSpouse: '添加配偶',
+          addChild: '添加子女',
+          delete: '删除',
+          cancel: '取消',
+          save: '保存',
+          ageFormat: '({age}岁)',
+          ageAtDeathFormat: '(享年{age}岁)',
+          confirmClear: '确定要清空所有数据吗？此操作无法撤销。',
+          confirmDeletePerson: '确定要删除此成员吗？'
+        },
+        ko: {
+          appTitle: '족보 / 가계도 앱',
+          exportBtn: '백업 내보내기',
+          importBtn: '복원하기',
+          printBtn: '인쇄 / PDF',
+          emptyTitle: '가계도 데이터가 없습니다',
+          emptyDesc: '첫 번째 인물(본인 또는 조상)을 등록하여 가계도를 작성해보세요.',
+          addFirstBtn: '첫 번째 인물 등록',
+          treeTitle: '가계도 미리보기',
+          clearAll: '모든 데이터 삭제',
+          modalTitleEdit: '인물 정보 수정',
+          modalTitleNew: '새 인물 등록',
+          nameLabel: '성명 *',
+          birthLabel: '생년월일',
+          deathLabel: '사망년월일 (선택)',
+          noteLabel: '메모',
+          addRelLabel: '가족 관계 추가',
+          addParent: '부모 추가',
+          addSpouse: '배우자 추가',
+          addChild: '자녀 추가',
+          delete: '삭제',
+          cancel: '취소',
+          save: '저장',
+          ageFormat: '({age}세)',
+          ageAtDeathFormat: '(향년 {age}세)',
+          confirmClear: '모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+          confirmDeletePerson: '이 인물을 삭제하시겠습니까?'
+        },
+        fr: {
+          appTitle: 'Arbre Généalogique',
+          exportBtn: 'Exporter',
+          importBtn: 'Importer',
+          printBtn: 'Imprimer / PDF',
+          emptyTitle: 'Aucune donnée généalogique',
+          emptyDesc: 'Commencez votre arbre en ajoutant la première personne.',
+          addFirstBtn: 'Ajouter la 1ère personne',
+          treeTitle: 'Aperçu de l\'arbre',
+          clearAll: 'Effacer tout',
+          modalTitleEdit: 'Modifier le membre',
+          modalTitleNew: 'Ajouter un membre',
+          nameLabel: 'Nom complet *',
+          birthLabel: 'Date de naissance',
+          deathLabel: 'Date de décès (optionnel)',
+          noteLabel: 'Notes / Bio',
+          addRelLabel: 'Ajouter un lien familial',
+          addParent: 'Ajouter Parent',
+          addSpouse: 'Ajouter Conjoint',
+          addChild: 'Ajouter Enfant',
+          delete: 'Supprimer',
+          cancel: 'Annuler',
+          save: 'Enregistrer',
+          ageFormat: '({age} ans)',
+          ageAtDeathFormat: '(Décédé(e) à {age} ans)',
+          confirmClear: 'Voulez-vous vraiment tout effacer ?',
+          confirmDeletePerson: 'Voulez-vous vraiment supprimer cette personne ?'
+        },
+        es: {
+          appTitle: 'Árbol Genealógico',
+          exportBtn: 'Exportar',
+          importBtn: 'Importar',
+          printBtn: 'Imprimir / PDF',
+          emptyTitle: 'Sin datos del árbol',
+          emptyDesc: 'Comience a crear su árbol genealógico agregando a la primera persona.',
+          addFirstBtn: 'Agregar primera persona',
+          treeTitle: 'Vista previa del árbol',
+          clearAll: 'Borrar todo',
+          modalTitleEdit: 'Editar persona',
+          modalTitleNew: 'Agregar nueva persona',
+          nameLabel: 'Nombre completo *',
+          birthLabel: 'Fecha de nacimiento',
+          deathLabel: 'Fecha de fallecimiento (opcional)',
+          noteLabel: 'Notas',
+          addRelLabel: 'Agregar relación familiar',
+          addParent: 'Agregar Padre/Madre',
+          addSpouse: 'Agregar Cónyuge',
+          addChild: 'Agregar Hijo/a',
+          delete: 'Eliminar',
+          cancel: 'Cancelar',
+          save: 'Guardar',
+          ageFormat: '({age} años)',
+          ageAtDeathFormat: '(Falleció a los {age} años)',
+          confirmClear: '¿Está seguro de que desea borrar todos los datos?',
+          confirmDeletePerson: '¿Está seguro de que desea eliminar a esta persona?'
+        }
+      };
+
+      // アプリケーション状態管理
+      let currentLang = 'ja';
+      let familyData = {}; // ID -> Person Object
+      let rootId = null;   // 最上位・基準ノードID
+
+      // 世代モデル：Person Structure
+      // { id, name, birth, death, note, parentIds: [], spouseIds: [], childrenIds: [] }
+
+      // DOM要素キャッシュ
+      const elements = {
+        langSelect: document.getElementById('lang-select'),
+        btnExport: document.getElementById('btn-export'),
+        fileImport: document.getElementById('file-import'),
+        btnPrint: document.getElementById('btn-print'),
+        emptyState: document.getElementById('empty-state'),
+        btnAddRoot: document.getElementById('btn-add-root'),
+        treeSection: document.getElementById('tree-section'),
+        treeRootView: document.getElementById('tree-root-view'),
+        btnClearAll: document.getElementById('btn-clear-all'),
+        personModal: document.getElementById('person-modal'),
+        btnModalClose: document.getElementById('btn-modal-close'),
+        btnModalCancel: document.getElementById('btn-modal-cancel'),
+        personForm: document.getElementById('person-form'),
+        fieldId: document.getElementById('field-id'),
+        fieldName: document.getElementById('field-name'),
+        fieldBirth: document.getElementById('field-birth'),
+        fieldDeath: document.getElementById('field-death'),
+        fieldNote: document.getElementById('field-note'),
+        relationsGroup: document.getElementById('relations-group'),
+        btnAddParent: document.getElementById('btn-add-parent'),
+        btnAddSpouse: document.getElementById('btn-add-spouse'),
+        btnAddChild: document.getElementById('btn-add-child'),
+        btnDeletePerson: document.getElementById('btn-delete-person')
+      };
+
+      // ID生成（堅牢な一意ID）
+      function generateId() {
+        return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
+      }
+
+      // 年齢計算関数
+      function calculateAge(birthDateStr, deathDateStr) {
+        if (!birthDateStr) return null;
+        const birthDate = new Date(birthDateStr);
+        if (isNaN(birthDate.getTime())) return null;
+
+        const endDate = deathDateStr ? new Date(deathDateStr) : new Date();
+        if (isNaN(endDate.getTime())) return null;
+
+        let age = endDate.getFullYear() - birthDate.getFullYear();
+        const m = endDate.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        return age >= 0 ? age : 0;
+      }
+
+      // ストレージ読み込み＆書き込み
+      function loadStorage() {
+        try {
+          const stored = localStorage.getItem('family_tree_data');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            familyData = parsed.nodes || {};
+            rootId = parsed.rootId || null;
+          }
+        } catch (e) {
+          console.error('Failed to load local storage:', e);
+          familyData = {};
+          rootId = null;
+        }
+      }
+
+      function saveStorage() {
+        try {
+          const dataToSave = { nodes: familyData, rootId: rootId };
+          localStorage.setItem('family_tree_data', JSON.stringify(dataToSave));
+        } catch (e) {
+          console.error('Failed to save to local storage:', e);
+        }
+      }
+
+      // 多言語切替表示の適用
+      function updateLanguage(lang) {
+        currentLang = translations[lang] ? lang : 'ja';
+        const dict = translations[currentLang];
+
+        document.getElementById('app-title').textContent = dict.appTitle;
+        document.getElementById('lbl-export').textContent = dict.exportBtn;
+        document.getElementById('lbl-import').textContent = dict.importBtn;
+        document.getElementById('lbl-print').textContent = dict.printBtn;
+        document.getElementById('empty-title').textContent = dict.emptyTitle;
+        document.getElementById('empty-desc').textContent = dict.emptyDesc;
+        document.getElementById('lbl-add-first').textContent = dict.addFirstBtn;
+        document.getElementById('tree-title').childNodes[2].textContent = ' ' + dict.treeTitle;
+        document.getElementById('lbl-clear-all').textContent = dict.clearAll;
+
+        document.getElementById('lbl-name').textContent = dict.nameLabel;
+        document.getElementById('lbl-birth').textContent = dict.birthLabel;
+        document.getElementById('lbl-death').textContent = dict.deathLabel;
+        document.getElementById('lbl-note').textContent = dict.noteLabel;
+        document.getElementById('lbl-add-rel').textContent = dict.addRelLabel;
+
+        document.getElementById('lbl-add-parent-text').textContent = dict.addParent;
+        document.getElementById('lbl-add-spouse-text').textContent = dict.addSpouse;
+        document.getElementById('lbl-add-child-text').textContent = dict.addChild;
+
+        document.getElementById('lbl-delete').textContent = dict.delete;
+        document.getElementById('lbl-cancel').textContent = dict.cancel;
+        document.getElementById('lbl-save').textContent = dict.save;
+
+        renderTree();
+      }
+
+      // ツリー再描画メイン処理 (重複レンダリングの完全防止)
+      function renderTree() {
+        const keys = Object.keys(familyData);
+        if (keys.length === 0 || !rootId || !familyData[rootId]) {
+          elements.emptyState.classList.remove('hidden');
+          elements.treeSection.classList.add('hidden');
+          return;
+        }
+
+        elements.emptyState.classList.add('hidden');
+        elements.treeSection.classList.remove('hidden');
+
+        elements.treeRootView.innerHTML = '';
+        const renderedSet = new Set(); // 描画済みIDの追跡
+
+        // 基準ルートから探索して描画
+        const treeElement = buildNodeElement(rootId, renderedSet);
+        if (treeElement) {
+          elements.treeRootView.appendChild(treeElement);
+        }
+      }
+
+      // ノードの再帰構築
+      function buildNodeElement(personId, renderedSet) {
+        if (!personId || !familyData[personId] || renderedSet.has(personId)) {
+          return null;
+        }
+
+        renderedSet.add(personId);
+        const person = familyData[personId];
+        const dict = translations[currentLang];
+
+        // 階層コンテナ
+        const container = document.createElement('div');
+        container.className = 'flex flex-col items-center relative';
+
+        // 1. 本人 ＆ 配偶者カード領域
+        const pairWrapper = document.createElement('div');
+        pairWrapper.className = 'flex items-center space-x-4 relative z-10';
+
+        // 本人カード
+        const primaryCard = createPersonCardHTML(person, dict);
+        pairWrapper.appendChild(primaryCard);
+
+        // 配偶者カード
+        if (person.spouseIds && person.spouseIds.length > 0) {
+          person.spouseIds.forEach(spouseId => {
+            if (familyData[spouseId] && !renderedSet.has(spouseId)) {
+              renderedSet.add(spouseId);
+              const spouseCard = createPersonCardHTML(familyData[spouseId], dict);
+              
+              // 配偶者との接続線 (横線)
+              const connLine = document.createElement('div');
+              connLine.className = 'w-4 h-0.5 bg-pink-400';
+              
+              pairWrapper.appendChild(connLine);
+              pairWrapper.appendChild(spouseCard);
             }
-        };
-
-        // アプリケーション状態
-        let currentLang = 'ja';
-        let familyData = []; // デフォルト初期値は完全に空の配列
-        const STORAGE_KEY = 'family_tree_app_data_v2';
-
-        /**
-         * HTMLエスケープ (XSS対策)
-         */
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+          });
         }
 
-        /**
-         * 年齢・享年計算関数
-         */
-        function calculateAgeInfo(birthStr, deathStr) {
-            if (!birthStr) return { text: i18n[currentLang].unknownBirth, isDeceased: false };
+        container.appendChild(pairWrapper);
 
-            const birthDate = new Date(birthStr);
-            if (isNaN(birthDate.getTime())) {
-                return { text: i18n[currentLang].unknownBirth, isDeceased: false };
+        // 2. 子供領域
+        const validChildren = (person.childrenIds || []).filter(cid => familyData[cid] && !renderedSet.has(cid));
+        
+        if (validChildren.length > 0) {
+          // 下方向への接続垂直線
+          const verticalDown = document.createElement('div');
+          verticalDown.className = 'w-0.5 h-6 bg-slate-300';
+          container.appendChild(verticalDown);
+
+          // 子グループコンテナ
+          const childrenGroup = document.createElement('div');
+          childrenGroup.className = 'flex space-x-8 relative pt-4';
+
+          // 子同士をつなぐ上部水平線
+          if (validChildren.length > 1) {
+            const topLine = document.createElement('div');
+            topLine.className = 'absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300';
+            childrenGroup.appendChild(topLine);
+          }
+
+          validChildren.forEach(childId => {
+            const childNode = buildNodeElement(childId, renderedSet);
+            if (childNode) {
+              childrenGroup.appendChild(childNode);
             }
+          });
 
-            const isDeceased = Boolean(deathStr);
-            const endDate = isDeceased ? new Date(deathStr) : new Date();
-
-            if (isNaN(endDate.getTime())) {
-                return { text: i18n[currentLang].unknownBirth, isDeceased: false };
-            }
-
-            let age = endDate.getFullYear() - birthDate.getFullYear();
-            const monthDiff = endDate.getMonth() - birthDate.getMonth();
-
-            if (monthDiff < 0 || (monthDiff === 0 && endDate.getDate() < birthDate.getDate())) {
-                age--;
-            }
-
-            if (age < 0) age = 0;
-
-            const langObj = i18n[currentLang];
-            if (isDeceased) {
-                return {
-                    text: `${langObj.deceasedPrefix}${age}${langObj.deceasedSuffix}`,
-                    isDeceased: true
-                };
-            } else {
-                return {
-                    text: `${langObj.agePrefix}${age}${langObj.ageSuffix}`,
-                    isDeceased: false
-                };
-            }
+          container.appendChild(childrenGroup);
         }
 
-        /**
-         * ローカルストレージ保存
-         */
-        function saveData() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(familyData));
-            } catch (e) {
-                console.error("Failed to save to localStorage", e);
-            }
+        return container;
+      }
+
+      // 単体人物カードHTML要素生成
+      function createPersonCardHTML(person, dict) {
+        const card = document.createElement('div');
+        card.className = 'tree-node bg-white border border-slate-300 rounded-xl p-3 shadow-sm hover:shadow-md transition w-44 flex flex-col justify-between cursor-pointer group relative';
+        
+        const ageVal = calculateAge(person.birth, person.death);
+        let ageText = '';
+        if (ageVal !== null) {
+          if (person.death) {
+            ageText = dict.ageAtDeathFormat.replace('{age}', ageVal);
+          } else {
+            ageText = dict.ageFormat.replace('{age}', ageVal);
+          }
         }
 
-        /**
-         * ローカルストレージ読込（初期データ無し）
-         */
-        function loadData() {
-            try {
-                const json = localStorage.getItem(STORAGE_KEY);
-                if (json) {
-                    familyData = JSON.parse(json);
-                } else {
-                    familyData = []; // 初期起動時は常に空
-                }
-            } catch (e) {
-                console.error("Failed to load from localStorage", e);
-                familyData = [];
-            }
-        }
-
-        /**
-         * メインツリーのレンダリング
-         */
-        function renderTree() {
-            const container = document.getElementById('tree-container');
-            if (!container) return;
-
-            // 既存の線をクリア
-            const lines = container.querySelectorAll('.tree-line');
-            lines.forEach(line => line.remove());
-            container.innerHTML = '';
-
-            // データが1件もない場合（初期表示ガイド）
-            if (familyData.length === 0) {
-                const lang = i18n[currentLang];
-                container.innerHTML = `
-                    <div class="text-center py-20 px-6 max-w-md my-auto bg-white rounded-2xl border border-stone-200 shadow-sm">
-                        <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-bold text-slate-800 mb-2">${escapeHtml(lang.noDataTitle)}</h3>
-                        <p class="text-sm text-slate-500 mb-6 leading-relaxed">${escapeHtml(lang.noDataDesc)}</p>
-                        <button id="btn-add-first-member" class="bg-emerald-700 hover:bg-emerald-600 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition shadow">
-                            + ${escapeHtml(lang.addRoot)}
-                        </button>
-                    </div>
-                `;
-
-                document.getElementById('btn-add-first-member')?.addEventListener('click', () => openModal());
-                return;
-            }
-
-            // ルートノードの抽出（親を持たない人物）
-            const rootMembers = familyData.filter(m => !m.parentId);
-            
-            const treeWrap = document.createElement('div');
-            treeWrap.className = "flex flex-wrap justify-center gap-12 pt-4";
-
-            rootMembers.forEach(root => {
-                const nodeEl = createSubTreeDOM(root.id);
-                if (nodeEl) treeWrap.appendChild(nodeEl);
-            });
-
-            container.appendChild(treeWrap);
-
-            // コネクタ接続線の遅延描画
-            setTimeout(() => {
-                drawConnections();
-            }, 50);
-        }
-
-        /**
-         * 再帰的なサブツリーDOM構造作成
-         */
-        function createSubTreeDOM(memberId) {
-            const member = familyData.find(m => m.id === memberId);
-            if (!member) return null;
-
-            const wrapper = document.createElement('div');
-            wrapper.className = "flex flex-col items-center relative node-wrapper";
-            wrapper.dataset.id = member.id;
-
-            const coupleBox = document.createElement('div');
-            coupleBox.className = "flex items-center gap-4 relative mb-8";
-
-            // 本人
-            const primaryCard = createMemberCardHTML(member);
-            coupleBox.appendChild(primaryCard);
-
-            // 配偶者
-            if (member.spouseId) {
-                const spouse = familyData.find(m => m.id === member.spouseId);
-                if (spouse) {
-                    const spouseCard = createMemberCardHTML(spouse, true);
-                    coupleBox.appendChild(spouseCard);
-                }
-            }
-
-            wrapper.appendChild(coupleBox);
-
-            // 子供リスト取得
-            let children = familyData.filter(m => m.parentId === member.id);
-            if (member.spouseId) {
-                const spouseChildren = familyData.filter(m => m.parentId === member.spouseId);
-                spouseChildren.forEach(sc => {
-                    if (!children.some(c => c.id === sc.id)) {
-                        children.push(sc);
-                    }
-                });
-            }
-
-            if (children.length > 0) {
-                const childrenBox = document.createElement('div');
-                childrenBox.className = "flex justify-center gap-8 relative pt-6 children-container";
-
-                children.forEach(child => {
-                    const childSubTree = createSubTreeDOM(child.id);
-                    if (childSubTree) childrenBox.appendChild(childSubTree);
-                });
-
-                wrapper.appendChild(childrenBox);
-            }
-
-            return wrapper;
-        }
-
-        /**
-         * メンバーカードHTML生成
-         */
-        function createMemberCardHTML(member, isSpouse = false) {
-            const ageInfo = calculateAgeInfo(member.birth, member.death);
-            const card = document.createElement('div');
-            
-            let genderStyle = "border-slate-300 bg-white";
-            if (member.gender === 'male') {
-                genderStyle = "border-sky-300 bg-sky-50/40";
-            } else if (member.gender === 'female') {
-                genderStyle = "border-rose-300 bg-rose-50/40";
-            }
-
-            card.className = `tree-node-card w-52 p-3 rounded-lg border-2 shadow-sm ${genderStyle} flex flex-col justify-between relative`;
-            card.dataset.memberId = member.id;
-
-            const nameHtml = escapeHtml(member.name || '名称未設定');
-            const notesHtml = escapeHtml(member.notes || '');
-            const birthHtml = escapeHtml(member.birth || '');
-            const deathHtml = escapeHtml(member.death || '');
-
-            card.innerHTML = `
-                <div>
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="font-bold text-base text-slate-800 leading-tight">${nameHtml}</span>
-                        <button class="btn-card-edit text-slate-400 hover:text-emerald-700 p-1 no-print" data-id="${member.id}" title="${i18n[currentLang].edit}">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 210.3H3v-3.572L16.732 3.732z"></path></svg>
-                        </button>
-                    </div>
-                    ${notesHtml ? `<div class="text-xs text-emerald-800 font-medium mb-1">${notesHtml}</div>` : ''}
-                    <div class="text-xs text-slate-500 space-y-0.5">
-                        ${birthHtml ? `<div>生: ${birthHtml}</div>` : ''}
-                        ${deathHtml ? `<div class="text-slate-600">没: ${deathHtml}</div>` : ''}
-                    </div>
-                </div>
-                <div class="mt-2 pt-2 border-t border-slate-200/60 flex justify-between items-center text-xs">
-                    <span class="${ageInfo.isDeceased ? 'text-slate-600 font-medium' : 'text-emerald-700 font-semibold'}">${ageInfo.text}</span>
-                </div>
-                <div class="no-print mt-2 flex gap-1 justify-end pt-1 border-t border-slate-100">
-                    <button class="btn-card-add-child text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded" data-id="${member.id}">
-                        + ${i18n[currentLang].addChild}
-                    </button>
-                    ${!member.spouseId ? `
-                    <button class="btn-card-add-spouse text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded" data-id="${member.id}">
-                        + ${i18n[currentLang].addSpouse}
-                    </button>
-                    ` : ''}
-                </div>
-            `;
-
-            return card;
-        }
-
-        /**
-         * コネクタ線の作図
-         */
-        function drawConnections() {
-            const container = document.getElementById('tree-container');
-            if (!container) return;
-
-            const oldLines = container.querySelectorAll('.tree-line');
-            oldLines.forEach(l => l.remove());
-
-            const containerRect = container.getBoundingClientRect();
-            const nodeWrappers = container.querySelectorAll('.node-wrapper');
-
-            nodeWrappers.forEach(wrapper => {
-                const childrenContainer = wrapper.querySelector(':scope > .children-container');
-                
-                if (childrenContainer) {
-                    const coupleBox = wrapper.querySelector(':scope > .flex');
-                    if (!coupleBox) return;
-
-                    const parentRect = coupleBox.getBoundingClientRect();
-                    const parentX = parentRect.left + parentRect.width / 2 - containerRect.left;
-                    const parentY = parentRect.bottom - containerRect.top;
-
-                    const childSubTrees = childrenContainer.querySelectorAll(':scope > .node-wrapper');
-                    if (childSubTrees.length === 0) return;
-
-                    let minX = Infinity;
-                    let maxX = -Infinity;
-                    const childPoints = [];
-
-                    childSubTrees.forEach(childWrapper => {
-                        const childCoupleBox = childWrapper.querySelector(':scope > .flex');
-                        if (!childCoupleBox) return;
-
-                        const childRect = childCoupleBox.getBoundingClientRect();
-                        const childX = childRect.left + childRect.width / 2 - containerRect.left;
-                        const childY = childRect.top - containerRect.top;
-
-                        if (childX < minX) minX = childX;
-                        if (childX > maxX) maxX = childX;
-
-                        childPoints.push({ x: childX, y: childY });
-                    });
-
-                    const midY = parentY + 12;
-
-                    createLine(container, parentX, parentY, parentX, midY);
-                    createLine(container, minX, midY, maxX, midY);
-                    childPoints.forEach(pt => {
-                        createLine(container, pt.x, midY, pt.x, pt.y);
-                    });
-                }
-            });
-        }
-
-        function createLine(container, x1, y1, x2, y2) {
-            const line = document.createElement('div');
-            line.className = 'tree-line';
-
-            if (x1 === x2) {
-                const top = Math.min(y1, y2);
-                const height = Math.abs(y2 - y1);
-                line.style.left = `${x1}px`;
-                line.style.top = `${top}px`;
-                line.style.width = '2px';
-                line.style.height = `${height}px`;
-            } else if (y1 === y2) {
-                const left = Math.min(x1, x2);
-                const width = Math.abs(x2 - x1);
-                line.style.left = `${left}px`;
-                line.style.top = `${y1}px`;
-                line.style.width = `${width}px`;
-                line.style.height = '2px';
-            }
-
-            container.appendChild(line);
-        }
-
-        /**
-         * 多言語UI切り替え
-         */
-        function updateI18nUI() {
-            const lang = i18n[currentLang];
-            if (!lang) return;
-
-            document.getElementById('app-title').textContent = lang.title;
-            document.getElementById('lbl-add-root').textContent = lang.addRoot;
-            document.getElementById('lbl-print').textContent = lang.print;
-            document.getElementById('lbl-export').textContent = lang.export;
-            document.getElementById('lbl-import').textContent = lang.import;
-
-            document.getElementById('lbl-form-name').textContent = lang.name;
-            document.getElementById('lbl-form-birth').textContent = lang.birth;
-            document.getElementById('lbl-form-death').textContent = lang.death;
-            document.getElementById('lbl-form-gender').textContent = lang.gender;
-            document.getElementById('opt-male').textContent = lang.male;
-            document.getElementById('opt-female').textContent = lang.female;
-            document.getElementById('opt-other').textContent = lang.other;
-            document.getElementById('lbl-form-notes').textContent = lang.notes;
-            document.getElementById('lbl-relations-title').textContent = lang.relationsTitle;
-            document.getElementById('lbl-form-parent').textContent = lang.parent;
-            document.getElementById('lbl-form-spouse').textContent = lang.spouse;
-            document.getElementById('opt-none-parent').textContent = lang.noneParent;
-            document.getElementById('opt-none-spouse').textContent = lang.none;
-
-            document.getElementById('lbl-save').textContent = lang.save;
-            document.getElementById('lbl-cancel').textContent = lang.cancel;
-            document.getElementById('lbl-delete').textContent = lang.delete;
-
-            renderTree();
-        }
-
-        /**
-         * トースト通知表示
-         */
-        function showToast(text) {
-            const toast = document.getElementById('toast-message');
-            const toastText = document.getElementById('toast-text');
-            if (!toast || !toastText) return;
-
-            toastText.textContent = text;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        /**
-         * モーダル開閉
-         */
-        function openModal(memberId = null, defaultParentId = null, defaultSpouseId = null) {
-            const modal = document.getElementById('modal-overlay');
-            const form = document.getElementById('member-form');
-            const modalTitle = document.getElementById('modal-title');
-            const btnDelete = document.getElementById('btn-delete-member');
-
-            form.reset();
-            populateSelectOptions(memberId);
-
-            if (memberId) {
-                const member = familyData.find(m => m.id === memberId);
-                if (!member) return;
-
-                modalTitle.textContent = i18n[currentLang].editTitle;
-                document.getElementById('edit-id').value = member.id;
-                document.getElementById('input-name').value = member.name || '';
-                document.getElementById('input-birth').value = member.birth || '';
-                document.getElementById('input-death').value = member.death || '';
-                document.getElementById('input-gender').value = member.gender || 'male';
-                document.getElementById('input-notes').value = member.notes || '';
-                document.getElementById('input-parent-id').value = member.parentId || '';
-                document.getElementById('input-spouse-id').value = member.spouseId || '';
-
-                btnDelete.classList.remove('hidden');
-            } else {
-                modalTitle.textContent = i18n[currentLang].addTitle;
-                document.getElementById('edit-id').value = '';
-                document.getElementById('input-parent-id').value = defaultParentId || '';
-                document.getElementById('input-spouse-id').value = defaultSpouseId || '';
-                btnDelete.classList.add('hidden');
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('modal-overlay');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function populateSelectOptions(currentEditId) {
-            const parentSelect = document.getElementById('input-parent-id');
-            const spouseSelect = document.getElementById('input-spouse-id');
-
-            parentSelect.innerHTML = `<option value="">${escapeHtml(i18n[currentLang].noneParent)}</option>`;
-            spouseSelect.innerHTML = `<option value="">${escapeHtml(i18n[currentLang].none)}</option>`;
-
-            familyData.forEach(m => {
-                if (m.id === currentEditId) return;
-
-                const optP = document.createElement('option');
-                optP.value = m.id;
-                optP.textContent = `${m.name} (${m.birth || '生年不明'})`;
-                parentSelect.appendChild(optP);
-
-                const optS = document.createElement('option');
-                optS.value = m.id;
-                optS.textContent = `${m.name} (${m.birth || '生年不明'})`;
-                spouseSelect.appendChild(optS);
-            });
-        }
-
-        /**
-         * 登録・更新処理
-         */
-        function handleFormSave() {
-            const editId = document.getElementById('edit-id').value;
-            const name = document.getElementById('input-name').value.trim();
-            const birth = document.getElementById('input-birth').value;
-            const death = document.getElementById('input-death').value;
-            const gender = document.getElementById('input-gender').value;
-            const notes = document.getElementById('input-notes').value.trim();
-            const parentId = document.getElementById('input-parent-id').value || null;
-            const spouseId = document.getElementById('input-spouse-id').value || null;
-
-            if (!name) return;
-
-            if (editId) {
-                const member = familyData.find(m => m.id === editId);
-                if (member) {
-                    if (member.spouseId && member.spouseId !== spouseId) {
-                        const oldSpouse = familyData.find(m => m.id === member.spouseId);
-                        if (oldSpouse) oldSpouse.spouseId = null;
-                    }
-
-                    member.name = name;
-                    member.birth = birth;
-                    member.death = death;
-                    member.gender = gender;
-                    member.notes = notes;
-                    member.parentId = parentId;
-                    member.spouseId = spouseId;
-
-                    if (spouseId) {
-                        const newSpouse = familyData.find(m => m.id === spouseId);
-                        if (newSpouse) newSpouse.spouseId = member.id;
-                    }
-                }
-            } else {
-                const newId = 'mem_' + Date.now();
-                const newMember = {
-                    id: newId,
-                    name,
-                    birth,
-                    death,
-                    gender,
-                    notes,
-                    parentId,
-                    spouseId
-                };
-
-                familyData.push(newMember);
-
-                if (spouseId) {
-                    const spouse = familyData.find(m => m.id === spouseId);
-                    if (spouse) spouse.spouseId = newId;
-                }
-            }
-
-            saveData();
-            renderTree();
-            closeModal();
-        }
-
-        /**
-         * 削除処理
-         */
-        function handleMemberDelete() {
-            const editId = document.getElementById('edit-id').value;
-            if (!editId) return;
-
-            if (confirm(i18n[currentLang].confirmDelete)) {
-                familyData.forEach(m => {
-                    if (m.spouseId === editId) m.spouseId = null;
-                    if (m.parentId === editId) m.parentId = null;
-                });
-
-                familyData = familyData.filter(m => m.id !== editId);
-                saveData();
-                renderTree();
-                closeModal();
-            }
-        }
-
-        /**
-         * JSONエクスポート
-         */
-        function exportJSON() {
-            try {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(familyData, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `family_tree_${new Date().toISOString().slice(0, 10)}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-            } catch (e) {
-                console.error("Export error", e);
-            }
-        }
-
-        /**
-         * JSONインポート
-         */
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (Array.isArray(imported)) {
-                        familyData = imported;
-                        saveData();
-                        renderTree();
-                        showToast(i18n[currentLang].importSuccess);
-                    } else {
-                        showToast(i18n[currentLang].importError);
-                    }
-                } catch (err) {
-                    showToast(i18n[currentLang].importError);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        /**
-         * 全データ削除・リセット
-         */
-        function clearAllData() {
-            if (confirm(i18n[currentLang].confirmClear)) {
-                familyData = [];
-                saveData();
-                renderTree();
-            }
-        }
-
-        /**
-         * イベント設定
-         */
-        function setupEventListeners() {
-            document.getElementById('lang-select').addEventListener('change', (e) => {
-                currentLang = e.target.value;
-                updateI18nUI();
-            });
-
-            document.getElementById('btn-add-root').addEventListener('click', () => openModal());
-            document.getElementById('btn-print').addEventListener('click', () => window.print());
-            document.getElementById('btn-export').addEventListener('click', exportJSON);
-            document.getElementById('file-import').addEventListener('change', importJSON);
-            document.getElementById('btn-clear').addEventListener('click', clearAllData);
-
-            document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-            document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
-            document.getElementById('btn-save-member').addEventListener('click', handleFormSave);
-            document.getElementById('btn-delete-member').addEventListener('click', handleMemberDelete);
-
-            const treeContainer = document.getElementById('tree-container');
-            treeContainer.addEventListener('click', (e) => {
-                const editBtn = e.target.closest('.btn-card-edit');
-                if (editBtn) {
-                    openModal(editBtn.dataset.id);
-                    return;
-                }
-
-                const addChildBtn = e.target.closest('.btn-card-add-child');
-                if (addChildBtn) {
-                    openModal(null, addChildBtn.dataset.id, null);
-                    return;
-                }
-
-                const addSpouseBtn = e.target.closest('.btn-card-add-spouse');
-                if (addSpouseBtn) {
-                    openModal(null, null, addSpouseBtn.dataset.id);
-                    return;
-                }
-            });
-
-            window.addEventListener('resize', () => {
-                drawConnections();
-            });
-        }
-
-        // 初期化処理
-        window.addEventListener('DOMContentLoaded', () => {
-            loadData();
-            setupEventListeners();
-            updateI18nUI();
+        card.innerHTML = `
+          <div>
+            <div class="font-bold text-slate-800 text-sm font-serif truncate group-hover:text-amber-600 transition">${escapeHTML(person.name || '無名')}</div>
+            <div class="text-[11px] text-slate-500 mt-1 space-y-0.5">
+              <div>${person.birth || '----'}</div>
+              ${person.death ? `<div class="text-slate-400">† ${person.death}</div>` : ''}
+              ${ageText ? `<div class="text-amber-700 font-medium text-[10px]">${ageText}</div>` : ''}
+            </div>
+            ${person.note ? `<div class="text-[10px] text-slate-400 mt-1 truncate border-t border-slate-100 pt-1">${escapeHTML(person.note)}</div>` : ''}
+          </div>
+        `;
+
+        card.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openEditModal(person.id);
         });
-    </script>
+
+        return card;
+      }
+
+      // HTMLエスケープ（XSS防止）
+      function escapeHTML(str) {
+        return String(str).replace(/[&<>"']/g, function (m) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+      }
+
+      // モーダル操作
+      function openModal(titleText, personData = {}) {
+        const dict = translations[currentLang];
+        document.getElementById('modal-title').textContent = titleText;
+        elements.fieldId.value = personData.id || '';
+        elements.fieldName.value = personData.name || '';
+        elements.fieldBirth.value = personData.birth || '';
+        elements.fieldDeath.value = personData.death || '';
+        elements.fieldNote.value = personData.note || '';
+
+        if (personData.id) {
+          elements.relationsGroup.classList.remove('hidden');
+          elements.btnDeletePerson.classList.remove('hidden');
+        } else {
+          elements.relationsGroup.classList.add('hidden');
+          elements.btnDeletePerson.classList.add('hidden');
+        }
+
+        elements.personModal.classList.remove('hidden');
+      }
+
+      function closeModal() {
+        elements.personModal.classList.add('hidden');
+        elements.personForm.reset();
+      }
+
+      function openEditModal(personId) {
+        const person = familyData[personId];
+        if (person) {
+          const dict = translations[currentLang];
+          openModal(dict.modalTitleEdit, person);
+        }
+      }
+
+      // 関連人物追加のアクション
+      function handleAddRelation(type) {
+        const currentId = elements.fieldId.value;
+        if (!currentId || !familyData[currentId]) return;
+
+        const newId = generateId();
+        const newPerson = { id: newId, name: '', birth: '', death: '', note: '', parentIds: [], spouseIds: [], childrenIds: [] };
+        
+        if (type === 'parent') {
+          newPerson.childrenIds.push(currentId);
+          familyData[currentId].parentIds = familyData[currentId].parentIds || [];
+          familyData[currentId].parentIds.push(newId);
+          // もし根ノードに親を追加した場合、その親を新しい根（仮）に昇格させる
+          if (rootId === currentId) {
+            rootId = newId;
+          }
+        } else if (type === 'spouse') {
+          newPerson.spouseIds.push(currentId);
+          familyData[currentId].spouseIds = familyData[currentId].spouseIds || [];
+          familyData[currentId].spouseIds.push(newId);
+        } else if (type === 'child') {
+          newPerson.parentIds.push(currentId);
+          familyData[currentId].childrenIds = familyData[currentId].childrenIds || [];
+          familyData[currentId].childrenIds.push(newId);
+        }
+
+        familyData[newId] = newPerson;
+        saveStorage();
+        closeModal();
+        openEditModal(newId);
+      }
+
+      // イベントリスナー設定
+      function setupEventListeners() {
+        // 多言語切り替え
+        elements.langSelect.addEventListener('change', (e) => {
+          updateLanguage(e.target.value);
+        });
+
+        // 最初の人物登録
+        elements.btnAddRoot.addEventListener('click', () => {
+          const newId = generateId();
+          familyData[newId] = { id: newId, name: '', birth: '', death: '', note: '', parentIds: [], spouseIds: [], childrenIds: [] };
+          rootId = newId;
+          saveStorage();
+          openEditModal(newId);
+        });
+
+        // モーダル閉じる
+        elements.btnModalClose.addEventListener('click', closeModal);
+        elements.btnModalCancel.addEventListener('click', closeModal);
+
+        // フォーム保存
+        elements.personForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const pId = elements.fieldId.value;
+          if (!pId || !familyData[pId]) return;
+
+          familyData[pId].name = elements.fieldName.value.trim();
+          familyData[pId].birth = elements.fieldBirth.value;
+          familyData[pId].death = elements.fieldDeath.value;
+          familyData[pId].note = elements.fieldNote.value.trim();
+
+          saveStorage();
+          closeModal();
+          renderTree();
+        });
+
+        // 削除
+        elements.btnDeletePerson.addEventListener('click', () => {
+          const dict = translations[currentLang];
+          if (!confirm(dict.confirmDeletePerson)) return;
+
+          const pId = elements.fieldId.value;
+          if (pId && familyData[pId]) {
+            // 他のノードからの参照削除
+            Object.values(familyData).forEach(p => {
+              p.parentIds = (p.parentIds || []).filter(id => id !== pId);
+              p.spouseIds = (p.spouseIds || []).filter(id => id !== pId);
+              p.childrenIds = (p.childrenIds || []).filter(id => id !== pId);
+            });
+
+            delete familyData[pId];
+
+            if (rootId === pId) {
+              const remainingKeys = Object.keys(familyData);
+              rootId = remainingKeys.length > 0 ? remainingKeys[0] : null;
+            }
+
+            saveStorage();
+            closeModal();
+            renderTree();
+          }
+        });
+
+        // 家族関係追加ボタン
+        elements.btnAddParent.addEventListener('click', () => handleAddRelation('parent'));
+        elements.btnAddSpouse.addEventListener('click', () => handleAddRelation('spouse'));
+        elements.btnAddChild.addEventListener('click', () => handleAddRelation('child'));
+
+        // すべて削除
+        elements.btnClearAll.addEventListener('click', () => {
+          const dict = translations[currentLang];
+          if (confirm(dict.confirmClear)) {
+            familyData = {};
+            rootId = null;
+            saveStorage();
+            renderTree();
+          }
+        });
+
+        // バックアップ (JSONダウンロード)
+        elements.btnExport.addEventListener('click', () => {
+          try {
+            const dataStr = JSON.stringify({ nodes: familyData, rootId: rootId }, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `family_tree_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            alert('バックアップの出力に失敗しました。');
+          }
+        });
+
+        // インポート
+        elements.fileImport.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            try {
+              const imported = JSON.parse(evt.target.result);
+              if (imported && imported.nodes) {
+                familyData = imported.nodes;
+                rootId = imported.rootId || Object.keys(familyData)[0] || null;
+                saveStorage();
+                renderTree();
+              } else {
+                alert('無効なファイル形式です。');
+              }
+            } catch (err) {
+              alert('ファイルの読み込みに失敗しました。');
+            }
+            elements.fileImport.value = '';
+          };
+          reader.readAsText(file);
+        });
+
+        // 印刷 / PDF
+        elements.btnPrint.addEventListener('click', () => {
+          window.print();
+        });
+      }
+
+      // 初期化処理
+      function init() {
+        loadStorage();
+        setupEventListeners();
+        updateLanguage('ja');
+      }
+
+      // 実行開始
+      init();
+
+    })();
+  </script>
 </body>
 </html>
