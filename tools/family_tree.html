@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>家系図アプリ - Family Tree Builder</title>
+  <title>伝統的家系図エディタ - Family Tree</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -42,7 +42,7 @@
       .tree-node-card {
         break-inside: avoid;
         box-shadow: none !important;
-        border: 1px solid #334155 !important;
+        border: 1px solid #1e293b !important;
         background: #ffffff !important;
       }
       @page {
@@ -76,36 +76,22 @@
         <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
         </svg>
-        <h1 id="app-title" class="text-lg font-bold font-serif text-amber-100">家系図アプリ</h1>
+        <h1 id="app-title" class="text-lg font-bold font-serif text-amber-100">伝統的家系図エディタ</h1>
       </div>
 
       <div class="flex items-center space-x-2">
-        <!-- 言語選択 -->
         <select id="lang-select" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 border border-slate-700 focus:outline-none">
           <option value="ja">日本語</option>
           <option value="en">English</option>
-          <option value="zh">中文</option>
-          <option value="ko">한국어</option>
-          <option value="fr">Français</option>
-          <option value="es">Español</option>
         </select>
-
-        <!-- バックアップ保存 -->
         <button id="btn-export" class="inline-flex items-center px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition">
-          <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           <span id="lbl-export">バックアップ</span>
         </button>
-
-        <!-- インポート -->
         <label class="inline-flex items-center px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition cursor-pointer">
-          <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
           <span id="lbl-import">復元</span>
           <input type="file" id="file-import" accept=".json" class="hidden">
         </label>
-
-        <!-- 印刷 / PDF -->
         <button id="btn-print" class="inline-flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded-lg shadow transition">
-          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           <span id="lbl-print">印刷 / PDF</span>
         </button>
       </div>
@@ -115,35 +101,35 @@
   <!-- メインコンテンツ -->
   <main id="main-container" class="flex-grow max-w-full w-full p-4 sm:p-6 flex flex-col space-y-4">
 
-    <!-- 枠組み（ツリー構造）生成ウィザード（初期設定） -->
-    <div id="setup-banner" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 no-print">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- 枠組み構成コントローラー -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 no-print">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 id="setup-title" class="text-base font-bold text-slate-800 font-serif flex items-center">
-            <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-            家系図の枠組み構成（追加・調整）
+          <h2 class="text-sm font-bold text-slate-800 font-serif flex items-center">
+            <svg class="w-4 h-4 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            世代枠の追加・家系図の構築
           </h2>
-          <p id="setup-desc" class="text-xs text-slate-500 mt-1">ボタンを押して世代枠を作成し、各枠をクリックして氏名や生没年月日を入力してください。</p>
+          <p class="text-xs text-slate-500 mt-1">ボタンで各世代の枠を作成し、カードをクリックして氏名・生没年・続柄や線の種類（実線・二重線・点線）を設定してください。</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
           <button id="btn-add-p-grandparent" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg border border-slate-300 transition">
-            + 父方の祖父母枠
+            + 父方祖父母枠
           </button>
           <button id="btn-add-m-grandparent" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg border border-slate-300 transition">
-            + 母方の祖父母枠
+            + 母方祖父母枠
           </button>
           <button id="btn-add-parents" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium rounded-lg border border-indigo-200 transition">
             + 両親枠
           </button>
           <button id="btn-add-sibling" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-medium rounded-lg border border-amber-200 transition">
-            + 兄弟・姉妹枠（同世代）
+            + 兄弟姉妹枠 (同世代)
           </button>
           <button id="btn-add-spouse" class="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-medium rounded-lg border border-pink-200 transition">
             + 配偶者枠
           </button>
           <button id="btn-add-child" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg border border-emerald-200 transition">
-            + 子・孫枠（下世代）
+            + 子供枠 (下世代)
           </button>
           <button id="btn-clear-all" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-medium rounded-lg border border-rose-200 transition ml-auto">
             リセット
@@ -152,36 +138,39 @@
       </div>
     </div>
 
-    <!-- 家系図キャンバス領域（絶対世代階層表示） -->
-    <div id="tree-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-grow flex flex-col overflow-hidden relative min-h-[600px]">
-      
+    <!-- 家系図表示キャンバス（世代絶対構造） -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-grow flex flex-col overflow-hidden relative min-h-[600px]">
       <div id="tree-canvas-container" class="flex-grow overflow-auto p-8 relative flex justify-center items-start cursor-grab active:cursor-grabbing">
         
-        <!-- 世代ごとに絶対行分割された系統樹表示コンテナ -->
-        <div id="tree-grid" class="flex flex-col space-y-12 items-center min-w-max relative z-10 pb-20">
+        <div id="tree-grid" class="flex flex-col space-y-16 items-center min-w-max relative z-10 pb-20">
           
-          <!-- 祖父母世代 (Gen -2) -->
-          <div id="row-gen-minus2" class="flex items-center space-x-12 min-h-[90px] border-b border-dashed border-slate-200 pb-6 w-full justify-center">
-            <div class="text-xs font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">祖父母世代</div>
-            <div id="container-p-grandparents" class="flex space-x-4"></div>
-            <div id="container-m-grandparents" class="flex space-x-4"></div>
+          <!-- 1. 祖父母世代 (Gen -2) -->
+          <div class="flex flex-col items-center w-full relative">
+            <div class="text-[11px] font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">祖父母世代 (上)</div>
+            <div class="flex items-center space-x-12">
+              <div id="container-p-grandparents" class="flex space-x-4"></div>
+              <div id="container-m-grandparents" class="flex space-x-4"></div>
+            </div>
+            <div class="w-0.5 h-8 bg-slate-300 mt-3"></div>
           </div>
 
-          <!-- 両親世代 (Gen -1) -->
-          <div id="row-gen-minus1" class="flex items-center space-x-12 min-h-[90px] border-b border-dashed border-slate-200 pb-6 w-full justify-center relative">
-            <div class="text-xs font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">両親世代</div>
-            <div id="container-parents" class="flex items-center space-x-4"></div>
+          <!-- 2. 両親世代 (Gen -1) -->
+          <div class="flex flex-col items-center w-full relative">
+            <div class="text-[11px] font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">両親世代</div>
+            <div id="container-parents" class="flex items-center space-x-6"></div>
+            <div class="w-0.5 h-8 bg-slate-300 mt-3"></div>
           </div>
 
-          <!-- 本人・兄弟・配偶者世代 (Gen 0) -->
-          <div id="row-gen-0" class="flex items-center space-x-8 min-h-[90px] border-b border-dashed border-slate-200 pb-6 w-full justify-center relative">
-            <div class="text-xs font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">本人・兄弟・配偶者世代</div>
+          <!-- 3. 本人・兄弟姉妹・配偶者世代 (Gen 0) -->
+          <div class="flex flex-col items-center w-full relative">
+            <div class="text-[11px] font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">本人・兄弟・配偶者</div>
             <div id="container-self-siblings" class="flex items-center space-x-6"></div>
+            <div class="w-0.5 h-8 bg-slate-300 mt-3"></div>
           </div>
 
-          <!-- 子供・孫世代 (Gen +1) -->
-          <div id="row-gen-plus1" class="flex items-center space-x-8 min-h-[90px] w-full justify-center relative">
-            <div class="text-xs font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">子供世代</div>
+          <!-- 4. 子供・孫世代 (Gen +1) -->
+          <div class="flex flex-col items-center w-full relative">
+            <div class="text-[11px] font-serif font-bold text-slate-400 absolute left-0 uppercase tracking-widest no-print">子供世代 (下)</div>
             <div id="container-children" class="flex items-center space-x-6"></div>
           </div>
 
@@ -191,11 +180,11 @@
     </div>
   </main>
 
-  <!-- 人物情報編集ダイアログ -->
+  <!-- 人物情報・線の種類編集ダイアログ -->
   <div id="person-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden">
       <div class="bg-slate-800 px-6 py-4 flex items-center justify-between">
-        <h3 id="modal-title" class="text-base font-bold text-white font-serif">人物情報の入力</h3>
+        <h3 id="modal-title" class="text-base font-bold text-white font-serif">人物および線の詳細設定</h3>
         <button id="btn-modal-close" class="text-slate-400 hover:text-white transition">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
@@ -205,45 +194,33 @@
         <input type="hidden" id="field-id">
 
         <div>
-          <label id="lbl-name" class="block text-xs font-semibold text-slate-600 mb-1">氏名 *</label>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">氏名 *</label>
           <input type="text" id="field-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" placeholder="例: 山田 太郎">
         </div>
 
-        <!-- 生年月日（年・月・日） -->
-        <div>
-          <label id="lbl-birth" class="block text-xs font-semibold text-slate-600 mb-1">生年月日</label>
-          <div class="grid grid-cols-3 gap-2">
-            <input type="number" id="field-birth-y" placeholder="年 (1980)" min="1000" max="9999" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs">
-            <select id="field-birth-m" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
-              <option value="">月を選択</option>
-              <script>for(let i=1;i<=12;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}月</option>`);</script>
-            </select>
-            <select id="field-birth-d" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
-              <option value="">日を選択</option>
-              <script>for(let i=1;i<=31;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}日</option>`);</script>
-            </select>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">生年月日 (西暦年)</label>
+            <input type="number" id="field-birth-y" placeholder="1980" min="1000" max="9999" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs">
           </div>
-        </div>
-
-        <!-- 没年月日（年・月・日） -->
-        <div>
-          <label id="lbl-death" class="block text-xs font-semibold text-slate-600 mb-1">没年月日（任意）</label>
-          <div class="grid grid-cols-3 gap-2">
-            <input type="number" id="field-death-y" placeholder="年 (2020)" min="1000" max="9999" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs">
-            <select id="field-death-m" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
-              <option value="">月を選択</option>
-              <script>for(let i=1;i<=12;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}月</option>`);</script>
-            </select>
-            <select id="field-death-d" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
-              <option value="">日を選択</option>
-              <script>for(let i=1;i<=31;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}日</option>`);</script>
-            </select>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">没年月日 (任意)</label>
+            <input type="number" id="field-death-y" placeholder="2020" min="1000" max="9999" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs">
           </div>
         </div>
 
         <div>
-          <label id="lbl-note" class="block text-xs font-semibold text-slate-600 mb-1">メモ・備考</label>
-          <textarea id="field-note" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500" placeholder="続柄、メモなど"></textarea>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">線の種類・関係性の区別</label>
+          <select id="field-line-type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500">
+            <option value="solid">実線（通常の婚姻・親子・実子）</option>
+            <option value="double">二重線（再婚 / 前妻・後妻の区別など）</option>
+            <option value="dashed">点線（養子縁組・その他）</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">メモ・備考</label>
+          <textarea id="field-note" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500" placeholder="続柄、長男、養子などのメモ"></textarea>
         </div>
 
         <div class="pt-4 flex items-center justify-between border-t border-slate-100">
@@ -264,39 +241,19 @@
   </div>
 
   <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white no-print">
-    &copy; 家系図アプリ - Safe & Secure Grid-based Family Tree Builder
+    &copy; 伝統的家系図エディタ - Grid-based Traditional Family Tree Builder
   </footer>
 
   <script>
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
       'use strict';
 
-      // 辞書データ
-      const translations = {
-        ja: {
-          appTitle: '家系図アプリ',
-          exportBtn: 'バックアップ',
-          importBtn: '復元',
-          printBtn: '印刷 / PDF',
-          ageFormat: '({age}歳)',
-          ageAtDeathFormat: '(享年{age}歳)'
-        },
-        en: {
-          appTitle: 'Family Tree Builder',
-          exportBtn: 'Export',
-          importBtn: 'Import',
-          printBtn: 'Print / PDF',
-          ageFormat: '(Age {age})',
-          ageAtDeathFormat: '(Aged {age})'
-        }
-      };
-
       let currentLang = 'ja';
-      let treeGridData = {
+      let treeData = {
         pGrandfather: null, pGrandmother: null,
         mGrandfather: null, mGrandmother: null,
         father: null, mother: null,
-        self: { id: 'self', role: '本人', name: '', birth: '', death: '', note: '' },
+        self: { id: 'self', role: '本人', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' },
         spouses: [],
         siblings: [],
         children: []
@@ -319,11 +276,8 @@
         fieldId: document.getElementById('field-id'),
         fieldName: document.getElementById('field-name'),
         fieldBirthY: document.getElementById('field-birth-y'),
-        fieldBirthM: document.getElementById('field-birth-m'),
-        fieldBirthD: document.getElementById('field-birth-d'),
         fieldDeathY: document.getElementById('field-death-y'),
-        fieldDeathM: document.getElementById('field-death-m'),
-        fieldDeathD: document.getElementById('field-death-d'),
+        fieldLineType: document.getElementById('field-line-type'),
         fieldNote: document.getElementById('field-note'),
         btnDeletePerson: document.getElementById('btn-delete-person')
       };
@@ -332,39 +286,11 @@
         return 'node_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
       }
 
-      function calculateAge(birthDateStr, deathDateStr) {
-        if (!birthDateStr) return null;
-        const birthDate = new Date(birthDateStr);
-        if (isNaN(birthDate.getTime())) return null;
-
-        const endDate = deathDateStr ? new Date(deathDateStr) : new Date();
-        if (isNaN(endDate.getTime())) return null;
-
-        let age = endDate.getFullYear() - birthDate.getFullYear();
-        const m = endDate.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) age--;
-        return age >= 0 ? age : 0;
-      }
-
-      function assembleDate(y, m, d) {
-        if (!y) return '';
-        const year = String(y).padStart(4, '0');
-        const month = m ? String(m).padStart(2, '0') : '01';
-        const day = d ? String(d).padStart(2, '0') : '01';
-        return `${year}-${month}-${day}`;
-      }
-
-      function parseDate(dateStr) {
-        if (!dateStr) return { y: '', m: '', d: '' };
-        const parts = dateStr.split('-');
-        return { y: parts[0] || '', m: parts[1] || '', d: parts[2] || '' };
-      }
-
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_grid_v1');
+          const stored = localStorage.getItem('traditional_family_tree_v1');
           if (stored) {
-            treeGridData = JSON.parse(stored);
+            treeData = JSON.parse(stored);
           }
         } catch (e) {
           console.error(e);
@@ -373,40 +299,45 @@
 
       function saveStorage() {
         try {
-          localStorage.setItem('family_tree_grid_v1', JSON.stringify(treeGridData));
+          localStorage.setItem('traditional_family_tree_v1', JSON.stringify(treeData));
         } catch (e) {
           console.error(e);
         }
       }
 
-      // カード要素の作成（枠組み優先）
-      function createSlotCardHTML(data, roleLabel, isPrimary = false) {
-        const dict = translations[currentLang];
+      // カード作成（線のスタイル反映：実線、二重線、点線）
+      function createCardElement(data, roleLabel, isPrimary = false) {
         const card = document.createElement('div');
-        
         const hasData = data && data.name;
-        card.className = `tree-node-card border-2 ${hasData ? 'bg-white border-slate-700 shadow-sm' : 'bg-slate-50/80 border-dashed border-slate-300 hover:border-amber-400'} rounded-xl p-3 w-40 sm:w-44 flex flex-col justify-between cursor-pointer transition flex-shrink-0 relative`;
 
-        const ageVal = hasData ? calculateAge(data.birth, data.death) : null;
-        let ageText = '';
-        if (ageVal !== null) {
-          ageText = data.death ? dict.ageAtDeathFormat.replace('{age}', ageVal) : dict.ageFormat.replace('{age}', ageVal);
+        // 線の種類に応じたボーダースタイル（実線・二重線・点線）
+        let borderStyle = 'border-slate-700';
+        let lineIndicator = '';
+        if (data && data.lineType === 'double') {
+          borderStyle = 'border-amber-600 border-4';
+          lineIndicator = '<span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">二重線</span>';
+        } else if (data && data.lineType === 'dashed') {
+          borderStyle = 'border-slate-500 border-dashed';
+          lineIndicator = '<span class="text-[9px] bg-slate-100 text-slate-700 px-1 rounded">点線(養子)</span>';
         }
+
+        card.className = `tree-node-card border-2 ${hasData ? `${borderStyle} bg-white shadow-sm` : 'bg-slate-50 border-dashed border-slate-300 hover:border-amber-400'} rounded-xl p-3 w-40 sm:w-44 flex flex-col justify-between cursor-pointer transition flex-shrink-0 relative`;
 
         card.innerHTML = `
           <div>
             <div class="text-[10px] font-bold ${isPrimary ? 'text-amber-700' : 'text-slate-400'} uppercase mb-1 flex items-center justify-between">
               <span>${roleLabel}</span>
-              ${isPrimary ? '<span class="bg-amber-100 text-amber-800 px-1 rounded text-[9px]">基準</span>' : ''}
+              ${lineIndicator}
             </div>
             ${hasData ? `
               <div class="font-bold text-slate-800 text-sm font-serif truncate">${escapeHTML(data.name)}</div>
               <div class="text-[10px] text-slate-500 mt-1 space-y-0.5">
-                <div>${data.birth \vert{}\vert{} '----'}</div>${data.death ? `<div class="text-slate-400">† ${data.death}</div>` : ''}
-                ${ageText ? `<div class="text-amber-700 font-medium text-[9px]">${ageText}</div>` : ''}
+                <div>生年: ${data.birthY ? data.birthY + '年' : '----'}</div>
+                ${data.deathY ? `<div>没年: ${data.deathY}年</div>` : ''}
               </div>
+              ${data.note ? `<div class="text-[9px] text-slate-400 mt-1 truncate border-t border-slate-100 pt-1">${escapeHTML(data.note)}</div>` : ''}
             ` : `
-              <div class="text-xs text-slate-400 text-center py-2 flex flex-col items-center">
+              <div class="text-xs text-slate-400 text-center py-3 flex flex-col items-center">
                 <svg class="w-4 h-4 mb-1 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 <span>クリックして入力</span>
               </div>
@@ -422,68 +353,58 @@
         return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
       }
 
-      // レンダリング（世代別に完全に横並び描画）
-      function renderGridTree() {
-        // 1. 父方祖父母
+      function renderGrid() {
+        // 祖父母
         elements.containerPGrandparents.innerHTML = '';
-        if (treeGridData.pGrandfather || treeGridData.pGrandmother) {
-          if (treeGridData.pGrandfather) elements.containerPGrandparents.appendChild(createSlotCardHTML(treeGridData.pGrandfather, '父方 祖父'));
-          if (treeGridData.pGrandmother) elements.containerPGrandparents.appendChild(createSlotCardHTML(treeGridData.pGrandmother, '父方 祖母'));
+        if (treeData.pGrandfather || treeData.pGrandmother) {
+          if (treeData.pGrandfather) elements.containerPGrandparents.appendChild(createCardElement(treeData.pGrandfather, '父方 祖父'));
+          if (treeData.pGrandmother) elements.containerPGrandparents.appendChild(createCardElement(treeData.pGrandmother, '父方 祖母'));
         }
 
-        // 2. 母方祖父母
         elements.containerMGrandparents.innerHTML = '';
-        if (treeGridData.mGrandfather || treeGridData.mGrandmother) {
-          if (treeGridData.mGrandfather) elements.containerMGrandparents.appendChild(createSlotCardHTML(treeGridData.mGrandfather, '母方 祖父'));
-          if (treeGridData.mGrandmother) elements.containerMGrandparents.appendChild(createSlotCardHTML(treeGridData.mGrandmother, '母方 祖母'));
+        if (treeData.mGrandfather || treeData.mGrandmother) {
+          if (treeData.mGrandfather) elements.containerMGrandparents.appendChild(createCardElement(treeData.mGrandfather, '母方 祖父'));
+          if (treeData.mGrandmother) elements.containerMGrandparents.appendChild(createCardElement(treeData.mGrandmother, '母方 祖母'));
         }
 
-        // 3. 両親
+        // 両親
         elements.containerParents.innerHTML = '';
-        if (treeGridData.father) elements.containerParents.appendChild(createSlotCardHTML(treeGridData.father, '父親'));
-        if (treeGridData.mother) elements.containerParents.appendChild(createSlotCardHTML(treeGridData.mother, '母親'));
+        if (treeData.father) elements.containerParents.appendChild(createCardElement(treeData.father, '父親'));
+        if (treeData.mother) elements.containerParents.appendChild(createCardElement(treeData.mother, '母親'));
 
-        // 4. 本人 ＋ 兄弟 ＋ 配偶者（同じ行に絶対に水平配置）
+        // 本人・兄弟姉妹（年齢順にソートして左から右へ配置）
         elements.containerSelfSiblings.innerHTML = '';
         
-        // 兄弟（左側）
-        (treeGridData.siblings || []).forEach((sib, idx) => {
-          elements.containerSelfSiblings.appendChild(createSlotCardHTML(sib, `兄弟/姉妹 (${idx + 1})`));
+        // 兄弟姉妹を出生年順（古い順＝左、若い順＝右）に整列
+        const sortedSiblings = [...(treeData.siblings || [])].sort((a, b) => (parseInt(a.birthY) || 0) - (parseInt(b.birthY) || 0));
+        sortedSiblings.forEach((sib, idx) => {
+          elements.containerSelfSiblings.appendChild(createCardElement(sib, `兄弟/姉妹 (${idx + 1})`));
         });
 
-        // 本人（中央）
-        elements.containerSelfSiblings.appendChild(createSlotCardHTML(treeGridData.self, '本人 (あなた)', true));
+        // 本人
+        elements.containerSelfSiblings.appendChild(createCardElement(treeData.self, '本人 (あなた)', true));
 
-        // 配偶者（右側）
-        (treeGridData.spouses || []).forEach((sp, idx) => {
-          elements.containerSelfSiblings.appendChild(createSlotCardHTML(sp, `配偶者 (${idx + 1})`));
+        // 配偶者
+        (treeData.spouses || []).forEach((sp, idx) => {
+          elements.containerSelfSiblings.appendChild(createCardElement(sp, `配偶者 (${idx + 1})`));
         });
 
-        // 5. 子供たち
+        // 子供（年齢順に左から右へ配置）
         elements.containerChildren.innerHTML = '';
-        (treeGridData.children || []).forEach((child, idx) => {
-          elements.containerChildren.appendChild(createSlotCardHTML(child, `子供 (${idx + 1})`));
+        const sortedChildren = [...(treeData.children || [])].sort((a, b) => (parseInt(a.birthY) || 0) - (parseInt(b.birthY) || 0));
+        sortedChildren.forEach((child, idx) => {
+          elements.containerChildren.appendChild(createCardElement(child, `子供 (${idx + 1})`));
         });
       }
 
-      // モーダル処理
       function openModal(data, roleLabel) {
         elements.fieldId.value = data.id || '';
         elements.fieldName.value = data.name || '';
-        
-        const b = parseDate(data.birth);
-        elements.fieldBirthY.value = b.y;
-        elements.fieldBirthM.value = b.m;
-        elements.fieldBirthD.value = b.d;
-
-        const d = parseDate(data.death);
-        elements.fieldDeathY.value = d.y;
-        elements.fieldDeathM.value = d.m;
-        elements.fieldDeathD.value = d.d;
-
+        elements.fieldBirthY.value = data.birthY || '';
+        elements.fieldDeathY.value = data.deathY || '';
+        elements.fieldLineType.value = data.lineType || 'solid';
         elements.fieldNote.value = data.note || '';
 
-        // 本人は削除不可
         if (data.id === 'self') {
           elements.btnDeletePerson.classList.add('hidden');
         } else {
@@ -498,180 +419,141 @@
         elements.personForm.reset();
       }
 
-      // 枠組み追加ボタンのアクション
-      function setupSetupActions() {
-        document.getElementById('btn-add-p-grandparent').addEventListener('click', () => {
-          if (!treeGridData.pGrandfather) treeGridData.pGrandfather = { id: 'pgf', name: '', birth: '', death: '', note: '' };
-          if (!treeGridData.pGrandmother) treeGridData.pGrandmother = { id: 'pgm', name: '', birth: '', death: '', note: '' };
-          saveStorage(); renderGridTree();
-        });
+      // イベント設定
+      document.getElementById('btn-add-p-grandparent').addEventListener('click', () => {
+        if (!treeData.pGrandfather) treeData.pGrandfather = { id: 'pgf', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' };
+        if (!treeData.pGrandmother) treeData.pGrandmother = { id: 'pgm', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' };
+        saveStorage(); renderGrid();
+      });
 
-        document.getElementById('btn-add-m-grandparent').addEventListener('click', () => {
-          if (!treeGridData.mGrandfather) treeGridData.mGrandfather = { id: 'mgf', name: '', birth: '', death: '', note: '' };
-          if (!treeGridData.mGrandmother) treeGridData.mGrandmother = { id: 'mgm', name: '', birth: '', death: '', note: '' };
-          saveStorage(); renderGridTree();
-        });
+      document.getElementById('btn-add-m-grandparent').addEventListener('click', () => {
+        if (!treeData.mGrandfather) treeData.mGrandfather = { id: 'mgf', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' };
+        if (!treeData.mGrandmother) treeData.mGrandmother = { id: 'mgm', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' };
+        saveStorage(); renderGrid();
+      });
 
-        document.getElementById('btn-add-parents').addEventListener('click', () => {
-          if (!treeGridData.father) treeGridData.father = { id: 'fat', name: '', birth: '', death: '', note: '' };
-          if (!treeGridData.mother) treeGridData.mother = { id: 'mot', name: '', birth: '', death: '', note: '' };
-          saveStorage(); renderGridTree();
-        });
+      document.getElementById('btn-add-parents').addEventListener('click', () => {
+        if (!treeData.father) treeData.father = { id: 'fat', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' };
+        if (!treeData.mother) treeData.mother = { id: 'mot', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' };
+        saveStorage(); renderGrid();
+      });
 
-        document.getElementById('btn-add-sibling').addEventListener('click', () => {
-          treeGridData.siblings.push({ id: generateId(), name: '', birth: '', death: '', note: '' });
-          saveStorage(); renderGridTree();
-        });
+      document.getElementById('btn-add-sibling').addEventListener('click', () => {
+        treeData.siblings.push({ id: generateId(), name: '', birthY: '', deathY: '', lineType: 'solid', note: '' });
+        saveStorage(); renderGrid();
+      });
 
-        document.getElementById('btn-add-spouse').addEventListener('click', () => {
-          treeGridData.spouses.push({ id: generateId(), name: '', birth: '', death: '', note: '' });
-          saveStorage(); renderGridTree();
-        });
+      document.getElementById('btn-add-spouse').addEventListener('click', () => {
+        treeData.spouses.push({ id: generateId(), name: '', birthY: '', deathY: '', lineType: 'solid', note: '' });
+        saveStorage(); renderGrid();
+      });
 
-        document.getElementById('btn-add-child').addEventListener('click', () => {
-          treeGridData.children.push({ id: generateId(), name: '', birth: '', death: '', note: '' });
-          saveStorage(); renderGridTree();
-        });
+      document.getElementById('btn-add-child').addEventListener('click', () => {
+        treeData.children.push({ id: generateId(), name: '', birthY: '', deathY: '', lineType: 'solid', note: '' });
+        saveStorage(); renderGrid();
+      });
 
-        document.getElementById('btn-clear-all').addEventListener('click', () => {
-          if (confirm('すべての枠組みと入力内容をリセットしますか？')) {
-            treeGridData = {
-              pGrandfather: null, pGrandmother: null,
-              mGrandfather: null, mGrandmother: null,
-              father: null, mother: null,
-              self: { id: 'self', role: '本人', name: '', birth: '', death: '', note: '' },
-              spouses: [], siblings: [], children: []
-            };
-            saveStorage(); renderGridTree();
-          }
-        });
-      }
-
-      // イベントリスナー設定
-      function setupEventListeners() {
-        elements.langSelect.addEventListener('change', e => {
-          currentLang = translations[e.target.value] ? e.target.value : 'ja';
-          renderGridTree();
-        });
-
-        elements.btnModalClose.addEventListener('click', closeModal);
-        elements.btnModalCancel.addEventListener('click', closeModal);
-
-        // フォーム保存
-        elements.personForm.addEventListener('submit', e => {
-          e.preventDefault();
-          const targetId = elements.fieldId.value;
-
-          const updatedData = {
-            id: targetId,
-            name: elements.fieldName.value.trim(),
-            birth: assembleDate(elements.fieldBirthY.value, elements.fieldBirthM.value, elements.fieldBirthD.value),
-            death: assembleDate(elements.fieldDeathY.value, elements.fieldDeathM.value, elements.fieldDeathD.value),
-            note: elements.fieldNote.value.trim()
+      document.getElementById('btn-clear-all').addEventListener('click', () => {
+        if (confirm('すべての枠組みとデータをリセットしますか？')) {
+          treeData = {
+            pGrandfather: null, pGrandmother: null,
+            mGrandfather: null, mGrandmother: null,
+            father: null, mother: null,
+            self: { id: 'self', role: '本人', name: '', birthY: '', deathY: '', lineType: 'solid', note: '' },
+            spouses: [], siblings: [], children: []
           };
+          saveStorage(); renderGrid();
+        }
+      });
 
-          // データ更新先の探索と保存
-          if (targetId === 'self') treeGridData.self = updatedData;
-          else if (targetId === 'fat') treeGridData.father = updatedData;
-          else if (targetId === 'mot') treeGridData.mother = updatedData;
-          else if (targetId === 'pgf') treeGridData.pGrandfather = updatedData;
-          else if (targetId === 'pgm') treeGridData.pGrandmother = updatedData;
-          else if (targetId === 'mgf') treeGridData.mGrandfather = updatedData;
-          else if (targetId === 'mgm') treeGridData.mGrandmother = updatedData;
+      elements.btnModalClose.addEventListener('click', closeModal);
+      elements.btnModalCancel.addEventListener('click', closeModal);
+
+      elements.personForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const id = elements.fieldId.value;
+        const updated = {
+          id: id,
+          name: elements.fieldName.value.trim(),
+          birthY: elements.fieldBirthY.value.trim(),
+          deathY: elements.fieldDeathY.value.trim(),
+          lineType: elements.fieldLineType.value,
+          note: elements.fieldNote.value.trim()
+        };
+
+        if (id === 'self') treeData.self = updated;
+        else if (id === 'fat') treeData.father = updated;
+        else if (id === 'mot') treeData.mother = updated;
+        else if (id === 'pgf') treeData.pGrandfather = updated;
+        else if (id === 'pgm') treeData.pGrandmother = updated;
+        else if (id === 'mgf') treeData.mGrandfather = updated;
+        else if (id === 'mgm') treeData.mGrandmother = updated;
+        else {
+          let found = treeData.siblings.find(s => s.id === id);
+          if (found) Object.assign(found, updated);
+          found = treeData.spouses.find(s => s.id === id);
+          if (found) Object.assign(found, updated);
+          found = treeData.children.find(c => c.id === id);
+          if (found) Object.assign(found, updated);
+        }
+
+        saveStorage();
+        closeModal();
+        renderGrid();
+      });
+
+      elements.btnDeletePerson.addEventListener('click', () => {
+        const id = elements.fieldId.value;
+        if (id === 'self') return;
+        if (confirm('この枠を削除しますか？')) {
+          if (id === 'fat') treeData.father = null;
+          else if (id === 'mot') treeData.mother = null;
+          else if (id === 'pgf') treeData.pGrandfather = null;
+          else if (id === 'pgm') treeData.pGrandmother = null;
+          else if (id === 'mgf') treeData.mGrandfather = null;
+          else if (id === 'mgm') treeData.mGrandmother = null;
           else {
-            let found = treeGridData.siblings.find(s => s.id === targetId);
-            if (found) Object.assign(found, updatedData);
-
-            found = treeGridData.spouses.find(s => s.id === targetId);
-            if (found) Object.assign(found, updatedData);
-
-            found = treeGridData.children.find(c => c.id === targetId);
-            if (found) Object.assign(found, updatedData);
+            treeData.siblings = treeData.siblings.filter(s => s.id !== id);
+            treeData.spouses = treeData.spouses.filter(s => s.id !== id);
+            treeData.children = treeData.children.filter(c => c.id !== id);
           }
-
           saveStorage();
           closeModal();
-          renderGridTree();
-        });
+          renderGrid();
+        }
+      });
 
-        // 削除
-        elements.btnDeletePerson.addEventListener('click', () => {
-          const targetId = elements.fieldId.value;
-          if (targetId === 'self') return;
+      elements.btnExport.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(treeData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `family_tree_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+      });
 
-          if (confirm('この枠組みを削除しますか？')) {
-            if (targetId === 'fat') treeGridData.father = null;
-            else if (targetId === 'mot') treeGridData.mother = null;
-            else if (targetId === 'pgf') treeGridData.pGrandfather = null;
-            else if (targetId === 'pgm') treeGridData.pGrandmother = null;
-            else if (targetId === 'mgf') treeGridData.mGrandfather = null;
-            else if (targetId === 'mgm') treeGridData.mGrandmother = null;
-            else {
-              treeGridData.siblings = treeGridData.siblings.filter(s => s.id !== targetId);
-              treeGridData.spouses = treeGridData.spouses.filter(s => s.id !== targetId);
-              treeGridData.children = treeGridData.children.filter(c => c.id !== targetId);
-            }
-
-            saveStorage();
-            closeModal();
-            renderGridTree();
-          }
-        });
-
-        // バックアップ保存 (JSON)
-        elements.btnExport.addEventListener('click', () => {
+      elements.fileImport.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = evt => {
           try {
-            const dataStr = JSON.stringify(treeGridData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `family_tree_grid_${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          } catch (e) {
-            alert('バックアップ保存に失敗しました。');
-          }
-        });
-
-        // インポート
-        elements.fileImport.addEventListener('change', e => {
-          const file = e.target.files[0];
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = evt => {
-            try {
-              const imported = JSON.parse(evt.target.result);
-              if (imported && imported.self) {
-                treeGridData = imported;
-                saveStorage();
-                renderGridTree();
-              } else {
-                alert('無効なファイル形式です。');
-              }
-            } catch (err) {
-              alert('ファイルの読み込みに失敗しました。');
+            const data = JSON.parse(evt.target.result);
+            if (data && data.self) {
+              treeData = data;
+              saveStorage();
+              renderGrid();
             }
-            elements.fileImport.value = '';
-          };
-          reader.readAsText(file);
-        });
+          } catch (err) { alert('読み込みに失敗しました。'); }
+        };
+        reader.readAsText(file);
+      });
 
-        elements.btnPrint.addEventListener('click', () => window.print());
-      }
+      elements.btnPrint.addEventListener('click', () => window.print());
 
-      function init() {
-        loadStorage();
-        setupSetupActions();
-        setupEventListeners();
-        renderGridTree();
-      }
-
-      init();
-    })();
+      loadStorage();
+      renderGrid();
+    });
   </script>
 </body>
 </html>
