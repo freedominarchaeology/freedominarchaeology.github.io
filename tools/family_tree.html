@@ -198,7 +198,6 @@
             <div>
               <select id="field-birth-d" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500">
                 <option value="">日を選択</option>
-                <!-- 1〜31日 -->
                 <script>
                   for(let i=1; i<=31; i++) {
                     document.write(`<option value="${String(i).padStart(2,'0')}">${i}日</option>`);
@@ -587,7 +586,7 @@
         return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
       }
 
-      // 精密な年齢計算（日単位）
+      // 年齢計算
       function calculateAge(birthDateStr, deathDateStr) {
         if (!birthDateStr) return null;
         const birthDate = new Date(birthDateStr);
@@ -604,7 +603,6 @@
         return age >= 0 ? age : 0;
       }
 
-      // 日付の組み立て (YYYY-MM-DD形式)
       function assembleDate(y, m, d) {
         if (!y) return '';
         const year = String(y).padStart(4, '0');
@@ -613,7 +611,6 @@
         return `${year}-${month}-${day}`;
       }
 
-      // 日付の分解 (YYYY-MM-DD -> {y, m, d})
       function parseDate(dateStr) {
         if (!dateStr) return { y: '', m: '', d: '' };
         const parts = dateStr.split('-');
@@ -627,7 +624,7 @@
       // LocalStorage同期
       function loadStorage() {
         try {
-          const stored = localStorage.getItem('family_tree_data_v5');
+          const stored = localStorage.getItem('family_tree_data_v6');
           if (stored) {
             const parsed = JSON.parse(stored);
             familyData = parsed.nodes || {};
@@ -642,7 +639,7 @@
 
       function saveStorage() {
         try {
-          localStorage.setItem('family_tree_data_v5', JSON.stringify({ nodes: familyData, rootId: rootId }));
+          localStorage.setItem('family_tree_data_v6', JSON.stringify({ nodes: familyData, rootId: rootId }));
         } catch (e) {
           console.error(e);
         }
@@ -727,7 +724,7 @@
         }
       }
 
-      // 家系図ツリー構築 (正しい階層・兄弟横並びロジック)
+      // 家系図ツリー構築（配偶者の親・兄弟を含む全ネットワーク対応）
       function buildSubTree(personId, renderedSet) {
         if (!personId || !familyData[personId] || renderedSet.has(personId)) {
           return null;
@@ -740,8 +737,18 @@
         const unitDiv = document.createElement('div');
         unitDiv.className = 'flex flex-col items-center flex-shrink-0 relative';
 
-        // --- 親の表示（上方向） ---
-        const unrenderedParents = (person.parentIds || []).filter(pid => familyData[pid] && !renderedSet.has(pid));
+        // --- 親の表示（上方向：自身の親 ＋ 配偶者の親も含める） ---
+        const parentIdsSet = new Set(person.parentIds || []);
+        // 配偶者の親も上層に統合表示する
+        if (person.spouseIds) {
+          person.spouseIds.forEach(sId => {
+            if (familyData[sId] && familyData[sId].parentIds) {
+              familyData[sId].parentIds.forEach(spId => parentIdsSet.add(spId));
+            }
+          });
+        }
+
+        const unrenderedParents = Array.from(parentIdsSet).filter(pid => familyData[pid] && !renderedSet.has(pid));
         if (unrenderedParents.length > 0) {
           const parentsRow = document.createElement('div');
           parentsRow.className = 'flex items-center space-x-6 flex-shrink-0 mb-3';
@@ -862,13 +869,11 @@
         elements.fieldId.value = personData.id || '';
         elements.fieldName.value = personData.name || '';
         
-        // 生年月日分解セット
         const b = parseDate(personData.birth);
         elements.fieldBirthY.value = b.y;
         elements.fieldBirthM.value = b.m;
         elements.fieldBirthD.value = b.d;
 
-        // 没年月日分解セット
         const d = parseDate(personData.death);
         elements.fieldDeathY.value = d.y;
         elements.fieldDeathM.value = d.m;
@@ -919,7 +924,7 @@
         elements.linkModal.classList.add('hidden');
       }
 
-      // ノード連結処理（兄弟は親を共有し、子供リストの同じ層に横並びさせる）
+      // ノード連結処理
       function connectNodes(sourceId, targetId, relType) {
         if (!sourceId || !targetId || !familyData[sourceId] || !familyData[targetId]) return;
 
@@ -953,7 +958,6 @@
               }
             });
           } else {
-            // 親が未設定の場合、仮想の親を作成して本人と兄弟をその子供として紐付ける
             const dummyParentId = generateId();
             familyData[dummyParentId] = {
               id: dummyParentId,
@@ -968,7 +972,7 @@
             source.parentIds.push(dummyParentId);
             target.parentIds.push(dummyParentId);
             if (rootId === sourceId) {
-              rootId = dummyParentId; // 視点を親に押し上げて家系図構造を綺麗にする
+              rootId = dummyParentId;
             }
           }
         }
