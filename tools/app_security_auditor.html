@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline Web App Security Auditor (Multi-Language & Multi-Target)</title>
+    <title>Offline Web App Security Auditor (All Major Languages & Markdown Edition)</title>
     <!-- Content Security Policy: Strict Offline First Setup -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
     <!-- Tailwind CSS (CDN fallback gracefully handled by local CSS resets) -->
@@ -77,8 +77,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold tracking-wide text-white" id="txt-app-title">マルチ言語対応セキュリティ監査ツール</h1>
-                        <p class="text-xs text-slate-400" id="txt-app-subtitle">ローカル静的解析・マルチソース/マニフェストチェッカー</p>
+                        <h1 class="text-lg font-bold tracking-wide text-white" id="txt-app-title">主要言語＆Markdown対応セキュリティ監査ツール</h1>
+                        <p class="text-xs text-slate-400" id="txt-app-subtitle">ローカル静的解析・全主要プログラミング言語＆ドキュメントチェッカー</p>
                     </div>
                 </div>
 
@@ -107,7 +107,7 @@
         <!-- Main Content Layout -->
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            <!-- Left Panel: Dropzone, Target Extensions & File List -->
+            <!-- Left Panel: Dropzone, Supported Extensions & Queue -->
             <section class="lg:col-span-5 flex flex-col space-y-4">
                 <!-- Drop Zone Area -->
                 <div id="drop-zone" class="drop-zone rounded-xl p-6 text-center cursor-pointer flex flex-col items-center justify-center space-y-3 shadow-xl border-dashed">
@@ -117,10 +117,10 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-sm font-semibold text-slate-200" id="txt-drop-title">ソースコード / マニフェストをドラッグ＆ドロップ</p>
-                        <p class="text-xs text-slate-400 mt-1" id="txt-drop-sub">またはクリックしてファイル選択 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)</p>
+                        <p class="text-sm font-semibold text-slate-200" id="txt-drop-title">各種ソースコード / .md をドラッグ＆ドロップ</p>
+                        <p class="text-xs text-slate-400 mt-1" id="txt-drop-sub">またはクリックしてファイル選択 (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)</p>
                     </div>
-                    <input type="file" id="file-input" multiple accept=".html,.htm,.js,.py,.php,.java,.go,.rb,.c,.cpp,.h,.hpp,.ts,.json,.txt" class="hidden">
+                    <input type="file" id="file-input" multiple accept=".c,.h,.cpp,.cc,.hpp,.rs,.go,.html,.htm,.css,.js,.mjs,.ts,.py,.php,.rb,.java,.cs,.swift,.kt,.kts,.dart,.sql,.sh,.md,.json,.txt" class="hidden">
                 </div>
 
                 <!-- Analysis Controls & Queue -->
@@ -202,7 +202,7 @@
                 </h3>
                 <button id="modal-close-top" class="text-slate-400 hover:text-slate-200 text-sm font-mono p-1">✕</button>
             </div>
-            <p class="text-xs text-slate-400" id="modal-desc">以下のプロンプトをコピーしてAIに指示してください。不変条件やメモリ最適化の制約が含まれています。</p>
+            <p class="text-xs text-slate-400" id="modal-desc">以下のプロンプトをコピーしてAIに指示してください。不変条件やエンジニアビリティに配慮した制約が含まれています。</p>
             <textarea id="modal-textarea" readonly class="w-full h-64 bg-slate-950 text-slate-300 font-mono text-xs p-3 rounded-lg border border-slate-800 focus:outline-none resize-none"></textarea>
             <div class="flex items-center justify-between pt-2">
                 <span id="copy-status" class="text-xs text-emerald-400 opacity-0 transition-opacity">コピーしました！</span>
@@ -217,7 +217,7 @@
         </div>
     </div>
 
-    <!-- Application Script (Vanilla JS, Memory Optimized & Modular Architecture) -->
+    <!-- Application Script (Vanilla JS, Memory Optimized) -->
     <script>
         (function() {
             'use strict';
@@ -225,11 +225,11 @@
             // --- Multi-language (i18n) Dictionary ---
             const I18N_DICT = {
                 ja: {
-                    appTitle: "マルチ言語対応セキュリティ監査ツール",
-                    appSubtitle: "ローカル静的解析・マルチソース/マニフェストチェッカー",
+                    appTitle: "主要言語＆Markdown対応セキュリティ監査ツール",
+                    appSubtitle: "ローカル静的解析・全主要プログラミング言語＆ドキュメントチェッカー",
                     statusOffline: "完全ローカル動作保証 (外部送信なし)",
-                    dropTitle: "ソースコード / マニフェストをドラッグ＆ドロップ",
-                    dropSub: "またはクリックしてファイル選択 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    dropTitle: "各種ソースコード / .md をドラッグ＆ドロップ",
+                    dropSub: "またはクリックしてファイル選択 (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)",
                     queueTitle: "対象ファイル一覧",
                     btnClear: "クリア",
                     emptyState: "解析対象のファイルが選択されていません",
@@ -241,7 +241,7 @@
                     filterAll: "すべて",
                     noResults: "ファイルを読み込むと自動的に静的解析が開始されます。",
                     footer: "完全オフライン環境対応 / メモリ自動最適化済 / 外部APIデータ不使用",
-                    cleanCode: "問題は検出されませんでした。コードは良好です。",
+                    cleanCode: "問題は検出されませんでした。コード/ドキュメントは良好です。",
                     btnPrompt: "🤖 AIプロンプト生成",
                     modalTitle: "AI修正依頼用プロンプト",
                     modalDesc: "以下のプロンプトをコピーしてAIに指示してください。不変条件やエンジニアビリティに配慮した制約が含まれています。",
@@ -250,11 +250,11 @@
                     btnClose: "閉じる"
                 },
                 en: {
-                    appTitle: "Multi-Language Code Security Auditor",
-                    appSubtitle: "Local Static Analysis & Manifest Security Scanner",
+                    appTitle: "All Major Languages & Markdown Security Auditor",
+                    appSubtitle: "Local Static Analysis for Full Stack Languages & Documents",
                     statusOffline: "100% Air-gapped / Local Processing",
-                    dropTitle: "Drag & Drop Source Code or Manifests",
-                    dropSub: "or click to select files (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    dropTitle: "Drag & Drop Source Files or .md Documents",
+                    dropSub: "or click to select files (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)",
                     queueTitle: "Target Files",
                     btnClear: "Clear",
                     emptyState: "No files selected for analysis",
@@ -269,17 +269,17 @@
                     cleanCode: "No security issues detected in this file.",
                     btnPrompt: "🤖 Generate AI Prompt",
                     modalTitle: "AI Fix Request Prompt",
-                    modalDesc: "Copy the prompt below to instruct AI, including constraints and clean architecture preservation.",
+                    modalDesc: "Copy the prompt below to instruct AI, including constraints and clean code preservation.",
                     btnCopy: "Copy to Clipboard",
                     copied: "Copied!",
                     btnClose: "Close"
                 },
                 zh: {
-                    appTitle: "多语言代码安全审计工具",
-                    appSubtitle: "本地静态代码分析与依赖配置文件检测",
+                    appTitle: "全主要语言与 Markdown 安全审计工具",
+                    appSubtitle: "本地静态代码分析与文档/依赖配置文件检测",
                     statusOffline: "完全本地运行（无外部数据传输）",
-                    dropTitle: "拖放源代码或配置文件至此",
-                    dropSub: "或点击选择本地文件 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    dropTitle: "拖放源代码或 .md 文档至此",
+                    dropSub: "或点击选择本地文件 (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)",
                     queueTitle: "文件列表",
                     btnClear: "清除",
                     emptyState: "未选择分析文件",
@@ -291,7 +291,7 @@
                     filterAll: "全部",
                     noResults: "加载文件后将自动开始静态分析。",
                     footer: "完全离线支持 / 内存自动优化 / 无外部 API 依赖",
-                    cleanCode: "未检测到安全问题，代码状态良好。",
+                    cleanCode: "未检测到安全问题，代码/文档状态良好。",
                     btnPrompt: "🤖 生成 AI 提示词",
                     modalTitle: "AI 修复请求提示词",
                     modalDesc: "复制以下提示词以指示 AI，其中包含约束条件与代码架构保持规则。",
@@ -300,11 +300,11 @@
                     btnClose: "关闭"
                 },
                 ko: {
-                    appTitle: "멀티 언어 지원 보안 감사 도구",
-                    appSubtitle: "로컬 정적 분석 및 매니페스트 체커",
+                    appTitle: "전 언어 및 Markdown 지원 보안 감사 도구",
+                    appSubtitle: "로컬 정적 분석 및 문서/소스코드 취약점 체커",
                     statusOffline: "100% 로컬 동작 (외부 전송 없음)",
-                    dropTitle: "소스 코드 또는 매니페스트를 드래그 & 드롭하세요",
-                    dropSub: "또는 클릭하여 파일 선택 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    dropTitle: "소스 코드 또는 .md 문서를 드래그 & 드롭하세요",
+                    dropSub: "또는 클릭하여 파일 선택 (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)",
                     queueTitle: "대상 파일 목록",
                     btnClear: "지우기",
                     emptyState: "분석할 파일이 선택되지 않았습니다",
@@ -325,11 +325,11 @@
                     btnClose: "닫기"
                 },
                 fr: {
-                    appTitle: "Auditeur de Sécurité Multi-Langages",
-                    appSubtitle: "Analyse Statique Locale & Analyseur de Manifestes",
+                    appTitle: "Auditeur de Sécurité Tous Langages & Markdown",
+                    appSubtitle: "Analyse Statique Locale pour Langages Stack Complète & Documents",
                     statusOffline: "Garanti 100% Local / Sans Connexion",
-                    dropTitle: "Glissez-déposez du code source ou des manifestes ici",
-                    dropSub: "ou cliquez pour sélectionner (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    dropTitle: "Glissez-déposez du code source ou des fichiers .md ici",
+                    dropSub: "ou cliquez pour sélectionner (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)",
                     queueTitle: "Fichiers Cibles",
                     btnClear: "Effacer",
                     emptyState: "Aucun fichier sélectionné",
@@ -350,11 +350,11 @@
                     btnClose: "Fermer"
                 },
                 es: {
-                    appTitle: "Auditor de Seguridad Multilenguaje",
-                    appSubtitle: "Análisis Estático Local y Escáner de Manifiestos",
+                    appTitle: "Auditor Multilenguaje y Markdown de Seguridad",
+                    appSubtitle: "Análisis Estático Local para Todos los Lenguajes y Documentos",
                     statusOffline: "Procesamiento 100% Local Sin Conexión",
-                    dropTitle: "Arrastre y suelte código fuente o manifiestos aquí",
-                    dropSub: "o haga clic para seleccionar (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    dropTitle: "Arrastre y suelte código fuente o archivos .md aquí",
+                    dropSub: "o haga clic para seleccionar (C/C++, Rust, Go, HTML/CSS, JS/TS, Python, PHP, Ruby, Java, C#, Swift, Kotlin, Dart, SQL, Shell, Markdown)",
                     queueTitle: "Archivos Objetivo",
                     btnClear: "Limpiar",
                     emptyState: "No hay archivos seleccionados",
@@ -376,60 +376,95 @@
                 }
             };
 
-            // --- Modular Language Security Rules Registry (Human-Developer Friendly Structure) ---
+            // --- Modular Security Rules Registry (Covers All Major Languages + Markdown) ---
             const LANGUAGE_RULES_REGISTRY = {
-                // HTML & Web Templates
-                html: [
-                    { id: "SEC-HTML-001", level: "CRITICAL", title: "Unsanitized HTML Injection (innerHTML)", regex: /\.innerHTML\s*=/g, desc: "Direct assignment to innerHTML without sanitization creates Cross-Site Scripting (XSS) risks." },
-                    { id: "SEC-HTML-002", level: "CRITICAL", title: "Document Write Vulnerability", regex: /document\.write\s*\(/g, desc: "document.write() can overwrite page content and inject untrusted scripts dynamically." },
-                    { id: "SEC-HTML-003", level: "WARNING", title: "Inline Event Handler Usage", regex: /on(click|load|mouseover|error|submit)\s*=/gi, desc: "Inline event handlers violate strict Content Security Policy (CSP) guidelines." }
+                // C / C++
+                cpp: [
+                    { id: "SEC-CPP-001", level: "CRITICAL", title: "Unbounded Buffer Copy (strcpy/gets)", regex: /\b(strcpy|strcat|gets)\s*\(/g, desc: "Unbounded string functions cause Stack/Heap Buffer Overflows. Use strncpy or safe bounds." },
+                    { id: "SEC-CPP-002", level: "CRITICAL", title: "Format String Vulnerability (printf)", regex: /printf\s*\(\s*[^"'\s]+[^\)]*\)/g, desc: "Passing dynamic non-literal strings to printf allows arbitrary memory read/write." },
+                    { id: "SEC-CPP-003", level: "WARNING", title: "Unchecked Memory Allocation (malloc)", regex: /malloc\s*\(/g, desc: "Ensure malloc return pointers are verified against NULL before dereferencing." }
                 ],
-                // JavaScript & TypeScript
-                javascript: [
-                    { id: "SEC-JS-001", level: "CRITICAL", title: "Dangerous Evaluation (eval)", regex: /\beval\s*\(/g, desc: "eval() can execute arbitrary code string and leads to severe Remote Code Execution (RCE) / XSS vulnerabilities." },
-                    { id: "SEC-JS-002", level: "CRITICAL", title: "Direct Execution via Function Constructor", regex: /new\s+Function\s*\(/g, desc: "Using new Function() acts similarly to eval() and can run untrusted code dynamically." },
-                    { id: "SEC-JS-003", level: "WARNING", title: "Dynamic Script Injection", regex: /document\.createElement\s*\(\s*['"]script['"]\s*\)/g, desc: "Dynamically creating script elements can introduce remote unverified code at runtime." },
-                    { id: "SEC-JS-004", level: "WARNING", title: "Unsafe Window Messaging Target", regex: /postMessage\s*\([^,]+,\s*['"]\*['"]\s*\)/g, desc: "Using '*' targetOrigin in postMessage allows any domain to intercept sensitive payloads." },
-                    { id: "SEC-JS-005", level: "INFO", title: "Local Storage Usage Detected", regex: /localStorage\.(setItem|getItem)/g, desc: "Verify that sensitive tokens, keys, or private user data are not stored unencrypted in localStorage." }
-                ],
-                // Python
-                python: [
-                    { id: "SEC-PY-001", level: "CRITICAL", title: "Arbitrary Code Execution (eval/exec)", regex: /\b(eval|exec)\s*\(/g, desc: "eval() or exec() executes untrusted string expressions directly in the Python runtime." },
-                    { id: "SEC-PY-002", level: "CRITICAL", title: "Unsafe Deserialization (pickle)", regex: /pickle\.(loads?|Unpickler)/g, desc: "Unpickling untrusted data allows arbitrary code execution via object instantiation." },
-                    { id: "SEC-PY-003", level: "CRITICAL", title: "OS Command Injection Risk (subprocess)", regex: /subprocess\.(Popen|run|call)\s*\(.*shell\s*=\s*True/g, desc: "Passing shell=True to subprocess with formatted strings can lead to OS command injection." },
-                    { id: "SEC-PY-004", level: "WARNING", title: "Insecure Temporary File Creation", regex: /tempfile\.mktemp\s*\(/g, desc: "mktemp() is deprecated due to race conditions; use NamedTemporaryFile or mkstemp instead." },
-                    { id: "SEC-PY-005", level: "INFO", title: "Debug Mode Enabled (Flask/Django)", regex: /(debug\s*=\s*True|DEBUG\s*=\s*True)/g, desc: "Running production frameworks in debug mode leaks detailed tracebacks and interactive debuggers." }
-                ],
-                // PHP
-                php: [
-                    { id: "SEC-PHP-001", level: "CRITICAL", title: "Dynamic Evaluation (eval)", regex: /\beval\s*\(/g, desc: "PHP eval() executes string input as PHP code; high risk of Remote Code Execution." },
-                    { id: "SEC-PHP-002", level: "CRITICAL", title: "Shell Execution Call", regex: /(system|exec|passthru|shell_exec|proc_open)\s*\(/g, desc: "Executing shell commands directly from PHP creates severe command injection vectors." },
-                    { id: "SEC-PHP-003", level: "CRITICAL", title: "Unfiltered Superglobal Output", regex: /echo\s+\$_(GET|POST|REQUEST|COOKIE)\[/g, desc: "Printing user request variables without htmlspecialchars() creates Reflected XSS." },
-                    { id: "SEC-PHP-004", level: "WARNING", title: "File Inclusion Risk (include/require)", regex: /(include|require)(_once)?\s*\(\s*\$/g, desc: "Passing variables to include/require leads to Local/Remote File Inclusion (LFI/RFI)." }
-                ],
-                // Java
-                java: [
-                    { id: "SEC-JAVA-001", level: "CRITICAL", title: "Command Execution via Runtime/ProcessBuilder", regex: /(Runtime\.getRuntime\(\)\.exec|new\s+ProcessBuilder)\s*\(/g, desc: "Executing operating system commands creates high risk of OS command injection." },
-                    { id: "SEC-JAVA-002", level: "CRITICAL", title: "Native Java Object Deserialization", regex: /readObject\s*\(\s*\)/g, desc: "Java ObjectInputStream.readObject() is highly vulnerable to gadget-chain RCE payloads." },
-                    { id: "SEC-JAVA-003", level: "WARNING", title: "Weak Cryptographic Cipher (DES/MD5)", regex: /Cipher\.getInstance\s*\(\s*["'](DES|RC4|MD5)/g, desc: "Using obsolete cryptographic algorithms compromises data confidentiality and integrity." }
+                // Rust
+                rust: [
+                    { id: "SEC-RS-001", level: "WARNING", title: "Unsafe Block Usage", regex: /\bunsafe\s*\{/g, desc: "Unsafe Rust bypasses compiler memory safety guarantees. Audit pointer dereferences carefully." },
+                    { id: "SEC-RS-002", level: "INFO", title: "Panic Trigger Usage (unwrap/expect)", regex: /\.(unwrap|expect)\s*\(/g, desc: "Using unwrap()/expect() in production can cause unexpected thread panics and Denial of Service." }
                 ],
                 // Go (Golang)
                 go: [
-                    { id: "SEC-GO-001", level: "CRITICAL", title: "Command Execution (exec.Command)", regex: /exec\.Command\s*\(/g, desc: "Ensure user input passed to exec.Command is strictly validated to prevent command injection." },
-                    { id: "SEC-GO-002", level: "CRITICAL", title: "Unsafe Memory Manipulation (unsafe package)", regex: /unsafe\.(Pointer|Sizeof|Alignof)/g, desc: "Using Go's 'unsafe' package bypasses Go type safety and bounds checking." },
-                    { id: "SEC-GO-003", level: "WARNING", title: "SQL Injection via Query Formatting", regex: /(db\.Query|db\.Exec)\s*\(\s*fmt\.Sprintf/g, desc: "Using fmt.Sprintf to build SQL queries causes SQL injection. Use parameterized queries." }
+                    { id: "SEC-GO-001", level: "CRITICAL", title: "OS Command Execution (exec.Command)", regex: /exec\.Command\s*\(/g, desc: "Ensure dynamic input to exec.Command is strictly sanitized to prevent command injection." },
+                    { id: "SEC-GO-002", level: "CRITICAL", title: "Unsafe Memory Pointer Manipulation", regex: /unsafe\.(Pointer|Sizeof)/g, desc: "Bypasses Go's memory safety checks. Verify memory alignment and bounds." },
+                    { id: "SEC-GO-003", level: "WARNING", title: "SQL Query Formatting Risk", regex: /(db\.Query|db\.Exec)\s*\(\s*fmt\.Sprintf/g, desc: "Formatting SQL strings via Sprintf causes SQL injection. Use parameterized placeholders." }
+                ],
+                // HTML / CSS
+                html: [
+                    { id: "SEC-HTML-001", level: "CRITICAL", title: "Unsanitized HTML Injection (innerHTML)", regex: /\.innerHTML\s*=/g, desc: "Direct assignment to innerHTML creates Cross-Site Scripting (XSS) risks." },
+                    { id: "SEC-HTML-002", level: "CRITICAL", title: "Document Write Vulnerability", regex: /document\.write\s*\(/g, desc: "document.write() can overwrite page content and inject untrusted scripts." },
+                    { id: "SEC-HTML-003", level: "WARNING", title: "Inline Event Handler Usage", regex: /on(click|load|mouseover|error|submit)\s*=/gi, desc: "Inline event handlers violate Content Security Policy (CSP) guidelines." }
+                ],
+                // JavaScript / TypeScript
+                javascript: [
+                    { id: "SEC-JS-001", level: "CRITICAL", title: "Dangerous Evaluation (eval)", regex: /\beval\s*\(/g, desc: "eval() can execute arbitrary code string and leads to severe RCE / XSS vulnerabilities." },
+                    { id: "SEC-JS-002", level: "CRITICAL", title: "Dynamic Execution via Function Constructor", regex: /new\s+Function\s*\(/g, desc: "Using new Function() acts similarly to eval() and runs untrusted code dynamically." },
+                    { id: "SEC-JS-003", level: "WARNING", title: "Dynamic Script Injection", regex: /document\.createElement\s*\(\s*['"]script['"]\s*\)/g, desc: "Dynamically creating script tags can introduce unverified remote code." },
+                    { id: "SEC-JS-004", level: "INFO", title: "Local Storage Usage Detected", regex: /localStorage\.(setItem|getItem)/g, desc: "Verify sensitive tokens or credentials are not stored unencrypted in localStorage." }
+                ],
+                // Python
+                python: [
+                    { id: "SEC-PY-001", level: "CRITICAL", title: "Arbitrary Code Execution (eval/exec)", regex: /\b(eval|exec)\s*\(/g, desc: "eval() or exec() executes untrusted string expressions in the Python runtime." },
+                    { id: "SEC-PY-002", level: "CRITICAL", title: "Unsafe Deserialization (pickle)", regex: /pickle\.(loads?|Unpickler)/g, desc: "Unpickling untrusted data allows arbitrary code execution via object instantiation." },
+                    { id: "SEC-PY-003", level: "CRITICAL", title: "Subprocess Command Injection (shell=True)", regex: /subprocess\.(Popen|run|call)\s*\(.*shell\s*=\s*True/g, desc: "shell=True combined with dynamic strings causes OS command injection." }
+                ],
+                // PHP
+                php: [
+                    { id: "SEC-PHP-001", level: "CRITICAL", title: "Dynamic Code Evaluation (eval)", regex: /\beval\s*\(/g, desc: "PHP eval() executes string input directly as PHP code; high RCE risk." },
+                    { id: "SEC-PHP-002", level: "CRITICAL", title: "Shell Command Execution Call", regex: /(system|exec|passthru|shell_exec|proc_open)\s*\(/g, desc: "Executing shell commands directly creates severe command injection vectors." },
+                    { id: "SEC-PHP-003", level: "CRITICAL", title: "Unfiltered Superglobal Output", regex: /echo\s+\$_(GET|POST|REQUEST|COOKIE)\[/g, desc: "Printing user request variables directly without htmlspecialchars() creates Reflected XSS." }
                 ],
                 // Ruby
                 ruby: [
                     { id: "SEC-RB-001", level: "CRITICAL", title: "Arbitrary Code Execution (eval)", regex: /\beval\s+/g, desc: "Ruby eval allows dynamic execution of untrusted string scripts." },
-                    { id: "SEC-RB-002", level: "CRITICAL", title: "Unsafe YAML Deserialization", regex: /YAML\.(load|load_file)\b/g, desc: "YAML.load is vulnerable to object injection RCE. Use YAML.safe_load instead." },
-                    { id: "SEC-RB-003", level: "WARNING", title: "System Command Execution (Kernel/Backticks)", regex: /(Kernel\system|`[^`]+`|\bexec\b)/g, desc: "Unsanitized input in system calls or backticks causes OS command injection." }
+                    { id: "SEC-RB-002", level: "CRITICAL", title: "Unsafe YAML Deserialization", regex: /YAML\.(load|load_file)\b/g, desc: "YAML.load is vulnerable to object injection RCE. Use YAML.safe_load instead." }
                 ],
-                // C / C++
-                cpp: [
-                    { id: "SEC-CPP-001", level: "CRITICAL", title: "Unbounded Buffer Copy (strcpy/gets)", regex: /\b(strcpy|strcat|gets)\s*\(/g, desc: "Unbounded string functions cause classic Stack/Heap Buffer Overflows. Use strncpy or safe bounds." },
-                    { id: "SEC-CPP-002", level: "CRITICAL", title: "Format String Vulnerability (printf)", regex: /printf\s*\(\s*[^"'\s]+[^\)]*\)/g, desc: "Passing dynamic non-literal strings to printf allows arbitrary memory read/write." },
-                    { id: "SEC-CPP-003", level: "WARNING", title: "Memory Allocation without Null Check", regex: /malloc\s*\(/g, desc: "Ensure malloc/calloc return pointers are verified against NULL before dereferencing." }
+                // Java
+                java: [
+                    { id: "SEC-JAVA-001", level: "CRITICAL", title: "Command Execution via Runtime/ProcessBuilder", regex: /(Runtime\.getRuntime\(\)\.exec|new\s+ProcessBuilder)\s*\(/g, desc: "Executing operating system commands creates high risk of OS command injection." },
+                    { id: "SEC-JAVA-002", level: "CRITICAL", title: "Native Java Object Deserialization", regex: /readObject\s*\(\s*\)/g, desc: "Java ObjectInputStream.readObject() is highly vulnerable to gadget-chain RCE payloads." }
+                ],
+                // C# (.NET)
+                csharp: [
+                    { id: "SEC-CS-001", level: "CRITICAL", title: "Process Start Command Execution", regex: /Process\.Start\s*\(/g, desc: "Executing external processes with unsanitized arguments leads to OS command injection." },
+                    { id: "SEC-CS-002", level: "WARNING", title: "Unsafe Binary Formatter Deserialization", regex: /BinaryFormatter\s*\(\s*\)/g, desc: "BinaryFormatter is insecure and can cause RCE during object deserialization." }
+                ],
+                // Swift
+                swift: [
+                    { id: "SEC-SWIFT-001", level: "WARNING", title: "Process Execution Call", regex: /Process\(\)\.run\(\)/g, desc: "Verify arguments passed to Process() are strictly sanitized against command injection." },
+                    { id: "SEC-SWIFT-002", level: "INFO", title: "Insecure Local Keychain Storage Flag", regex: /kSecAttrAccessibleAlways\b/g, desc: "Deprecated insecure accessibility level for Apple Keychain storage." }
+                ],
+                // Kotlin
+                kotlin: [
+                    { id: "SEC-KT-001", level: "CRITICAL", title: "Runtime Exec Call", regex: /Runtime\.getRuntime\(\)\.exec/g, desc: "Direct command execution in Kotlin/Android leads to command injection." },
+                    { id: "SEC-KT-002", level: "WARNING", title: "Android Webview JavaScript Interface Injection", regex: /addJavascriptInterface\s*\(/g, desc: "Exposing native Java/Kotlin objects to WebViews can allow XSS-to-RCE escalation." }
+                ],
+                // Dart
+                dart: [
+                    { id: "SEC-DART-001", level: "CRITICAL", title: "Process.run Execution", regex: /Process\.(run|start)\s*\(/g, desc: "Ensure arguments passed to Process.run are verified against shell command injection." }
+                ],
+                // SQL
+                sql: [
+                    { id: "SEC-SQL-001", level: "WARNING", title: "Dynamic SQL Statement via EXEC/EXECUTE", regex: /\b(EXEC|EXECUTE)\s*\(/gi, desc: "Dynamic SQL execution via concatenated string input leads to SQL injection." },
+                    { id: "SEC-SQL-002", level: "INFO", title: "Unrestricted Grant All Privileges", regex: /GRANT\s+ALL\s+PRIVILEGES/gi, desc: "Violates the principle of least privilege. Assign specific database permissions instead." }
+                ],
+                // Shell Scripting (.sh)
+                shell: [
+                    { id: "SEC-SH-001", level: "CRITICAL", title: "Unquoted Variable Expansion in Command", regex: /\b(eval|sh|bash)\s+\$/g, desc: "Passing unquoted variable expansions to eval/sh enables remote command execution." },
+                    { id: "SEC-SH-002", level: "WARNING", title: "Plaintext Curl Payload Piping to Shell", regex: /curl\s+[^|]+\|\s*(ba)?sh/g, desc: "Piping remote unverified network scripts directly into bash creates critical supply chain risks." }
+                ],
+                // Markdown (.md)
+                markdown: [
+                    { id: "SEC-MD-001", level: "CRITICAL", title: "Raw HTML Script Tag in Markdown", regex: /<script[\s\S]*?>/gi, desc: "Raw <script> tags inside Markdown documents will execute dynamic XSS if rendered unsanitized." },
+                    { id: "SEC-MD-002", level: "WARNING", title: "Raw HTML Iframe Tag in Markdown", regex: /<iframe[\s\S]*?>/gi, desc: "Raw <iframe> embedded in Markdown can host malicious phishing or external drive-by downloads." },
+                    { id: "SEC-MD-003", level: "WARNING", title: "Insecure HTTP Link Reference", regex: /\[[^\]]+\]\(http:\/\/[^\)]+\)/gi, desc: "Markdown links pointing to unencrypted plain HTTP destinations expose users to MITM risks." },
+                    { id: "SEC-MD-004", level: "INFO", title: "Potential Hardcoded Credential in Markdown Documentation", regex: /(api_key|password|secret|access_token)\s*[:=]\s*['"][a-zA-Z0-9_\-]{16,}'"/gi, desc: "Documentation files frequently leak test passwords or production credentials accidentally." }
                 ],
                 // Generic / Cross-Language Secrets & Hardcoded Keys
                 generic: [
@@ -561,19 +596,26 @@
                 });
             }
 
-            // --- File Extension Language Mapper ---
+            // --- Comprehensive Extension Mapper ---
             function mapExtensionToLanguage(filename) {
                 const ext = filename.split('.').pop().toLowerCase();
                 switch (ext) {
-                    case 'html': case 'htm': return 'html';
-                    case 'js': case 'ts': return 'javascript';
-                    case 'py': return 'python';
-                    case 'php': return 'php';
-                    case 'java': return 'java';
+                    case 'c': case 'h': case 'cpp': case 'cc': case 'hpp': return 'cpp';
+                    case 'rs': return 'rust';
                     case 'go': return 'go';
+                    case 'html': case 'htm': case 'css': return 'html';
+                    case 'js': case 'mjs': case 'ts': return 'javascript';
+                    case 'py': case 'pyc': return 'python';
+                    case 'php': return 'php';
                     case 'rb': return 'ruby';
-                    case 'c': case 'cpp': case 'h': case 'hpp': return 'cpp';
-                    case 'json': case 'txt': return 'manifest';
+                    case 'java': case 'class': case 'jar': return 'java';
+                    case 'cs': return 'csharp';
+                    case 'swift': return 'swift';
+                    case 'kt': case 'kts': return 'kotlin';
+                    case 'dart': return 'dart';
+                    case 'sql': return 'sql';
+                    case 'sh': return 'shell';
+                    case 'md': return 'markdown';
                     default: return 'generic';
                 }
             }
@@ -617,7 +659,11 @@
 
                 filesArray.forEach(file => {
                     const ext = file.name.split('.').pop().toLowerCase();
-                    const allowedExts = ['html', 'htm', 'js', 'py', 'php', 'java', 'go', 'rb', 'c', 'cpp', 'h', 'hpp', 'ts', 'json', 'txt'];
+                    const allowedExts = [
+                        'c', 'h', 'cpp', 'cc', 'hpp', 'rs', 'go', 'html', 'htm', 'css', 
+                        'js', 'mjs', 'ts', 'py', 'pyc', 'php', 'rb', 'java', 'class', 'jar', 
+                        'cs', 'swift', 'kt', 'kts', 'dart', 'sql', 'sh', 'md', 'json', 'txt'
+                    ];
                     if (!allowedExts.includes(ext)) return;
 
                     if (fileQueue.some(f => f.name === file.name && f.size === file.size)) return;
@@ -655,12 +701,10 @@
             function analyzeFile(fileObj) {
                 const lines = fileObj.content.split('\n');
 
-                // 1. Gather rules: Target language rules + Generic Rules
                 const targetRules = LANGUAGE_RULES_REGISTRY[fileObj.languageKey] || [];
                 const genericRules = LANGUAGE_RULES_REGISTRY.generic || [];
                 const activeRules = [...targetRules, ...genericRules];
 
-                // 2. Scan Rules
                 activeRules.forEach(rule => {
                     lines.forEach((lineText, idx) => {
                         rule.regex.lastIndex = 0;
@@ -682,7 +726,6 @@
                     });
                 });
 
-                // 3. Scan External Libraries / Manifests
                 KNOWN_LIBRARIES.forEach(lib => {
                     lib.regex.lastIndex = 0;
                     if (lib.regex.test(fileObj.content)) {
@@ -814,7 +857,7 @@
                 });
             }
 
-            // --- AI Prompt Modal Generator (Human-Developer Mindset Preservation) ---
+            // --- AI Prompt Modal Generator ---
             function openPromptModal(res) {
                 const promptText = `【目的】
 静的セキュリティ監査で検出された脆弱性・不安全な記述（${res.ruleId || res.type}: ${res.title}）の安全なリファクタリング
@@ -836,7 +879,7 @@ ${res.codeSnippet}
 - 【完全オフライン・環境非依存】外部ネットワーク通信や外部CDNへの依存を追加しないこと
 - 【単一ファイル / モジュール構造の保護】既存のモジュール構造や関数分割、明確な責任分離（クリーンコード設計）を破綻させないこと
 - 【メモリ最適化とリソース即時解放】オブジェクトやイベントリスナーの参照保持によるメモリリークを発生させないこと（不要変数の即時 dereference / null 化等）
-- 【可読性と拡張性の維持】人間のエンジニアが直感的に理解・メンテナンスできるよう、変命名・構造・コメントの質を維持すること
+- 【可読性と拡張性の維持】人間のエンジニアが直感的に理解・メンテナンスできるよう、変数命名・構造・コメントの質を維持すること
 
 【出力形式】
 - 変更部分の抜粋ではなく、すぐに動作可能な「修正済みの完全なコード」を出力すること`;
@@ -882,7 +925,7 @@ ${res.codeSnippet}
             function removeFile(fileId) {
                 const fileIdx = fileQueue.findIndex(f => f.id === fileId);
                 if (fileIdx !== -1) {
-                    fileQueue[fileIdx].content = null; // explicit dereference for Garbage Collection
+                    fileQueue[fileIdx].content = null;
                     fileQueue.splice(fileIdx, 1);
                 }
 
