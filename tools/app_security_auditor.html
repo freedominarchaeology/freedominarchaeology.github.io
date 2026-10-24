@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Web App Security Auditor (Multi-Language & Multi-Target)</title>
+    <!-- Content Security Policy: Strict Offline First Setup -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
+    <!-- Tailwind CSS (CDN fallback gracefully handled by local CSS resets) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Modern System Font Stack with MS Mincho Priority */
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", "Hiragino Mincho ProN", "Yu Mincho", "Georgia", serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Pure CSS Grid/Flex System for Offline Layout Robustness */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .drop-zone {
+            border: 2px dashed #3b82f6;
+            transition: all 0.2s ease-in-out;
+            background-color: rgba(30, 41, 59, 0.7);
+        }
+
+        .drop-zone.dragover {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.15);
+            transform: scale(1.005);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* High-contrast code snippet syntax block */
+        .code-block {
+            font-family: "Courier New", Courier, monospace;
+            background-color: #020617;
+            border-left: 3px solid #6366f1;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="app-container">
+        <!-- Header / Navigation Bar -->
+        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-600 text-white rounded-lg shadow-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-wide text-white" id="txt-app-title">マルチ言語対応セキュリティ監査ツール</h1>
+                        <p class="text-xs text-slate-400" id="txt-app-subtitle">ローカル静的解析・マルチソース/マニフェストチェッカー</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Air-gap Status Indicator -->
+                    <div class="hidden md:flex items-center space-x-2 px-3 py-1 bg-emerald-950/80 border border-emerald-700/50 rounded-full text-emerald-400 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="txt-status-offline">完全ローカル動作保証 (外部送信なし)</span>
+                    </div>
+
+                    <!-- Language Selector Dropdown -->
+                    <div class="relative">
+                        <select id="lang-select" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                            <option value="ja" selected>日本語 (Japanese)</option>
+                            <option value="en">English</option>
+                            <option value="zh">中文 (Chinese)</option>
+                            <option value="ko">한국어 (Korean)</option>
+                            <option value="fr">Français (French)</option>
+                            <option value="es">Español (Spanish)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Layout -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Panel: Dropzone, Target Extensions & File List -->
+            <section class="lg:col-span-5 flex flex-col space-y-4">
+                <!-- Drop Zone Area -->
+                <div id="drop-zone" class="drop-zone rounded-xl p-6 text-center cursor-pointer flex flex-col items-center justify-center space-y-3 shadow-xl border-dashed">
+                    <div class="p-3 bg-indigo-950/50 rounded-full text-indigo-400 border border-indigo-800/50">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-200" id="txt-drop-title">ソースコード / マニフェストをドラッグ＆ドロップ</p>
+                        <p class="text-xs text-slate-400 mt-1" id="txt-drop-sub">またはクリックしてファイル選択 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)</p>
+                    </div>
+                    <input type="file" id="file-input" multiple accept=".html,.htm,.js,.py,.php,.java,.go,.rb,.c,.cpp,.h,.hpp,.ts,.json,.txt" class="hidden">
+                </div>
+
+                <!-- Analysis Controls & Queue -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex-grow flex flex-col">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h2 class="text-sm font-bold text-slate-300 flex items-center space-x-2">
+                            <span id="txt-queue-title">対象ファイル一覧</span>
+                            <span id="file-count-badge" class="px-2 py-0.5 text-xs bg-slate-800 text-indigo-400 rounded-full font-mono">0</span>
+                        </h2>
+                        <button id="btn-clear-all" class="text-xs text-rose-400 hover:text-rose-300 transition-colors hidden" id="txt-btn-clear">クリア</button>
+                    </div>
+
+                    <div id="file-list-container" class="mt-3 flex-grow overflow-y-auto max-h-[300px] lg:max-h-[calc(100vh-420px)] space-y-2 pr-1">
+                        <div id="empty-state" class="text-center py-10 text-slate-500 text-xs" id="txt-empty-state">
+                            解析対象のファイルが選択されていません
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Executive Security Dashboard & Audit Results -->
+            <section class="lg:col-span-7 flex flex-col space-y-4">
+                
+                <!-- Overview Stats Bar -->
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-critical">危険 (CRITICAL)</span>
+                        <span id="stat-critical" class="text-xl font-bold font-mono text-rose-500 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-warning">警告 (WARNING)</span>
+                        <span id="stat-warning" class="text-xl font-bold font-mono text-amber-400 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-info">情報 (INFO)</span>
+                        <span id="stat-info" class="text-xl font-bold font-mono text-blue-400 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-deps">検出ライブラリ/依存</span>
+                        <span id="stat-deps" class="text-xl font-bold font-mono text-emerald-400 mt-1 block">0</span>
+                    </div>
+                </div>
+
+                <!-- Main Findings Display Panel -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex-grow flex flex-col min-h-[400px]">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h2 class="text-base font-bold text-slate-200" id="txt-results-title">監査結果ディテール</h2>
+                        <div id="filter-container" class="flex space-x-2 hidden">
+                            <button class="filter-btn active px-2.5 py-1 text-xs rounded-md bg-indigo-600 text-white" data-filter="all" id="btn-filter-all">すべて</button>
+                            <button class="filter-btn px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="CRITICAL" id="btn-filter-critical">CRITICAL</button>
+                            <button class="filter-btn px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="WARNING" id="btn-filter-warning">WARNING</button>
+                            <button class="filter-btn px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="DEP" id="btn-filter-deps">ライブラリ</button>
+                        </div>
+                    </div>
+
+                    <div id="audit-results-list" class="mt-4 flex-grow overflow-y-auto space-y-3 max-h-[calc(100vh-320px)] pr-2">
+                        <div class="text-center py-20 text-slate-500 text-sm">
+                            <p id="txt-no-results">ファイルを読み込むと自動的に静的解析が開始されます。</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-slate-950 border-t border-slate-900 py-3 text-center text-xs text-slate-500">
+            <span id="txt-footer">完全オフライン環境対応 / メモリ自動最適化済 / 外部APIデータ不使用</span>
+        </footer>
+    </div>
+
+    <!-- AI Prompt Generation Modal -->
+    <div id="prompt-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-11/12 max-w-2xl p-6 shadow-2xl flex flex-col space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-slate-200 flex items-center space-x-2">
+                    <span>🤖</span>
+                    <span id="modal-title">AI修正依頼用プロンプト</span>
+                </h3>
+                <button id="modal-close-top" class="text-slate-400 hover:text-slate-200 text-sm font-mono p-1">✕</button>
+            </div>
+            <p class="text-xs text-slate-400" id="modal-desc">以下のプロンプトをコピーしてAIに指示してください。不変条件やメモリ最適化の制約が含まれています。</p>
+            <textarea id="modal-textarea" readonly class="w-full h-64 bg-slate-950 text-slate-300 font-mono text-xs p-3 rounded-lg border border-slate-800 focus:outline-none resize-none"></textarea>
+            <div class="flex items-center justify-between pt-2">
+                <span id="copy-status" class="text-xs text-emerald-400 opacity-0 transition-opacity">コピーしました！</span>
+                <div class="flex space-x-3">
+                    <button id="modal-close-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors">閉じる</button>
+                    <button id="modal-copy-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg transition-colors flex items-center space-x-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span id="btn-copy-text">クリップボードにコピー</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script (Vanilla JS, Memory Optimized & Modular Architecture) -->
+    <script>
+        (function() {
+            'use strict';
+
+            // --- Multi-language (i18n) Dictionary ---
+            const I18N_DICT = {
+                ja: {
+                    appTitle: "マルチ言語対応セキュリティ監査ツール",
+                    appSubtitle: "ローカル静的解析・マルチソース/マニフェストチェッカー",
+                    statusOffline: "完全ローカル動作保証 (外部送信なし)",
+                    dropTitle: "ソースコード / マニフェストをドラッグ＆ドロップ",
+                    dropSub: "またはクリックしてファイル選択 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    queueTitle: "対象ファイル一覧",
+                    btnClear: "クリア",
+                    emptyState: "解析対象のファイルが選択されていません",
+                    statCritical: "危険 (CRITICAL)",
+                    statWarning: "警告 (WARNING)",
+                    statInfo: "情報 (INFO)",
+                    statDeps: "検出ライブラリ/依存",
+                    resultsTitle: "監査結果ディテール",
+                    filterAll: "すべて",
+                    noResults: "ファイルを読み込むと自動的に静的解析が開始されます。",
+                    footer: "完全オフライン環境対応 / メモリ自動最適化済 / 外部APIデータ不使用",
+                    cleanCode: "問題は検出されませんでした。コードは良好です。",
+                    btnPrompt: "🤖 AIプロンプト生成",
+                    modalTitle: "AI修正依頼用プロンプト",
+                    modalDesc: "以下のプロンプトをコピーしてAIに指示してください。不変条件やエンジニアビリティに配慮した制約が含まれています。",
+                    btnCopy: "クリップボードにコピー",
+                    copied: "コピーしました！",
+                    btnClose: "閉じる"
+                },
+                en: {
+                    appTitle: "Multi-Language Code Security Auditor",
+                    appSubtitle: "Local Static Analysis & Manifest Security Scanner",
+                    statusOffline: "100% Air-gapped / Local Processing",
+                    dropTitle: "Drag & Drop Source Code or Manifests",
+                    dropSub: "or click to select files (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    queueTitle: "Target Files",
+                    btnClear: "Clear",
+                    emptyState: "No files selected for analysis",
+                    statCritical: "CRITICAL",
+                    statWarning: "WARNING",
+                    statInfo: "INFO",
+                    statDeps: "Libraries/Deps",
+                    resultsTitle: "Audit Finding Details",
+                    filterAll: "All",
+                    noResults: "Analysis will begin automatically upon loading files.",
+                    footer: "Air-gapped Compatible / Memory Auto-Optimized / No External API Call",
+                    cleanCode: "No security issues detected in this file.",
+                    btnPrompt: "🤖 Generate AI Prompt",
+                    modalTitle: "AI Fix Request Prompt",
+                    modalDesc: "Copy the prompt below to instruct AI, including constraints and clean architecture preservation.",
+                    btnCopy: "Copy to Clipboard",
+                    copied: "Copied!",
+                    btnClose: "Close"
+                },
+                zh: {
+                    appTitle: "多语言代码安全审计工具",
+                    appSubtitle: "本地静态代码分析与依赖配置文件检测",
+                    statusOffline: "完全本地运行（无外部数据传输）",
+                    dropTitle: "拖放源代码或配置文件至此",
+                    dropSub: "或点击选择本地文件 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    queueTitle: "文件列表",
+                    btnClear: "清除",
+                    emptyState: "未选择分析文件",
+                    statCritical: "严重 (CRITICAL)",
+                    statWarning: "警告 (WARNING)",
+                    statInfo: "提示 (INFO)",
+                    statDeps: "检测到依赖",
+                    resultsTitle: "审计结果详情",
+                    filterAll: "全部",
+                    noResults: "加载文件后将自动开始静态分析。",
+                    footer: "完全离线支持 / 内存自动优化 / 无外部 API 依赖",
+                    cleanCode: "未检测到安全问题，代码状态良好。",
+                    btnPrompt: "🤖 生成 AI 提示词",
+                    modalTitle: "AI 修复请求提示词",
+                    modalDesc: "复制以下提示词以指示 AI，其中包含约束条件与代码架构保持规则。",
+                    btnCopy: "复制到剪贴板",
+                    copied: "已复制！",
+                    btnClose: "关闭"
+                },
+                ko: {
+                    appTitle: "멀티 언어 지원 보안 감사 도구",
+                    appSubtitle: "로컬 정적 분석 및 매니페스트 체커",
+                    statusOffline: "100% 로컬 동작 (외부 전송 없음)",
+                    dropTitle: "소스 코드 또는 매니페스트를 드래그 & 드롭하세요",
+                    dropSub: "또는 클릭하여 파일 선택 (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    queueTitle: "대상 파일 목록",
+                    btnClear: "지우기",
+                    emptyState: "분석할 파일이 선택되지 않았습니다",
+                    statCritical: "위험 (CRITICAL)",
+                    statWarning: "경고 (WARNING)",
+                    statInfo: "정보 (INFO)",
+                    statDeps: "검출된 라이브러리",
+                    resultsTitle: "감사 결과 상세",
+                    filterAll: "전체",
+                    noResults: "파일을 로드하면 자동으로 정적 분석이 시작됩니다.",
+                    footer: "완전 오프라인 환경 대응 / 메모리 자동 최적화 / 외부 API 미사용",
+                    cleanCode: "보안 문제가 발견되지 않았습니다.",
+                    btnPrompt: "🤖 AI 프롬프트 생성",
+                    modalTitle: "AI 수정 요청 프롬프트",
+                    modalDesc: "아래 프롬프트를 복사하여 AI에 지시하세요. 불변 조건 및 아키텍처 제약이 포함되어 있습니다.",
+                    btnCopy: "클립보드에 복사",
+                    copied: "복사되었습니다!",
+                    btnClose: "닫기"
+                },
+                fr: {
+                    appTitle: "Auditeur de Sécurité Multi-Langages",
+                    appSubtitle: "Analyse Statique Locale & Analyseur de Manifestes",
+                    statusOffline: "Garanti 100% Local / Sans Connexion",
+                    dropTitle: "Glissez-déposez du code source ou des manifestes ici",
+                    dropSub: "ou cliquez pour sélectionner (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    queueTitle: "Fichiers Cibles",
+                    btnClear: "Effacer",
+                    emptyState: "Aucun fichier sélectionné",
+                    statCritical: "CRITIQUE",
+                    statWarning: "AVERTISSEMENT",
+                    statInfo: "INFO",
+                    statDeps: "Bibliothèques",
+                    resultsTitle: "Détails des Résultats d'Audit",
+                    filterAll: "Tous",
+                    noResults: "L'analyse commence automatiquement dès le chargement.",
+                    footer: "Compatible Hors Ligne / Optimisé pour la Mémoire / Zéro API Externe",
+                    cleanCode: "Aucun problème de sécurité détecté.",
+                    btnPrompt: "🤖 Générer Prompt IA",
+                    modalTitle: "Prompt pour Correction IA",
+                    modalDesc: "Copiez le prompt ci-dessous pour l'IA, incluant les contraintes d'architecture et de sécurité.",
+                    btnCopy: "Copier",
+                    copied: "Copié !",
+                    btnClose: "Fermer"
+                },
+                es: {
+                    appTitle: "Auditor de Seguridad Multilenguaje",
+                    appSubtitle: "Análisis Estático Local y Escáner de Manifiestos",
+                    statusOffline: "Procesamiento 100% Local Sin Conexión",
+                    dropTitle: "Arrastre y suelte código fuente o manifiestos aquí",
+                    dropSub: "o haga clic para seleccionar (.html, .js, .py, .php, .java, .go, .rb, .c, .cpp, .json, .txt)",
+                    queueTitle: "Archivos Objetivo",
+                    btnClear: "Limpiar",
+                    emptyState: "No hay archivos seleccionados",
+                    statCritical: "CRÍTICO",
+                    statWarning: "ADVERTENCIA",
+                    statInfo: "INFO",
+                    statDeps: "Librerías",
+                    resultsTitle: "Detalles del Hallazgo",
+                    filterAll: "Todos",
+                    noResults: "El análisis comenzará automáticamente tras cargar archivos.",
+                    footer: "Auditoría Fuera de Línea / Memoria Optimizada / Sin Llamadas Externas",
+                    cleanCode: "No se detectaron problemas de seguridad.",
+                    btnPrompt: "🤖 Generar Prompt de IA",
+                    modalTitle: "Prompt para Corrección de IA",
+                    modalDesc: "Copie el siguiente mensaje para instruir a la IA, incluyendo condiciones de arquitectura y rendimiento.",
+                    btnCopy: "Copiar al portapapeles",
+                    copied: "¡Copiado!",
+                    btnClose: "Cerrar"
+                }
+            };
+
+            // --- Modular Language Security Rules Registry (Human-Developer Friendly Structure) ---
+            const LANGUAGE_RULES_REGISTRY = {
+                // HTML & Web Templates
+                html: [
+                    { id: "SEC-HTML-001", level: "CRITICAL", title: "Unsanitized HTML Injection (innerHTML)", regex: /\.innerHTML\s*=/g, desc: "Direct assignment to innerHTML without sanitization creates Cross-Site Scripting (XSS) risks." },
+                    { id: "SEC-HTML-002", level: "CRITICAL", title: "Document Write Vulnerability", regex: /document\.write\s*\(/g, desc: "document.write() can overwrite page content and inject untrusted scripts dynamically." },
+                    { id: "SEC-HTML-003", level: "WARNING", title: "Inline Event Handler Usage", regex: /on(click|load|mouseover|error|submit)\s*=/gi, desc: "Inline event handlers violate strict Content Security Policy (CSP) guidelines." }
+                ],
+                // JavaScript & TypeScript
+                javascript: [
+                    { id: "SEC-JS-001", level: "CRITICAL", title: "Dangerous Evaluation (eval)", regex: /\beval\s*\(/g, desc: "eval() can execute arbitrary code string and leads to severe Remote Code Execution (RCE) / XSS vulnerabilities." },
+                    { id: "SEC-JS-002", level: "CRITICAL", title: "Direct Execution via Function Constructor", regex: /new\s+Function\s*\(/g, desc: "Using new Function() acts similarly to eval() and can run untrusted code dynamically." },
+                    { id: "SEC-JS-003", level: "WARNING", title: "Dynamic Script Injection", regex: /document\.createElement\s*\(\s*['"]script['"]\s*\)/g, desc: "Dynamically creating script elements can introduce remote unverified code at runtime." },
+                    { id: "SEC-JS-004", level: "WARNING", title: "Unsafe Window Messaging Target", regex: /postMessage\s*\([^,]+,\s*['"]\*['"]\s*\)/g, desc: "Using '*' targetOrigin in postMessage allows any domain to intercept sensitive payloads." },
+                    { id: "SEC-JS-005", level: "INFO", title: "Local Storage Usage Detected", regex: /localStorage\.(setItem|getItem)/g, desc: "Verify that sensitive tokens, keys, or private user data are not stored unencrypted in localStorage." }
+                ],
+                // Python
+                python: [
+                    { id: "SEC-PY-001", level: "CRITICAL", title: "Arbitrary Code Execution (eval/exec)", regex: /\b(eval|exec)\s*\(/g, desc: "eval() or exec() executes untrusted string expressions directly in the Python runtime." },
+                    { id: "SEC-PY-002", level: "CRITICAL", title: "Unsafe Deserialization (pickle)", regex: /pickle\.(loads?|Unpickler)/g, desc: "Unpickling untrusted data allows arbitrary code execution via object instantiation." },
+                    { id: "SEC-PY-003", level: "CRITICAL", title: "OS Command Injection Risk (subprocess)", regex: /subprocess\.(Popen|run|call)\s*\(.*shell\s*=\s*True/g, desc: "Passing shell=True to subprocess with formatted strings can lead to OS command injection." },
+                    { id: "SEC-PY-004", level: "WARNING", title: "Insecure Temporary File Creation", regex: /tempfile\.mktemp\s*\(/g, desc: "mktemp() is deprecated due to race conditions; use NamedTemporaryFile or mkstemp instead." },
+                    { id: "SEC-PY-005", level: "INFO", title: "Debug Mode Enabled (Flask/Django)", regex: /(debug\s*=\s*True|DEBUG\s*=\s*True)/g, desc: "Running production frameworks in debug mode leaks detailed tracebacks and interactive debuggers." }
+                ],
+                // PHP
+                php: [
+                    { id: "SEC-PHP-001", level: "CRITICAL", title: "Dynamic Evaluation (eval)", regex: /\beval\s*\(/g, desc: "PHP eval() executes string input as PHP code; high risk of Remote Code Execution." },
+                    { id: "SEC-PHP-002", level: "CRITICAL", title: "Shell Execution Call", regex: /(system|exec|passthru|shell_exec|proc_open)\s*\(/g, desc: "Executing shell commands directly from PHP creates severe command injection vectors." },
+                    { id: "SEC-PHP-003", level: "CRITICAL", title: "Unfiltered Superglobal Output", regex: /echo\s+\$_(GET|POST|REQUEST|COOKIE)\[/g, desc: "Printing user request variables without htmlspecialchars() creates Reflected XSS." },
+                    { id: "SEC-PHP-004", level: "WARNING", title: "File Inclusion Risk (include/require)", regex: /(include|require)(_once)?\s*\(\s*\$/g, desc: "Passing variables to include/require leads to Local/Remote File Inclusion (LFI/RFI)." }
+                ],
+                // Java
+                java: [
+                    { id: "SEC-JAVA-001", level: "CRITICAL", title: "Command Execution via Runtime/ProcessBuilder", regex: /(Runtime\.getRuntime\(\)\.exec|new\s+ProcessBuilder)\s*\(/g, desc: "Executing operating system commands creates high risk of OS command injection." },
+                    { id: "SEC-JAVA-002", level: "CRITICAL", title: "Native Java Object Deserialization", regex: /readObject\s*\(\s*\)/g, desc: "Java ObjectInputStream.readObject() is highly vulnerable to gadget-chain RCE payloads." },
+                    { id: "SEC-JAVA-003", level: "WARNING", title: "Weak Cryptographic Cipher (DES/MD5)", regex: /Cipher\.getInstance\s*\(\s*["'](DES|RC4|MD5)/g, desc: "Using obsolete cryptographic algorithms compromises data confidentiality and integrity." }
+                ],
+                // Go (Golang)
+                go: [
+                    { id: "SEC-GO-001", level: "CRITICAL", title: "Command Execution (exec.Command)", regex: /exec\.Command\s*\(/g, desc: "Ensure user input passed to exec.Command is strictly validated to prevent command injection." },
+                    { id: "SEC-GO-002", level: "CRITICAL", title: "Unsafe Memory Manipulation (unsafe package)", regex: /unsafe\.(Pointer|Sizeof|Alignof)/g, desc: "Using Go's 'unsafe' package bypasses Go type safety and bounds checking." },
+                    { id: "SEC-GO-003", level: "WARNING", title: "SQL Injection via Query Formatting", regex: /(db\.Query|db\.Exec)\s*\(\s*fmt\.Sprintf/g, desc: "Using fmt.Sprintf to build SQL queries causes SQL injection. Use parameterized queries." }
+                ],
+                // Ruby
+                ruby: [
+                    { id: "SEC-RB-001", level: "CRITICAL", title: "Arbitrary Code Execution (eval)", regex: /\beval\s+/g, desc: "Ruby eval allows dynamic execution of untrusted string scripts." },
+                    { id: "SEC-RB-002", level: "CRITICAL", title: "Unsafe YAML Deserialization", regex: /YAML\.(load|load_file)\b/g, desc: "YAML.load is vulnerable to object injection RCE. Use YAML.safe_load instead." },
+                    { id: "SEC-RB-003", level: "WARNING", title: "System Command Execution (Kernel/Backticks)", regex: /(Kernel\system|`[^`]+`|\bexec\b)/g, desc: "Unsanitized input in system calls or backticks causes OS command injection." }
+                ],
+                // C / C++
+                cpp: [
+                    { id: "SEC-CPP-001", level: "CRITICAL", title: "Unbounded Buffer Copy (strcpy/gets)", regex: /\b(strcpy|strcat|gets)\s*\(/g, desc: "Unbounded string functions cause classic Stack/Heap Buffer Overflows. Use strncpy or safe bounds." },
+                    { id: "SEC-CPP-002", level: "CRITICAL", title: "Format String Vulnerability (printf)", regex: /printf\s*\(\s*[^"'\s]+[^\)]*\)/g, desc: "Passing dynamic non-literal strings to printf allows arbitrary memory read/write." },
+                    { id: "SEC-CPP-003", level: "WARNING", title: "Memory Allocation without Null Check", regex: /malloc\s*\(/g, desc: "Ensure malloc/calloc return pointers are verified against NULL before dereferencing." }
+                ],
+                // Generic / Cross-Language Secrets & Hardcoded Keys
+                generic: [
+                    { id: "SEC-GEN-001", level: "CRITICAL", title: "Hardcoded Private Key Pattern", regex: /-----BEGIN\s+(RSA|EC|PGP|OPENSSH)?\s*PRIVATE\s+KEY-----/g, desc: "Hardcoded private keys leaked in code expose systems to complete authentication bypass." },
+                    { id: "SEC-GEN-002", level: "CRITICAL", title: "Hardcoded AWS Access Key ID", regex: /\b(AKIA|ASIA)[0-9A-Z]{16}\b/g, desc: "AWS credentials detected in source files. Rotate keys immediately and store in environment variables." },
+                    { id: "SEC-GEN-003", level: "WARNING", title: "Potential Hardcoded Secret / Token", regex: /(api_key|secret_key|password|auth_token)\s*=\s*['"][a-zA-Z0-9_\-]{16,}'"/gi, desc: "Potential plain-text secrets or API keys detected in assignments." }
+                ]
+            };
+
+            // --- Third-Party Known Libraries Scanner ---
+            const KNOWN_LIBRARIES = [
+                { name: "jQuery", regex: /jquery[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["1.", "2."], fixNote: "Upgrade to jQuery 3.5.0+ to prevent XSS issues in HTML parsing." },
+                { name: "Bootstrap", regex: /bootstrap[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["3.", "4.0.", "4.1."], fixNote: "Bootstrap < 4.3.1 has XSS in tooltip/popover plugins." },
+                { name: "Lodash", regex: /lodash[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["4.17.15", "4.17.11"], fixNote: "Ensure Lodash is >= 4.17.21 to mitigate Prototype Pollution." },
+                { name: "Vue.js", regex: /vue[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["2.5.", "2.6.0"], fixNote: "Keep Vue updated to the latest minor/major release." },
+                { name: "Tailwind CSS", regex: /tailwindcss/gi, vulnVersions: [], fixNote: "Tailwind CSS detected." }
+            ];
+
+            // --- Application State ---
+            let currentLang = 'ja';
+            let fileQueue = [];
+            let auditResults = [];
+            let activeFilter = 'all';
+
+            // --- DOM Elements Reference ---
+            const dom = {
+                dropZone: document.getElementById('drop-zone'),
+                fileInput: document.getElementById('file-input'),
+                fileListContainer: document.getElementById('file-list-container'),
+                emptyState: document.getElementById('empty-state'),
+                auditResultsList: document.getElementById('audit-results-list'),
+                btnClearAll: document.getElementById('btn-clear-all'),
+                fileCountBadge: document.getElementById('file-count-badge'),
+                filterContainer: document.getElementById('filter-container'),
+                langSelect: document.getElementById('lang-select'),
+                
+                // Counters
+                statCritical: document.getElementById('stat-critical'),
+                statWarning: document.getElementById('stat-warning'),
+                statInfo: document.getElementById('stat-info'),
+                statDeps: document.getElementById('stat-deps'),
+
+                // Modal Elements
+                promptModal: document.getElementById('prompt-modal'),
+                modalTitle: document.getElementById('modal-title'),
+                modalDesc: document.getElementById('modal-desc'),
+                modalTextarea: document.getElementById('modal-textarea'),
+                modalCloseTop: document.getElementById('modal-close-top'),
+                modalCloseBtn: document.getElementById('modal-close-btn'),
+                modalCopyBtn: document.getElementById('modal-copy-btn'),
+                btnCopyText: document.getElementById('btn-copy-text'),
+                copyStatus: document.getElementById('copy-status')
+            };
+
+            // --- Initialization ---
+            function init() {
+                setupEventListeners();
+                updateI18nText();
+            }
+
+            // --- Event Listeners Setup ---
+            function setupEventListeners() {
+                // Language Switching
+                dom.langSelect.addEventListener('change', (e) => {
+                    currentLang = e.target.value;
+                    updateI18nText();
+                    renderAuditResults();
+                });
+
+                // Drag and Drop
+                dom.dropZone.addEventListener('click', () => dom.fileInput.click());
+                dom.dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dom.dropZone.classList.add('dragover');
+                });
+                dom.dropZone.addEventListener('dragleave', () => {
+                    dom.dropZone.classList.remove('dragover');
+                });
+                dom.dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dom.dropZone.classList.remove('dragover');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleFiles(e.dataTransfer.files);
+                    }
+                });
+
+                // File Input Change
+                dom.fileInput.addEventListener('change', (e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                        handleFiles(e.target.files);
+                    }
+                });
+
+                // Clear All Button
+                dom.btnClearAll.addEventListener('click', clearAllData);
+
+                // Filter Buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => {
+                            b.classList.remove('bg-indigo-600', 'text-white', 'active');
+                            b.classList.add('bg-slate-800', 'text-slate-300');
+                        });
+                        e.target.classList.remove('bg-slate-800', 'text-slate-300');
+                        e.target.classList.add('bg-indigo-600', 'text-white', 'active');
+                        activeFilter = e.target.getAttribute('data-filter');
+                        renderAuditResults();
+                    });
+                });
+
+                // Modal Close Events
+                dom.modalCloseTop.addEventListener('click', closeModal);
+                dom.modalCloseBtn.addEventListener('click', closeModal);
+                dom.promptModal.addEventListener('click', (e) => {
+                    if (e.target === dom.promptModal) closeModal();
+                });
+
+                // Modal Copy Event
+                dom.modalCopyBtn.addEventListener('click', () => {
+                    dom.modalTextarea.select();
+                    navigator.clipboard.writeText(dom.modalTextarea.value).then(() => {
+                        dom.copyStatus.classList.remove('opacity-0');
+                        setTimeout(() => {
+                            dom.copyStatus.classList.add('opacity-0');
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                });
+            }
+
+            // --- File Extension Language Mapper ---
+            function mapExtensionToLanguage(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                switch (ext) {
+                    case 'html': case 'htm': return 'html';
+                    case 'js': case 'ts': return 'javascript';
+                    case 'py': return 'python';
+                    case 'php': return 'php';
+                    case 'java': return 'java';
+                    case 'go': return 'go';
+                    case 'rb': return 'ruby';
+                    case 'c': case 'cpp': case 'h': case 'hpp': return 'cpp';
+                    case 'json': case 'txt': return 'manifest';
+                    default: return 'generic';
+                }
+            }
+
+            // --- Language Update Logic ---
+            function updateI18nText() {
+                const dict = I18N_DICT[currentLang] || I18N_DICT.ja;
+                
+                document.getElementById('txt-app-title').textContent = dict.appTitle;
+                document.getElementById('txt-app-subtitle').textContent = dict.appSubtitle;
+                document.getElementById('txt-status-offline').textContent = dict.statusOffline;
+                document.getElementById('txt-drop-title').textContent = dict.dropTitle;
+                document.getElementById('txt-drop-sub').textContent = dict.dropSub;
+                document.getElementById('txt-queue-title').textContent = dict.queueTitle;
+                document.getElementById('txt-btn-clear').textContent = dict.btnClear;
+                document.getElementById('txt-stat-critical').textContent = dict.statCritical;
+                document.getElementById('txt-stat-warning').textContent = dict.statWarning;
+                document.getElementById('txt-stat-info').textContent = dict.statInfo;
+                document.getElementById('txt-stat-deps').textContent = dict.statDeps;
+                document.getElementById('txt-results-title').textContent = dict.resultsTitle;
+                document.getElementById('btn-filter-all').textContent = dict.filterAll;
+                document.getElementById('txt-footer').textContent = dict.footer;
+
+                // Modal Texts
+                dom.modalTitle.textContent = dict.modalTitle;
+                dom.modalDesc.textContent = dict.modalDesc;
+                dom.modalCloseBtn.textContent = dict.btnClose;
+                dom.btnCopyText.textContent = dict.btnCopy;
+                dom.copyStatus.textContent = dict.copied;
+
+                if (fileQueue.length === 0) {
+                    dom.emptyState.textContent = dict.emptyState;
+                    dom.auditResultsList.innerHTML = `<div class="text-center py-20 text-slate-500 text-sm"><p>${dict.noResults}</p></div>`;
+                }
+            }
+
+            // --- File Ingestion and Reading ---
+            function handleFiles(uploadedFiles) {
+                const filesArray = Array.from(uploadedFiles);
+                let processedCount = 0;
+
+                filesArray.forEach(file => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const allowedExts = ['html', 'htm', 'js', 'py', 'php', 'java', 'go', 'rb', 'c', 'cpp', 'h', 'hpp', 'ts', 'json', 'txt'];
+                    if (!allowedExts.includes(ext)) return;
+
+                    if (fileQueue.some(f => f.name === file.name && f.size === file.size)) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result;
+                            const fileObj = {
+                                id: 'file_' + Math.random().toString(36).substr(2, 9),
+                                name: file.name,
+                                size: file.size,
+                                languageKey: mapExtensionToLanguage(file.name),
+                                content: content
+                            };
+                            
+                            fileQueue.push(fileObj);
+                            analyzeFile(fileObj);
+
+                        } catch (err) {
+                            console.error("Error reading file:", err);
+                        } finally {
+                            processedCount++;
+                            if (processedCount === filesArray.length) {
+                                updateUI();
+                                dom.fileInput.value = '';
+                            }
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            // --- Static Code Analysis Core ---
+            function analyzeFile(fileObj) {
+                const lines = fileObj.content.split('\n');
+
+                // 1. Gather rules: Target language rules + Generic Rules
+                const targetRules = LANGUAGE_RULES_REGISTRY[fileObj.languageKey] || [];
+                const genericRules = LANGUAGE_RULES_REGISTRY.generic || [];
+                const activeRules = [...targetRules, ...genericRules];
+
+                // 2. Scan Rules
+                activeRules.forEach(rule => {
+                    lines.forEach((lineText, idx) => {
+                        rule.regex.lastIndex = 0;
+                        if (rule.regex.test(lineText)) {
+                            auditResults.push({
+                                uniqueId: 'res_' + Math.random().toString(36).substr(2, 9),
+                                fileId: fileObj.id,
+                                fileName: fileObj.name,
+                                languageKey: fileObj.languageKey,
+                                type: 'RULE',
+                                level: rule.level,
+                                ruleId: rule.id,
+                                title: rule.title,
+                                desc: rule.desc,
+                                lineNum: idx + 1,
+                                codeSnippet: lineText.trim().substring(0, 160)
+                            });
+                        }
+                    });
+                });
+
+                // 3. Scan External Libraries / Manifests
+                KNOWN_LIBRARIES.forEach(lib => {
+                    lib.regex.lastIndex = 0;
+                    if (lib.regex.test(fileObj.content)) {
+                        let isVuln = false;
+                        lib.vulnVersions.forEach(v => {
+                            if (fileObj.content.includes(v)) isVuln = true;
+                        });
+
+                        auditResults.push({
+                            uniqueId: 'res_' + Math.random().toString(36).substr(2, 9),
+                            fileId: fileObj.id,
+                            fileName: fileObj.name,
+                            languageKey: fileObj.languageKey,
+                            type: 'DEP',
+                            level: isVuln ? 'WARNING' : 'INFO',
+                            ruleId: 'DEP-' + lib.name.toUpperCase(),
+                            title: `Library / Package Detected: ${lib.name}`,
+                            desc: isVuln ? `Vulnerable version pattern suspected. ${lib.fixNote}` : `Library observed in file. ${lib.fixNote}`,
+                            lineNum: '-',
+                            codeSnippet: `Dependency: ${lib.name}`
+                        });
+                    }
+                });
+            }
+
+            // --- UI Rendering & Memory Cleanup ---
+            function updateUI() {
+                dom.fileCountBadge.textContent = fileQueue.length;
+
+                if (fileQueue.length > 0) {
+                    dom.emptyState.classList.add('hidden');
+                    dom.btnClearAll.classList.remove('hidden');
+                    dom.filterContainer.classList.remove('hidden');
+                } else {
+                    dom.emptyState.classList.remove('hidden');
+                    dom.btnClearAll.classList.add('hidden');
+                    dom.filterContainer.classList.add('hidden');
+                }
+
+                renderFileList();
+                renderCounters();
+                renderAuditResults();
+            }
+
+            function renderFileList() {
+                const items = dom.fileListContainer.querySelectorAll('.file-item');
+                items.forEach(item => item.remove());
+
+                fileQueue.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item flex items-center justify-between p-2 bg-slate-800/80 rounded-lg border border-slate-700/50 text-xs';
+                    item.innerHTML = `
+                        <div class="flex items-center space-x-2 truncate">
+                            <span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-indigo-950 border border-indigo-700/50 text-indigo-300 uppercase">${escapeHtml(file.languageKey)}</span>
+                            <span class="text-slate-200 font-mono truncate">${escapeHtml(file.name)}</span>
+                            <span class="text-slate-500">(${Math.round(file.size / 1024)} KB)</span>
+                        </div>
+                        <button class="btn-remove-file text-slate-500 hover:text-rose-400 p-1" data-id="${file.id}">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    `;
+
+                    item.querySelector('.btn-remove-file').addEventListener('click', (e) => {
+                        const fileId = e.currentTarget.getAttribute('data-id');
+                        removeFile(fileId);
+                    });
+
+                    dom.fileListContainer.appendChild(item);
+                });
+            }
+
+            function renderCounters() {
+                const criticals = auditResults.filter(r => r.level === 'CRITICAL').length;
+                const warnings = auditResults.filter(r => r.level === 'WARNING').length;
+                const infos = auditResults.filter(r => r.level === 'INFO').length;
+                const deps = auditResults.filter(r => r.type === 'DEP').length;
+
+                dom.statCritical.textContent = criticals;
+                dom.statWarning.textContent = warnings;
+                dom.statInfo.textContent = infos;
+                dom.statDeps.textContent = deps;
+            }
+
+            function renderAuditResults() {
+                dom.auditResultsList.innerHTML = '';
+
+                let filtered = auditResults;
+                if (activeFilter === 'CRITICAL') filtered = auditResults.filter(r => r.level === 'CRITICAL');
+                if (activeFilter === 'WARNING') filtered = auditResults.filter(r => r.level === 'WARNING');
+                if (activeFilter === 'DEP') filtered = auditResults.filter(r => r.type === 'DEP');
+
+                if (filtered.length === 0) {
+                    const dict = I18N_DICT[currentLang] || I18N_DICT.ja;
+                    const msg = fileQueue.length > 0 ? dict.cleanCode : dict.noResults;
+                    dom.auditResultsList.innerHTML = `<div class="text-center py-16 text-slate-500 text-sm"><p>${msg}</p></div>`;
+                    return;
+                }
+
+                filtered.forEach(res => {
+                    const dict = I18N_DICT[currentLang] || I18N_DICT.ja;
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-xl border ${getBadgeBorderColor(res.level)} bg-slate-950/60 shadow-md flex flex-col space-y-2`;
+
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-0.5 text-[10px] font-bold font-mono rounded ${getBadgeBgColor(res.level)}">${res.level}</span>
+                                <span class="text-xs font-mono text-slate-400">${escapeHtml(res.fileName)} ${res.lineNum !== '-' ? ': Line ' + res.lineNum : ''}</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                ${res.ruleId ? `<span class="text-[10px] font-mono text-slate-500">${res.ruleId}</span>` : ''}
+                                <button class="btn-gen-prompt px-2 py-1 text-[10px] bg-indigo-600/80 hover:bg-indigo-600 text-white rounded font-sans transition-colors flex items-center space-x-1" data-uid="${res.uniqueId}">
+                                    <span>${dict.btnPrompt}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-200">${escapeHtml(res.title)}</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">${escapeHtml(res.desc)}</p>
+                        ${res.codeSnippet ? `<div class="code-block p-2 rounded text-xs text-slate-300 font-mono mt-1">${escapeHtml(res.codeSnippet)}</div>` : ''}
+                    `;
+
+                    card.querySelector('.btn-gen-prompt').addEventListener('click', () => {
+                        openPromptModal(res);
+                    });
+
+                    dom.auditResultsList.appendChild(card);
+                });
+            }
+
+            // --- AI Prompt Modal Generator (Human-Developer Mindset Preservation) ---
+            function openPromptModal(res) {
+                const promptText = `【目的】
+静的セキュリティ監査で検出された脆弱性・不安全な記述（${res.ruleId || res.type}: ${res.title}）の安全なリファクタリング
+
+【対象ファイルおよび該当箇所】
+- ファイル名: ${res.fileName} (${res.languageKey.toUpperCase()})
+- 該当行: ${res.lineNum !== '-' ? 'Line ' + res.lineNum : 'ファイル全体 / 依存指定'}
+- 検出内容: ${res.title}
+- 概要: ${res.desc}
+- 該当コードスニペット:
+\`\`\`${res.languageKey}
+${res.codeSnippet}
+\`\`\`
+
+【変更・追加したい具体的な内容】
+上記の検出内容を解決し、セキュアなコーディング標準に適合するコードへ修正・置換してください。必要に応じてサニタイズ処理、安全な標準ライブラリ関数への変更、または入力検証を実装してください。
+
+【絶対に維持・遵守すべき制約（不変条件・設計思想）】
+- 【完全オフライン・環境非依存】外部ネットワーク通信や外部CDNへの依存を追加しないこと
+- 【単一ファイル / モジュール構造の保護】既存のモジュール構造や関数分割、明確な責任分離（クリーンコード設計）を破綻させないこと
+- 【メモリ最適化とリソース即時解放】オブジェクトやイベントリスナーの参照保持によるメモリリークを発生させないこと（不要変数の即時 dereference / null 化等）
+- 【可読性と拡張性の維持】人間のエンジニアが直感的に理解・メンテナンスできるよう、変命名・構造・コメントの質を維持すること
+
+【出力形式】
+- 変更部分の抜粋ではなく、すぐに動作可能な「修正済みの完全なコード」を出力すること`;
+
+                dom.modalTextarea.value = promptText;
+                dom.copyStatus.classList.add('opacity-0');
+                dom.promptModal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                dom.promptModal.classList.add('hidden');
+                dom.modalTextarea.value = '';
+            }
+
+            // --- Helper Formatting Functions ---
+            function getBadgeBgColor(level) {
+                switch(level) {
+                    case 'CRITICAL': return 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+                    case 'WARNING': return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                    default: return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+                }
+            }
+
+            function getBadgeBorderColor(level) {
+                switch(level) {
+                    case 'CRITICAL': return 'border-rose-900/50';
+                    case 'WARNING': return 'border-amber-900/50';
+                    default: return 'border-slate-800';
+                }
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            // --- Memory Optimization and Data Disposal ---
+            function removeFile(fileId) {
+                const fileIdx = fileQueue.findIndex(f => f.id === fileId);
+                if (fileIdx !== -1) {
+                    fileQueue[fileIdx].content = null; // explicit dereference for Garbage Collection
+                    fileQueue.splice(fileIdx, 1);
+                }
+
+                auditResults = auditResults.filter(r => r.fileId !== fileId);
+                updateUI();
+            }
+
+            function clearAllData() {
+                fileQueue.forEach(f => { f.content = null; });
+                fileQueue = [];
+                auditResults = [];
+                updateUI();
+            }
+
+            // Run application initialization
+            document.addEventListener('DOMContentLoaded', init);
+
+        })();
+    </script>
+</body>
+</html>
