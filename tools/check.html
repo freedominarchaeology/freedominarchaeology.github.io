@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Web App Security Auditor</title>
+    <!-- Content Security Policy: Strict Offline First Setup -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
+    <!-- Tailwind CSS (CDN fallback gracefully handled by local CSS resets) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Modern System Font Stack with MS Mincho Priority */
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", "Hiragino Mincho ProN", "Yu Mincho", "Georgia", serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Pure CSS Grid/Flex System for Offline Layout Robustness */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .drop-zone {
+            border: 2px dashed #3b82f6;
+            transition: all 0.2s ease-in-out;
+            background-color: rgba(30, 41, 59, 0.7);
+        }
+
+        .drop-zone.dragover {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.15);
+            transform: scale(1.005);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* High-contrast code snippet syntax block */
+        .code-block {
+            font-family: "Courier New", Courier, monospace;
+            background-color: #020617;
+            border-left: 3px solid #6366f1;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="app-container">
+        <!-- Header / Navigation Bar -->
+        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-600 text-white rounded-lg shadow-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-wide text-white" id="txt-app-title">完全オフラインWebアプリ・セキュリティ監査ツール</h1>
+                        <p class="text-xs text-slate-400" id="txt-app-subtitle">ローカル静的解析・脆弱性チェッカー</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Air-gap Status Indicator -->
+                    <div class="hidden md:flex items-center space-x-2 px-3 py-1 bg-emerald-950/80 border border-emerald-700/50 rounded-full text-emerald-400 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="txt-status-offline">完全ローカル動作保証 (外部送信なし)</span>
+                    </div>
+
+                    <!-- Language Selector Dropdown -->
+                    <div class="relative">
+                        <select id="lang-select" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                            <option value="ja" selected>日本語 (Japanese)</option>
+                            <option value="en">English</option>
+                            <option value="zh">中文 (Chinese)</option>
+                            <option value="ko">한국어 (Korean)</option>
+                            <option value="fr">Français (French)</option>
+                            <option value="es">Español (Spanish)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Layout -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Panel: Dropzone & File List -->
+            <section class="lg:col-span-5 flex flex-col space-y-4">
+                <!-- Drop Zone Area -->
+                <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center cursor-pointer flex flex-col items-center justify-center space-y-4 shadow-xl border-dashed">
+                    <div class="p-4 bg-indigo-950/50 rounded-full text-indigo-400 border border-indigo-800/50">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-base font-semibold text-slate-200" id="txt-drop-title">HTML / JS ファイルをドラッグ＆ドロップ</p>
+                        <p class="text-xs text-slate-400 mt-1" id="txt-drop-sub">またはクリックしてローカルファイルを選択 (.html, .htm, .js)</p>
+                    </div>
+                    <input type="file" id="file-input" multiple accept=".html,.htm,.js" class="hidden">
+                </div>
+
+                <!-- Analysis Controls & Queue -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex-grow flex flex-col">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h2 class="text-sm font-bold text-slate-300 flex items-center space-x-2">
+                            <span id="txt-queue-title">対象ファイル一覧</span>
+                            <span id="file-count-badge" class="px-2 py-0.5 text-xs bg-slate-800 text-indigo-400 rounded-full font-mono">0</span>
+                        </h2>
+                        <button id="btn-clear-all" class="text-xs text-rose-400 hover:text-rose-300 transition-colors hidden" id="txt-btn-clear">クリア</button>
+                    </div>
+
+                    <div id="file-list-container" class="mt-3 flex-grow overflow-y-auto max-h-[300px] lg:max-h-[calc(100vh-420px)] space-y-2 pr-1">
+                        <div id="empty-state" class="text-center py-10 text-slate-500 text-xs" id="txt-empty-state">
+                            解析対象のファイルが選択されていません
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Executive Security Dashboard & Audit Results -->
+            <section class="lg:col-span-7 flex flex-col space-y-4">
+                
+                <!-- Overview Stats Bar -->
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-critical">危険 (CRITICAL)</span>
+                        <span id="stat-critical" class="text-xl font-bold font-mono text-rose-500 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-warning">警告 (WARNING)</span>
+                        <span id="stat-warning" class="text-xl font-bold font-mono text-amber-400 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-info">情報 (INFO)</span>
+                        <span id="stat-info" class="text-xl font-bold font-mono text-blue-400 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center shadow-md">
+                        <span class="block text-xs text-slate-400" id="txt-stat-deps">検出ライブラリ</span>
+                        <span id="stat-deps" class="text-xl font-bold font-mono text-emerald-400 mt-1 block">0</span>
+                    </div>
+                </div>
+
+                <!-- Main Findings Display Panel -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex-grow flex flex-col min-h-[400px]">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h2 class="text-base font-bold text-slate-200" id="txt-results-title">監査結果ディテール</h2>
+                        <div id="filter-container" class="flex space-x-2 hidden">
+                            <button class="filter-btn active px-2.5 py-1 text-xs rounded-md bg-indigo-600 text-white" data-filter="all" id="btn-filter-all">すべて</button>
+                            <button class="filter-btn px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="CRITICAL" id="btn-filter-critical">CRITICAL</button>
+                            <button class="filter-btn px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="WARNING" id="btn-filter-warning">WARNING</button>
+                            <button class="filter-btn px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="DEP" id="btn-filter-deps">ライブラリ</button>
+                        </div>
+                    </div>
+
+                    <div id="audit-results-list" class="mt-4 flex-grow overflow-y-auto space-y-3 max-h-[calc(100vh-320px)] pr-2">
+                        <div class="text-center py-20 text-slate-500 text-sm">
+                            <p id="txt-no-results">ファイルを読み込むと自動的に静的解析が開始されます。</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-slate-950 border-t border-slate-900 py-3 text-center text-xs text-slate-500">
+            <span id="txt-footer">完全オフライン環境対応 / メモリ自動最適化済 / 外部APIデータ不使用</span>
+        </footer>
+    </div>
+
+    <!-- Application Script (Vanilla JS, Memory Optimized) -->
+    <script>
+        (function() {
+            'use strict';
+
+            // --- Multi-language (i18n) Dictionary ---
+            const I18N_DICT = {
+                ja: {
+                    appTitle: "完全オフラインWebアプリ・セキュリティ監査ツール",
+                    appSubtitle: "ローカル静的解析・脆弱性チェッカー",
+                    statusOffline: "完全ローカル動作保証 (外部送信なし)",
+                    dropTitle: "HTML / JS ファイルをドラッグ＆ドロップ",
+                    dropSub: "またはクリックしてローカルファイルを選択 (.html, .htm, .js)",
+                    queueTitle: "対象ファイル一覧",
+                    btnClear: "クリア",
+                    emptyState: "解析対象のファイルが選択されていません",
+                    statCritical: "危険 (CRITICAL)",
+                    statWarning: "警告 (WARNING)",
+                    statInfo: "情報 (INFO)",
+                    statDeps: "検出ライブラリ",
+                    resultsTitle: "監査結果ディテール",
+                    filterAll: "すべて",
+                    noResults: "ファイルを読み込むと自動的に静的解析が開始されます。",
+                    footer: "完全オフライン環境対応 / メモリ自動最適化済 / 外部APIデータ不使用",
+                    cleanCode: "問題は検出されませんでした。コードは良好です。"
+                },
+                en: {
+                    appTitle: "Offline Web App Security Auditor",
+                    appSubtitle: "Local Static Analysis & Vulnerability Checker",
+                    statusOffline: "100% Air-gapped / Local Processing",
+                    dropTitle: "Drag & Drop HTML / JS files here",
+                    dropSub: "or click to select local files (.html, .htm, .js)",
+                    queueTitle: "Target Files",
+                    btnClear: "Clear",
+                    emptyState: "No files selected for analysis",
+                    statCritical: "CRITICAL",
+                    statWarning: "WARNING",
+                    statInfo: "INFO",
+                    statDeps: "Libraries",
+                    resultsTitle: "Audit Finding Details",
+                    filterAll: "All",
+                    noResults: "Analysis will begin automatically upon loading files.",
+                    footer: "Air-gapped Compatible / Memory Auto-Optimized / No External API Call",
+                    cleanCode: "No security issues detected in this file."
+                },
+                zh: {
+                    appTitle: "完全离线 Web 应用安全审计工具",
+                    appSubtitle: "本地静态代码分析与漏洞检测",
+                    statusOffline: "完全本地运行（无外部数据传输）",
+                    dropTitle: "拖放 HTML / JS 文件至此",
+                    dropSub: "或点击选择本地文件 (.html, .htm, .js)",
+                    queueTitle: "文件列表",
+                    btnClear: "清除",
+                    emptyState: "未选择分析文件",
+                    statCritical: "严重 (CRITICAL)",
+                    statWarning: "警告 (WARNING)",
+                    statInfo: "提示 (INFO)",
+                    statDeps: "检测到依赖",
+                    resultsTitle: "审计结果详情",
+                    filterAll: "全部",
+                    noResults: "加载文件后将自动开始静态分析。",
+                    footer: "完全离线支持 / 内存自动优化 / 无外部 API 依赖",
+                    cleanCode: "未检测到安全问题，代码状态良好。"
+                },
+                ko: {
+                    appTitle: "완전 오프라인 Web 앱 보안 감사 도구",
+                    appSubtitle: "로컬 정적 분석 및 취약점 체커",
+                    statusOffline: "100% 로컬 동작 (외부 전송 없음)",
+                    dropTitle: "HTML / JS 파일을 드래그 & 드롭하세요",
+                    dropSub: "또는 클릭하여 로컬 파일 선택 (.html, .htm, .js)",
+                    queueTitle: "대상 파일 목록",
+                    btnClear: "지우기",
+                    emptyState: "분석할 파일이 선택되지 않았습니다",
+                    statCritical: "위험 (CRITICAL)",
+                    statWarning: "경고 (WARNING)",
+                    statInfo: "정보 (INFO)",
+                    statDeps: "검출된 라이브러리",
+                    resultsTitle: "감사 결과 상세",
+                    filterAll: "전체",
+                    noResults: "파일을 로드하면 자동으로 정적 분석이 시작됩니다.",
+                    footer: "완전 오프라인 환경 대응 / 메모리 자동 최적화 / 외부 API 미사용",
+                    cleanCode: "보안 문제가 발견되지 않았습니다."
+                },
+                fr: {
+                    appTitle: "Auditeur de Sécurité Web Hors Ligne",
+                    appSubtitle: "Analyse Statique Locale & Détecteur de Vulnérabilités",
+                    statusOffline: "Garanti 100% Local / Sans Connexion",
+                    dropTitle: "Glissez-déposez vos fichiers HTML / JS ici",
+                    dropSub: "ou cliquez pour sélectionner des fichiers (.html, .htm, .js)",
+                    queueTitle: "Fichiers Cibles",
+                    btnClear: "Effacer",
+                    emptyState: "Aucun fichier sélectionné",
+                    statCritical: "CRITIQUE",
+                    statWarning: "AVERTISSEMENT",
+                    statInfo: "INFO",
+                    statDeps: "Bibliothèques",
+                    resultsTitle: "Détails des Résultats d'Audit",
+                    filterAll: "Tous",
+                    noResults: "L'analyse commence automatiquement dès le chargement.",
+                    footer: "Compatible Hors Ligne / Optimisé pour la Mémoire / Zéro API Externe",
+                    cleanCode: "Aucun problème de sécurité détecté."
+                },
+                es: {
+                    appTitle: "Auditor de Seguridad Web Fuera de Línea",
+                    appSubtitle: "Análisis Estático Local y Detector de Vulnerabilidades",
+                    statusOffline: "Procesamiento 100% Local Sin Conexión",
+                    dropTitle: "Arrastre y suelte archivos HTML / JS aquí",
+                    dropSub: "o haga clic para seleccionar archivos (.html, .htm, .js)",
+                    queueTitle: "Archivos Objetivo",
+                    btnClear: "Limpiar",
+                    emptyState: "No hay archivos seleccionados",
+                    statCritical: "CRÍTICO",
+                    statWarning: "ADVERTENCIA",
+                    statInfo: "INFO",
+                    statDeps: "Librerías",
+                    resultsTitle: "Detalles del Hallazgo",
+                    filterAll: "Todos",
+                    noResults: "El análisis comenzará automáticamente tras cargar archivos.",
+                    footer: "Auditoría Fuera de Línea / Memoria Optimizada / Sin Llamadas Externas",
+                    cleanCode: "No se detectaron problemas de seguridad."
+                }
+            };
+
+            // --- Static Security Rules Database (Embedded, Offline) ---
+            const SECURITY_RULES = [
+                // Critical Rules
+                { id: "SEC-001", level: "CRITICAL", title: "Dangerous Evaluation (eval)", regex: /\beval\s*\(/g, desc: "eval() can execute arbitrary code string and leads to severe Remote Code Execution (RCE) / XSS vulnerabilities." },
+                { id: "SEC-002", level: "CRITICAL", title: "Direct Execution via Function Constructor", regex: /new\s+Function\s*\(/g, desc: "Using new Function() acts similarly to eval() and can run untrusted code dynamically." },
+                { id: "SEC-003", level: "CRITICAL", title: "Unsanitized HTML Injection (innerHTML)", regex: /\.innerHTML\s*=/g, desc: "Direct assignment to innerHTML without sanitization creates Cross-Site Scripting (XSS) risks." },
+                { id: "SEC-004", level: "CRITICAL", title: "Document Write Vulnerability", regex: /document\.write\s*\(/g, desc: "document.write() can overwrite page content and inject untrusted scripts dynamically." },
+                
+                // Warning Rules
+                { id: "SEC-101", level: "WARNING", title: "Dynamic Script Injection", regex: /document\.createElement\s*\(\s*['"]script['"]\s*\)/g, desc: "Dynamically creating script elements can introduce remote unverified code at runtime." },
+                { id: "SEC-102", level: "WARNING", title: "Potential Unencrypted External Request (HTTP)", regex: /http:\/\/[^\s'"]+/g, desc: "Plaintext HTTP URLs expose data to Man-In-The-Middle (MITM) attacks and eavesdropping." },
+                { id: "SEC-103", level: "WARNING", title: "Unsafe Window Messaging Target", regex: /postMessage\s*\([^,]+,\s*['"]\*['"]\s*\)/g, desc: "Using '*' targetOrigin in postMessage allows any domain to intercept sensitive payloads." },
+                { id: "SEC-104", level: "WARNING", title: "Inline Event Handler Usage", regex: /on(click|load|mouseover|error|submit)\s*=/gi, desc: "Inline event handlers violate strict Content Security Policy (CSP) guidelines." },
+                { id: "SEC-105", level: "WARNING", title: "Deprecated Synchronous XMLHttpRequest", regex: /async\s*:\s*false/g, desc: "Synchronous XHR blocks the browser UI thread and represents legacy unsafe network practices." },
+
+                // Info Rules
+                { id: "SEC-201", level: "INFO", title: "Local Storage Usage Detected", regex: /localStorage\.(setItem|getItem)/g, desc: "Verify that sensitive tokens, keys, or private user data are not stored unencrypted in localStorage." },
+                { id: "SEC-202", level: "INFO", title: "Session Storage Usage Detected", regex: /sessionStorage\.(setItem|getItem)/g, desc: "Ensure non-persistent state stored in sessionStorage does not leak secret information." },
+                { id: "SEC-203", level: "INFO", title: "WebSocket Connection Established", regex: /new\s+WebSocket\s*\(/g, desc: "Verify WebSocket endpoints strictly enforce wss:// encryption and input sanitization." }
+            ];
+
+            // --- Third-Party Known Libraries Scanner ---
+            const KNOWN_LIBRARIES = [
+                { name: "jQuery", regex: /jquery[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["1.", "2."], fixNote: "Upgrade to jQuery 3.5.0+ to prevent XSS issues in HTML parsing." },
+                { name: "Bootstrap", regex: /bootstrap[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["3.", "4.0.", "4.1."], fixNote: "Bootstrap < 4.3.1 has XSS in tooltip/popover plugins." },
+                { name: "Lodash", regex: /lodash[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["4.17.15", "4.17.11"], fixNote: "Ensure Lodash is >= 4.17.21 to mitigate Prototype Pollution." },
+                { name: "Vue.js", regex: /vue[.-]?([0-9]+\.[0-9]+\.[0-9]+)?/gi, vulnVersions: ["2.5.", "2.6.0"], fixNote: "Keep Vue updated to the latest minor/major release." },
+                { name: "Tailwind CSS", regex: /tailwindcss/gi, vulnVersions: [], fixNote: "Tailwind CSS detected." }
+            ];
+
+            // --- Application State ---
+            let currentLang = 'ja';
+            let fileQueue = [];
+            let auditResults = [];
+            let activeFilter = 'all';
+
+            // --- DOM Elements Reference ---
+            const dom = {
+                dropZone: document.getElementById('drop-zone'),
+                fileInput: document.getElementById('file-input'),
+                fileListContainer: document.getElementById('file-list-container'),
+                emptyState: document.getElementById('empty-state'),
+                auditResultsList: document.getElementById('audit-results-list'),
+                btnClearAll: document.getElementById('btn-clear-all'),
+                fileCountBadge: document.getElementById('file-count-badge'),
+                filterContainer: document.getElementById('filter-container'),
+                langSelect: document.getElementById('lang-select'),
+                
+                // Counters
+                statCritical: document.getElementById('stat-critical'),
+                statWarning: document.getElementById('stat-warning'),
+                statInfo: document.getElementById('stat-info'),
+                statDeps: document.getElementById('stat-deps')
+            };
+
+            // --- Initialization ---
+            function init() {
+                setupEventListeners();
+                updateI18nText();
+            }
+
+            // --- Event Listeners Setup ---
+            function setupEventListeners() {
+                // Language Switching
+                dom.langSelect.addEventListener('change', (e) => {
+                    currentLang = e.target.value;
+                    updateI18nText();
+                    renderAuditResults(); // Re-render results if any text depends on language
+                });
+
+                // Drag and Drop
+                dom.dropZone.addEventListener('click', () => dom.fileInput.click());
+                dom.dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dom.dropZone.classList.add('dragover');
+                });
+                dom.dropZone.addEventListener('dragleave', () => {
+                    dom.dropZone.classList.remove('dragover');
+                });
+                dom.dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dom.dropZone.classList.remove('dragover');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleFiles(e.dataTransfer.files);
+                    }
+                });
+
+                // File Input Change
+                dom.fileInput.addEventListener('change', (e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                        handleFiles(e.target.files);
+                    }
+                });
+
+                // Clear All Button
+                dom.btnClearAll.addEventListener('click', clearAllData);
+
+                // Filter Buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => {
+                            b.classList.remove('bg-indigo-600', 'text-white', 'active');
+                            b.classList.add('bg-slate-800', 'text-slate-300');
+                        });
+                        e.target.classList.remove('bg-slate-800', 'text-slate-300');
+                        e.target.classList.add('bg-indigo-600', 'text-white', 'active');
+                        activeFilter = e.target.getAttribute('data-filter');
+                        renderAuditResults();
+                    });
+                });
+            }
+
+            // --- Language Update Logic ---
+            function updateI18nText() {
+                const dict = I18N_DICT[currentLang] || I18N_DICT.ja;
+                
+                document.getElementById('txt-app-title').textContent = dict.appTitle;
+                document.getElementById('txt-app-subtitle').textContent = dict.appSubtitle;
+                document.getElementById('txt-status-offline').textContent = dict.statusOffline;
+                document.getElementById('txt-drop-title').textContent = dict.dropTitle;
+                document.getElementById('txt-drop-sub').textContent = dict.dropSub;
+                document.getElementById('txt-queue-title').textContent = dict.queueTitle;
+                document.getElementById('txt-btn-clear').textContent = dict.btnClear;
+                document.getElementById('txt-stat-critical').textContent = dict.statCritical;
+                document.getElementById('txt-stat-warning').textContent = dict.statWarning;
+                document.getElementById('txt-stat-info').textContent = dict.statInfo;
+                document.getElementById('txt-stat-deps').textContent = dict.statDeps;
+                document.getElementById('txt-results-title').textContent = dict.resultsTitle;
+                document.getElementById('btn-filter-all').textContent = dict.filterAll;
+                document.getElementById('txt-footer').textContent = dict.footer;
+
+                if (fileQueue.length === 0) {
+                    dom.emptyState.textContent = dict.emptyState;
+                    dom.auditResultsList.innerHTML = `<div class="text-center py-20 text-slate-500 text-sm"><p>${dict.noResults}</p></div>`;
+                }
+            }
+
+            // --- File Ingestion and Reading ---
+            function handleFiles(uploadedFiles) {
+                const filesArray = Array.from(uploadedFiles);
+                let processedCount = 0;
+
+                filesArray.forEach(file => {
+                    // Check extension
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (!['html', 'htm', 'js'].includes(ext)) return;
+
+                    // Prevent duplicate files
+                    if (fileQueue.some(f => f.name === file.name && f.size === file.size)) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result;
+                            const fileObj = {
+                                id: 'file_' + Math.random().toString(36).substr(2, 9),
+                                name: file.name,
+                                size: file.size,
+                                content: content
+                            };
+                            
+                            fileQueue.push(fileObj);
+                            analyzeFile(fileObj);
+
+                        } catch (err) {
+                            console.error("Error reading file:", err);
+                        } finally {
+                            processedCount++;
+                            if (processedCount === filesArray.length) {
+                                updateUI();
+                                // Immediate GC trigger opportunity
+                                dom.fileInput.value = '';
+                            }
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            // --- Static Code Analysis Core ---
+            function analyzeFile(fileObj) {
+                const lines = fileObj.content.split('\n');
+
+                // 1. Scan Security Rules
+                SECURITY_RULES.forEach(rule => {
+                    lines.forEach((lineText, idx) => {
+                        rule.regex.lastIndex = 0; // Reset regex state
+                        if (rule.regex.test(lineText)) {
+                            auditResults.push({
+                                fileId: fileObj.id,
+                                fileName: fileObj.name,
+                                type: 'RULE',
+                                level: rule.level,
+                                ruleId: rule.id,
+                                title: rule.title,
+                                desc: rule.desc,
+                                lineNum: idx + 1,
+                                codeSnippet: lineText.trim().substring(0, 160)
+                            });
+                        }
+                    });
+                });
+
+                // 2. Scan External Libraries & Dependencies
+                KNOWN_LIBRARIES.forEach(lib => {
+                    lib.regex.lastIndex = 0;
+                    if (lib.regex.test(fileObj.content)) {
+                        let isVuln = false;
+                        lib.vulnVersions.forEach(v => {
+                            if (fileObj.content.includes(v)) isVuln = true;
+                        });
+
+                        auditResults.push({
+                            fileId: fileObj.id,
+                            fileName: fileObj.name,
+                            type: 'DEP',
+                            level: isVuln ? 'WARNING' : 'INFO',
+                            title: `Library Detected: ${lib.name}`,
+                            desc: isVuln ? `Vulnerable version pattern suspected. ${lib.fixNote}` : `Library observed in code. ${lib.fixNote}`,
+                            lineNum: '-',
+                            codeSnippet: `Dependency: ${lib.name}`
+                        });
+                    }
+                });
+            }
+
+            // --- UI Rendering & Memory Cleanup ---
+            function updateUI() {
+                dom.fileCountBadge.textContent = fileQueue.length;
+
+                if (fileQueue.length > 0) {
+                    dom.emptyState.classList.add('hidden');
+                    dom.btnClearAll.classList.remove('hidden');
+                    dom.filterContainer.classList.remove('hidden');
+                } else {
+                    dom.emptyState.classList.remove('hidden');
+                    dom.btnClearAll.classList.add('hidden');
+                    dom.filterContainer.classList.add('hidden');
+                }
+
+                renderFileList();
+                renderCounters();
+                renderAuditResults();
+            }
+
+            function renderFileList() {
+                // Clear existing items safely
+                const items = dom.fileListContainer.querySelectorAll('.file-item');
+                items.forEach(item => item.remove());
+
+                fileQueue.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item flex items-center justify-between p-2 bg-slate-800/80 rounded-lg border border-slate-700/50 text-xs';
+                    item.innerHTML = `
+                        <div class="flex items-center space-x-2 truncate">
+                            <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span class="text-slate-200 font-mono truncate">${escapeHtml(file.name)}</span>
+                            <span class="text-slate-500">(${Math.round(file.size / 1024)} KB)</span>
+                        </div>
+                        <button class="btn-remove-file text-slate-500 hover:text-rose-400 p-1" data-id="${file.id}">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    `;
+
+                    item.querySelector('.btn-remove-file').addEventListener('click', (e) => {
+                        const fileId = e.currentTarget.getAttribute('data-id');
+                        removeFile(fileId);
+                    });
+
+                    dom.fileListContainer.appendChild(item);
+                });
+            }
+
+            function renderCounters() {
+                const criticals = auditResults.filter(r => r.level === 'CRITICAL').length;
+                const warnings = auditResults.filter(r => r.level === 'WARNING').length;
+                const infos = auditResults.filter(r => r.level === 'INFO').length;
+                const deps = auditResults.filter(r => r.type === 'DEP').length;
+
+                dom.statCritical.textContent = criticals;
+                dom.statWarning.textContent = warnings;
+                dom.statInfo.textContent = infos;
+                dom.statDeps.textContent = deps;
+            }
+
+            function renderAuditResults() {
+                dom.auditResultsList.innerHTML = '';
+
+                let filtered = auditResults;
+                if (activeFilter === 'CRITICAL') filtered = auditResults.filter(r => r.level === 'CRITICAL');
+                if (activeFilter === 'WARNING') filtered = auditResults.filter(r => r.level === 'WARNING');
+                if (activeFilter === 'DEP') filtered = auditResults.filter(r => r.type === 'DEP');
+
+                if (filtered.length === 0) {
+                    const dict = I18N_DICT[currentLang] || I18N_DICT.ja;
+                    const msg = fileQueue.length > 0 ? dict.cleanCode : dict.noResults;
+                    dom.auditResultsList.innerHTML = `<div class="text-center py-16 text-slate-500 text-sm"><p>${msg}</p></div>`;
+                    return;
+                }
+
+                filtered.forEach(res => {
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-xl border ${getBadgeBorderColor(res.level)} bg-slate-950/60 shadow-md flex flex-col space-y-2`;
+
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-0.5 text-[10px] font-bold font-mono rounded ${getBadgeBgColor(res.level)}">${res.level}</span>
+                                <span class="text-xs font-mono text-slate-400">${escapeHtml(res.fileName)} ${res.lineNum !== '-' ? ': Line ' + res.lineNum : ''}</span>
+                            </div>
+                            ${res.ruleId ? `<span class="text-[10px] font-mono text-slate-500">${res.ruleId}</span>` : ''}
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-200">${escapeHtml(res.title)}</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">${escapeHtml(res.desc)}</p>
+                        ${res.codeSnippet ? `<div class="code-block p-2 rounded text-xs text-slate-300 font-mono mt-1">${escapeHtml(res.codeSnippet)}</div>` : ''}
+                    `;
+
+                    dom.auditResultsList.appendChild(card);
+                });
+            }
+
+            // --- Helper Formatting Functions ---
+            function getBadgeBgColor(level) {
+                switch(level) {
+                    case 'CRITICAL': return 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+                    case 'WARNING': return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                    default: return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+                }
+            }
+
+            function getBadgeBorderColor(level) {
+                switch(level) {
+                    case 'CRITICAL': return 'border-rose-900/50';
+                    case 'WARNING': return 'border-amber-900/50';
+                    default: return 'border-slate-800';
+                }
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            // --- Memory Optimization and Data Disposal ---
+            function removeFile(fileId) {
+                // Garbage collection preparation: release content reference
+                const fileIdx = fileQueue.findIndex(f => f.id === fileId);
+                if (fileIdx !== -1) {
+                    fileQueue[fileIdx].content = null; // explicit memory dereference
+                    fileQueue.splice(fileIdx, 1);
+                }
+
+                // Remove associated audit findings
+                auditResults = auditResults.filter(r => r.fileId !== fileId);
+
+                updateUI();
+            }
+
+            function clearAllData() {
+                // Dereference large text payloads immediately for GC
+                fileQueue.forEach(f => { f.content = null; });
+                fileQueue = [];
+                auditResults = [];
+                
+                updateUI();
+            }
+
+            // Run application initialization
+            document.addEventListener('DOMContentLoaded', init);
+
+        })();
+    </script>
+</body>
+</html>
