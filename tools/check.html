@@ -192,6 +192,31 @@
         </footer>
     </div>
 
+    <!-- AI Prompt Generation Modal -->
+    <div id="prompt-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-11/12 max-w-2xl p-6 shadow-2xl flex flex-col space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-slate-200 flex items-center space-x-2">
+                    <span>🤖</span>
+                    <span id="modal-title">AI修正依頼用プロンプト</span>
+                </h3>
+                <button id="modal-close-top" class="text-slate-400 hover:text-slate-200 text-sm font-mono p-1">✕</button>
+            </div>
+            <p class="text-xs text-slate-400" id="modal-desc">以下のプロンプトをコピーしてAIに指示してください。不変条件やメモリ最適化の制約が含まれています。</p>
+            <textarea id="modal-textarea" readonly class="w-full h-64 bg-slate-950 text-slate-300 font-mono text-xs p-3 rounded-lg border border-slate-800 focus:outline-none resize-none"></textarea>
+            <div class="flex items-center justify-between pt-2">
+                <span id="copy-status" class="text-xs text-emerald-400 opacity-0 transition-opacity">コピーしました！</span>
+                <div class="flex space-x-3">
+                    <button id="modal-close-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors">閉じる</button>
+                    <button id="modal-copy-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg transition-colors flex items-center space-x-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span id="btn-copy-text">クリップボードにコピー</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Application Script (Vanilla JS, Memory Optimized) -->
     <script>
         (function() {
@@ -216,7 +241,13 @@
                     filterAll: "すべて",
                     noResults: "ファイルを読み込むと自動的に静的解析が開始されます。",
                     footer: "完全オフライン環境対応 / メモリ自動最適化済 / 外部APIデータ不使用",
-                    cleanCode: "問題は検出されませんでした。コードは良好です。"
+                    cleanCode: "問題は検出されませんでした。コードは良好です。",
+                    btnPrompt: "🤖 AIプロンプト生成",
+                    modalTitle: "AI修正依頼用プロンプト",
+                    modalDesc: "以下のプロンプトをコピーしてAIに指示してください。不変条件やメモリ最適化の制約が含まれています。",
+                    btnCopy: "クリップボードにコピー",
+                    copied: "コピーしました！",
+                    btnClose: "閉じる"
                 },
                 en: {
                     appTitle: "Offline Web App Security Auditor",
@@ -235,7 +266,13 @@
                     filterAll: "All",
                     noResults: "Analysis will begin automatically upon loading files.",
                     footer: "Air-gapped Compatible / Memory Auto-Optimized / No External API Call",
-                    cleanCode: "No security issues detected in this file."
+                    cleanCode: "No security issues detected in this file.",
+                    btnPrompt: "🤖 Generate AI Prompt",
+                    modalTitle: "AI Fix Request Prompt",
+                    modalDesc: "Copy the prompt below to instruct AI, including constraints and memory optimization rules.",
+                    btnCopy: "Copy to Clipboard",
+                    copied: "Copied!",
+                    btnClose: "Close"
                 },
                 zh: {
                     appTitle: "完全离线 Web 应用安全审计工具",
@@ -254,7 +291,13 @@
                     filterAll: "全部",
                     noResults: "加载文件后将自动开始静态分析。",
                     footer: "完全离线支持 / 内存自动优化 / 无外部 API 依赖",
-                    cleanCode: "未检测到安全问题，代码状态良好。"
+                    cleanCode: "未检测到安全问题，代码状态良好。",
+                    btnPrompt: "🤖 生成 AI 提示词",
+                    modalTitle: "AI 修复请求提示词",
+                    modalDesc: "复制以下提示词以指示 AI，其中包含约束条件与内存优化规则。",
+                    btnCopy: "复制到剪贴板",
+                    copied: "已复制！",
+                    btnClose: "关闭"
                 },
                 ko: {
                     appTitle: "완전 오프라인 Web 앱 보안 감사 도구",
@@ -273,7 +316,13 @@
                     filterAll: "전체",
                     noResults: "파일을 로드하면 자동으로 정적 분석이 시작됩니다.",
                     footer: "완전 오프라인 환경 대응 / 메모리 자동 최적화 / 외부 API 미사용",
-                    cleanCode: "보안 문제가 발견되지 않았습니다."
+                    cleanCode: "보안 문제가 발견되지 않았습니다.",
+                    btnPrompt: "🤖 AI 프롬프트 생성",
+                    modalTitle: "AI 수정 요청 프롬프트",
+                    modalDesc: "아래 프롬프트를 복사하여 AI에 지시하세요. 불변 조건 및 메모리 최적화 제약이 포함되어 있습니다.",
+                    btnCopy: "클립보드에 복사",
+                    copied: "복사되었습니다!",
+                    btnClose: "닫기"
                 },
                 fr: {
                     appTitle: "Auditeur de Sécurité Web Hors Ligne",
@@ -292,7 +341,13 @@
                     filterAll: "Tous",
                     noResults: "L'analyse commence automatiquement dès le chargement.",
                     footer: "Compatible Hors Ligne / Optimisé pour la Mémoire / Zéro API Externe",
-                    cleanCode: "Aucun problème de sécurité détecté."
+                    cleanCode: "Aucun problème de sécurité détecté.",
+                    btnPrompt: "🤖 Générer Prompt IA",
+                    modalTitle: "Prompt pour Correction IA",
+                    modalDesc: "Copiez le prompt ci-dessous pour l'IA, incluant les contraintes d'invariance et d'optimisation.",
+                    btnCopy: "Copier",
+                    copied: "Copié !",
+                    btnClose: "Fermer"
                 },
                 es: {
                     appTitle: "Auditor de Seguridad Web Fuera de Línea",
@@ -311,7 +366,13 @@
                     filterAll: "Todos",
                     noResults: "El análisis comenzará automáticamente tras cargar archivos.",
                     footer: "Auditoría Fuera de Línea / Memoria Optimizada / Sin Llamadas Externas",
-                    cleanCode: "No se detectaron problemas de seguridad."
+                    cleanCode: "No se detectaron problemas de seguridad.",
+                    btnPrompt: "🤖 Generar Prompt de IA",
+                    modalTitle: "Prompt para Corrección de IA",
+                    modalDesc: "Copie el siguiente mensaje para instruir a la IA, incluyendo condiciones de invariancia y memoria.",
+                    btnCopy: "Copiar al portapapeles",
+                    copied: "¡Copiado!",
+                    btnClose: "Cerrar"
                 }
             };
 
@@ -367,7 +428,18 @@
                 statCritical: document.getElementById('stat-critical'),
                 statWarning: document.getElementById('stat-warning'),
                 statInfo: document.getElementById('stat-info'),
-                statDeps: document.getElementById('stat-deps')
+                statDeps: document.getElementById('stat-deps'),
+
+                // Modal Elements
+                promptModal: document.getElementById('prompt-modal'),
+                modalTitle: document.getElementById('modal-title'),
+                modalDesc: document.getElementById('modal-desc'),
+                modalTextarea: document.getElementById('modal-textarea'),
+                modalCloseTop: document.getElementById('modal-close-top'),
+                modalCloseBtn: document.getElementById('modal-close-btn'),
+                modalCopyBtn: document.getElementById('modal-copy-btn'),
+                btnCopyText: document.getElementById('btn-copy-text'),
+                copyStatus: document.getElementById('copy-status')
             };
 
             // --- Initialization ---
@@ -382,7 +454,7 @@
                 dom.langSelect.addEventListener('change', (e) => {
                     currentLang = e.target.value;
                     updateI18nText();
-                    renderAuditResults(); // Re-render results if any text depends on language
+                    renderAuditResults();
                 });
 
                 // Drag and Drop
@@ -425,6 +497,26 @@
                         renderAuditResults();
                     });
                 });
+
+                // Modal Close Events
+                dom.modalCloseTop.addEventListener('click', closeModal);
+                dom.modalCloseBtn.addEventListener('click', closeModal);
+                dom.promptModal.addEventListener('click', (e) => {
+                    if (e.target === dom.promptModal) closeModal();
+                });
+
+                // Modal Copy Event
+                dom.modalCopyBtn.addEventListener('click', () => {
+                    dom.modalTextarea.select();
+                    navigator.clipboard.writeText(dom.modalTextarea.value).then(() => {
+                        dom.copyStatus.classList.remove('opacity-0');
+                        setTimeout(() => {
+                            dom.copyStatus.classList.add('opacity-0');
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                });
             }
 
             // --- Language Update Logic ---
@@ -446,6 +538,13 @@
                 document.getElementById('btn-filter-all').textContent = dict.filterAll;
                 document.getElementById('txt-footer').textContent = dict.footer;
 
+                // Modal Texts
+                dom.modalTitle.textContent = dict.modalTitle;
+                dom.modalDesc.textContent = dict.modalDesc;
+                dom.modalCloseBtn.textContent = dict.btnClose;
+                dom.btnCopyText.textContent = dict.btnCopy;
+                dom.copyStatus.textContent = dict.copied;
+
                 if (fileQueue.length === 0) {
                     dom.emptyState.textContent = dict.emptyState;
                     dom.auditResultsList.innerHTML = `<div class="text-center py-20 text-slate-500 text-sm"><p>${dict.noResults}</p></div>`;
@@ -458,11 +557,9 @@
                 let processedCount = 0;
 
                 filesArray.forEach(file => {
-                    // Check extension
                     const ext = file.name.split('.').pop().toLowerCase();
                     if (!['html', 'htm', 'js'].includes(ext)) return;
 
-                    // Prevent duplicate files
                     if (fileQueue.some(f => f.name === file.name && f.size === file.size)) return;
 
                     const reader = new FileReader();
@@ -485,7 +582,6 @@
                             processedCount++;
                             if (processedCount === filesArray.length) {
                                 updateUI();
-                                // Immediate GC trigger opportunity
                                 dom.fileInput.value = '';
                             }
                         }
@@ -498,12 +594,12 @@
             function analyzeFile(fileObj) {
                 const lines = fileObj.content.split('\n');
 
-                // 1. Scan Security Rules
                 SECURITY_RULES.forEach(rule => {
                     lines.forEach((lineText, idx) => {
-                        rule.regex.lastIndex = 0; // Reset regex state
+                        rule.regex.lastIndex = 0;
                         if (rule.regex.test(lineText)) {
                             auditResults.push({
+                                uniqueId: 'res_' + Math.random().toString(36).substr(2, 9),
                                 fileId: fileObj.id,
                                 fileName: fileObj.name,
                                 type: 'RULE',
@@ -518,7 +614,6 @@
                     });
                 });
 
-                // 2. Scan External Libraries & Dependencies
                 KNOWN_LIBRARIES.forEach(lib => {
                     lib.regex.lastIndex = 0;
                     if (lib.regex.test(fileObj.content)) {
@@ -528,10 +623,12 @@
                         });
 
                         auditResults.push({
+                            uniqueId: 'res_' + Math.random().toString(36).substr(2, 9),
                             fileId: fileObj.id,
                             fileName: fileObj.name,
                             type: 'DEP',
                             level: isVuln ? 'WARNING' : 'INFO',
+                            ruleId: 'DEP-' + lib.name.toUpperCase(),
                             title: `Library Detected: ${lib.name}`,
                             desc: isVuln ? `Vulnerable version pattern suspected. ${lib.fixNote}` : `Library observed in code. ${lib.fixNote}`,
                             lineNum: '-',
@@ -561,7 +658,6 @@
             }
 
             function renderFileList() {
-                // Clear existing items safely
                 const items = dom.fileListContainer.querySelectorAll('.file-item');
                 items.forEach(item => item.remove());
 
@@ -620,6 +716,7 @@
                 }
 
                 filtered.forEach(res => {
+                    const dict = I18N_DICT[currentLang] || I18N_DICT.ja;
                     const card = document.createElement('div');
                     card.className = `p-4 rounded-xl border ${getBadgeBorderColor(res.level)} bg-slate-950/60 shadow-md flex flex-col space-y-2`;
 
@@ -629,15 +726,58 @@
                                 <span class="px-2 py-0.5 text-[10px] font-bold font-mono rounded ${getBadgeBgColor(res.level)}">${res.level}</span>
                                 <span class="text-xs font-mono text-slate-400">${escapeHtml(res.fileName)} ${res.lineNum !== '-' ? ': Line ' + res.lineNum : ''}</span>
                             </div>
-                            ${res.ruleId ? `<span class="text-[10px] font-mono text-slate-500">${res.ruleId}</span>` : ''}
+                            <div class="flex items-center space-x-2">
+                                ${res.ruleId ? `<span class="text-[10px] font-mono text-slate-500">${res.ruleId}</span>` : ''}
+                                <button class="btn-gen-prompt px-2 py-1 text-[10px] bg-indigo-600/80 hover:bg-indigo-600 text-white rounded font-sans transition-colors flex items-center space-x-1" data-uid="${res.uniqueId}">
+                                    <span>${dict.btnPrompt}</span>
+                                </button>
+                            </div>
                         </div>
                         <h3 class="text-sm font-bold text-slate-200">${escapeHtml(res.title)}</h3>
                         <p class="text-xs text-slate-400 leading-relaxed">${escapeHtml(res.desc)}</p>
                         ${res.codeSnippet ? `<div class="code-block p-2 rounded text-xs text-slate-300 font-mono mt-1">${escapeHtml(res.codeSnippet)}</div>` : ''}
                     `;
 
+                    // Bind prompt generation click event
+                    card.querySelector('.btn-gen-prompt').addEventListener('click', () => {
+                        openPromptModal(res);
+                    });
+
                     dom.auditResultsList.appendChild(card);
                 });
+            }
+
+            // --- AI Prompt Modal Generator ---
+            function openPromptModal(res) {
+                const promptText = `【目的】
+セキュリティ監査で検出された脆弱性・危険な記述（${res.ruleId || res.type}: ${res.title}）の修正と安全性の向上
+
+【変更・追加したい具体的な内容】
+対象ファイル「${res.fileName}」（${res.lineNum !== '-' ? 'Line ' + res.lineNum : '全体'}）において検出された以下のコードおよび問題を修正してください。
+- 検出内容: ${res.title} (${res.ruleId || 'DEP'})
+- 詳細: ${res.desc}
+- 該当スニペット:
+\`\`\`
+${res.codeSnippet}
+\`\`\`
+安全な記述方法やサニタイズ処理への置き換え、または脆弱性対策を施したコードに修正してください。
+
+【絶対に維持・遵守すべき制約（不変条件）】
+- 完全オフライン動作および単一HTML（index.html）の維持（外部CDNやファイル分割の禁止）
+- 既存の多言語対応（i18n）やメモリ即時解放（gc配慮・オブジェクト初期化）のロジックを壊さないこと
+- フォント（MS明朝優先）やデザイン構造の変更禁止
+
+【出力形式】
+- 変更部分の抜粋ではなく、すぐに動作する「完全なHTMLコード」をフルサイズで出力すること`;
+
+                dom.modalTextarea.value = promptText;
+                dom.copyStatus.classList.add('opacity-0');
+                dom.promptModal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                dom.promptModal.classList.add('hidden');
+                dom.modalTextarea.value = '';
             }
 
             // --- Helper Formatting Functions ---
@@ -669,25 +809,20 @@
 
             // --- Memory Optimization and Data Disposal ---
             function removeFile(fileId) {
-                // Garbage collection preparation: release content reference
                 const fileIdx = fileQueue.findIndex(f => f.id === fileId);
                 if (fileIdx !== -1) {
-                    fileQueue[fileIdx].content = null; // explicit memory dereference
+                    fileQueue[fileIdx].content = null;
                     fileQueue.splice(fileIdx, 1);
                 }
 
-                // Remove associated audit findings
                 auditResults = auditResults.filter(r => r.fileId !== fileId);
-
                 updateUI();
             }
 
             function clearAllData() {
-                // Dereference large text payloads immediately for GC
                 fileQueue.forEach(f => { f.content = null; });
                 fileQueue = [];
                 auditResults = [];
-                
                 updateUI();
             }
 
