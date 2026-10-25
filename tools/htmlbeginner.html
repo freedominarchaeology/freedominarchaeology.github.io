@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Textbook & Live Studio</title>
+    <!-- Tailwind CSS (CDN fallback gracefully handled) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* システムフォントおよび MS 明朝 のフォントスタック設定 */
+        body, input, textarea, select, button {
+            font-family: "Hiragino Mincho ProN", "MS Mincho", "ＭＳ 明朝", "Yu Mincho", "MS PMincho", serif;
+        }
+        /* コード表示領域は読みやすい等幅フォント */
+        code, pre, textarea {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        /* オフライン・CDN障害時のフォールバック基本スタイル */
+        .fallback-bg { background-color: #f8fafc; }
+        .fallback-card { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; }
+        .fallback-btn { background-color: #2563eb; color: #ffffff; padding: 0.5rem 1rem; border-radius: 0.375rem; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col m-0 p-0 fallback-bg">
+
+    <!-- ヘッダー -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-bold tracking-wide">📖 <span id="ui-app-title">HTML完全教科書 & ライブスタジオ</span></span>
+                <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded font-sans" id="ui-badge">基礎から応用・装飾まで網羅</span>
+            </div>
+            
+            <!-- 言語切り替え & コントロール -->
+            <div class="flex items-center gap-3">
+                <label for="lang-select" class="text-xs text-slate-300 font-sans" id="ui-lang-label">言語 / Language:</label>
+                <select id="lang-select" class="bg-slate-800 text-white border border-slate-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans">
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ko">한국어</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ領域 -->
+    <div class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 左側：カテゴリ＆サンプルリストナビゲーション (lg:col-span-4) -->
+        <aside class="lg:col-span-4 flex flex-col gap-4">
+            
+            <!-- 検索 & フィルタ -->
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 fallback-card">
+                <label for="search-input" class="block text-xs font-bold text-slate-600 uppercase mb-1 font-sans" id="ui-search-label">キーワード検索</label>
+                <input type="text" id="search-input" placeholder="例: 背景色, リンク, フォーム..." class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans">
+                
+                <label for="category-select" class="block text-xs font-bold text-slate-600 uppercase mt-3 mb-1 font-sans" id="ui-category-label">章（カテゴリ）で絞り込み</label>
+                <select id="category-select" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans">
+                    <option value="all" id="opt-all">すべてのサンプルを表示</option>
+                    <option value="basics">第1章: 基礎・見出し・段落</option>
+                    <option value="styling">第2章: 色・背景・テキスト装飾</option>
+                    <option value="links_media">第3章: リンク・画像・マルチメディア</option>
+                    <option value="lists_tables">第4章: リスト（箇条書き）・テーブル（表）</option>
+                    <option value="forms">第5章: フォーム・入力パーツ全種</option>
+                    <option value="layout">第6章: 構造・レイアウト・枠組</option>
+                    <option value="interactive">第7章: 対話型・動的要素</option>
+                    <option value="page_template">第8章: 完全なWebページ全体骨格</option>
+                </select>
+            </div>
+
+            <!-- サンプル項目リスト -->
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex-grow flex flex-col max-h-[600px] fallback-card">
+                <div class="bg-slate-100 px-4 py-2 border-b border-slate-200 font-bold text-sm text-slate-700 flex justify-between items-center font-sans">
+                    <span id="ui-list-title">HTMLサンプル一覧</span>
+                    <span id="sample-count" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <div id="sample-list" class="overflow-y-auto divide-y divide-slate-100 flex-grow">
+                    <!-- Javascriptで動的生成 -->
+                </div>
+            </div>
+
+            <!-- 初心者向けワンクリック完全スケルトン生成ボタン -->
+            <button id="btn-load-skeleton" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-150 flex items-center justify-center gap-2 font-sans">
+                <span>🚀</span> <span id="ui-btn-skeleton">1ページ全体の完全HTMLコードを読み込む</span>
+            </button>
+        </aside>
+
+        <!-- 右側：コードエディタ & ライブプレビュー (lg:col-span-8) -->
+        <main class="lg:col-span-8 flex flex-col gap-4">
+
+            <!-- タイトルと解説 -->
+            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 fallback-card">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 id="current-sample-title" class="text-xl font-bold text-slate-900">サンプルを選択してください</h2>
+                    <span id="current-sample-category" class="text-xs px-2.5 py-1 bg-blue-100 text-blue-800 font-semibold rounded-full font-sans">カテゴリ</span>
+                </div>
+                <p id="current-sample-desc" class="text-sm text-slate-600 leading-relaxed">左側のリストから学びたいHTMLタグやコードを選択してください。右側のコードを書き換えると、下のプレビューがリアルタイムに変化します。</p>
+            </div>
+
+            <!-- エディタとプレビューの分割表示 -->
+            <div class="grid grid-cols-1 flex-grow gap-4">
+                
+                <!-- コード編集エリア -->
+                <div class="bg-slate-900 text-slate-100 rounded-lg shadow-sm overflow-hidden flex flex-col border border-slate-800">
+                    <div class="bg-slate-800 px-4 py-2 flex justify-between items-center text-xs font-sans border-b border-slate-700">
+                        <span class="text-slate-300 font-mono font-bold">HTML Source Code</span>
+                        <div class="flex gap-2">
+                            <button id="btn-reset-code" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded transition text-xs flex items-center gap-1">
+                                🔄 <span id="ui-btn-reset">初期化</span>
+                            </button>
+                            <button id="btn-copy-code" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition text-xs font-bold flex items-center gap-1">
+                                📋 <span id="ui-btn-copy">コードをコピー</span>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="code-editor" class="w-full h-64 p-4 bg-slate-900 text-emerald-400 focus:outline-none resize-y font-mono text-sm leading-relaxed border-none" spellcheck="false" placeholder="ここにHTMLコードを入力..."></textarea>
+                </div>
+
+                <!-- リアルタイムプレビューエリア -->
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex flex-col fallback-card min-h-[300px]">
+                    <div class="bg-slate-100 px-4 py-2 border-b border-slate-200 text-xs font-bold text-slate-600 font-sans flex justify-between items-center">
+                        <span id="ui-preview-title font-sans">🖥️ ライブプレビュー (実行結果)</span>
+                        <span class="text-slate-400 font-normal">Sandbox iframe</span>
+                    </div>
+                    <div class="p-2 bg-slate-50 flex-grow relative">
+                        <iframe id="preview-iframe" class="w-full h-full min-h-[280px] bg-white border border-slate-200 rounded" sandbox="allow-scripts"></iframe>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- コピー完了トースト通知 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50 font-sans">
+        <span class="text-emerald-400 text-lg">✓</span>
+        <span id="toast-message">クリップボードにコピーしました！</span>
+    </div>
+
+    <!-- スクリプト部 -->
+    <script>
+        (function () {
+            'use strict';
+
+            // --- 1. 多言語辞書データ (i18n) ---
+            const translations = {
+                ja: {
+                    appTitle: "HTML完全教科書 & ライブスタジオ",
+                    badge: "基礎から応用・背景色・装飾まで網羅",
+                    langLabel: "言語 / Language:",
+                    searchLabel: "キーワード検索",
+                    searchPlaceholder: "例: 背景色, リンク, フォーム...",
+                    categoryLabel: "章（カテゴリ）で絞り込み",
+                    optAll: "すべてのサンプルを表示",
+                    listTitle: "HTMLサンプル一覧",
+                    btnSkeleton: "1ページ全体の完全HTMLコードを読み込む",
+                    btnReset: "初期化",
+                    btnCopy: "コードをコピー",
+                    previewTitle: "🖥️ ライブプレビュー (実行結果)",
+                    toastCopied: "クリップボードにコピーしました！コピペで使えます。",
+                    toastError: "コピーに失敗しました。直接手動で選択してください。",
+                    categories: {
+                        basics: "第1章: 基礎・見出し・段落",
+                        styling: "第2章: 色・背景・テキスト装飾",
+                        links_media: "第3章: リンク・画像・マルチメディア",
+                        lists_tables: "第4章: リスト（箇条書き）・テーブル（表）",
+                        forms: "第5章: フォーム・入力パーツ全種",
+                        layout: "第6章: 構造・レイアウト・枠組",
+                        interactive: "第7章: 対話型・動的要素",
+                        page_template: "第8章: 完全なWebページ全体骨格"
+                    }
+                },
+                en: {
+                    appTitle: "HTML Textbook & Live Studio",
+                    badge: "Comprehensive: Basics, Styles, Colors & More",
+                    langLabel: "Language:",
+                    searchLabel: "Search Keywords",
+                    searchPlaceholder: "e.g. background, link, form...",
+                    categoryLabel: "Filter by Chapter",
+                    optAll: "Show All Samples",
+                    listTitle: "HTML Sample List",
+                    btnSkeleton: "Load Full Page HTML Template",
+                    btnReset: "Reset",
+                    btnCopy: "Copy Code",
+                    previewTitle: "🖥️ Live Preview",
+                    toastCopied: "Copied to clipboard!",
+                    toastError: "Failed to copy.",
+                    categories: {
+                        basics: "Ch.1: Basics, Headings & Paragraphs",
+                        styling: "Ch.2: Colors, Backgrounds & Text Styles",
+                        links_media: "Ch.3: Links, Images & Media",
+                        lists_tables: "Ch.4: Lists & Tables",
+                        forms: "Ch.5: Forms & Input Controls",
+                        layout: "Ch.6: Structure & Layout",
+                        interactive: "Ch.7: Interactive Elements",
+                        page_template: "Ch.8: Complete HTML Page Skeleton"
+                    }
+                },
+                zh: {
+                    appTitle: "HTML完全教科书 & 实时演练",
+                    badge: "全面涵盖：基础、背景色、样式与组件",
+                    langLabel: "语言:",
+                    searchLabel: "关键字搜索",
+                    searchPlaceholder: "例如：背景色、链接、表单...",
+                    categoryLabel: "按章节筛选",
+                    optAll: "显示所有示例",
+                    listTitle: "HTML示例列表",
+                    btnSkeleton: "加载完整网页HTML模板",
+                    btnReset: "重置",
+                    btnCopy: "复制代码",
+                    previewTitle: "🖥️ 实时预览",
+                    toastCopied: "已复制到剪贴板！",
+                    toastError: "复制失败。",
+                    categories: {
+                        basics: "第1章: 基础、标题与段落",
+                        styling: "第2章: 颜色、背景与文本样式",
+                        links_media: "第3章: 链接、图片与多媒体",
+                        lists_tables: "第4章: 列表与表格",
+                        forms: "第5章: 表单与各种输入控件",
+                        layout: "第6章: 结构与布局",
+                        interactive: "第7章: 交互式元素",
+                        page_template: "第8章: 完整网页骨架"
+                    }
+                },
+                ko: {
+                    appTitle: "HTML 완성 교과서 & 라이브 스튜디오",
+                    badge: "기초부터 배경색·스타일·응용까지 완벽 망라",
+                    langLabel: "언어:",
+                    searchLabel: "키워드 검색",
+                    searchPlaceholder: "예: 배경색, 링크, 폼...",
+                    categoryLabel: "장(카테고리)별 필터",
+                    optAll: "모든 샘플 보기",
+                    listTitle: "HTML 샘플 목록",
+                    btnSkeleton: "전체 웹페이지 HTML 템플릿 불러오기",
+                    btnReset: "초기화",
+                    btnCopy: "코드 복사",
+                    previewTitle: "🖥️ 라이브 프리뷰",
+                    toastCopied: "클립보드에 복사되었습니다!",
+                    toastError: "복사에 실패했습니다.",
+                    categories: {
+                        basics: "제1장: 기초·헤딩·문단",
+                        styling: "제2장: 색상·배경·텍스트 스타일",
+                        links_media: "제3장: 링크·이미지·미디어",
+                        lists_tables: "제4장: 리스트·테이블(표)",
+                        forms: "제5章: 폼 및 양식 요소",
+                        layout: "제6장: 구조 및 레이아웃",
+                        interactive: "제7장: 대화형 요소",
+                        page_template: "제8장: 전체 웹페이지 뼈대"
+                    }
+                },
+                fr: {
+                    appTitle: "Manuel HTML & Studio en direct",
+                    badge: "Complet : Bases, Couleurs, Textes & Formulaires",
+                    langLabel: "Langue:",
+                    searchLabel: "Rechercher",
+                    searchPlaceholder: "ex: couleur, lien, formulaire...",
+                    categoryLabel: "Filtrer par chapitre",
+                    optAll: "Afficher tous les exemples",
+                    listTitle: "Liste des exemples HTML",
+                    btnSkeleton: "Charger le modèle de page complet",
+                    btnReset: "Réinitialiser",
+                    btnCopy: "Copier le code",
+                    previewTitle: "🖥️ Aperçu en direct",
+                    toastCopied: "Copié dans le presse-papier !",
+                    toastError: "Échec de la copie.",
+                    categories: {
+                        basics: "Ch.1: Bases, Titres & Paragraphes",
+                        styling: "Ch.2: Couleurs, Arrière-plans & Styles",
+                        links_media: "Ch.3: Liens, Images & Médias",
+                        lists_tables: "Ch.4: Listes & Tableaux",
+                        forms: "Ch.5: Formulaires & Entrées",
+                        layout: "Ch.6: Structure & Disposition",
+                        interactive: "Ch.7: Éléments interactifs",
+                        page_template: "Ch.8: Squelette HTML complet"
+                    }
+                },
+                es: {
+                    appTitle: "Libro de Texto HTML & Estudio en Vivo",
+                    badge: "Completo: Básico, Colores, Textos y Formularios",
+                    langLabel: "Idioma:",
+                    searchLabel: "Buscar",
+                    searchPlaceholder: "ej: color, enlace, formulario...",
+                    categoryLabel: "Filtrar por Capítulo",
+                    optAll: "Mostrar todos los ejemplos",
+                    listTitle: "Lista de ejemplos HTML",
+                    btnSkeleton: "Cargar plantilla HTML completa",
+                    btnReset: "Restablecer",
+                    btnCopy: "Copiar código",
+                    previewTitle: "🖥️ Vista previa en vivo",
+                    toastCopied: "¡Copiado al portapapeles!",
+                    toastError: "Error al copiar.",
+                    categories: {
+                        basics: "Cap.1: Básico, Títulos y Párrafos",
+                        styling: "Cap.2: Colores, Fondos y Estilos",
+                        links_media: "Cap.3: Enlaces, Imágenes y Medios",
+                        lists_tables: "Cap.4: Listas y Tablas",
+                        forms: "Cap.5: Formularios y Controles",
+                        layout: "Cap.6: Estructura y Diseño",
+                        interactive: "Cap.7: Elementos Interactivos",
+                        page_template: "Cap.8: Esqueleto HTML Completo"
+                    }
+                }
+            };
+
+            // --- 2. 網羅的HTMLサンプルデータベース ---
+            const samples = [
+                // 第1章
+                {
+                    id: "h-p-tags",
+                    category: "basics",
+                    title: "見出し (h1〜h6) と段落 (p)",
+                    desc: "文章の構造を作るための基本タグです。見出しは1〜6の重要度順に使用します。",
+                    code: `<!-- 見出しタグ (h1が最も大きく重要) -->
+<h1>1番重要な見出し (h1)</h1>
+<h2>2番目に重要な見出し (h2)</h2>
+<h3>3番目の見出し (h3)</h3>
+
+<!-- 段落（文章のかたまり） -->
+<p>これは1つ目の段落です。HTMLでは文章を &lt;p&gt; タグで囲むのが基本です。</p>
+<p>これは2つ目の段落です。段落同士の間には自動的に少し余白が生まれます。</p>`
+                },
+                {
+                    id: "line-br-hr",
+                    category: "basics",
+                    title: "改行 (br) と区切り線 (hr)",
+                    desc: "文章内で強制的に改行したいときは<br>、話題の区切りに水平線を入れたいときは<hr>を使います。",
+                    code: `<p>
+    ここが1行目です。<br>
+    &lt;br&gt; タグを使ったので、ここで改行されます。<br>
+    3行目の文章です。
+</p>
+
+<!-- 水平線の区切り線 -->
+<hr>
+
+<p>区切り線の後の文章です。</p>`
+                },
+
+                // 第2章：色・背景・テキスト装飾（ユーザーリクエストで特に強化）
+                {
+                    id: "bg-color",
+                    category: "styling",
+                    title: "背景色の指定 (style='background-color')",
+                    desc: "ページや特定の枠組み（divやpなど）の背景に色を塗る基本的なスタイル指定です。色の名前や16進数(#ffffff)で指定できます。",
+                    code: "<!-- カラー名で背景色を指定 -->\n" +
+                          "<div style=\"background-color: lightblue; padding: 15px; margin-bottom: 10px;\">\n" +
+                          "    薄い青色（lightblue）の背景色です。\n" +
+                          "</div>\n\n" +
+                          "<!-- 16進数カラーコード (#HEX) で背景色を指定 -->\n" +
+                          "<div style=\"background-color: #fef08a; padding: 15px; margin-bottom: 10px;\">\n" +
+                          "    明るい黄色（#fef08a）の背景色です。\n" +
+                          "</div>\n\n" +
+                          "<!-- RGB値で背景色と文字色を同時に指定 -->\n" +
+                          "<div style=\"background-color: rgb(30, 41, 59); color: white; padding: 15px;\">\n" +
+                          "    濃いスレート色背景に白い文字の枠です。\n" +
+                          "</div>"
+                },
+                {
+                    id: "text-color-style",
+                    category: "styling",
+                    title: "文字色・フォントサイズ・太さの変更",
+                    desc: "文字の色(color)、大きさ(font-size)、太さ(font-weight)を変更して重要な部分を強調します。",
+                    code: `<p style="color: red;">この文章は赤色です。</p>
+<p style="color: #2563eb; font-weight: bold;">この文章は青色で太字です。</p>
+<p style="font-size: 24px; color: green;">大きな文字（24px）の緑色テキストです。</p>
+<p style="font-style: italic;">イタリック体（斜体）のテキストです。</p>`
+                },
+                {
+                    id: "text-formatting",
+                    category: "styling",
+                    title: "テキストの意味的装飾 (strong, em, mark, sub, sup)",
+                    desc: "単なる見た目だけでなく、重要度や強調の意味を持つタグです。",
+                    code: `<p>これは <strong>重要なテキスト（太字）</strong> です。</p>
+<p>これは <em>強調したいテキスト（斜体）</em> です。</p>
+<p>これは <mark>マーカー線で目立たせた部分</mark> です。</p>
+<p>水は H<sub>2</sub>O （下付き文字）と表されます。</p>
+<p>アインシュタインの式は E = mc<sup>2</sup> （上付き文字）です。</p>
+<p><del>打ち消し線を入れたテキスト</del> と <ins>追加されたテキスト</ins></p>`
+                },
+                {
+                    id: "border-padding-box",
+                    category: "styling",
+                    title: "枠線 (border) と余白 (padding / margin) の背景ボックス",
+                    desc: "要素のまわりに枠線を引いたり、内側・外側に余白を作って綺麗に見せるボックス装飾です。",
+                    code: "<!-- 枠線と余白をつけた装飾ボックス -->\n" +
+                          "<div style=\"border: 2px solid #2563eb; background-color: #eff6ff; padding: 20px; border-radius: 8px;\">\n" +
+                          "    <h3 style=\"margin-top: 0; color: #1e40af;\">💡 お知らせ枠</h3>\n" +
+                          "    <p style=\"margin-bottom: 0;\">背景色・青い枠線・角丸（border-radius）・内側余白（padding）を組み合わせた見栄えの美しいデザインボックスです。</p>\n" +
+                          "</div>"
+                },
+
+                // 第3章
+                {
+                    id: "link-basic",
+                    category: "links_media",
+                    title: "ハイパーリンク (aタグ)",
+                    desc: "他のページやWebサイトへ移動するリンクを作成します。target='_blank'で新しいタブで開きます。",
+                    code: `<!-- 通常のリンク（同じタブで開く） -->
+<p><a href="https://example.com">Example.comへ移動するリンク</a></p>
+
+<!-- 新しいタブで開く安全なリンク -->
+<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">新しいタブで開くリンク</a></p>
+
+<!-- ページ内リンク（アンカー） -->
+<p><a href="#section2">↓ 下のセクションにジャンプ</a></p>
+<div style="height: 200px; background: #f1f5f9; margin: 10px 0; padding: 10px;">スクロール用のスペース</div>
+<h3 id="section2">ジャンプ先のセクション</h3>`
+                },
+                {
+                    id: "image-basic",
+                    category: "links_media",
+                    title: "画像表示 (img)",
+                    desc: "Webページに画像を表示します。alt属性で画像の代替えテキストを設定することが必須です。",
+                    code: `<!-- サンプル画像表示 (幅・高さを指定) -->
+<p>サンプル画像：</p>
+<img src="https://picsum.photos/400/200" alt="ランダムなサンプル画像" width="400" height="200" style="max-width: 100%; height: auto; border-radius: 8px;">
+
+<p>枠線付き画像：</p>
+<img src="https://picsum.photos/200/200" alt="正方形サンプル画像" style="border: 4px solid #333; padding: 4px;">`
+                },
+                {
+                    id: "audio-video",
+                    category: "links_media",
+                    title: "音声 (audio)・動画 (video) 埋め込み",
+                    desc: "音楽や動画ファイルをプレイヤー付きでWebページに直接埋め込みます。",
+                    code: `<!-- 動画の埋め込み (controlsで再生ボタン等を表示) -->
+<h3>動画プレイヤー</h3>
+<video controls width="100%" poster="https://picsum.photos/600/300">
+    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+    お使いのブラウザは動画再生に対応していません。
+</video>
+
+<h3>音声プレイヤー</h3>
+<audio controls>
+    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3" type="audio/mpeg">
+    お使いのブラウザは音声再生に対応していません。
+</audio>`
+                },
+
+                // 第4章
+                {
+                    id: "lists-all",
+                    category: "lists_tables",
+                    title: "箇条書きリスト (ul, ol, dl)",
+                    desc: "順序のないリスト(ul)、順序のある番号付きリスト(ol)、定義用語リスト(dl)です。",
+                    code: `<!-- 順序のない箇条書き (ul) -->
+<h3>買い物リスト (ul)</h3>
+<ul>
+    <li>りんご</li>
+    <li>牛乳</li>
+    <li>パン</li>
+</ul>
+
+<!-- 順序のある番号付き箇条書き (ol) -->
+<h3>手順リスト (ol)</h3>
+<ol>
+    <li>手を洗う</li>
+    <li>材料を切る</li>
+    <li>フライパンで炒める</li>
+</ol>
+
+<!-- 用語説明リスト (dl, dt, dd) -->
+<h3>用語集 (dl)</h3>
+<dl>
+    <dt><strong>HTML</strong></dt>
+    <dd>Webページの構造を作る言語。</dd>
+    <dt><strong>CSS</strong></dt>
+    <dd>Webページのデザインや背景色を整える言語。</dd>
+</dl>`
+                },
+                {
+                    id: "table-basic",
+                    category: "lists_tables",
+                    title: "表・テーブル (table, tr, th, td)",
+                    desc: "データを縦横の格子状（表）でわかりやすく整理して表示します。",
+                    code: `<table border="1" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead>
+        <tr style="background-color: #f1f5f9;">
+            <th style="padding: 8px;">商品名</th>
+            <th style="padding: 8px;">価格</th>
+            <th style="padding: 8px;">在庫</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="padding: 8px;">ノートパソコン</td>
+            <td style="padding: 8px;">¥98,000</td>
+            <td style="padding: 8px;">あり</td>
+        </tr>
+        <tr style="background-color: #fafafa;">
+            <td style="padding: 8px;">ワイヤレスマウス</td>
+            <td style="padding: 8px;">¥2,980</td>
+            <td style="padding: 8px;">わずか</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px;">キーボード</td>
+            <td style="padding: 8px;">¥5,400</td>
+            <td style="padding: 8px;">あり</td>
+        </tr>
+    </tbody>
+</table>`
+                },
+
+                // 第5章
+                {
+                    id: "form-inputs-all",
+                    category: "forms",
+                    title: "入力フォーム全種 (input, select, textarea, button)",
+                    desc: "テキスト、パスワード、ラジオボタン、チェックボックス、ドロップダウン、日付入力などの全フォーム部品です。",
+                    code: `<form action="#" method="post" style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+    
+    <!-- 1行テキスト入力 -->
+    <div style="margin-bottom: 15px;">
+        <label for="username">お名前:</label><br>
+        <input type="text" id="username" name="username" placeholder="山田 太郎" style="width: 100%; padding: 8px; margin-top: 4px;">
+    </div>
+
+    <!-- パスワード入力 -->
+    <div style="margin-bottom: 15px;">
+        <label for="pwd">パスワード:</label><br>
+        <input type="password" id="pwd" name="pwd" style="width: 100%; padding: 8px; margin-top: 4px;">
+    </div>
+
+    <!-- 単一選択 (ラジオボタン) -->
+    <div style="margin-bottom: 15px;">
+        <label>性別:</label><br>
+        <input type="radio" id="m" name="gender" value="male"> <label for="m">男性</label>
+        <input type="radio" id="f" name="gender" value="female"> <label for="f">女性</label>
+        <input type="radio" id="o" name="gender" value="other"> <label for="o">その他</label>
+    </div>
+
+    <!-- 複数選択 (チェックボックス) -->
+    <div style="margin-bottom: 15px;">
+        <label>興味のある分野 (複数可):</label><br>
+        <input type="checkbox" id="c1" name="hobby" value="web"> <label for="c1">Webデザイン</label>
+        <input type="checkbox" id="c2" name="hobby" value="code"> <label for="c2">プログラミング</label>
+    </div>
+
+    <!-- セレクトボックス (ドロップダウン) -->
+    <div style="margin-bottom: 15px;">
+        <label for="country">お住まいの地域:</label><br>
+        <select id="country" name="country" style="width: 100%; padding: 8px; margin-top: 4px;">
+            <option value="tokyo">東京都</option>
+            <option value="osaka">大阪府</option>
+            <option value="other">その他</option>
+        </select>
+    </div>
+
+    <!-- 日付・色選択 -->
+    <div style="margin-bottom: 15px;">
+        <label for="date">生年月日:</label>
+        <input type="date" id="date" name="date">
+        <label for="color" style="margin-left: 15px;">好きな色:</label>
+        <input type="color" id="color" name="color" value="#2563eb">
+    </div>
+
+    <!-- 複数行テキスト入力 -->
+    <div style="margin-bottom: 15px;">
+        <label for="msg">お問い合わせ内容:</label><br>
+        <textarea id="msg" name="msg" rows="4" style="width: 100%; padding: 8px; margin-top: 4px;" placeholder="メッセージを入力してください"></textarea>
+    </div>
+
+    <!-- 送信ボタン -->
+    <button type="submit" style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">送信する</button>
+</form>`
+                },
+
+                // 第6章
+                {
+                    id: "semantic-layout",
+                    category: "layout",
+                    title: "セマンティック構造 (header, nav, main, section, footer)",
+                    desc: "現代のWeb標準に従い、Webページの役割ごとにタグを使い分けて美しい構造を作ります。",
+                    code: `<div style="border: 1px solid #ccc; border-radius: 8px; overflow: hidden;">
+    <!-- ヘッダー (頭部分) -->
+    <header style="background: #1e293b; color: white; padding: 15px; text-align: center;">
+        <h2 style="margin: 0;">マイWebサイト</h2>
+        <p style="margin: 5px 0 0 0; font-size: 12px;">キャッチコピーがここに入ります</p>
+    </header>
+
+    <!-- ナビゲーションバー -->
+    <nav style="background: #334155; padding: 10px; text-align: center;">
+        <a href="#" style="color: white; margin: 0 10px; text-decoration: none;">ホーム</a> |
+        <a href="#" style="color: white; margin: 0 10px; text-decoration: none;">サービス</a> |
+        <a href="#" style="color: white; margin: 0 10px; text-decoration: none;">お問い合わせ</a>
+    </nav>
+
+    <!-- メインコンテンツ -->
+    <main style="padding: 20px; background: white;">
+        <section>
+            <h3>第1のセクション</h3>
+            <p>ここがメインの本文になります。</p>
+        </section>
+    </main>
+
+    <!-- フッター (足部分) -->
+    <footer style="background: #f1f5f9; padding: 10px; text-align: center; font-size: 12px; border-top: 1px solid #e2e8f0;">
+        &copy; 2026 My Website. All rights reserved.
+    </footer>
+</div>`
+                },
+
+                // 第7章
+                {
+                    id: "details-summary",
+                    category: "interactive",
+                    title: "折りたたみ表示 (details, summary)",
+                    desc: "JavaScriptを使わずに、クリックで開閉するFAQ（よくある質問）などのアコーディオンメニューを作れます。",
+                    code: `<details style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: white;">
+    <summary style="font-weight: bold; cursor: pointer; color: #2563eb;">❓ Q1: 初心者でもコピペでWebページが作れますか？</summary>
+    <p style="margin-top: 10px; padding-left: 15px; color: #475569;">
+        はい！このサイトのサンプルコードをコピーして、メモ帳などに貼り付けて「.html」という拡張子で保存するだけで、すぐに自分のWebページが開けます。
+    </p>
+</details>
+
+<details style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; background: white;">
+    <summary style="font-weight: bold; cursor: pointer; color: #2563eb;">🎨 Q2: 背景色を変えるにはどうすればいいですか？</summary>
+    <p style="margin-top: 10px; padding-left: 15px; color: #475569;">
+        第2章の「背景色の指定」サンプルを参考に、style="background-color: red;" のように指定することで自由に変更可能です。
+    </p>
+</details>`
+                },
+
+                // 第8章：完全なスケルトンテンプレート
+                {
+                    id: "full-skeleton-page",
+                    category: "page_template",
+                    title: "1ページ全体の完全HTMLテンプレート",
+                    desc: "コピーしてそのまま「index.html」として保存すれば1つの完成されたWebサイトになる完全なコードです。",
+                    code: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>私のホームページ</title>
+    <style>
+        body {
+            font-family: "MS Mincho", "ＭＳ 明朝", serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            color: #333333;
+        }
+        header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        nav {
+            background-color: #1d4ed8;
+            padding: 10px;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .box-highlight {
+            background-color: #fef08a;
+            padding: 15px;
+            border-left: 5px solid #eab308;
+            margin: 20px 0;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ようこそ！私の公式Webサイトへ</h1>
+        <p>HTMLの基本を学んで作成した最初のページです。</p>
+    </header>
+
+    <nav>
+        <a href="#about">自己紹介</a>
+        <a href="#services">できること</a>
+        <a href="#contact">お問い合わせ</a>
+    </nav>
+
+    <div class="container">
+        <section id="about">
+            <h2>プロフィール (自己紹介)</h2>
+            <p>はじめまして！HTMLとCSSを学習中の初心者です。このページはコピペとカスタマイズで作成されました。</p>
+        </section>
+
+        <div class="box-highlight">
+            💡 <strong>お知らせ:</strong> 背景色や文字色をアレンジして自分だけのデザインに書き換えてみましょう！
+        </div>
+
+        <section id="services">
+            <h2>学習中のスキル</h2>
+            <ul>
+                <li>HTML5（Webの構造とテキスト）</li>
+                <li>CSS3（背景色やレイアウトの装飾）</li>
+                <li>JavaScript（動きのあるWeb）</li>
+            </ul>
+        </section>
+
+        <section id="contact">
+            <h2>お問い合わせ</h2>
+            <p>ご意見やメッセージは以下からどうぞ。</p>
+            <p><a href="mailto:example@example.com" style="color: #2563eb;">メールを送る</a></p>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 My First Website. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>`
+                }
+            ];
+
+            // --- 3. アプリケーション状態変数 ---
+            let currentLang = 'ja';
+            let currentSample = samples[0];
+            let debounceTimer = null;
+
+            // DOMエレメントのキャッシュ
+            const langSelect = document.getElementById('lang-select');
+            const categorySelect = document.getElementById('category-select');
+            const searchInput = document.getElementById('search-input');
+            const sampleListEl = document.getElementById('sample-list');
+            const sampleCountEl = document.getElementById('sample-count');
+            
+            const currentTitleEl = document.getElementById('current-sample-title');
+            const currentDescEl = document.getElementById('current-sample-desc');
+            const currentCategoryEl = document.getElementById('current-sample-category');
+            
+            const codeEditor = document.getElementById('code-editor');
+            const previewIframe = document.getElementById('preview-iframe');
+            
+            const btnReset = document.getElementById('btn-reset-code');
+            const btnCopy = document.getElementById('btn-copy-code');
+            const btnSkeleton = document.getElementById('btn-load-skeleton');
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+
+            // --- 4. 初期化処理 ---
+            function init() {
+                setupEventListeners();
+                renderLanguageUI();
+                renderSampleList();
+                loadSample(samples[0]);
+            }
+
+            // --- 5. イベントリスナー登録 ---
+            function setupEventListeners() {
+                // 言語切替
+                langSelect.addEventListener('change', function (e) {
+                    currentLang = e.target.value;
+                    renderLanguageUI();
+                    renderSampleList();
+                    updateCurrentSampleText();
+                });
+
+                // フィルタ・検索
+                categorySelect.addEventListener('change', renderSampleList);
+                searchInput.addEventListener('input', renderSampleList);
+
+                // エディタ入力時（デバウンスでメモリとCPU消費を抑えてプレビュー更新）
+                codeEditor.addEventListener('input', function () {
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(updatePreview, 250);
+                });
+
+                // 各種ボタン
+                btnReset.addEventListener('click', function () {
+                    if (currentSample) {
+                        codeEditor.value = currentSample.code;
+                        updatePreview();
+                    }
+                });
+
+                btnCopy.addEventListener('click', copyCodeToClipboard);
+
+                btnSkeleton.addEventListener('click', function () {
+                    const skeletonSample = samples.find(s => s.id === 'full-skeleton-page');
+                    if (skeletonSample) {
+                        categorySelect.value = 'all';
+                        searchInput.value = '';
+                        renderSampleList();
+                        loadSample(skeletonSample);
+                    }
+                });
+            }
+
+            // --- 6. 多言語UIレンダリング ---
+            function renderLanguageUI() {
+                const t = translations[currentLang] || translations.ja;
+
+                document.getElementById('ui-app-title').textContent = t.appTitle;
+                document.getElementById('ui-badge').textContent = t.badge;
+                document.getElementById('ui-lang-label').textContent = t.langLabel;
+                document.getElementById('ui-search-label').textContent = t.searchLabel;
+                searchInput.placeholder = t.searchPlaceholder;
+                document.getElementById('ui-category-label').textContent = t.categoryLabel;
+                document.getElementById('opt-all').textContent = t.optAll;
+                document.getElementById('ui-list-title').textContent = t.listTitle;
+                document.getElementById('ui-btn-skeleton').textContent = t.btnSkeleton;
+                document.getElementById('ui-btn-reset').textContent = t.btnReset;
+                document.getElementById('ui-btn-copy').textContent = t.btnCopy;
+
+                // カテゴリ選択肢の言語更新
+                const opts = categorySelect.querySelectorAll('option');
+                opts.forEach(opt => {
+                    const val = opt.value;
+                    if (val !== 'all' && t.categories[val]) {
+                        opt.textContent = t.categories[val];
+                    }
+                });
+            }
+
+            // --- 7. サンプルリスト描画 (フィルタ・検索対応) ---
+            function renderSampleList() {
+                const catFilter = categorySelect.value;
+                const keyword = searchInput.value.trim().toLowerCase();
+
+                // フィルタリング
+                const filtered = samples.filter(s => {
+                    const matchCat = (catFilter === 'all') || (s.category === catFilter);
+                    const matchKey = !keyword || 
+                                     s.title.toLowerCase().includes(keyword) || 
+                                     s.desc.toLowerCase().includes(keyword) || 
+                                     s.code.toLowerCase().includes(keyword);
+                    return matchCat && matchKey;
+                });
+
+                sampleCountEl.textContent = filtered.length;
+                sampleListEl.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'p-4 text-center text-xs text-slate-400 font-sans';
+                    empty.textContent = '該当するサンプルが見つかりませんでした。';
+                    sampleListEl.appendChild(empty);
+                    return;
+                }
+
+                filtered.forEach(s => {
+                    const btn = document.createElement('button');
+                    const isActive = currentSample && currentSample.id === s.id;
+                    btn.className = `w-full text-left p-3 text-sm transition font-sans flex flex-col gap-1 ${
+                        isActive ? 'bg-blue-50 border-l-4 border-blue-600 font-bold text-blue-900' : 'hover:bg-slate-50 text-slate-700'
+                    }`;
+
+                    btn.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="truncate">${escapeHtml(s.title)}</span>
+                        </div>
+                    `;
+
+                    btn.addEventListener('click', function () {
+                        loadSample(s);
+                        renderSampleList(); // アクティブ項目のハイライト更新
+                    });
+
+                    sampleListEl.appendChild(btn);
+                });
+            }
+
+            // --- 8. サンプル読み込み ---
+            function loadSample(sample) {
+                currentSample = sample;
+                codeEditor.value = sample.code;
+                updateCurrentSampleText();
+                updatePreview();
+            }
+
+            function updateCurrentSampleText() {
+                if (!currentSample) return;
+                const t = translations[currentLang] || translations.ja;
+                currentTitleEl.textContent = currentSample.title;
+                currentDescEl.textContent = currentSample.desc;
+                currentCategoryEl.textContent = t.categories[currentSample.category] || currentSample.category;
+            }
+
+            // --- 9. プレビューの安全な生成 (iframe srcdoc) ---
+            function updatePreview() {
+                const code = codeEditor.value;
+                
+                // 完全なHTMLテンプレートか部分コードか判定し、安全なスタイルラッパーを付与
+                let finalDoc = '';
+                if (code.trim().toLowerCase().startsWith('<!doctype') || code.trim().toLowerCase().startsWith('<html')) {
+                    finalDoc = code;
+                } else {
+                    finalDoc = `
+                        <!DOCTYPE html>
+                        <html lang="ja">
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body {
+                                    font-family: "Hiragino Mincho ProN", "MS Mincho", "ＭＳ 明朝", serif;
+                                    padding: 15px;
+                                    color: #1e293b;
+                                    line-height: 1.6;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${code}
+                        </body>
+                        </html>
+                    `;
+                }
+
+                try {
+                    previewIframe.srcdoc = finalDoc;
+                } catch (e) {
+                    console.error('Preview error:', e);
+                }
+            }
+
+            // --- 10. クリップボードへのコピー機能 ---
+            function copyCodeToClipboard() {
+                const code = codeEditor.value;
+                const t = translations[currentLang] || translations.ja;
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(code).then(() => {
+                        showToast(t.toastCopied);
+                    }).catch(() => {
+                        fallbackCopy(code, t);
+                    });
+                } else {
+                    fallbackCopy(code, t);
+                }
+            }
+
+            function fallbackCopy(text, t) {
+                try {
+                    codeEditor.select();
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showToast(t.toastCopied);
+                    } else {
+                        showToast(t.toastError);
+                    }
+                } catch (err) {
+                    showToast(t.toastError);
+                }
+            }
+
+            function showToast(msg) {
+                toastMsg.textContent = msg;
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 2500);
+            }
+
+            function escapeHtml(str) {
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            // アプリ起動
+            document.addEventListener('DOMContentLoaded', init);
+
+        })();
+    </script>
+</body>
+</html>
