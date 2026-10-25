@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>色事典 - Color Dictionary & Picker</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* フォント設定: システムフォント + MS明朝フォントスタック */
+        body, input, button, select, textarea {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif, sans-serif;
+        }
+
+        /* 透過チェック柄背景 */
+        .transparency-grid {
+            background-image: linear-gradient(45deg, #e0e0e0 25%, transparent 25%), 
+                              linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #e0e0e0 75%), 
+                              linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        /* キャンバス上のカーソル表示 */
+        .color-cursor {
+            pointer-events: none;
+            box-shadow: 0 0 0 1.5px #ffffff, 0 0 4px rgba(0,0,0,0.6);
+        }
+
+        /* スクロールバーのカスタマイズ */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* フォーカスリングの最適化 */
+        *:focus-visible {
+            outline: 2px solid #6366f1;
+            outline-offset: 1px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- ヘッダー -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-md flex items-center justify-center text-white font-bold text-lg">
+                    色
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800 leading-tight" id="i18n-app-title">色事典</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block" id="i18n-app-subtitle">HTML / CSS Webカラーパレット・カラーピーカー</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <!-- 言語切り替えドロップダウン -->
+                <div class="relative">
+                    <select id="lang-select" class="appearance-none bg-slate-100 border border-slate-300 text-slate-700 text-xs sm:text-sm rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent cursor-pointer font-medium">
+                        <option value="ja">日本語</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
+                        <option value="ko">한국어</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 左カラム：カラーピーカー・カラーコントロール -->
+        <section class="lg:col-span-5 space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-5">
+                <h2 class="text-base font-semibold text-slate-700 border-b border-slate-100 pb-2.5 flex items-center justify-between">
+                    <span id="i18n-color-selection">カラー選択</span>
+                    <span id="closest-color-name" class="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full font-normal border border-indigo-100">---</span>
+                </h2>
+
+                <!-- メイングラデーションキャンバス (Sat/Val) -->
+                <div class="relative w-full aspect-square rounded-xl overflow-hidden shadow-inner cursor-crosshair select-none touch-none border border-slate-200" id="satval-container">
+                    <canvas id="satval-canvas" class="w-full h-full block"></canvas>
+                    <div id="satval-cursor" class="color-cursor absolute w-5 h-5 rounded-full border-2 border-white -translate-x-1/2 -translate-y-1/2 left-0 top-0"></div>
+                </div>
+
+                <!-- 色相 (Hue) スライダー -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs text-slate-500 font-medium">
+                        <span id="i18n-hue">色相 (Hue)</span>
+                        <span id="hue-val-text">0°</span>
+                    </div>
+                    <div class="relative w-full h-6 rounded-lg overflow-hidden cursor-pointer touch-none shadow-inner border border-slate-200" id="hue-container">
+                        <canvas id="hue-canvas" class="w-full h-full block"></canvas>
+                        <div id="hue-cursor" class="absolute top-0 bottom-0 w-2.5 bg-white border border-slate-400 rounded-sm shadow-md -translate-x-1/2 pointer-events-none left-0"></div>
+                    </div>
+                </div>
+
+                <!-- 透明度 (Alpha) スライダー -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs text-slate-500 font-medium">
+                        <span id="i18n-alpha">不透明度 (Alpha)</span>
+                        <span id="alpha-val-text">100%</span>
+                    </div>
+                    <div class="relative w-full h-6 rounded-lg overflow-hidden cursor-pointer touch-none shadow-inner border border-slate-200 transparency-grid" id="alpha-container">
+                        <canvas id="alpha-canvas" class="w-full h-full block"></canvas>
+                        <div id="alpha-cursor" class="absolute top-0 bottom-0 w-2.5 bg-white border border-slate-400 rounded-sm shadow-md -translate-x-1/2 pointer-events-none left-full"></div>
+                    </div>
+                </div>
+
+                <!-- ネイティブインプット & クイックアジャスト -->
+                <div class="flex items-center space-x-3 pt-2">
+                    <div class="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-300 shadow-sm flex-shrink-0 transparency-grid">
+                        <div id="current-color-preview" class="w-full h-full"></div>
+                        <input type="color" id="native-color-picker" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
+                    </div>
+                    <div class="flex-grow grid grid-cols-2 gap-2">
+                        <button id="btn-pipette" class="flex items-center justify-center space-x-1.5 text-xs font-medium py-2 px-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-lg transition-colors border border-slate-200/80">
+                            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4c0-1.48.8-2.84 2-3.51l12-12a1 1 0 011.41 0l2.12 2.12a1 1 0 010 1.41l-12 12C7.84 20.2 6.48 21 5 21z"></path></svg>
+                            <span id="i18n-eyedropper">スポイト</span>
+                        </button>
+                        <button id="btn-add-favorite" class="flex items-center justify-center space-x-1.5 text-xs font-medium py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors border border-indigo-200">
+                            <svg class="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path></svg>
+                            <span id="i18n-save">保存</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お気に入り & 履歴 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div class="flex space-x-4 text-sm font-semibold">
+                        <button id="tab-fav" class="text-indigo-600 border-b-2 border-indigo-600 pb-2 -mb-3 transition-all" id="i18n-favorites">お気に入り</button>
+                        <button id="tab-history" class="text-slate-400 hover:text-slate-600 pb-2 -mb-3 transition-all" id="i18n-history">履歴</button>
+                    </div>
+                    <button id="btn-clear-swatches" class="text-xs text-slate-400 hover:text-rose-500 transition-colors" id="i18n-clear">消去</button>
+                </div>
+                <div id="swatch-list" class="flex flex-wrap gap-2 min-h-[52px] max-h-36 overflow-y-auto p-1">
+                    <!-- 動的スウォッチ追加場所 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 右カラム：詳細数値・コピペ・色辞書 -->
+        <section class="lg:col-span-7 space-y-6">
+
+            <!-- 色データ数値＆コピー -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
+                <h2 class="text-base font-semibold text-slate-700 border-b border-slate-100 pb-2.5" id="i18n-color-codes">カラーコード出力</h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- HEX -->
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between group hover:border-indigo-200 transition-colors">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">HEX</span>
+                            <span id="code-hex" class="font-mono text-sm font-semibold text-slate-800">#FFFFFF</span>
+                        </div>
+                        <button data-copy="hex" class="copy-btn p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all shadow-none hover:shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- RGB -->
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between group hover:border-indigo-200 transition-colors">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">RGB</span>
+                            <span id="code-rgb" class="font-mono text-sm font-semibold text-slate-800">rgb(255, 255, 255)</span>
+                        </div>
+                        <button data-copy="rgb" class="copy-btn p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all shadow-none hover:shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- HSL -->
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between group hover:border-indigo-200 transition-colors">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">HSL</span>
+                            <span id="code-hsl" class="font-mono text-sm font-semibold text-slate-800">hsl(0, 0%, 100%)</span>
+                        </div>
+                        <button data-copy="hsl" class="copy-btn p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all shadow-none hover:shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- CMYK -->
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between group hover:border-indigo-200 transition-colors">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">CMYK</span>
+                            <span id="code-cmyk" class="font-mono text-sm font-semibold text-slate-800">0%, 0%, 0%, 0%</span>
+                        </div>
+                        <button data-copy="cmyk" class="copy-btn p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all shadow-none hover:shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- クイックCSSスニペット -->
+                <div class="pt-2">
+                    <span class="text-xs font-semibold text-slate-600 mb-2 block" id="i18n-css-snippets">CSSスニペット</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button data-copy="css-color" class="copy-btn text-left px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-mono text-slate-700 transition-colors flex justify-between items-center">
+                            <span id="code-css-color">color: #FFFFFF;</span>
+                            <span class="text-[10px] text-slate-400 font-sans">Copy</span>
+                        </button>
+                        <button data-copy="css-bg" class="copy-btn text-left px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-mono text-slate-700 transition-colors flex justify-between items-center">
+                            <span id="code-css-bg">background-color: #FFFFFF;</span>
+                            <span class="text-[10px] text-slate-400 font-sans">Copy</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- コントラスト視認性・アクセシビリティ判定 (WCAG) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-3">
+                <h2 class="text-base font-semibold text-slate-700 border-b border-slate-100 pb-2.5" id="i18n-accessibility">コントラスト・視認性 (WCAG 2.1)</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- 白文字との組み合わせ -->
+                    <div id="preview-white-text" class="p-4 rounded-xl flex items-center justify-between shadow-inner border border-slate-200/50 transition-colors">
+                        <span class="font-bold text-sm">Sample Text</span>
+                        <div class="text-right">
+                            <div id="ratio-white" class="text-xs font-bold font-mono">1.00:1</div>
+                            <div id="badge-white" class="text-[10px] px-2 py-0.5 rounded font-medium inline-block mt-0.5">Fail</div>
+                        </div>
+                    </div>
+                    <!-- 黒文字との組み合わせ -->
+                    <div id="preview-black-text" class="p-4 rounded-xl flex items-center justify-between shadow-inner border border-slate-200/50 transition-colors">
+                        <span class="font-bold text-sm">Sample Text</span>
+                        <div class="text-right">
+                            <div id="ratio-black" class="text-xs font-bold font-mono">21.00:1</div>
+                            <div id="badge-black" class="text-[10px] px-2 py-0.5 rounded font-medium inline-block mt-0.5">AAA</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 色事典 (カラーパレット・辞書) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-semibold text-slate-700" id="i18n-dictionary">色事典・パレット</h2>
+                    <div class="flex items-center space-x-2">
+                        <!-- カテゴリフィルター -->
+                        <select id="dict-category" class="bg-slate-100 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="traditional" id="i18n-cat-traditional">日本の伝統色</option>
+                            <option value="web" id="i18n-cat-web">基本Webカラー</option>
+                            <option value="pastel" id="i18n-cat-pastel">パステル</option>
+                            <option value="vivid" id="i18n-cat-vivid">ビビッド</option>
+                            <option value="material" id="i18n-cat-material">マテリアル</option>
+                        </select>
+                        <!-- 検索窓 -->
+                        <input type="text" id="dict-search" class="bg-slate-100 border border-slate-300 text-slate-700 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-28 sm:w-36" placeholder="検索...">
+                    </div>
+                </div>
+
+                <!-- 辞書カラーグリッド -->
+                <div id="dict-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                    <!-- 動的挿入 -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- コピー完了トースト通知 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 transition-all transform translate-y-16 opacity-0 pointer-events-none flex items-center space-x-2 z-50">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span id="toast-message">クリップボードにコピーしました</span>
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        (function() {
+            'use strict';
+
+            /* ==========================================================================
+               1. 言語リソース (i18n Dictionary)
+               ========================================================================== */
+            const i18nData = {
+                ja: {
+                    title: "色事典",
+                    subtitle: "HTML / CSS Webカラーパレット・カラーピーカー",
+                    selection: "カラー選択",
+                    hue: "色相 (Hue)",
+                    alpha: "不透明度 (Alpha)",
+                    eyedropper: "スポイト",
+                    save: "保存",
+                    favorites: "お気に入り",
+                    history: "履歴",
+                    clear: "消去",
+                    codes: "カラーコード出力",
+                    cssSnippets: "CSSスニペット",
+                    accessibility: "コントラスト・視認性 (WCAG 2.1)",
+                    dictionary: "色事典・パレット",
+                    searchPlaceholder: "検索...",
+                    copied: "クリップボードにコピーしました: ",
+                    catTraditional: "日本の伝統色",
+                    catWeb: "基本Webカラー",
+                    catPastel: "パステル",
+                    catVivid: "ビビッド",
+                    catMaterial: "マテリアル"
+                },
+                en: {
+                    title: "Color Encyclopedia",
+                    subtitle: "HTML / CSS Web Color Palette & Picker",
+                    selection: "Color Picker",
+                    hue: "Hue",
+                    alpha: "Alpha",
+                    eyedropper: "Eyedropper",
+                    save: "Save",
+                    favorites: "Favorites",
+                    history: "History",
+                    clear: "Clear",
+                    codes: "Color Codes",
+                    cssSnippets: "CSS Snippets",
+                    accessibility: "Contrast & Accessibility (WCAG)",
+                    dictionary: "Color Dictionary",
+                    searchPlaceholder: "Search...",
+                    copied: "Copied to clipboard: ",
+                    catTraditional: "Traditional Japanese",
+                    catWeb: "Web Safe Colors",
+                    catPastel: "Pastel",
+                    catVivid: "Vivid",
+                    catMaterial: "Material Design"
+                },
+                zh: {
+                    title: "颜色词典",
+                    subtitle: "HTML / CSS Web 调色板与取色器",
+                    selection: "颜色选择",
+                    hue: "色调 (Hue)",
+                    alpha: "不透明度 (Alpha)",
+                    eyedropper: "吸管",
+                    save: "保存",
+                    favorites: "收藏夹",
+                    history: "历史记录",
+                    clear: "清除",
+                    codes: "颜色代码",
+                    cssSnippets: "CSS 片段",
+                    accessibility: "对比度与无障碍 (WCAG)",
+                    dictionary: "颜色词典",
+                    searchPlaceholder: "搜索...",
+                    copied: "已复制到剪贴板: ",
+                    catTraditional: "日本传统色",
+                    catWeb: "Web 安全色",
+                    catPastel: "柔和色 (Pastel)",
+                    catVivid: "鲜艳色 (Vivid)",
+                    catMaterial: "Material 材质"
+                },
+                ko: {
+                    title: "색상 사전",
+                    subtitle: "HTML / CSS 웹 색상 팔레트 및 피커",
+                    selection: "색상 선택",
+                    hue: "색상 (Hue)",
+                    alpha: "투명도 (Alpha)",
+                    eyedropper: "스포이트",
+                    save: "저장",
+                    favorites: "즐겨찾기",
+                    history: "히스토리",
+                    clear: "지우기",
+                    codes: "색상 코드",
+                    cssSnippets: "CSS 스니펫",
+                    accessibility: "대비 및 접근성 (WCAG)",
+                    dictionary: "색상 사전",
+                    searchPlaceholder: "검색...",
+                    copied: "클립보드에 복사되었습니다: ",
+                    catTraditional: "일본 전통색",
+                    catWeb: "웹 기본 색상",
+                    catPastel: "파스텔",
+                    catVivid: "비비드",
+                    catMaterial: "머티리얼"
+                },
+                fr: {
+                    title: "Dictionnaire des Couleurs",
+                    subtitle: "Palette de Couleurs Web & Sélecteur HTML/CSS",
+                    selection: "Sélecteur de Couleur",
+                    hue: "Teinte (Hue)",
+                    alpha: "Opacité (Alpha)",
+                    eyedropper: "Pipette",
+                    save: "Sauvegarder",
+                    favorites: "Favoris",
+                    history: "Historique",
+                    clear: "Effacer",
+                    codes: "Codes de Couleur",
+                    cssSnippets: "Extraits CSS",
+                    accessibility: "Contraste & Accessibilité (WCAG)",
+                    dictionary: "Dictionnaire des Couleurs",
+                    searchPlaceholder: "Chercher...",
+                    copied: "Copié dans le presse-papier: ",
+                    catTraditional: "Japonais Traditionnel",
+                    catWeb: "Couleurs Web",
+                    catPastel: "Pastel",
+                    catVivid: "Vif",
+                    catMaterial: "Material Design"
+                },
+                es: {
+                    title: "Diccionario de Colores",
+                    subtitle: "Paleta de Colores Web y Selector HTML/CSS",
+                    selection: "Selector de Color",
+                    hue: "Tono (Hue)",
+                    alpha: "Opacidad (Alpha)",
+                    eyedropper: "Cuentagotas",
+                    save: "Guardar",
+                    favorites: "Favoritos",
+                    history: "Historial",
+                    clear: "Borrar",
+                    codes: "Códigos de Color",
+                    cssSnippets: "Fragmentos CSS",
+                    accessibility: "Contraste y Accesibilidad (WCAG)",
+                    dictionary: "Diccionario de Colores",
+                    searchPlaceholder: "Buscar...",
+                    copied: "Copiado al portapapeles: ",
+                    catTraditional: "Japonés Tradicional",
+                    catWeb: "Colores Web",
+                    catPastel: "Pastel",
+                    catVivid: "Vívido",
+                    catMaterial: "Material Design"
+                }
+            };
+
+            /* ==========================================================================
+               2. カラーマスター辞書データ
+               ========================================================================== */
+            const colorDictionary = [
+                // 日本の伝統色
+                { hex: "#e2041b", cat: "traditional", name: { ja: "茜色 (あかねいろ)", en: "Madder Red", zh: "茜色", ko: "꼭두서니색", fr: "Rouge Garance", es: "Rojo Granza" } },
+                { hex: "#f8b500", cat: "traditional", name: { ja: "山吹色 (やまぶきいろ)", en: "Golden Yellow", zh: "山吹色", ko: "황매화색", fr: "Jaune D'or", es: "Amarillo Dorado" } },
+                { hex: "#007b43", cat: "traditional", name: { ja: "常磐色 (ときわいろ)", en: "Evergreen Green", zh: "常磐色", ko: "상록수색", fr: "Vert Toujours", es: "Verde Perenne" } },
+                { hex: "#2a4073", cat: "traditional", name: { ja: "瑠璃色 (るりいろ)", en: "Lapis Lazuli Blue", zh: "瑠璃色", ko: "유리색", fr: "Bleu Lapis-lazuli", es: "Azul Lapislázuli" } },
+                { hex: "#cc7eb1", cat: "traditional", name: { ja: "藤紫 (ふじむらさき)", en: "Wisteria Purple", zh: "藤紫", ko: "등보라", fr: "Violet Glycine", es: "Púrpura Glicinia" } },
+                { hex: "#e8d3d1", cat: "traditional", name: { ja: "桜色 (さくらいろ)", en: "Cherry Blossom Pink", zh: "樱色", ko: "벚꽃색", fr: "Rose Cerisier", es: "Rosa Cerezo" } },
+                { hex: "#c1e4e9", cat: "traditional", name: { ja: "水色 (みずいろ)", en: "Light Blue", zh: "水色", ko: "물색", fr: "Bleu Eau", es: "Azul Agua" } },
+                { hex: "#6b5140", cat: "traditional", name: { ja: "焦茶 (こげちゃ)", en: "Dark Brown", zh: "焦茶", ko: "진갈색", fr: "Brun Foncé", es: "Marrón Oscuro" } },
+
+                // 基本Webカラー
+                { hex: "#ff0000", cat: "web", name: { ja: "赤 (Red)", en: "Red", zh: "红", ko: "빨강", fr: "Rouge", es: "Rojo" } },
+                { hex: "#00ff00", cat: "web", name: { ja: "ライム (Lime)", en: "Lime", zh: "青绿", ko: "라임", fr: "Lime", es: "Lima" } },
+                { hex: "#0000ff", cat: "web", name: { ja: "青 (Blue)", en: "Blue", zh: "蓝", ko: "파랑", fr: "Bleu", es: "Azul" } },
+                { hex: "#ffff00", cat: "web", name: { ja: "黄 (Yellow)", en: "Yellow", zh: "黄", ko: "노랑", fr: "Jaune", es: "Amarillo" } },
+                { hex: "#00ffff", cat: "web", name: { ja: "シアン (Cyan)", en: "Cyan", zh: "青", ko: "청록", fr: "Cyan", es: "Cian" } },
+                { hex: "#ff00ff", cat: "web", name: { ja: "マゼンタ (Magenta)", en: "Magenta", zh: "洋红", ko: "자홍", fr: "Magenta", es: "Magenta" } },
+                { hex: "#000000", cat: "web", name: { ja: "黒 (Black)", en: "Black", zh: "黑", ko: "검정", fr: "Noir", es: "Negro" } },
+                { hex: "#ffffff", cat: "web", name: { ja: "白 (White)", en: "White", zh: "白", ko: "하양", fr: "Blanc", es: "Blanco" } },
+
+                // パステル
+                { hex: "#ffb3ba", cat: "pastel", name: { ja: "パステルピンク", en: "Pastel Pink", zh: "柔粉色", ko: "파스텔 핑크", fr: "Rose Pastel", es: "Rosa Pastel" } },
+                { hex: "#ffdfba", cat: "pastel", name: { ja: "パステルオレンジ", en: "Pastel Orange", zh: "柔橙色", ko: "파스텔 오렌지", fr: "Orange Pastel", es: "Naranja Pastel" } },
+                { hex: "#ffffba", cat: "pastel", name: { ja: "パステルイエロー", en: "Pastel Yellow", zh: "柔黄色", ko: "파스텔 옐로우", fr: "Jaune Pastel", es: "Amarillo Pastel" } },
+                { hex: "#baffc9", cat: "pastel", name: { ja: "パステルグリーン", en: "Pastel Green", zh: "柔绿色", ko: "파스텔 그린", fr: "Vert Pastel", es: "Verde Pastel" } },
+                { hex: "#bae1ff", cat: "pastel", name: { ja: "パステルブルー", en: "Pastel Blue", zh: "柔蓝色", ko: "파스텔 블루", fr: "Bleu Pastel", es: "Azul Pastel" } },
+                { hex: "#e8bae1", cat: "pastel", name: { ja: "パステルパープル", en: "Pastel Purple", zh: "柔紫色", ko: "파스텔 퍼플", fr: "Violet Pastel", es: "Púrpura Pastel" } },
+
+                // ビビッド
+                { hex: "#ff0055", cat: "vivid", name: { ja: "ネオンピンク", en: "Neon Pink", zh: "霓虹粉", ko: "네온 핑크", fr: "Rose Néon", es: "Rosa Neón" } },
+                { hex: "#ff5e00", cat: "vivid", name: { ja: "ビビッドオレンジ", en: "Vivid Orange", zh: "鲜橙色", ko: "비비드 오렌지", fr: "Orange Vif", es: "Naranja Vivo" } },
+                { hex: "#a6ff00", cat: "vivid", name: { ja: "エレクトリックライム", en: "Electric Lime", zh: "荧光绿", ko: "일렉트릭 라임", fr: "Lime Électrique", es: "Lima Eléctrica" } },
+                { hex: "#00f0ff", cat: "vivid", name: { ja: "エレクトリックブルー", en: "Electric Blue", zh: "电光蓝", ko: "일렉트릭 블루", fr: "Bleu Électrique", es: "Azul Eléctrico" } },
+
+                // マテリアル
+                { hex: "#f44336", cat: "material", name: { ja: "マテリアルレッド", en: "Material Red", zh: "Material 红", ko: "머티리얼 레드", fr: "Rouge Material", es: "Rojo Material" } },
+                { hex: "#2196f3", cat: "material", name: { ja: "マテリアルブルー", en: "Material Blue", zh: "Material 蓝", ko: "머티리얼 블루", fr: "Bleu Material", es: "Azul Material" } },
+                { hex: "#4caf50", cat: "material", name: { ja: "マテリアルグリーン", en: "Material Green", zh: "Material 绿", ko: "머티리얼 그린", fr: "Vert Material", es: "Verde Material" } },
+                { hex: "#ffeb3b", cat: "material", name: { ja: "マテリアルイエロー", en: "Material Yellow", zh: "Material 黄", ko: "머티리얼 옐로우", fr: "Jaune Material", es: "Amarillo Material" } },
+                { hex: "#9c27b0", cat: "material", name: { ja: "マテリアルパープル", en: "Material Purple", zh: "Material 紫", ko: "머티리얼 퍼플", fr: "Violet Material", es: "Púrpura Material" } },
+                { hex: "#607d8b", cat: "material", name: { ja: "ブルーグレー", en: "Blue Grey", zh: "蓝灰色", ko: "블루 그레이", fr: "Gris Bleu", es: "Gris Azulado" } }
+            ];
+
+            /* ==========================================================================
+               3. 状態管理 (State)
+               ========================================================================== */
+            let state = {
+                h: 0,      // Hue: 0 - 360
+                s: 1,      // Saturation: 0 - 1
+                v: 1,      // Value: 0 - 1
+                a: 1,      // Alpha: 0 - 1
+                lang: 'ja',
+                activeTab: 'fav', // 'fav' | 'history'
+                favorites: [],
+                history: []
+            };
+
+            // DOM要素キャッシュ
+            const dom = {};
+
+            /* ==========================================================================
+               4. 色空間計算ユーティリティ (Color Math Engine)
+               ========================================================================== */
+            function hsvToRgb(h, s, v) {
+                let r, g, b;
+                const i = Math.floor(h / 60) % 6;
+                const f = h / 60 - Math.floor(h / 60);
+                const p = v * (1 - s);
+                const q = v * (1 - f * s);
+                const t = v * (1 - (1 - f) * s);
+
+                switch (i) {
+                    case 0: r = v; g = t; b = p; break;
+                    case 1: r = q; g = v; b = p; break;
+                    case 2: r = p; g = v; b = t; break;
+                    case 3: r = p; g = q; b = v; break;
+                    case 4: r = t; g = p; b = v; break;
+                    case 5: r = v; g = p; b = q; break;
+                }
+                return {
+                    r: Math.round(r * 255),
+                    g: Math.round(g * 255),
+                    b: Math.round(b * 255)
+                };
+            }
+
+            function rgbToHsv(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, v = max;
+                const d = max - min;
+                s = max === 0 ? 0 : d / max;
+
+                if (max === min) {
+                    h = 0;
+                } else {
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return { h: h * 360, s, v };
+            }
+
+            function rgbToHsl(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, l = (max + min) / 2;
+
+                if (max === min) {
+                    h = s = 0;
+                } else {
+                    const d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+            }
+
+            function rgbToCmyk(r, g, b) {
+                let c = 1 - (r / 255);
+                let m = 1 - (g / 255);
+                let y = 1 - (b / 255);
+                let k = Math.min(c, Math.min(m, y));
+
+                if (k === 1) return { c: 0, m: 0, y: 0, k: 100 };
+
+                c = Math.round(((c - k) / (1 - k)) * 100);
+                m = Math.round(((m - k) / (1 - k)) * 100);
+                y = Math.round(((y - k) / (1 - k)) * 100);
+                k = Math.round(k * 100);
+
+                return { c, m, y, k };
+            }
+
+            function rgbToHex(r, g, b) {
+                return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+            }
+
+            function hexToRgb(hex) {
+                hex = hex.replace(/^#/, '');
+                if (hex.length === 3) {
+                    hex = hex.split('').map(c => c + c).join('');
+                }
+                if (hex.length !== 6) return null;
+                const num = parseInt(hex, 16);
+                return {
+                    r: (num >> 16) & 255,
+                    g: (num >> 8) & 255,
+                    b: num & 255
+                };
+            }
+
+            // WCAG 相対輝度とコントラスト比計算
+            function getLuminance(r, g, b) {
+                const a = [r, g, b].map(v => {
+                    v /= 255;
+                    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+                });
+                return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+            }
+
+            function getContrastRatio(rgb1, rgb2) {
+                const lum1 = getLuminance(rgb1.r, rgb1.g, rgb1.b);
+                const lum2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
+                const brightest = Math.max(lum1, lum2);
+                const darkest = Math.min(lum1, lum2);
+                return (brightest + 0.05) / (darkest + 0.05);
+            }
+
+            // 近似色名の検索
+            function getClosestColorName(targetHex) {
+                const rgb = hexToRgb(targetHex);
+                if (!rgb) return "---";
+
+                let minDistance = Infinity;
+                let closestName = "---";
+
+                colorDictionary.forEach(item => {
+                    const itemRgb = hexToRgb(item.hex);
+                    if (itemRgb) {
+                        // ユーグリッド距離
+                        const dist = Math.sqrt(
+                            Math.pow(rgb.r - itemRgb.r, 2) +
+                            Math.pow(rgb.g - itemRgb.g, 2) +
+                            Math.pow(rgb.b - itemRgb.b, 2)
+                        );
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestName = item.name[state.lang] || item.name['en'];
+                        }
+                    }
+                });
+                return closestName;
+            }
+
+            /* ==========================================================================
+               5. Canvas 描画エンジン (Render Engine)
+               ========================================================================== */
+            function renderSatValCanvas() {
+                const canvas = dom.satvalCanvas;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+
+                // ベースの色相
+                const baseRgb = hsvToRgb(state.h, 1, 1);
+
+                // 横方向: 白からベース色
+                const gradHoriz = ctx.createLinearGradient(0, 0, width, 0);
+                gradHoriz.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                gradHoriz.addColorStop(1, `rgba(${baseRgb.r}, ${baseRgb.g}, ${baseRgb.b}, 1)`);
+                ctx.fillStyle = gradHoriz;
+                ctx.fillRect(0, 0, width, height);
+
+                // 縦方向: 透明から黒
+                const gradVert = ctx.createLinearGradient(0, 0, 0, height);
+                gradVert.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                gradVert.addColorStop(1, 'rgba(0, 0, 0, 1)');
+                ctx.fillStyle = gradVert;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            function renderHueCanvas() {
+                const canvas = dom.hueCanvas;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+
+                const grad = ctx.createLinearGradient(0, 0, width, 0);
+                grad.addColorStop(0, '#ff0000');
+                grad.addColorStop(1/6, '#ffff00');
+                grad.addColorStop(2/6, '#00ff00');
+                grad.addColorStop(3/6, '#00ffff');
+                grad.addColorStop(4/6, '#0000ff');
+                grad.addColorStop(5/6, '#ff00ff');
+                grad.addColorStop(1, '#ff0000');
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            function renderAlphaCanvas() {
+                const canvas = dom.alphaCanvas;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+
+                ctx.clearRect(0, 0, width, height);
+
+                const currentRgb = hsvToRgb(state.h, state.s, state.v);
+                const grad = ctx.createLinearGradient(0, 0, width, 0);
+                grad.addColorStop(0, `rgba(${currentRgb.r}, ${currentRgb.g}, ${currentRgb.b}, 0)`);
+                grad.addColorStop(1, `rgba(${currentRgb.r}, ${currentRgb.g}, ${currentRgb.b}, 1)`);
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            /* ==========================================================================
+               6. UI & 表示更新 (UI Synchronizer)
+               ========================================================================== */
+            function updateUI() {
+                const rgb = hsvToRgb(state.h, state.s, state.v);
+                const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+                const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+
+                // カーソル位置の同期
+                const satValRect = dom.satvalContainer.getBoundingClientRect();
+                dom.satvalCursor.style.left = `${state.s * 100}%`;
+                dom.satvalCursor.style.top = `${(1 - state.v) * 100}%`;
+
+                dom.hueCursor.style.left = `${(state.h / 360) * 100}%`;
+                dom.alphaCursor.style.left = `${state.a * 100}%`;
+
+                // キャンバス再描画
+                renderSatValCanvas();
+                renderAlphaCanvas();
+
+                // テキスト表示の更新
+                dom.hueValText.textContent = `${Math.round(state.h)}°`;
+                dom.alphaValText.textContent = `${Math.round(state.a * 100)}%`;
+
+                // プレビュー背景
+                const rgbaStr = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${state.a})`;
+                dom.currentPreview.style.backgroundColor = rgbaStr;
+                dom.nativeColorPicker.value = hex;
+
+                // カラーコード出力更新
+                dom.codeHex.textContent = hex.toUpperCase() + (state.a < 1 ? Math.round(state.a * 255).toString(16).padStart(2, '0').toUpperCase() : '');
+                dom.codeRgb.textContent = state.a < 1 ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${state.a.toFixed(2)})` : `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                dom.codeHsl.textContent = state.a < 1 ? `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${state.a.toFixed(2)})` : `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+                dom.codeCmyk.textContent = `${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%`;
+
+                // CSSスニペット
+                dom.codeCssColor.textContent = `color: ${dom.codeHex.textContent};`;
+                dom.codeCssBg.textContent = `background-color: ${dom.codeHex.textContent};`;
+
+                // 近似色名
+                dom.closestColorName.textContent = getClosestColorName(hex);
+
+                // コントラスト評価 (WCAG)
+                updateContrastUI(rgb);
+            }
+
+            function updateContrastUI(rgb) {
+                const ratioWhite = getContrastRatio(rgb, { r: 255, g: 255, b: 255 });
+                const ratioBlack = getContrastRatio(rgb, { r: 0, g: 0, b: 0 });
+
+                dom.previewWhiteText.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                dom.previewWhiteText.style.color = '#ffffff';
+                dom.ratioWhite.textContent = `${ratioWhite.toFixed(2)}:1`;
+                setBadge(dom.badgeWhite, ratioWhite);
+
+                dom.previewBlackText.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                dom.previewBlackText.style.color = '#000000';
+                dom.ratioBlack.textContent = `${ratioBlack.toFixed(2)}:1`;
+                setBadge(dom.badgeBlack, ratioBlack);
+            }
+
+            function setBadge(element, ratio) {
+                if (ratio >= 7) {
+                    element.textContent = 'AAA (超良好)';
+                    element.className = 'text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800';
+                } else if (ratio >= 4.5) {
+                    element.textContent = 'AA (良好)';
+                    element.className = 'text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-50 text-emerald-600';
+                } else if (ratio >= 3) {
+                    element.textContent = 'AA Large (可)';
+                    element.className = 'text-[10px] px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800';
+                } else {
+                    element.textContent = 'Fail (不可)';
+                    element.className = 'text-[10px] px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800';
+                }
+            }
+
+            /* ==========================================================================
+               7. 多言語切り替え (i18n Engine)
+               ========================================================================== */
+            function setLanguage(lang) {
+                if (!i18nData[lang]) return;
+                state.lang = lang;
+                const dict = i18nData[lang];
+
+                // テキストの置換
+                document.getElementById('i18n-app-title').textContent = dict.title;
+                document.getElementById('i18n-app-subtitle').textContent = dict.subtitle;
+                document.getElementById('i18n-color-selection').textContent = dict.selection;
+                document.getElementById('i18n-hue').textContent = dict.hue;
+                document.getElementById('i18n-alpha').textContent = dict.alpha;
+                document.getElementById('i18n-eyedropper').textContent = dict.eyedropper;
+                document.getElementById('i18n-save').textContent = dict.save;
+                document.getElementById('i18n-favorites').textContent = dict.favorites;
+                document.getElementById('i18n-history').textContent = dict.history;
+                document.getElementById('i18n-clear').textContent = dict.clear;
+                document.getElementById('i18n-color-codes').textContent = dict.codes;
+                document.getElementById('i18n-css-snippets').textContent = dict.cssSnippets;
+                document.getElementById('i18n-accessibility').textContent = dict.accessibility;
+                document.getElementById('i18n-dictionary').textContent = dict.dictionary;
+                document.getElementById('dict-search').placeholder = dict.searchPlaceholder;
+
+                document.getElementById('i18n-cat-traditional').textContent = dict.catTraditional;
+                document.getElementById('i18n-cat-web').textContent = dict.catWeb;
+                document.getElementById('i18n-cat-pastel').textContent = dict.catPastel;
+                document.getElementById('i18n-cat-vivid').textContent = dict.catVivid;
+                document.getElementById('i18n-cat-material').textContent = dict.catMaterial;
+
+                // 辞書とUIの再描画
+                renderDictionary();
+                updateUI();
+            }
+
+            /* ==========================================================================
+               8. 色事典パレット & スウォッチ管理
+               ========================================================================== */
+            function renderDictionary() {
+                const category = dom.dictCategory.value;
+                const keyword = dom.dictSearch.value.trim().toLowerCase();
+                const container = dom.dictGrid;
+                container.innerHTML = '';
+
+                const filtered = colorDictionary.filter(item => {
+                    const matchCat = (category === 'all' || item.cat === category);
+                    const nameInLang = (item.name[state.lang] || item.name['en']).toLowerCase();
+                    const matchKey = !keyword || nameInLang.includes(keyword) || item.hex.toLowerCase().includes(keyword);
+                    return matchCat && matchKey;
+                });
+
+                filtered.forEach(item => {
+                    const el = document.createElement('button');
+                    el.className = 'flex items-center space-x-2 p-2 rounded-xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-sm bg-slate-50/50 hover:bg-white transition-all text-left group';
+                    const name = item.name[state.lang] || item.name['en'];
+                    
+                    el.innerHTML = `
+                        <span class="w-6 h-6 rounded-lg border border-slate-300/60 flex-shrink-0 shadow-sm" style="background-color: ${item.hex};"></span>
+                        <div class="overflow-hidden">
+                            <div class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 truncate">${name}</div>
+                            <div class="text-[10px] font-mono text-slate-400 uppercase">${item.hex}</div>
+                        </div>
+                    `;
+
+                    el.addEventListener('click', () => {
+                        setColorFromHex(item.hex);
+                        addToHistory(item.hex);
+                    });
+                    container.appendChild(el);
+                });
+            }
+
+            function renderSwatches() {
+                const container = dom.swatchList;
+                container.innerHTML = '';
+
+                const list = state.activeTab === 'fav' ? state.favorites : state.history;
+
+                if (list.length === 0) {
+                    container.innerHTML = `<span class="text-xs text-slate-400 p-2">なし</span>`;
+                    return;
+                }
+
+                list.forEach(hex => {
+                    const btn = document.createElement('button');
+                    btn.className = 'w-8 h-8 rounded-lg border border-slate-300 shadow-sm transition-transform transform hover:scale-110 active:scale-95 focus:outline-none relative group transparency-grid overflow-hidden';
+                    
+                    const inner = document.createElement('div');
+                    inner.className = 'w-full h-full';
+                    inner.style.backgroundColor = hex;
+                    btn.appendChild(inner);
+
+                    btn.title = hex;
+                    btn.addEventListener('click', () => {
+                        setColorFromHex(hex);
+                    });
+
+                    container.appendChild(btn);
+                });
+            }
+
+            function setColorFromHex(hex) {
+                try {
+                    const rgb = hexToRgb(hex);
+                    if (rgb) {
+                        const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+                        state.h = hsv.h;
+                        state.s = hsv.s;
+                        state.v = hsv.v;
+                        updateUI();
+                    }
+                } catch (e) {
+                    console.error("Invalid Hex Code:", e);
+                }
+            }
+
+            function addToHistory(hex) {
+                if (!state.history.includes(hex)) {
+                    state.history.unshift(hex);
+                    if (state.history.length > 20) state.history.pop();
+                    if (state.activeTab === 'history') renderSwatches();
+                }
+            }
+
+            /* ==========================================================================
+               9. イベントハンドラー & ドラッグ操作
+               ========================================================================== */
+            function setupEvents() {
+                // キャンバスリサイズ調整
+                function resizeCanvases() {
+                    [dom.satvalCanvas, dom.hueCanvas, dom.alphaCanvas].forEach(canvas => {
+                        if (canvas) {
+                            const rect = canvas.parentElement.getBoundingClientRect();
+                            canvas.width = rect.width;
+                            canvas.height = rect.height;
+                        }
+                    });
+                    renderHueCanvas();
+                    updateUI();
+                }
+
+                window.addEventListener('resize', resizeCanvases);
+
+                // 1. Sat/Val ドラッグ操作
+                let isDraggingSatVal = false;
+                function handleSatValMove(e) {
+                    const rect = dom.satvalContainer.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                    let x = (clientX - rect.left) / rect.width;
+                    let y = (clientY - rect.top) / rect.height;
+
+                    x = Math.max(0, Math.min(1, x));
+                    y = Math.max(0, Math.min(1, y));
+
+                    state.s = x;
+                    state.v = 1 - y;
+                    updateUI();
+                }
+
+                dom.satvalContainer.addEventListener('mousedown', (e) => {
+                    isDraggingSatVal = true;
+                    handleSatValMove(e);
+                });
+                dom.satvalContainer.addEventListener('touchstart', (e) => {
+                    isDraggingSatVal = true;
+                    handleSatValMove(e);
+                }, { passive: true });
+
+                // 2. Hue ドラッグ操作
+                let isDraggingHue = false;
+                function handleHueMove(e) {
+                    const rect = dom.hueContainer.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    let x = (clientX - rect.left) / rect.width;
+                    x = Math.max(0, Math.min(1, x));
+                    state.h = x * 360;
+                    if (state.h >= 360) state.h = 359.9;
+                    updateUI();
+                }
+
+                dom.hueContainer.addEventListener('mousedown', (e) => {
+                    isDraggingHue = true;
+                    handleHueMove(e);
+                });
+                dom.hueContainer.addEventListener('touchstart', (e) => {
+                    isDraggingHue = true;
+                    handleHueMove(e);
+                }, { passive: true });
+
+                // 3. Alpha ドラッグ操作
+                let isDraggingAlpha = false;
+                function handleAlphaMove(e) {
+                    const rect = dom.alphaContainer.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    let x = (clientX - rect.left) / rect.width;
+                    state.a = Math.max(0, Math.min(1, x));
+                    updateUI();
+                }
+
+                dom.alphaContainer.addEventListener('mousedown', (e) => {
+                    isDraggingAlpha = true;
+                    handleAlphaMove(e);
+                });
+                dom.alphaContainer.addEventListener('touchstart', (e) => {
+                    isDraggingAlpha = true;
+                    handleAlphaMove(e);
+                }, { passive: true });
+
+                // グローバルマウス/タッチアップ
+                window.addEventListener('mousemove', (e) => {
+                    if (isDraggingSatVal) handleSatValMove(e);
+                    if (isDraggingHue) handleHueMove(e);
+                    if (isDraggingAlpha) handleAlphaMove(e);
+                });
+
+                window.addEventListener('touchmove', (e) => {
+                    if (isDraggingSatVal) handleSatValMove(e);
+                    if (isDraggingHue) handleHueMove(e);
+                    if (isDraggingAlpha) handleAlphaMove(e);
+                }, { passive: true });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDraggingSatVal || isDraggingHue || isDraggingAlpha) {
+                        const rgb = hsvToRgb(state.h, state.s, state.v);
+                        addToHistory(rgbToHex(rgb.r, rgb.g, rgb.b));
+                    }
+                    isDraggingSatVal = isDraggingHue = isDraggingAlpha = false;
+                });
+                window.addEventListener('touchend', () => {
+                    if (isDraggingSatVal || isDraggingHue || isDraggingAlpha) {
+                        const rgb = hsvToRgb(state.h, state.s, state.v);
+                        addToHistory(rgbToHex(rgb.r, rgb.g, rgb.b));
+                    }
+                    isDraggingSatVal = isDraggingHue = isDraggingAlpha = false;
+                });
+
+                // ネイティブカラーピーカー
+                dom.nativeColorPicker.addEventListener('input', (e) => {
+                    setColorFromHex(e.target.value);
+                    addToHistory(e.target.value);
+                });
+
+                // EyeDropper (スポイトAPI)
+                dom.btnPipette.addEventListener('click', async () => {
+                    if ('EyeDropper' in window) {
+                        try {
+                            const eyeDropper = new EyeDropper();
+                            const result = await eyeDropper.open();
+                            if (result && result.sRGBHex) {
+                                setColorFromHex(result.sRGBHex);
+                                addToHistory(result.sRGBHex);
+                            }
+                        } catch (e) {
+                            // ユーザーキャンセル等
+                        }
+                    } else {
+                        showToast("お使いのブラウザはスポイト機能をサポートしていません");
+                    }
+                });
+
+                // 保存ボタン
+                dom.btnAddFavorite.addEventListener('click', () => {
+                    const rgb = hsvToRgb(state.h, state.s, state.v);
+                    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+                    if (!state.favorites.includes(hex)) {
+                        state.favorites.unshift(hex);
+                        if (state.activeTab === 'fav') renderSwatches();
+                        showToast(`保存しました: ${hex}`);
+                    }
+                });
+
+                // タブ切り替え
+                dom.tabFav.addEventListener('click', () => {
+                    state.activeTab = 'fav';
+                    dom.tabFav.className = 'text-indigo-600 border-b-2 border-indigo-600 pb-2 -mb-3 transition-all font-semibold';
+                    dom.tabHistory.className = 'text-slate-400 hover:text-slate-600 pb-2 -mb-3 transition-all font-semibold';
+                    renderSwatches();
+                });
+
+                dom.tabHistory.addEventListener('click', () => {
+                    state.activeTab = 'history';
+                    dom.tabHistory.className = 'text-indigo-600 border-b-2 border-indigo-600 pb-2 -mb-3 transition-all font-semibold';
+                    dom.tabFav.className = 'text-slate-400 hover:text-slate-600 pb-2 -mb-3 transition-all font-semibold';
+                    renderSwatches();
+                });
+
+                // スウォッチクリア
+                dom.btnClearSwatches.addEventListener('click', () => {
+                    if (state.activeTab === 'fav') {
+                        state.favorites = [];
+                    } else {
+                        state.history = [];
+                    }
+                    renderSwatches();
+                });
+
+                // コピー機能
+                document.querySelectorAll('.copy-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const target = btn.getAttribute('data-copy');
+                        let textToCopy = '';
+
+                        switch (target) {
+                            case 'hex': textToCopy = dom.codeHex.textContent; break;
+                            case 'rgb': textToCopy = dom.codeRgb.textContent; break;
+                            case 'hsl': textToCopy = dom.codeHsl.textContent; break;
+                            case 'cmyk': textToCopy = dom.codeCmyk.textContent; break;
+                            case 'css-color': textToCopy = dom.codeCssColor.textContent; break;
+                            case 'css-bg': textToCopy = dom.codeCssBg.textContent; break;
+                        }
+
+                        if (textToCopy) {
+                            copyToClipboard(textToCopy);
+                        }
+                    });
+                });
+
+                // 検索＆フィルタ
+                dom.dictCategory.addEventListener('change', renderDictionary);
+                dom.dictSearch.addEventListener('input', renderDictionary);
+
+                // 言語ドロップダウン
+                dom.langSelect.addEventListener('change', (e) => {
+                    setLanguage(e.target.value);
+                });
+
+                // 初期キャンバスサイズ同期
+                setTimeout(resizeCanvases, 50);
+            }
+
+            /* ==========================================================================
+               10. クリップボード & トースト通知
+               ========================================================================== */
+            function copyToClipboard(text) {
+                // クリップボード安全フォールバック
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(i18nData[state.lang].copied + text);
+                    }).catch(() => fallbackCopy(text));
+                } else {
+                    fallbackCopy(text);
+                }
+            }
+
+            function fallbackCopy(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(i18nData[state.lang].copied + text);
+                } catch (err) {
+                    console.error('Copy failed', err);
+                }
+                document.body.removeChild(textArea);
+            }
+
+            let toastTimer = null;
+            function showToast(msg) {
+                const toast = dom.toast;
+                dom.toastMessage.textContent = msg;
+                toast.classList.remove('translate-y-16', 'opacity-0', 'pointer-events-none');
+                toast.classList.add('translate-y-0', 'opacity-100');
+
+                if (toastTimer) clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-16', 'opacity-0', 'pointer-events-none');
+                }, 2500);
+            }
+
+            /* ==========================================================================
+               11. アプリケーション初期化
+               ========================================================================== */
+            function init() {
+                // DOM要素キャッシュの登録
+                dom.satvalContainer = document.getElementById('satval-container');
+                dom.satvalCanvas = document.getElementById('satval-canvas');
+                dom.satvalCursor = document.getElementById('satval-cursor');
+
+                dom.hueContainer = document.getElementById('hue-container');
+                dom.hueCanvas = document.getElementById('hue-canvas');
+                dom.hueCursor = document.getElementById('hue-cursor');
+
+                dom.alphaContainer = document.getElementById('alpha-container');
+                dom.alphaCanvas = document.getElementById('alpha-canvas');
+                dom.alphaCursor = document.getElementById('alpha-cursor');
+
+                dom.hueValText = document.getElementById('hue-val-text');
+                dom.alphaValText = document.getElementById('alpha-val-text');
+                dom.currentPreview = document.getElementById('current-color-preview');
+                dom.nativeColorPicker = document.getElementById('native-color-picker');
+
+                dom.btnPipette = document.getElementById('btn-pipette');
+                dom.btnAddFavorite = document.getElementById('btn-add-favorite');
+                dom.tabFav = document.getElementById('tab-fav');
+                dom.tabHistory = document.getElementById('tab-history');
+                dom.btnClearSwatches = document.getElementById('btn-clear-swatches');
+                dom.swatchList = document.getElementById('swatch-list');
+
+                dom.codeHex = document.getElementById('code-hex');
+                dom.codeRgb = document.getElementById('code-rgb');
+                dom.codeHsl = document.getElementById('code-hsl');
+                dom.codeCmyk = document.getElementById('code-cmyk');
+                dom.codeCssColor = document.getElementById('code-css-color');
+                dom.codeCssBg = document.getElementById('code-css-bg');
+                dom.closestColorName = document.getElementById('closest-color-name');
+
+                dom.previewWhiteText = document.getElementById('preview-white-text');
+                dom.previewBlackText = document.getElementById('preview-black-text');
+                dom.ratioWhite = document.getElementById('ratio-white');
+                dom.ratioBlack = document.getElementById('ratio-black');
+                dom.badgeWhite = document.getElementById('badge-white');
+                dom.badgeBlack = document.getElementById('badge-black');
+
+                dom.dictCategory = document.getElementById('dict-category');
+                dom.dictSearch = document.getElementById('dict-search');
+                dom.dictGrid = document.getElementById('dict-grid');
+                dom.langSelect = document.getElementById('lang-select');
+
+                dom.toast = document.getElementById('toast');
+                dom.toastMessage = document.getElementById('toast-message');
+
+                // イベント登録 & 初期言語設定
+                setupEvents();
+                setLanguage('ja');
+
+                // 初期カラー設定 (#6366f1)
+                setColorFromHex('#6366f1');
+                renderSwatches();
+            }
+
+            // onloadで開始
+            window.addEventListener('DOMContentLoaded', init);
+
+        })();
+    </script>
+</body>
+</html>
