@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>君はバスの運転手 - You are a Bus Driver</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* オフライン環境・フォント要件に対応したスタイル定義 */
+        body {
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-color: #1a202c;
+        }
+
+        /* ゲームキャンバスのレスポンシブスタイル */
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #333;
+        }
+
+        /* ペダル・操作ボタンのカスタムスタイル */
+        .pedal-btn {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+            transition: transform 0.05s ease, background-color 0.1s ease;
+        }
+        .pedal-btn:active, .pedal-btn.active {
+            transform: scale(0.95) translateY(4px);
+            box-shadow: 0 1px 2px -1px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ハンドルスタイル */
+        #steeringWheel {
+            touch-action: none;
+            transition: transform 0.05s ease-out;
+            filter: drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.6));
+        }
+
+        /* カスタムスクロールバー非表示 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen relative text-white flex flex-col justify-between">
+
+    <!-- トップバー（UIステータス表示 & 言語切替） -->
+    <header class="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-3 bg-slate-900/80 backdrop-blur-md border-b border-slate-700">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-lg md:text-xl font-bold text-yellow-400 tracking-wider" id="txt-title">君はバスの運転手</h1>
+            <div class="bg-slate-800 px-3 py-1 rounded-full border border-slate-600 text-xs md:text-sm">
+                <span id="txt-score-label">スコア</span>: <span id="ui-score" class="font-mono text-green-400 font-bold">0</span>
+            </div>
+            <div class="bg-slate-800 px-3 py-1 rounded-full border border-slate-600 text-xs md:text-sm">
+                <span id="txt-passengers-label">乗客</span>: <span id="ui-passengers" class="font-mono text-cyan-400 font-bold">0</span>人
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- 速度・バス停情報 -->
+            <div class="hidden sm:flex space-x-2 text-xs md:text-sm">
+                <div class="bg-slate-800 px-3 py-1 rounded border border-slate-700">
+                    <span id="txt-speed-label">速度</span>: <span id="ui-speed" class="font-mono text-yellow-300">0</span> km/h
+                </div>
+                <div class="bg-slate-800 px-3 py-1 rounded border border-slate-700">
+                    <span id="txt-nextstop-label">次バス停</span>: <span id="ui-next-stop" class="font-mono text-orange-400">---</span> m
+                </div>
+            </div>
+
+            <!-- 言語選択ドロップダウン -->
+            <select id="langSelect" class="bg-slate-800 border border-slate-600 text-xs md:text-sm rounded-lg px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                <option value="ja" selected>日本語</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- メインゲームキャンバスエリア -->
+    <main class="relative w-full h-full flex-grow">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- モバイル用小型スピードメーター表示 -->
+        <div class="sm:hidden absolute top-16 left-3 z-10 bg-slate-900/80 p-2 rounded-lg border border-slate-700 text-xs flex flex-col gap-1">
+            <div><span id="txt-speed-mobile">速度</span>: <span id="ui-speed-mobile" class="font-mono text-yellow-300">0</span> km/h</div>
+            <div><span id="txt-nextstop-mobile">次バス停</span>: <span id="ui-next-stop-mobile" class="font-mono text-orange-400">---</span> m</div>
+        </div>
+
+        <!-- 停車アナウンスオーバレイ -->
+        <div id="busStopAnnouncement" class="hidden absolute top-20 left-1/2 transform -translate-x-1/2 z-10 bg-yellow-500 text-slate-950 font-bold px-6 py-2 rounded-full shadow-lg border-2 border-white animate-bounce text-center text-sm md:text-base">
+            <span id="txt-busstop-near">まもなくバス停です！減速してください</span>
+        </div>
+    </main>
+
+    <!-- コントロールエリア (左下: アクセル/ブレーキ, 右下: ハンドル中くらい) -->
+    <footer class="absolute bottom-0 left-0 right-0 z-20 p-4 pointer-events-none flex justify-between items-end">
+        <!-- 左下：アクセル＆ブレーキ（小さめ） -->
+        <div class="pointer-events-auto flex items-end space-x-3 mb-2 ml-2">
+            <!-- ブレーキ -->
+            <button id="btnBrake" class="pedal-btn w-14 h-24 sm:w-16 sm:h-28 bg-gradient-to-b from-red-600 to-red-800 border-2 border-red-400 rounded-lg flex flex-col justify-center items-center text-xs sm:text-sm font-bold shadow-lg">
+                <span id="txt-brake">ブレーキ</span>
+                <span class="text-xs text-red-200 mt-1">[S / ↓]</span>
+            </button>
+            <!-- アクセル -->
+            <button id="btnAccel" class="pedal-btn w-14 h-28 sm:w-16 sm:h-32 bg-gradient-to-b from-green-600 to-green-800 border-2 border-green-400 rounded-lg flex flex-col justify-center items-center text-xs sm:text-sm font-bold shadow-lg">
+                <span id="txt-accel">アクセル</span>
+                <span class="text-xs text-green-200 mt-1">[W / ↑]</span>
+            </button>
+        </div>
+
+        <!-- 右下：ハンドル（中くらい） -->
+        <div class="pointer-events-auto mb-2 mr-4 flex flex-col items-center">
+            <div id="steeringContainer" class="relative w-36 h-36 sm:w-44 sm:h-44 flex justify-center items-center">
+                <svg id="steeringWheel" class="w-full h-full cursor-grab active:cursor-grabbing" viewBox="0 0 100 100">
+                    <!-- 外輪 -->
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="#2d3748" stroke-width="10" />
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="#4a5568" stroke-width="4" />
+                    <!-- グリップ手元指示 -->
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#1a202c" stroke-width="2" stroke-dasharray="4 4"/>
+                    <!-- センターキャップ -->
+                    <circle cx="50" cy="50" r="14" fill="#1a202c" stroke="#e2e8f0" stroke-width="2" />
+                    <!-- スポーク -->
+                    <path d="M 12 50 L 36 50 M 64 50 L 88 50 M 50 64 L 50 88" stroke="#718096" stroke-width="6" stroke-linecap="round"/>
+                    <path d="M 12 50 L 36 50 M 64 50 L 88 50 M 50 64 L 50 88" stroke="#cbd5e0" stroke-width="2" stroke-linecap="round"/>
+                    <!-- バスアイコン・ロゴ -->
+                    <rect x="44" y="44" width="12" height="12" rx="2" fill="#ecc94b" />
+                </svg>
+            </div>
+            <div class="text-xs text-slate-300 mt-1 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none">
+                <span id="txt-steer-help">ドラッグ または [A/D, ←/→]</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- スタート / ゲームオーバーモーダル -->
+    <div id="gameModal" class="absolute inset-0 z-30 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+        <div class="bg-slate-800 border-2 border-slate-600 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl space-y-5">
+            <h2 id="modalTitle" class="text-2xl sm:text-3xl font-extrabold text-yellow-400">君はバスの運転手</h2>
+            
+            <p id="modalDesc" class="text-sm sm:text-base text-slate-300 leading-relaxed">
+                片側二車線の安全な道路を走り、バス停で乗客を乗せましょう！<br>
+                反対車線への侵入（逆走）や前方の車への衝突は危険です！
+            </p>
+
+            <!-- 最終スコア表示（ゲームオーバー用） -->
+            <div id="scoreBoard" class="hidden bg-slate-900/80 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span id="txt-final-score">最終スコア:</span>
+                    <span id="finalScore" class="font-mono text-green-400 font-bold">0</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span id="txt-final-passengers">運んだ乗客:</span>
+                    <span id="finalPassengers" class="font-mono text-cyan-400 font-bold">0</span>
+                </div>
+            </div>
+
+            <!-- 操作説明 -->
+            <div class="bg-slate-700/50 p-3 rounded-lg text-xs text-left space-y-1 border border-slate-600">
+                <div class="font-bold text-yellow-300 mb-1" id="txt-howto-title">【操作方法】</div>
+                <div id="txt-howto-1">• 右下ハンドル: ドラッグまたは左右キーでステアリング</div>
+                <div id="txt-howto-2">• 左下アクセル / ブレーキ: ボタン長押しまたは上下キー</div>
+                <div id="txt-howto-3">• バス停の黄色い枠内で【完全停車 (0km/h)】すると乗客が乗り降りします</div>
+            </div>
+
+            <button id="btnStart" class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl shadow-lg transform active:scale-95 transition text-lg">
+                <span id="txt-btn-start">運転を開始する</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- メインスクリプト -->
+    <script>
+        "use strict";
+
+        // 多言語辞書データ (i18n)
+        const translations = {
+            ja: {
+                title: "君はバスの運転手",
+                score: "スコア",
+                passengers: "乗客",
+                speed: "速度",
+                nextstop: "次バス停",
+                accel: "アクセル",
+                brake: "ブレーキ",
+                steerHelp: "ドラッグ または [A/D, ←/→]",
+                busstopNear: "まもなくバス停です！減速してください",
+                modalTitleStart: "君はバスの運転手",
+                modalDescStart: "片側二車線の安全な道路を走り、バス停で乗客を乗せましょう！反対車線への侵入（逆走事故）はゲームオーバーです！",
+                btnStart: "運転を開始する",
+                modalTitleGameOver: "事故発生！ゲームオーバー",
+                reasonWrongWay: "原因: 反対車線を逆走しました！",
+                reasonCrash: "原因: 他の車両に衝突しました！",
+                btnRestart: "もう一度プレイする",
+                finalScore: "最終スコア:",
+                finalPassengers: "運んだ乗客:",
+                howtoTitle: "【操作方法】",
+                howto1: "• 右下ハンドル: ドラッグまたは左右キーでステアリング",
+                howto2: "• 左下ペダル: ボタン長押しまたは上下キーで加減速",
+                howto3: "• バス停枠内で【完全停車 (0km/h)】すると乗客が乗り降りします",
+                busstopName: "バス停",
+                stoppedMsg: "バス停に停車しました！乗客が乗り降り中..."
+            },
+            en: {
+                title: "You are a Bus Driver",
+                score: "Score",
+                passengers: "Passengers",
+                speed: "Speed",
+                nextstop: "Next Stop",
+                accel: "Accel",
+                brake: "Brake",
+                steerHelp: "Drag or [A/D, Arrow Keys]",
+                busstopNear: "Approaching Bus Stop! Slow down!",
+                modalTitleStart: "You are a Bus Driver",
+                modalDescStart: "Drive safely on the two-lane road and pick up passengers at bus stops! Driving in the wrong lane causes a Game Over!",
+                btnStart: "Start Driving",
+                modalTitleGameOver: "Accident! Game Over",
+                reasonWrongWay: "Reason: Driving in the wrong direction!",
+                reasonCrash: "Reason: Collided with another vehicle!",
+                btnRestart: "Play Again",
+                finalScore: "Final Score:",
+                finalPassengers: "Passengers Carried:",
+                howtoTitle: "[Controls]",
+                howto1: "• Steering: Drag wheel or Left/Right keys",
+                howto2: "• Pedals: Press pedals or Up/Down keys to accelerate/brake",
+                howto3: "• Stop completely (0 km/h) inside the yellow stop zone to service passengers.",
+                busstopName: "Bus Stop",
+                stoppedMsg: "Stopped at bus stop! Passengers embarking..."
+            },
+            zh: {
+                title: "你是巴士司机",
+                score: "得分",
+                passengers: "乘客",
+                speed: "速度",
+                nextstop: "下一站",
+                accel: "油门",
+                brake: "刹车",
+                steerHelp: "拖动 或 [A/D, 左右键]",
+                busstopNear: "即将到达公交站！请减速！",
+                modalTitleStart: "你是巴士司机",
+                modalDescStart: "在双向车道上安全行驶，并在公交站接送乘客！逆向行驶会导致游戏结束！",
+                btnStart: "开始驾驶",
+                modalTitleGameOver: "发生事故！游戏结束",
+                reasonWrongWay: "原因：逆向行驶！",
+                reasonCrash: "原因：与其他车辆碰撞！",
+                btnRestart: "重新开始",
+                finalScore: "最终得分:",
+                finalPassengers: "运送乘客数:",
+                howtoTitle: "【操作说明】",
+                howto1: "• 方向盘：拖动右下角方向盘或按左右键",
+                howto2: "• 脚踏板：按住左下角油门/刹车或上下键",
+                howto3: "• 在黄色公交站区域内【完全停稳(0km/h)】以接送乘客",
+                busstopName: "公交站",
+                stoppedMsg: "已停靠公交站！乘客正在上下车..."
+            },
+            ko: {
+                title: "당신은 버스 기사",
+                score: "점수",
+                passengers: "승객",
+                speed: "속도",
+                nextstop: "다음 정リュ장",
+                accel: "엑셀",
+                brake: "브레이크",
+                steerHelp: "드래그 또는 [A/D, 방향키]",
+                busstopNear: "잠시 후 버스 정류장입니다! 속도를 줄이세요!",
+                modalTitleStart: "당신은 버스 기사",
+                modalDescStart: "왕복 차선 도로를 안전하게 운전하고 정류장에서 승객을 태우세요! 역주행 시 게임 오버!",
+                btnStart: "운전 시작하기",
+                modalTitleGameOver: "사고 발생! 게임 오버",
+                reasonWrongWay: "원인: 반대 차선 역주행!",
+                reasonCrash: "원인: 다른 차량과 충돌!",
+                btnRestart: "다시 플레이",
+                finalScore: "최종 점수:",
+                finalPassengers: "수송한 승객:",
+                howtoTitle: "【조작 방법】",
+                howto1: "• 핸들: 오른쪽 아래 핸들 드래그 또는 좌우 방향키",
+                howto2: "• 페달: 왼쪽 아래 페달 터치 또는 위/아래 방향키",
+                howto3: "• 정류장 구역 내에서 【완전 정지 (0km/h)】하면 승객이 승하차합니다.",
+                busstopName: "정류장",
+                stoppedMsg: "정류장에 정차했습니다! 승객 승하차 중..."
+            },
+            fr: {
+                title: "Vous êtes chauffeur de bus",
+                score: "Score",
+                passengers: "Passagers",
+                speed: "Vitesse",
+                nextstop: "Prochain arrêt",
+                accel: "Accélér.",
+                brake: "Frein",
+                steerHelp: "Glisser ou [A/D, Flèches]",
+                busstopNear: "Arrêt de bus proche ! Ralentissez !",
+                modalTitleStart: "Vous êtes chauffeur de bus",
+                modalDescStart: "Roulez en toute sécurité et prenez des passagers aux arrêts ! Rouler à contresens entraîne un Game Over !",
+                btnStart: "Commencer à conduire",
+                modalTitleGameOver: "Accident ! Fin de partie",
+                reasonWrongWay: "Raison : Conduite à contresens !",
+                reasonCrash: "Raison : Collision avec un autre véhicule !",
+                btnRestart: "Rejouer",
+                finalScore: "Score final :",
+                finalPassengers: "Passagers transportés :",
+                howtoTitle: "[Commandes]",
+                howto1: "• Volant : Faites glisser ou touches Gauche/Droite",
+                howto2: "• Pédales : Appuyez ou touches Haut/Bas",
+                howto3: "• Arrêtez-vous complètement (0 km/h) dans la zone jaune pour les passagers.",
+                busstopName: "Arrêt de bus",
+                stoppedMsg: "Arrêté à l'arrêt ! Passagers en cours de montée..."
+            },
+            es: {
+                title: "Eres un conductor de autobús",
+                score: "Puntuación",
+                passengers: "Pasajeros",
+                speed: "Velocidad",
+                nextstop: "Próx. parada",
+                accel: "Acelerador",
+                brake: "Freno",
+                steerHelp: "Arrastrar o [A/D, Flechas]",
+                busstopNear: "¡Próxima parada! ¡Reduce la velocidad!",
+                modalTitleStart: "Eres un conductor de autobús",
+                modalDescStart: "¡Conduce con seguridad y recoge pasajeros en las paradas! ¡Conducir en sentido contrario provoca el Fin del juego!",
+                btnStart: "Empezar a conducir",
+                modalTitleGameOver: "¡Accidente! Juego Terminado",
+                reasonWrongWay: "Razón: ¡Conducción en sentido contrario!",
+                reasonCrash: "Razón: ¡Colisión con otro vehículo!",
+                btnRestart: "Jugar de nuevo",
+                finalScore: "Puntuación final:",
+                finalPassengers: "Pasajeros transportados:",
+                howtoTitle: "[Controles]",
+                howto1: "• Volante: Arrastra o usa flechas Izq/Der",
+                howto2: "• Pedales: Presiona o usa flechas Arriba/Abajo",
+                howto3: "• Detente por completo (0 km/h) en la zona amarilla para subir pasajeros.",
+                busstopName: "Parada",
+                stoppedMsg: "¡Detenido en la parada! Pasajeros embarcando..."
+            }
+        };
+
+        // アプリケーション状態およびゲームエンジンの管理
+        (function() {
+            let currentLang = 'ja';
+            let canvas, ctx;
+            let animationFrameId = null;
+
+            // 入力ステート
+            const keys = { up: false, down: false, left: false, right: false };
+            let isAccelPressed = false;
+            let isBrakePressed = false;
+            let steeringAngle = 0; // -1 (full left) to 1 (full right)
+            let isDraggingSteering = false;
+            let steeringCenter = { x: 0, y: 0 };
+
+            // ゲーム状態変数
+            let gameState = 'START'; // START, PLAYING, GAMEOVER
+            let score = 0;
+            let passengersCount = 0;
+            let gameOverReason = '';
+
+            // プレイヤー（バス）の物理・位置パラメタ
+            const bus = {
+                x: 0,
+                y: 0,
+                width: 44,
+                height: 90,
+                speed: 0,
+                maxSpeed: 60, // km/h
+                acceleration: 0.25,
+                deceleration: 0.4,
+                friction: 0.08,
+                angle: 0 // ラジアン
+            };
+
+            // 道路・マップ関連の変数
+            let roadOffsetY = 0;
+            const laneWidth = 90;
+            // 片側二車線：計4車線
+            // 左側2車線: 逆走車線 (南向き/下向き進行), 右側2車線: 自車線 (北向き/上向き進行)
+            let roadCenterX = 0;
+
+            // 環境オブジェクト（周囲の車、背景の建物、バス停）
+            let npcCars = [];
+            let buildings = [];
+            let busStop = null;
+
+            // DOM要素キャッシュ
+            const dom = {};
+
+            // 初期化ルーチン
+            window.addEventListener('DOMContentLoaded', () => {
+                try {
+                    cacheDomElements();
+                    setupCanvas();
+                    setupEventListeners();
+                    updateLanguage('ja');
+                    
+                    // 初期画面の描画
+                    renderInitialScene();
+                } catch (e) {
+                    console.error("Initialization error:", e);
+                }
+            });
+
+            // DOMキャッシュ
+            function cacheDomElements() {
+                dom.canvas = document.getElementById('gameCanvas');
+                dom.langSelect = document.getElementById('langSelect');
+                dom.uiScore = document.getElementById('ui-score');
+                dom.uiPassengers = document.getElementById('ui-passengers');
+                dom.uiSpeed = document.getElementById('ui-speed');
+                dom.uiNextStop = document.getElementById('ui-next-stop');
+                dom.uiSpeedMobile = document.getElementById('ui-speed-mobile');
+                dom.uiNextStopMobile = document.getElementById('ui-next-stop-mobile');
+                dom.btnAccel = document.getElementById('btnAccel');
+                dom.btnBrake = document.getElementById('btnBrake');
+                dom.steeringWheel = document.getElementById('steeringWheel');
+                dom.steeringContainer = document.getElementById('steeringContainer');
+                dom.gameModal = document.getElementById('gameModal');
+                dom.modalTitle = document.getElementById('modalTitle');
+                dom.modalDesc = document.getElementById('modalDesc');
+                dom.btnStart = document.getElementById('btnStart');
+                dom.scoreBoard = document.getElementById('scoreBoard');
+                dom.finalScore = document.getElementById('finalScore');
+                dom.finalPassengers = document.getElementById('finalPassengers');
+                dom.busStopAnnouncement = document.getElementById('busStopAnnouncement');
+
+                ctx = dom.canvas.getContext('2d');
+            }
+
+            // キャンバスサイズ最適化
+            function setupCanvas() {
+                const resize = () => {
+                    dom.canvas.width = window.innerWidth;
+                    dom.canvas.height = window.innerHeight;
+                    roadCenterX = dom.canvas.width / 2;
+                    if (gameState === 'START') {
+                        resetPlayerPosition();
+                    }
+                };
+                window.addEventListener('resize', resize);
+                resize();
+            }
+
+            // プレイヤー位置のリセット（右側車線の走行車線中央）
+            function resetPlayerPosition() {
+                bus.x = roadCenterX + laneWidth * 0.5; // 右側第1走行車線
+                bus.y = dom.canvas.height * 0.7;
+                bus.speed = 0;
+                bus.angle = 0;
+            }
+
+            // イベントリスナーの登録
+            function setupEventListeners() {
+                // i18n 言語変更
+                dom.langSelect.addEventListener('change', (e) => {
+                    updateLanguage(e.target.value);
+                });
+
+                // スタート / リスタートボタン
+                dom.btnStart.addEventListener('click', startGame);
+
+                // キーボード制御
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
+                    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
+                    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+                    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+                    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+                    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+                    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+                });
+
+                // ペダル（タッチ/マウス）コントロール
+                const bindPedal = (elem, setFn) => {
+                    const start = (e) => { e.preventDefault(); setFn(true); elem.classList.add('active'); };
+                    const end = (e) => { e.preventDefault(); setFn(false); elem.classList.remove('active'); };
+                    elem.addEventListener('mousedown', start);
+                    elem.addEventListener('mouseup', end);
+                    elem.addEventListener('mouseleave', end);
+                    elem.addEventListener('touchstart', start);
+                    elem.addEventListener('touchend', end);
+                    elem.addEventListener('touchcancel', end);
+                };
+
+                bindPedal(dom.btnAccel, (val) => { isAccelPressed = val; });
+                bindPedal(dom.btnBrake, (val) => { isBrakePressed = val; });
+
+                // ハンドル（タッチ/ドラッグ）コントロール
+                const handleSteerStart = (e) => {
+                    isDraggingSteering = true;
+                    const rect = dom.steeringContainer.getBoundingClientRect();
+                    steeringCenter = {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                    handleSteerMove(e);
+                };
+
+                const handleSteerMove = (e) => {
+                    if (!isDraggingSteering) return;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                    const dx = clientX - steeringCenter.x;
+                    const dy = clientY - steeringCenter.y;
+                    
+                    // X軸の移動量から傾き角度を設定 (-45度 〜 +45度)
+                    let angleDeg = dx * 0.8;
+                    angleDeg = Math.max(-60, Math.min(60, angleDeg));
+                    
+                    steeringAngle = angleDeg / 60; // -1.0 〜 1.0
+                    dom.steeringWheel.style.transform = `rotate(${angleDeg}deg)`;
+                };
+
+                const handleSteerEnd = () => {
+                    isDraggingSteering = false;
+                    steeringAngle = 0;
+                    dom.steeringWheel.style.transform = `rotate(0deg)`;
+                };
+
+                dom.steeringWheel.addEventListener('mousedown', handleSteerStart);
+                window.addEventListener('mousemove', handleSteerMove);
+                window.addEventListener('mouseup', handleSteerEnd);
+
+                dom.steeringWheel.addEventListener('touchstart', handleSteerStart, { passive: false });
+                window.addEventListener('touchmove', handleSteerMove, { passive: false });
+                window.addEventListener('touchend', handleSteerEnd);
+            }
+
+            // 多言語切り替え（i18n）
+            function updateLanguage(lang) {
+                if (!translations[lang]) return;
+                currentLang = lang;
+                const t = translations[lang];
+
+                document.getElementById('txt-title').innerText = t.title;
+                document.getElementById('txt-score-label').innerText = t.score;
+                document.getElementById('txt-passengers-label').innerText = t.passengers;
+                document.getElementById('txt-speed-label').innerText = t.speed;
+                document.getElementById('txt-nextstop-label').innerText = t.nextstop;
+                document.getElementById('txt-speed-mobile').innerText = t.speed;
+                document.getElementById('txt-nextstop-mobile').innerText = t.nextstop;
+                document.getElementById('txt-accel').innerText = t.accel;
+                document.getElementById('txt-brake').innerText = t.brake;
+                document.getElementById('txt-steer-help').innerText = t.steerHelp;
+                document.getElementById('txt-busstop-near').innerText = t.busstopNear;
+                document.getElementById('txt-final-score').innerText = t.finalScore;
+                document.getElementById('txt-final-passengers').innerText = t.finalPassengers;
+                document.getElementById('txt-howto-title').innerText = t.howtoTitle;
+                document.getElementById('txt-howto-1').innerText = t.howto1;
+                document.getElementById('txt-howto-2').innerText = t.howto2;
+                document.getElementById('txt-howto-3').innerText = t.howto3;
+
+                if (gameState === 'START') {
+                    dom.modalTitle.innerText = t.modalTitleStart;
+                    dom.modalDesc.innerText = t.modalDescStart;
+                    dom.btnStart.querySelector('span').innerText = t.btnStart;
+                } else if (gameState === 'GAMEOVER') {
+                    dom.modalTitle.innerText = t.modalTitleGameOver;
+                    dom.modalDesc.innerHTML = `${gameOverReason}<br><span class="text-xs text-slate-400 mt-2 block">${t.modalDescStart}</span>`;
+                    dom.btnStart.querySelector('span').innerText = t.btnRestart;
+                }
+            }
+
+            // ゲームスタート / リセット
+            function startGame() {
+                score = 0;
+                passengersCount = 0;
+                gameState = 'PLAYING';
+                
+                resetPlayerPosition();
+                initWorldObjects();
+                spawnBusStop();
+
+                dom.gameModal.classList.add('hidden');
+                dom.scoreBoard.classList.add('hidden');
+
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                lastTime = performance.now();
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+
+            // 背景ビル及び車オブジェクトの初期設定
+            function initWorldObjects() {
+                buildings = [];
+                npcCars = [];
+
+                // 街並み（左右の建物）の生成
+                for (let y = -200; y < dom.canvas.height + 400; y += 120) {
+                    buildings.push(createBuilding(true, y));
+                    buildings.push(createBuilding(false, y));
+                }
+
+                // 初期対向車・同方向車の生成
+                for (let i = 0; i < 4; i++) {
+                    spawnNpcCar(Math.random() * dom.canvas.height);
+                }
+            }
+
+            function createBuilding(isLeft, y) {
+                const width = 100 + Math.random() * 80;
+                const height = 80 + Math.random() * 40;
+                const x = isLeft ? roadCenterX - laneWidth * 2 - width - 20 : roadCenterX + laneWidth * 2 + 20;
+                const colors = ['#475569', '#334155', '#1e293b', '#0f172a', '#374151'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                return { x, y, width, height, color, isLeft };
+            }
+
+            // NPC車両の生成
+            function spawnNpcCar(spawnY = -150) {
+                // 対向車線(左側2車線: 0, 1) or 自車線(右側2車線: 2, 3)
+                const lane = Math.floor(Math.random() * 4);
+                const isOncoming = lane < 2; // 左2車線は対向車
+                
+                let laneX = roadCenterX + (lane - 2) * laneWidth + laneWidth / 2;
+                
+                // 対向車は南向き(下向き), 同方向車は北向き(上向き)
+                const speed = isOncoming ? (30 + Math.random() * 20) : (15 + Math.random() * 15);
+                const colors = ['#ef4444', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#f59e0b'];
+
+                npcCars.push({
+                    x: laneX,
+                    y: spawnY,
+                    width: 38,
+                    height: 70,
+                    speed: speed,
+                    isOncoming: isOncoming,
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                });
+            }
+
+            // 次のバス停生成（ランダムな距離）
+            function spawnBusStop() {
+                // 現在位置から500m〜1200m先にバス停をランダム生成
+                const distanceMeters = Math.floor(400 + Math.random() * 800);
+                busStop = {
+                    distance: distanceMeters, // 残り距離 (メートル換算)
+                    y: -distanceMeters * 10,  // ピクセル換算
+                    serviced: false,
+                    stopTimer: 0,
+                    passengerDelta: Math.floor(2 + Math.random() * 8)
+                };
+            }
+
+            // メインゲームループ
+            let lastTime = 0;
+            function gameLoop(time) {
+                const dt = Math.min((time - lastTime) / 1000, 0.1);
+                lastTime = time;
+
+                if (gameState === 'PLAYING') {
+                    updatePhysics(dt);
+                    updateWorld(dt);
+                    checkCollisions();
+                }
+
+                render();
+
+                if (gameState === 'PLAYING') {
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                }
+            }
+
+            // 物理挙動・自車更新
+            function updatePhysics(dt) {
+                // 加減速ロジック
+                const isAccelerating = keys.up || isAccelPressed;
+                const isBraking = keys.down || isBrakePressed;
+
+                if (isAccelerating) {
+                    bus.speed += bus.acceleration;
+                } else if (isBraking) {
+                    bus.speed -= bus.deceleration;
+                } else {
+                    // 自然減速
+                    if (bus.speed > 0) bus.speed -= bus.friction;
+                    if (bus.speed < 0) bus.speed += bus.friction;
+                }
+
+                // 速度制限
+                bus.speed = Math.max(0, Math.min(bus.maxSpeed, bus.speed));
+
+                // ステアリング傾き
+                let turnFactor = 0;
+                if (keys.left) turnFactor = -1;
+                else if (keys.right) turnFactor = 1;
+                else turnFactor = steeringAngle;
+
+                // 低速時は曲がりやすく、停止時は曲がらない
+                const speedRatio = bus.speed / bus.maxSpeed;
+                if (bus.speed > 0.5) {
+                    bus.x += turnFactor * 3.5 * (0.4 + speedRatio * 0.6);
+                    bus.angle = turnFactor * 0.15 * speedRatio;
+                } else {
+                    bus.angle = 0;
+                }
+
+                // 画面外（道路外）のはみ出し防止ガード
+                const minX = roadCenterX - laneWidth * 2 - 10;
+                const maxX = roadCenterX + laneWidth * 2 + 10;
+                bus.x = Math.max(minX, Math.min(maxX, bus.x));
+            }
+
+            // 世界の更新（背景スクロール・NPC移動・バス停処理）
+            function updateWorld(dt) {
+                const moveDist = bus.speed * 0.35; // フレーム毎の移動ピクセル
+
+                // 道路スクロール
+                roadOffsetY = (roadOffsetY + moveDist) % 40;
+
+                // 建物スクロール
+                buildings.forEach(b => {
+                    b.y += moveDist;
+                    if (b.y > dom.canvas.height + 100) {
+                        b.y = -150;
+                        b.width = 100 + Math.random() * 80;
+                    }
+                });
+
+                // NPC車の更新
+                for (let i = npcCars.length - 1; i >= 0; i--) {
+                    const car = npcCars[i];
+                    if (car.isOncoming) {
+                        // 対向車は相対速度（自車スピード + 対向車スピード）で下に流れる
+                        car.y += moveDist + car.speed * 0.2;
+                    } else {
+                        // 同方向車は相対速度（自車スピード - 車スピード）
+                        car.y += moveDist - car.speed * 0.2;
+                    }
+
+                    // 画面外に出たら再生成
+                    if (car.y > dom.canvas.height + 200 || car.y < -300) {
+                        npcCars.splice(i, 1);
+                        spawnNpcCar(car.isOncoming ? -150 : dom.canvas.height + 100);
+                    }
+                }
+
+                // バス停更新
+                if (busStop) {
+                    busStop.distance -= moveDist * 0.1;
+                    busStop.y += moveDist;
+
+                    // バス停が接近した際のアナウンス
+                    if (busStop.distance > 0 && busStop.distance < 150) {
+                        dom.busStopAnnouncement.classList.remove('hidden');
+                    } else {
+                        dom.busStopAnnouncement.classList.add('hidden');
+                    }
+
+                    // バス停エリア内判定（停車ゾーン）
+                    const stopZoneY = dom.canvas.height * 0.7;
+                    const inStopZone = Math.abs(busStop.y - stopZoneY) < 60 && bus.x > roadCenterX + laneWidth;
+
+                    if (inStopZone && !busStop.serviced) {
+                        if (bus.speed < 1.0) { // 完全完全停車
+                            bus.speed = 0;
+                            busStop.stopTimer += dt;
+
+                            if (busStop.stopTimer >= 2.0) { // 2秒間停車で乗客乗降完了
+                                busStop.serviced = true;
+                                passengersCount += busStop.passengerDelta;
+                                score += busStop.passengerDelta * 100 + 500;
+                                
+                                // 得点・乗客更新 UI通知
+                                showFloatingText(`+${busStop.passengerDelta} Passengers!`, bus.x, bus.y - 50);
+
+                                // 次のバス停を設定
+                                setTimeout(() => {
+                                    spawnBusStop();
+                                }, 1500);
+                            }
+                        }
+                    }
+
+                    // バス停を通り過ぎてしまった場合
+                    if (busStop.y > dom.canvas.height + 100 && !busStop.serviced) {
+                        spawnBusStop();
+                    }
+                }
+
+                // スコアの自然加算
+                score += Math.floor(bus.speed * 0.05);
+
+                // UI更新
+                dom.uiScore.innerText = score;
+                dom.uiPassengers.innerText = passengersCount;
+                dom.uiSpeed.innerText = Math.round(bus.speed);
+                dom.uiSpeedMobile.innerText = Math.round(bus.speed);
+
+                const displayDist = busStop ? Math.max(0, Math.round(busStop.distance)) : 0;
+                dom.uiNextStop.innerText = displayDist;
+                dom.uiNextStopMobile.innerText = displayDist;
+            }
+
+            // 衝突および逆走事故判定（ルール判定）
+            function checkCollisions() {
+                // 1. 逆走チェック（片側二車線：左側2車線へ侵入した場合）
+                // 中央線（roadCenterX）より左側にバスの車体が入ったら逆走
+                if (bus.x - bus.width / 2 < roadCenterX) {
+                    triggerGameOver(translations[currentLang].reasonWrongWay);
+                    return;
+                }
+
+                // 2. 他車両との衝突チェック
+                for (let car of npcCars) {
+                    if (isRectColliding(bus, car)) {
+                        triggerGameOver(translations[currentLang].reasonCrash);
+                        return;
+                    }
+                }
+            }
+
+            // 矩形判定ヘルパー
+            function isRectColliding(r1, r2) {
+                const hitMargin = 6; // 判定の遊び
+                return !(r1.x - r1.width / 2 + hitMargin > r2.x + r2.width / 2 - hitMargin ||
+                         r1.x + r1.width / 2 - hitMargin < r2.x - r2.width / 2 + hitMargin ||
+                         r1.y - r1.height / 2 + hitMargin > r2.y + r2.height / 2 - hitMargin ||
+                         r1.y + r1.height / 2 - hitMargin < r2.y - r2.height / 2 + hitMargin);
+            }
+
+            // ゲームオーバー処理
+            function triggerGameOver(reason) {
+                gameState = 'GAMEOVER';
+                gameOverReason = reason;
+
+                dom.busStopAnnouncement.classList.add('hidden');
+                dom.finalScore.innerText = score;
+                dom.finalPassengers.innerText = passengersCount;
+
+                const t = translations[currentLang];
+                dom.modalTitle.innerText = t.modalTitleGameOver;
+                dom.modalDesc.innerHTML = `<span class="text-red-400 font-bold">${reason}</span><br><span class="text-xs text-slate-400 mt-2 block">${t.modalDescStart}</span>`;
+                dom.btnStart.querySelector('span').innerText = t.btnRestart;
+
+                dom.scoreBoard.classList.remove('hidden');
+                dom.gameModal.classList.remove('hidden');
+            }
+
+            // フローティングテキストエフェクト
+            let floatTexts = [];
+            function showFloatingText(text, x, y) {
+                floatTexts.push({ text, x, y, alpha: 1.0 });
+            }
+
+            // スタート前初期シーン描画
+            function renderInitialScene() {
+                initWorldObjects();
+                render();
+            }
+
+            // 描画メインルーチン
+            function render() {
+                ctx.clearRect(0, 0, dom.canvas.width, dom.canvas.height);
+
+                // 1. 背景（芝生・街エリア）
+                ctx.fillStyle = '#22c55e'; // 緑地
+                ctx.fillRect(0, 0, dom.canvas.width, dom.canvas.height);
+
+                // 2. 道路（片側二車線 / 全4車線）
+                const roadTotalWidth = laneWidth * 4;
+                const roadLeft = roadCenterX - laneWidth * 2;
+                ctx.fillStyle = '#334155'; // アスファルト
+                ctx.fillRect(roadLeft, 0, roadTotalWidth, dom.canvas.height);
+
+                // 道路側道ライン
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(roadLeft, 0); ctx.lineTo(roadLeft, dom.canvas.height);
+                ctx.moveTo(roadLeft + roadTotalWidth, 0); ctx.lineTo(roadLeft + roadTotalWidth, dom.canvas.height);
+                ctx.stroke();
+
+                // 中央分離帯・ダブル黄線（逆走危険区間）
+                ctx.strokeStyle = '#eab308'; // 黄色ダブルライン
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(roadCenterX - 3, 0); ctx.lineTo(roadCenterX - 3, dom.canvas.height);
+                ctx.moveTo(roadCenterX + 3, 0); ctx.lineTo(roadCenterX + 3, dom.canvas.height);
+                ctx.stroke();
+
+                // 車線区切り白破線
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([20, 20]);
+                ctx.lineDashOffset = -roadOffsetY;
+                
+                // 左車線間・右車線間
+                ctx.beginPath();
+                ctx.moveTo(roadCenterX - laneWidth, 0); ctx.lineTo(roadCenterX - laneWidth, dom.canvas.height);
+                ctx.moveTo(roadCenterX + laneWidth, 0); ctx.lineTo(roadCenterX + laneWidth, dom.canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]); // ダッシュ解除
+
+                // 逆走危険エリアの赤矢印背景描画（視覚補助）
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+                ctx.fillRect(roadLeft, 0, laneWidth * 2, dom.canvas.height);
+
+                // 3. 建物描画
+                buildings.forEach(b => {
+                    ctx.fillStyle = b.color;
+                    ctx.fillRect(b.x, b.y, b.width, b.height);
+                    // 窓の描画
+                    ctx.fillStyle = '#fef08a';
+                    for (let wx = b.x + 10; wx < b.x + b.width - 10; wx += 20) {
+                        for (let wy = b.y + 10; wy < b.y + b.height - 10; wy += 25) {
+                            ctx.fillRect(wx, wy, 10, 12);
+                        }
+                    }
+                });
+
+                // 4. バス停の描画
+                if (busStop) {
+                    const bsX = roadCenterX + laneWidth * 2 + 10;
+                    // 停車エリア（黄色枠線）
+                    ctx.strokeStyle = '#facc15';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(roadCenterX + laneWidth, busStop.y - 40, laneWidth - 10, 80);
+                    ctx.fillStyle = 'rgba(250, 204, 21, 0.2)';
+                    ctx.fillRect(roadCenterX + laneWidth, busStop.y - 40, laneWidth - 10, 80);
+
+                    // バス停標識ポールの描画
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillRect(bsX, busStop.y - 30, 6, 60);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(bsX + 3, busStop.y - 30, 16, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('BUS', bsX + 3, busStop.y - 26);
+                }
+
+                // 5. NPC車両の描画
+                npcCars.forEach(car => {
+                    drawCar(car.x, car.y, car.width, car.height, car.color, car.isOncoming);
+                });
+
+                // 6. 自車（バス）の描画
+                drawBus(bus.x, bus.y, bus.width, bus.height, bus.angle);
+
+                // 7. フローティングテキスト描画
+                for (let i = floatTexts.length - 1; i >= 0; i--) {
+                    const ft = floatTexts[i];
+                    ctx.fillStyle = `rgba(74, 222, 128, ${ft.alpha})`;
+                    ctx.font = 'bold 18px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(ft.text, ft.x, ft.y);
+                    ft.y -= 1;
+                    ft.alpha -= 0.02;
+                    if (ft.alpha <= 0) floatTexts.splice(i, 1);
+                }
+            }
+
+            // 普通車の描画
+            function drawCar(x, y, width, height, color, isOncoming) {
+                ctx.save();
+                ctx.translate(x, y);
+                if (isOncoming) {
+                    ctx.rotate(Math.PI); // 対向車は南向き
+                }
+
+                // 車体シャドウ
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(-width / 2 + 2, -height / 2 + 4, width, height);
+
+                // ボディ
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(-width / 2, -height / 2, width, height, 8);
+                ctx.fill();
+
+                // 屋根 / フロントガラス
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(-width / 2 + 4, -height / 2 + 15, width - 8, height - 30);
+                ctx.fillStyle = color;
+                ctx.fillRect(-width / 2 + 6, -height / 2 + 25, width - 12, height - 50);
+
+                // ライト（前・後）
+                ctx.fillStyle = '#fef08a'; // ヘッドライト
+                ctx.fillRect(-width / 2 + 4, -height / 2 + 2, 6, 4);
+                ctx.fillRect(width / 2 - 10, -height / 2 + 2, 6, 4);
+
+                ctx.fillStyle = '#dc2626'; // テールランプ
+                ctx.fillRect(-width / 2 + 4, height / 2 - 6, 6, 4);
+                ctx.fillRect(width / 2 - 10, height / 2 - 6, 6, 4);
+
+                ctx.restore();
+            }
+
+            // 自車（バス）の描画
+            function drawBus(x, y, width, height, angle) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+
+                // 影
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fillRect(-width / 2 + 4, -height / 2 + 6, width, height);
+
+                // バス本体（イエローボディ）
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.roundRect(-width / 2, -height / 2, width, height, 6);
+                ctx.fill();
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // バス屋根
+                ctx.fillStyle = '#fef3c7';
+                ctx.fillRect(-width / 2 + 3, -height / 2 + 12, width - 6, height - 24);
+
+                // フロントガラス（北向き・前）
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(-width / 2 + 4, -height / 2 + 4, width - 8, 10);
+
+                // リアガラス
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(-width / 2 + 4, height / 2 - 10, width - 8, 6);
+
+                // ヘッドライト
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-width / 2 + 3, -height / 2, 8, 4);
+                ctx.fillRect(width / 2 - 11, -height / 2, 8, 4);
+
+                // ブレーキランプ
+                ctx.fillStyle = isBrakePressed || keys.down ? '#ef4444' : '#991b1b';
+                ctx.fillRect(-width / 2 + 3, height / 2 - 4, 8, 4);
+                ctx.fillRect(width / 2 - 11, height / 2 - 4, 8, 4);
+
+                ctx.restore();
+            }
+
+        })();
+    </script>
+</body>
+</html>
