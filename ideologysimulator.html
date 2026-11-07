@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>イデオロギー出現・変容シミュレーター | Ideology Emergence Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        academic: {
+                            900: '#0B0F19',
+                            800: '#111827',
+                            700: '#1F2937',
+                            600: '#374151',
+                            accent: '#3B82F6',
+                            gold: '#D97706',
+                            crimson: '#DC2626',
+                            emerald: '#059669',
+                            purple: '#8B5CF6'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"MS Mincho"', '"MS 明朝"', '"Hiragino Mincho ProN"', 'serif'],
+                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CSS Fallbacks & Base Styling */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #0B0F19;
+            color: #F3F4F6;
+            overflow-x: hidden;
+        }
+        .academic-header {
+            font-family: "MS Mincho", "MS 明朝", "Hiragino Mincho ProN", serif;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4B5563;
+        }
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #1F2937;
+            border-radius: 9999px;
+            height: 6px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-academic-900 text-gray-100 antialiased selection:bg-academic-accent selection:text-white">
+
+    <!-- TOP NAV BAR -->
+    <header class="border-b border-gray-800 bg-academic-800/90 backdrop-blur sticky top-0 z-40 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
+                <div>
+                    <h1 class="academic-header text-lg sm:text-xl font-bold tracking-wide text-gray-100" data-i18n="appTitle">
+                        イデオロギー出現・変容シミュレーター
+                    </h1>
+                    <p class="text-xs text-gray-400" data-i18n="appSubtitle">
+                        社会構造・経済・環境条件に基づく政治・経済思想の創発理論モデル (G. Roland Model)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Header Controls: Presets & i18n -->
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                <!-- Preset Dropdown -->
+                <div class="relative flex-1 sm:flex-initial">
+                    <select id="presetSelect" class="w-full bg-gray-900 border border-gray-700 text-xs text-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500">
+                        <option value="" disabled selected data-i18n="presetPlaceholder">シナリオ・プリセット選択</option>
+                        <option value="ancientHydraulic" data-i18n="presetHydraulic">古代治水大帝国 (国家主義)</option>
+                        <option value="medievalMaritime" data-i18n="presetMaritime">中世海洋都市国家 (市場主義)</option>
+                        <option value="industrialRevolution" data-i18n="presetIndustrial">19世紀産業革命期 (資本主義/階級対立)</option>
+                        <option value="postCrisisRegime" data-i18n="presetCrisis">全般的危機・戦争状態 (全体・権威主義)</option>
+                        <option value="hyperNeoliberal" data-i18n="presetCyberpunk">高度情報・極度資本主義 (新自由主義)</option>
+                    </select>
+                </div>
+
+                <!-- Language Selector -->
+                <div class="flex items-center space-x-1 bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 11.37 9.198 15.287 6 18.197"></path></svg>
+                    <select id="langSelect" class="bg-transparent text-xs text-gray-200 focus:outline-none cursor-pointer">
+                        <option value="ja" selected>日本語</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
+                        <option value="ko">한국어</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT CONTROL PANEL (4 Cols) -->
+        <aside class="lg:col-span-4 space-y-4">
+            <div class="glass-panel p-4 rounded-xl border border-gray-800 shadow-xl">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-gray-800">
+                    <h2 class="academic-header text-base font-semibold text-blue-400 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        <span data-i18n="paramsTitle">初期社会・環境パラメータ</span>
+                    </h2>
+                    <button id="resetParamsBtn" class="text-xs text-gray-400 hover:text-white transition flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span data-i18n="reset">リセット</span>
+                    </button>
+                </div>
+
+                <form id="paramForm" class="space-y-4 text-xs">
+                    <!-- SECTION 1: Geo & Environment -->
+                    <div class="space-y-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800/80">
+                        <h3 class="font-medium text-amber-400 flex items-center justify-between">
+                            <span data-i18n="groupGeo">1. 環境・地理条件</span>
+                        </h3>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_transparency" data-i18n="pTransparency">生産・資源の透明性 (低=隠蔽可能 ↔ 高=監視容易)</label>
+                                <span id="val_transparency" class="font-mono text-blue-400 font-bold">50</span>
+                            </div>
+                            <input type="range" id="param_transparency" min="0" max="100" value="50" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_irrigation" data-i18n="pIrrigation">大治水・大規模インフラ要請 (低=不要 ↔ 高=巨大国家要請)</label>
+                                <span id="val_irrigation" class="font-mono text-blue-400 font-bold">40</span>
+                            </div>
+                            <input type="range" id="param_irrigation" min="0" max="100" value="40" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_territory" data-i18n="pTerritory">領域規模 (都市国家 ↔ 広域巨大帝国)</label>
+                                <span id="val_territory" class="font-mono text-blue-400 font-bold">50</span>
+                            </div>
+                            <input type="range" id="param_territory" min="0" max="100" value="50" class="w-full">
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Social & Kinship -->
+                    <div class="space-y-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800/80">
+                        <h3 class="font-medium text-emerald-400 flex items-center justify-between">
+                            <span data-i18n="groupKinship">2. 親族構造・社会組織</span>
+                        </h3>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_clanCohesion" data-i18n="pClan">氏族結合度 (双系/個人 ↔ 単系/強力な血縁)</label>
+                                <span id="val_clanCohesion" class="font-mono text-blue-400 font-bold">50</span>
+                            </div>
+                            <input type="range" id="param_clanCohesion" min="0" max="100" value="50" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_heredity" data-i18n="pHeredity">身分階層の固定度・世襲性</label>
+                                <span id="val_heredity" class="font-mono text-blue-400 font-bold">35</span>
+                            </div>
+                            <input type="range" id="param_heredity" min="0" max="100" value="35" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_diversity" data-i18n="pDiversity">民族・文化の多極・分散度</label>
+                                <span id="val_diversity" class="font-mono text-blue-400 font-bold">40</span>
+                            </div>
+                            <input type="range" id="param_diversity" min="0" max="100" value="40" class="w-full">
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Economic & Tech -->
+                    <div class="space-y-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800/80">
+                        <h3 class="font-medium text-purple-400 flex items-center justify-between">
+                            <span data-i18n="groupEconomy">3. 経済・技術段階</span>
+                        </h3>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_industrialization" data-i18n="pIndustrial">工業化・テクノロジー生産力</label>
+                                <span id="val_industrialization" class="font-mono text-blue-400 font-bold">50</span>
+                            </div>
+                            <input type="range" id="param_industrialization" min="0" max="100" value="50" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_marketMaturity" data-i18n="pMarket">市場経済・貨幣・貿易の成熟度</label>
+                                <span id="val_marketMaturity" class="font-mono text-blue-400 font-bold">50</span>
+                            </div>
+                            <input type="range" id="param_marketMaturity" min="0" max="100" value="50" class="w-full">
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4: Stress & Crisis -->
+                    <div class="space-y-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800/80">
+                        <h3 class="font-medium text-rose-400 flex items-center justify-between">
+                            <span data-i18n="groupStress">4. 危機・社会ストレス</span>
+                        </h3>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_externalThreat" data-i18n="pExternalThreat">外部からの安全保障上の脅威 (軍事リスク)</label>
+                                <span id="val_externalThreat" class="font-mono text-blue-400 font-bold">30</span>
+                            </div>
+                            <input type="range" id="param_externalThreat" min="0" max="100" value="30" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label for="param_inequality" data-i18n="pInequality">内部の格差・格差不満・貧困ストレス</label>
+                                <span id="val_inequality" class="font-mono text-blue-400 font-bold">40</span>
+                            </div>
+                            <input type="range" id="param_inequality" min="0" max="100" value="40" class="w-full">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </aside>
+
+        <!-- RIGHT MAIN DASHBOARD (8 Cols) -->
+        <main class="lg:col-span-8 space-y-6">
+
+            <!-- SECTION: INSTITUTION SCORE & SYSTEM METRICS -->
+            <div class="glass-panel p-5 rounded-xl border border-gray-800 shadow-xl space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-gray-800">
+                    <div>
+                        <h2 class="academic-header text-lg font-bold text-gray-100 flex items-center gap-2">
+                            <span data-i18n="systemClusterTitle">社会制度クラスター診断 (G. Roland理論モデル)</span>
+                        </h2>
+                        <p class="text-xs text-gray-400" data-i18n="systemClusterDesc">
+                            地理・親族条件から自律的に創発される「国家主義システム」対「市場システム」の分岐度
+                        </p>
+                    </div>
+                    <span id="systemTypeBadge" class="px-3 py-1 text-xs font-bold rounded-full bg-blue-900/50 text-blue-300 border border-blue-500/30">
+                        国家主義システム傾向
+                    </span>
+                </div>
+
+                <!-- Main Indicator Progress -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-bold">
+                        <span class="text-blue-400 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span data-i18n="statistSystem">国家主義システム (Statist System)</span>
+                        </span>
+                        <span class="text-amber-400 flex items-center gap-1">
+                            <span data-i18n="marketSystem">市場システム (Market System)</span>
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        </span>
+                    </div>
+                    <div class="w-full h-4 bg-gray-800 rounded-full overflow-hidden flex p-0.5 border border-gray-700">
+                        <div id="statistBar" class="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-l-full transition-all duration-300" style="width: 50%"></div>
+                        <div id="marketBar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-r-full transition-all duration-300" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <!-- Sub Metrics: Vertical Law vs Horizontal Law & Canvas Radar -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <!-- Metrics breakdown bars -->
+                    <div class="space-y-3 text-xs bg-gray-900/60 p-3 rounded-lg border border-gray-800">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-300" data-i18n="lawType">法体系の性質</span>
+                                <span id="lawTypeVal" class="font-mono text-blue-400 font-medium">垂直的官僚法</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="lawBar" class="h-full bg-blue-500 transition-all duration-300" style="width: 60%"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-gray-500 mt-0.5">
+                                <span data-i18n="lawVertical">垂直的 (集権・官僚制)</span>
+                                <span data-i18n="lawHorizontal">水平的 (契約・慣習)</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-300" data-i18n="propRights">私的所有権の保護度</span>
+                                <span id="propVal" class="font-mono text-emerald-400 font-medium">中程度 (条件付)</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="propBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 45%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-300" data-i18n="centralization">政治権力の集権度</span>
+                                <span id="centVal" class="font-mono text-rose-400 font-medium">高い集権性</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="centBar" class="h-full bg-rose-500 transition-all duration-300" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Radar Metrics Visualizer -->
+                    <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-800 flex flex-col items-center justify-center relative min-h-[160px]">
+                        <canvas id="radarCanvas" width="220" height="150" class="max-w-full h-auto"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: DOMINANT IDEOLOGIES RANKING -->
+            <div class="glass-panel p-5 rounded-xl border border-gray-800 shadow-xl space-y-4">
+                <div class="flex justify-between items-center pb-3 border-b border-gray-800">
+                    <div>
+                        <h2 class="academic-header text-lg font-bold text-gray-100 flex items-center gap-2">
+                            <span data-i18n="dominantTitle">優勢イデオロギー (Ideological Dominance)</span>
+                        </h2>
+                        <p class="text-xs text-gray-400" data-i18n="dominantDesc">
+                            社会条件から分岐・台頭する主要イデオロギー上位ランキング (クリックで詳細分析)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Ideology Cards Grid -->
+                <div id="ideologyContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Dynamic rendering via JS -->
+                </div>
+            </div>
+
+            <!-- SECTION: INTERACTIVE CAUSAL FLOWCHART -->
+            <div class="glass-panel p-5 rounded-xl border border-gray-800 shadow-xl space-y-4">
+                <div class="flex justify-between items-center pb-3 border-b border-gray-800">
+                    <div>
+                        <h2 class="academic-header text-lg font-bold text-gray-100" data-i18n="flowchartTitle">
+                            因果構造フローチャート (Causal Emergence Pipeline)
+                        </h2>
+                        <p class="text-xs text-gray-400" data-i18n="flowchartDesc">
+                            初期環境 ➔ 制度クラスター ➔ 法体系・所有権 ➔ 創発イデオロギー の因果連鎖
+                        </p>
+                    </div>
+                </div>
+
+                <div class="w-full overflow-x-auto bg-gray-950 p-2 rounded-lg border border-gray-800">
+                    <canvas id="flowCanvas" width="750" height="200" class="w-full h-auto min-w-[650px] block"></canvas>
+                </div>
+            </div>
+        </main>
+    </main>
+
+    <!-- IDEOLOGY DETAIL MODAL (6 STRUCTURAL ELEMENTS) -->
+    <div id="ideologyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-academic-800 border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-gray-800 flex justify-between items-start bg-gray-900/60">
+                <div class="flex items-center gap-3">
+                    <span id="modalCategoryBadge" class="px-2.5 py-1 text-xs font-semibold rounded bg-blue-900/60 text-blue-300 border border-blue-500/30">
+                        政治・社会
+                    </span>
+                    <h3 id="modalTitle" class="academic-header text-2xl font-bold text-gray-100">自由主義 (Liberalism)</h3>
+                </div>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Modal Content (Scrollable 6 Elements) -->
+            <div class="p-6 overflow-y-auto space-y-5 text-sm">
+                <!-- Summary Header -->
+                <div class="bg-blue-950/40 border border-blue-800/40 p-4 rounded-xl text-blue-200 text-xs sm:text-sm">
+                    <p id="modalSummary">個人権の尊重、法の支配、自由市場経済を基礎とし、過度な国家介入を抑制するイデオロギー。</p>
+                </div>
+
+                <h4 class="academic-header text-base font-semibold text-gray-200 border-b border-gray-800 pb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    <span data-i18n="sixElements">イデオロギー分析の6構成要素</span>
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Element 1 -->
+                    <div class="bg-gray-900/70 p-4 rounded-xl border border-gray-800 space-y-1">
+                        <div class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                            <span data-i18n="elem1">1. 世界観・現状認識</span>
+                        </div>
+                        <p id="modalElem1" class="text-xs text-gray-300 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Element 2 -->
+                    <div class="bg-gray-900/70 p-4 rounded-xl border border-gray-800 space-y-1">
+                        <div class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span data-i18n="elem2">2. 価値観・核心理念</span>
+                        </div>
+                        <p id="modalElem2" class="text-xs text-gray-300 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Element 3 -->
+                    <div class="bg-gray-900/70 p-4 rounded-xl border border-gray-800 space-y-1">
+                        <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span data-i18n="elem3">3. 理想像・目指す社会構造</span>
+                        </div>
+                        <p id="modalElem3" class="text-xs text-gray-300 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Element 4 -->
+                    <div class="bg-gray-900/70 p-4 rounded-xl border border-gray-800 space-y-1">
+                        <div class="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                            <span data-i18n="elem4">4. 変革・維持の手段・理論</span>
+                        </div>
+                        <p id="modalElem4" class="text-xs text-gray-300 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Element 5 -->
+                    <div class="bg-gray-900/70 p-4 rounded-xl border border-gray-800 space-y-1">
+                        <div class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                            <span data-i18n="elem5">5. 敵・味方の識別・アイデンティティ</span>
+                        </div>
+                        <p id="modalElem5" class="text-xs text-gray-300 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Element 6 -->
+                    <div class="bg-gray-900/70 p-4 rounded-xl border border-gray-800 space-y-1">
+                        <div class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                            <span data-i18n="elem6">6. 権力・行動の正当化論理</span>
+                        </div>
+                        <p id="modalElem6" class="text-xs text-gray-300 leading-relaxed">...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-gray-800 bg-gray-900/80 flex justify-end">
+                <button id="closeModalBtn2" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-medium rounded-lg transition" data-i18n="close">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-gray-800 bg-academic-900 py-4 px-4 mt-8 text-center text-xs text-gray-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p data-i18n="footerText">イデオロギー出現・変容シミュレーター &copy; Institutional Ideology Emergence Model</p>
+            <p class="text-gray-600">Based on Gerard Roland (2004) "Understanding Institutional Change"</p>
+        </div>
+    </footer>
+
+    <!-- SIMULATION APPLICATION SCRIPT -->
+    <script>
+        /**
+         * Off-line Safe Modular Architecture for Ideology Emergence Simulator
+         */
+        (function() {
+            'use strict';
+
+            // --- 1. INTERNATIONALIZATION (i18n) DICTIONARY ---
+            const I18N = {
+                ja: {
+                    appTitle: "イデオロギー出現・変容シミュレーター",
+                    appSubtitle: "社会構造・経済・環境条件に基づく政治・経済思想の創発理論モデル (G. Roland Model)",
+                    presetPlaceholder: "シナリオ・プリセット選択",
+                    presetHydraulic: "古代治水大帝国 (国家主義)",
+                    presetMaritime: "中世海洋都市国家 (市場主義)",
+                    presetIndustrial: "19世紀産業革命期 (資本主義/階級対立)",
+                    presetCrisis: "全般的危機・戦争状態 (全体・権威主義)",
+                    presetCyberpunk: "高度情報・極度資本主義 (新自由主義)",
+                    paramsTitle: "初期社会・環境パラメータ",
+                    reset: "リセット",
+                    groupGeo: "1. 環境・地理条件",
+                    pTransparency: "生産・資源の透明性 (低=隠蔽可能 ↔ 高=監視容易)",
+                    pIrrigation: "大治水・大規模インフラ要請 (低=不要 ↔ 高=巨大国家要請)",
+                    pTerritory: "領域規模 (都市国家 ↔ 広域巨大帝国)",
+                    groupKinship: "2. 親族構造・社会組織",
+                    pClan: "氏族結合度 (双系/個人 ↔ 単系/強力な血縁)",
+                    pHeredity: "身分階層の固定度・世襲性",
+                    pDiversity: "民族・文化の多極・分散度",
+                    groupEconomy: "3. 経済・技術段階",
+                    pIndustrial: "工業化・テクノロジー生産力",
+                    pMarket: "市場経済・貨幣・貿易の成熟度",
+                    groupStress: "4. 危機・社会ストレス",
+                    pExternalThreat: "外部からの安全保障上の脅威 (軍事リスク)",
+                    pInequality: "内部の格差・格差不満・貧困ストレス",
+                    systemClusterTitle: "社会制度クラスター診断 (G. Roland理論モデル)",
+                    systemClusterDesc: "地理・親族条件から自律的に創発される「国家主義システム」対「市場システム」の分岐度",
+                    statistSystem: "国家主義システム (Statist System)",
+                    marketSystem: "市場システム (Market System)",
+                    statistBadge: "国家主義システム優勢",
+                    marketBadge: "市場システム優勢",
+                    balancedBadge: "混合・均衡システム",
+                    lawType: "法体系の性質",
+                    lawVertical: "垂直的 (集権・官僚制)",
+                    lawHorizontal: "水平的 (契約・慣習)",
+                    propRights: "私的所有権の保護度",
+                    centralization: "政治権力の集権度",
+                    dominantTitle: "優勢イデオロギー (Ideological Dominance)",
+                    dominantDesc: "社会条件から分岐・台頭する主要イデオロギー上位ランキング (クリックで詳細分析)",
+                    flowchartTitle: "因果構造フローチャート (Causal Emergence Pipeline)",
+                    flowchartDesc: "初期環境 ➔ 制度クラスター ➔ 法体系・所有権 ➔ 創発イデオロギー の因果連鎖",
+                    sixElements: "イデオロギー分析の6構成要素",
+                    elem1: "1. 世界観・現状認識",
+                    elem2: "2. 価値観・核心理念",
+                    elem3: "3. 理想像・目指す社会構造",
+                    elem4: "4. 変革・維持の手段・理論",
+                    elem5: "5. 敵・味方の識別・アイデンティティ",
+                    elem6: "6. 権力・行動の正当化論理",
+                    close: "閉じる",
+                    footerText: "イデオロギー出現・変容シミュレーター © Institutional Ideology Emergence Model",
+                    catPolitics: "政治・社会",
+                    catEconomy: "経済思想",
+                    catEthics: "倫理・社会規範",
+                    catPhilosophy: "哲学・認識論",
+                    detailBtn: "6要素の詳細を分析 ➔"
+                },
+                en: {
+                    appTitle: "Ideology Emergence & Transformation Simulator",
+                    appSubtitle: "Emergent Theoretical Model of Socio-Political Thought based on Gerard Roland's Institutional Theory",
+                    presetPlaceholder: "Select Preset Scenario",
+                    presetHydraulic: "Ancient Hydraulic Empire (Statism)",
+                    presetMaritime: "Medieval Maritime City-State (Market System)",
+                    presetIndustrial: "19th Century Industrial Era (Capitalism/Class)",
+                    presetCrisis: "Total Crisis & War State (Totalitarianism)",
+                    presetCyberpunk: "Hyper-Information State (Neoliberalism)",
+                    paramsTitle: "Initial Socio-Environmental Parameters",
+                    reset: "Reset",
+                    groupGeo: "1. Geo-Environmental Conditions",
+                    pTransparency: "Production Transparency (Low=Hideable ↔ High=Easy Monitoring)",
+                    pIrrigation: "Hydraulic Infrastructure Demand (Low=None ↔ High=State Req)",
+                    pTerritory: "Territorial Scale (City-State ↔ Imperial)",
+                    groupKinship: "2. Kinship & Social Structure",
+                    pClan: "Clan Lineage Cohesion (Bilateral/Weak ↔ Unilineal/Strong)",
+                    pHeredity: "Social Heredity & Caste Rigidity",
+                    pDiversity: "Ethnic & Cultural Heterogeneity",
+                    groupEconomy: "3. Economy & Technology",
+                    pIndustrial: "Industrialization & Productivity Level",
+                    pMarket: "Market Economy & Trade Maturity",
+                    groupStress: "4. Crisis & Social Stress",
+                    pExternalThreat: "External Security Threat (War Risk)",
+                    pInequality: "Internal Poverty & Inequality Stress",
+                    systemClusterTitle: "Institutional Cluster Diagnosis",
+                    systemClusterDesc: "Bifurcation between Statist and Market systems emergent from geographic & kinship conditions",
+                    statistSystem: "Statist System",
+                    marketSystem: "Market System",
+                    statistBadge: "Dominant Statist System",
+                    marketBadge: "Dominant Market System",
+                    balancedBadge: "Balanced Hybrid System",
+                    lawType: "Legal Architecture",
+                    lawVertical: "Vertical (Bureaucratic)",
+                    lawHorizontal: "Horizontal (Custom/Contract)",
+                    propRights: "Private Property Protection",
+                    centralization: "Power Centralization",
+                    dominantTitle: "Dominant Ideologies",
+                    dominantDesc: "Top ideology ranking emerging under current institutional conditions (Click for detail)",
+                    flowchartTitle: "Causal Emergence Pipeline",
+                    flowchartDesc: "Initial Env ➔ Institutional Cluster ➔ Legal & Property ➔ Emergent Ideology",
+                    sixElements: "6 Structural Elements Breakdown",
+                    elem1: "1. Worldview & Current Perception",
+                    elem2: "2. Core Values & Principles",
+                    elem3: "3. Vision of Ideal Society",
+                    elem4: "4. Theory of Change / Preservation",
+                    elem5: "5. Friend vs Foe / Identity Dynamics",
+                    elem6: "6. Logic of Justification",
+                    close: "Close",
+                    footerText: "Ideology Emergence & Transformation Simulator © Institutional Theory Model",
+                    catPolitics: "Politics & Society",
+                    catEconomy: "Economic Thought",
+                    catEthics: "Ethics & Norms",
+                    catPhilosophy: "Philosophy",
+                    detailBtn: "View 6 Structural Elements ➔"
+                },
+                zh: {
+                    appTitle: "意识形态演化与涌现模拟器",
+                    appSubtitle: "基于罗兰制度理论的社会政治思潮自组织演化模型",
+                    presetPlaceholder: "选择历史预设情境",
+                    presetHydraulic: "古代治水帝国 (国家主义)",
+                    presetMaritime: "中世海洋城邦 (市场体系)",
+                    presetIndustrial: "19世纪工业革命期 (资本主义/阶级)",
+                    presetCrisis: "全面危机与战争状态 (极权主义)",
+                    presetCyberpunk: "高度信息极度资本主义 (新自由主义)",
+                    paramsTitle: "初始社会环境参数",
+                    reset: "重置",
+                    groupGeo: "1. 地理与环境条件",
+                    pTransparency: "生产透明度 (低=易隐蔽 ↔ 高=易监控)",
+                    pIrrigation: "大型水利/基础设施需求",
+                    pTerritory: "领土规模 (城邦 ↔ 庞大帝国)",
+                    groupKinship: "2. 宗族与社会结构",
+                    pClan: "宗族凝聚力 (双系/个人 ↔ 单系/强血缘)",
+                    pHeredity: "社会阶层世袭固定度",
+                    pDiversity: "民族与文化多元度",
+                    groupEconomy: "3. 经济与科技水平",
+                    pIndustrial: "工业化与科技生产力",
+                    pMarket: "市场经济与贸易成熟度",
+                    groupStress: "4. 危机与社会压力",
+                    pExternalThreat: "外部安全威胁 (战争风险)",
+                    pInequality: "内部贫富差距与阶级不满",
+                    systemClusterTitle: "社会制度集群诊断",
+                    systemClusterDesc: "从地理与宗族条件中自发涌现的“国家主义体系”与“市场体系”分化",
+                    statistSystem: "国家主义体系 (Statist)",
+                    marketSystem: "市场体系 (Market)",
+                    statistBadge: "国家主义占优",
+                    marketBadge: "市场体系占优",
+                    balancedBadge: "混合平衡体系",
+                    lawType: "法律体系性质",
+                    lawVertical: "垂直型 (集权/官僚)",
+                    lawHorizontal: "水平型 (契约/习惯)",
+                    propRights: "私有产权保护度",
+                    centralization: "政治权力集权度",
+                    dominantTitle: "优势意识形态排名",
+                    dominantDesc: "当前制度条件下涌现的主导思想 (点击查看6要素分析)",
+                    flowchartTitle: "因果演化流程图",
+                    flowchartDesc: "初始环境 ➔ 制度集群 ➔ 法律产权 ➔ 涌现意识形态",
+                    sixElements: "意识形态6大构成要素",
+                    elem1: "1. 世界观与现状认知",
+                    elem2: "2. 核心价值与理念",
+                    elem3: "3. 理想社会构想",
+                    elem4: "4. 变革与维持手段",
+                    elem5: "5. 敌我识别与群体身份",
+                    elem6: "6. 权力与行动合法性逻辑",
+                    close: "关闭",
+                    footerText: "意识形态演化与涌现模拟器 © 制度理论模型",
+                    catPolitics: "政治与社会",
+                    catEconomy: "经济思想",
+                    catEthics: "伦理与规范",
+                    catPhilosophy: "哲学与认识论",
+                    detailBtn: "查看6要素详细解析 ➔"
+                },
+                ko: {
+                    appTitle: "이데올로기 출현·변용 시뮬레이터",
+                    appSubtitle: "지리·친족·경제 조건에 기반한 정치·경제 사상의 출현 이론 모델 (G. Roland Model)",
+                    presetPlaceholder: "프리셋 시나리오 선택",
+                    presetHydraulic: "고대 치수 대제국 (국가주의)",
+                    presetMaritime: "중세 해양 도시국가 (시장주의)",
+                    presetIndustrial: "19세기 산업혁명기 (자본주의/계급)",
+                    presetCrisis: "전면적 위기·전쟁상태 (전체/권위주의)",
+                    presetCyberpunk: "고도 정보·극단적 자본주의 (신자유주의)",
+                    paramsTitle: "초기 사회·환경 파라미터",
+                    reset: "초기화",
+                    groupGeo: "1. 환경·지리 조건",
+                    pTransparency: "생산·자원의 투명성 (낮음 ↔ 높음)",
+                    pIrrigation: "대규모 치수·인프라 요구도",
+                    pTerritory: "영토 규모 (도시국가 ↔ 거대제국)",
+                    groupKinship: "2. 친족 구조·사회 조직",
+                    pClan: "씨족 결속도 (쌍계 ↔ 단계/강한 혈연)",
+                    pHeredity: "신분 계층의 세습성",
+                    pDiversity: "민족·문화적 다극성",
+                    groupEconomy: "3. 경제·기술 단계",
+                    pIndustrial: "산업화·기술 생산력",
+                    pMarket: "시장경제·무역의 성숙도",
+                    groupStress: "4. 위기·사회적 스트레스",
+                    pExternalThreat: "외부 안보 위협 (군사 리스크)",
+                    pInequality: "내부 불평등·빈곤 스트레스",
+                    systemClusterTitle: "사회 제도 클러스터 진단",
+                    systemClusterDesc: "지리 및 친족 조건에서 자율적으로 출현하는 국가주의 vs 시장 시스템 분기",
+                    statistSystem: "국가주의 시스템",
+                    marketSystem: "시장 시스템",
+                    statistBadge: "국가주의 시스템 우세",
+                    marketBadge: "시장 시스템 우세",
+                    balancedBadge: "혼합·균형 시스템",
+                    lawType: "법 체계의 성격",
+                    lawVertical: "수직적 (집권·관료)",
+                    lawHorizontal: "수평적 (계약·관습)",
+                    propRights: "사적 소유권 보호도",
+                    centralization: "정치 권력의 집권도",
+                    dominantTitle: "우세 이데올로기 순위",
+                    dominantDesc: "현재 조건에서 출현하는 주도 사상 (클릭하여 6요소 분석)",
+                    flowchartTitle: "인과 구조 순서도",
+                    flowchartDesc: "초기 환경 ➔ 제도 클러스터 ➔ 법·소유권 ➔ 이데올로기 출현",
+                    sixElements: "이데올로기 분석 6대 구성요소",
+                    elem1: "1. 세계관·현상 인식",
+                    elem2: "2. 가치관·핵심 이념",
+                    elem3: "3. 이상향·지향 사회구조",
+                    elem4: "4. 변혁·유지의 이론",
+                    elem5: "5. 적·동지 식별 (아이덴티티)",
+                    elem6: "6. 정당화 논리",
+                    close: "닫기",
+                    footerText: "이데올로기 출현·변용 시뮬레이터 © 제도 이론 모델",
+                    catPolitics: "정치·사회",
+                    catEconomy: "경제 사상",
+                    catEthics: "윤리·사회 규범",
+                    catPhilosophy: "철학·인식론",
+                    detailBtn: "6대 요소 상세 분석 ➔"
+                },
+                fr: {
+                    appTitle: "Simulateur d'Émergence des Idéologies",
+                    appSubtitle: "Modèle théorique d'émergence des pensées socio-politiques (Théorie de G. Roland)",
+                    presetPlaceholder: "Sélectionner un scénario",
+                    presetHydraulic: "Empire Hydraulique Antique (Étatisme)",
+                    presetMaritime: "Cité-État Maritime Médiévale (Marché)",
+                    presetIndustrial: "Révolution Industrielle (Capitalisme)",
+                    presetCrisis: "Crise Totale & Guerre (Totalitarisme)",
+                    presetCyberpunk: "Ère Hyper-Informationnelle (Néolibéralisme)",
+                    paramsTitle: "Paramètres Socio-Environnementaux",
+                    reset: "Réinitialiser",
+                    groupGeo: "1. Conditions Géographiques",
+                    pTransparency: "Transparence de Production",
+                    pIrrigation: "Besoins en Infras Hydrauliques",
+                    pTerritory: "Échelle Territoriale",
+                    groupKinship: "2. Parente et Structure Sociale",
+                    pClan: "Cohésion des Clans / Lignée",
+                    pHeredity: "Hérédité et Rigidité Sociale",
+                    pDiversity: "Hétérogénéité Ethnique",
+                    groupEconomy: "3. Économie et Technologie",
+                    pIndustrial: "Niveau d'Industrialisation",
+                    pMarket: "Maturité du Marché et Commerce",
+                    groupStress: "4. Crises et Stress Social",
+                    pExternalThreat: "Menace Sécuritaire Externe",
+                    pInequality: "Inégalités et Pauvreté Interne",
+                    systemClusterTitle: "Diagnostic du Système Institutionnel",
+                    systemClusterDesc: "Bifurcation émergente entre système Étatiste et système de Marché",
+                    statistSystem: "Système Étatiste",
+                    marketSystem: "Système de Marché",
+                    statistBadge: "Système Étatiste Dominant",
+                    marketBadge: "Système de Marché Dominant",
+                    balancedBadge: "Système Hybride Équilibré",
+                    lawType: "Architecture Juridique",
+                    lawVertical: "Verticale (Bureaucratique)",
+                    lawHorizontal: "Horizontale (Contrat/Coutume)",
+                    propRights: "Protection de la Propriété Privée",
+                    centralization: "Centralisation du Pouvoir",
+                    dominantTitle: "Idéologies Dominantes",
+                    dominantDesc: "Classement des idéologies émergentes (Cliquer pour analyser)",
+                    flowchartTitle: "Pipeline Causal d'Émergence",
+                    flowchartDesc: "Environnement ➔ Institutions ➔ Droit & Propriété ➔ Idéologie",
+                    sixElements: "Décomposition en 6 Éléments Structurels",
+                    elem1: "1. Vision du Monde & Perception",
+                    elem2: "2. Valeurs & Principes Clés",
+                    elem3: "3. Vision de la Société Idéale",
+                    elem4: "4. Théorie du Changement",
+                    elem5: "5. Identification Ami / Ennemi",
+                    elem6: "6. Logique de Justification",
+                    close: "Fermer",
+                    footerText: "Simulateur d'Émergence des Idéologies © Modèle Théorique Institutionnel",
+                    catPolitics: "Politique & Société",
+                    catEconomy: "Pensée Économique",
+                    catEthics: "Éthique & Normes",
+                    catPhilosophy: "Philosophie",
+                    detailBtn: "Analyser les 6 Éléments ➔"
+                },
+                es: {
+                    appTitle: "Simulador de Emergencia de Ideologías",
+                    appSubtitle: "Modelo teórico de emergencia de pensamiento sociopolítico (Modelo de G. Roland)",
+                    presetPlaceholder: "Seleccionar Escenario",
+                    presetHydraulic: "Imperio Hidráulico Antiguo (Estatismo)",
+                    presetMaritime: "Ciudad-Estado Marítima (Mercado)",
+                    presetIndustrial: "Era Industrial S. XIX (Capitalismo)",
+                    presetCrisis: "Crisis Total y Guerra (Totalitarismo)",
+                    presetCyberpunk: "Hiper-Información (Neoliberalismo)",
+                    paramsTitle: "Parámetros Socioambientales",
+                    reset: "Restablecer",
+                    groupGeo: "1. Condiciones Geográficas",
+                    pTransparency: "Transparencia de Producción",
+                    pIrrigation: "Demanda de Infraestructura Hidráulica",
+                    pTerritory: "Escala Territorial",
+                    groupKinship: "2. Parentesco y Estructura Social",
+                    pClan: "Cohesión de Linaje y Clanes",
+                    pHeredity: "Heredabilidad y Rigidez Social",
+                    pDiversity: "Heterogeneidad Étnica",
+                    groupEconomy: "3. Economía y Tecnología",
+                    pIndustrial: "Industrialización y Productividad",
+                    pMarket: "Madurez del Mercado y Comercio",
+                    groupStress: "4. Crisis y Estrés Social",
+                    pExternalThreat: "Amenaza de Seguridad Externa",
+                    pInequality: "Desigualdad y Pobreza Interna",
+                    systemClusterTitle: "Diagnóstico del Sistema Institucional",
+                    systemClusterDesc: "Bifurcación entre sistema Estatista y de Mercado según Roland",
+                    statistSystem: "Sistema Estatista",
+                    marketSystem: "Sistema de Mercado",
+                    statistBadge: "Dominio Estatista",
+                    marketBadge: "Dominio de Mercado",
+                    balancedBadge: "Sistema Híbrido Equilibrado",
+                    lawType: "Arquitectura Legal",
+                    lawVertical: "Vertical (Burocrática)",
+                    lawHorizontal: "Horizontal (Contrato/Costumbre)",
+                    propRights: "Protección de Propiedad Privada",
+                    centralization: "Centralización del Poder",
+                    dominantTitle: "Ideologías Dominantes",
+                    dominantDesc: "Ranking de ideologías emergentes (Clic para detalles)",
+                    flowchartTitle: "Flujo Causal de Emergencia",
+                    flowchartDesc: "Entorno ➔ Instituciones ➔ Ley y Propiedad ➔ Ideología Emergente",
+                    sixElements: "Desglose de 6 Elementos Estructurales",
+                    elem1: "1. Cosmovisión y Percepción",
+                    elem2: "2. Valores y Principios",
+                    elem3: "3. Visión de Sociedad Ideal",
+                    elem4: "4. Teoría del Cambio",
+                    elem5: "5. Identificación Amigo / Enemigo",
+                    elem6: "6. Lógica de Justificación",
+                    close: "Cerrar",
+                    footerText: "Simulador de Emergencia de Ideologías © Modelo Teórico Institucional",
+                    catPolitics: "Política y Sociedad",
+                    catEconomy: "Pensamiento Económico",
+                    catEthics: "Ética y Normas",
+                    catPhilosophy: "Filosofía",
+                    detailBtn: "Ver Análisis de 6 Elementos ➔"
+                }
+            };
+
+            // Current Active Language
+            let currentLang = 'ja';
+
+            // --- 2. IDEOLOGY DATABASE WITH 6 STRUCTURAL ELEMENTS (Multilingual Data) ---
+            const IDEOLOGY_DB = [
+                {
+                    id: "liberalism",
+                    cat: "catPolitics",
+                    title: { ja: "自由主義", en: "Liberalism", zh: "自由主义", ko: "자유주의", fr: "Libéralisme", es: "Liberalismo" },
+                    summary: {
+                        ja: "個人の尊厳、基本的人権、法の支配、市場取引を基盤とし、国家的介入の最小化を目指す思想。",
+                        en: "Ideology emphasizing individual rights, rule of law, market freedom, and limited state power.",
+                        zh: "强调个人权利、法治、自由市场及限制国家权力的思想体系。",
+                        ko: "개인의 권리, 법의 지배, 시장의 자유 및 국가 권력 제한을 강조하는 이데올로기.",
+                        fr: "Idéologie prônant les droits individuels, l'état de droit et la liberté de marché.",
+                        es: "Ideología basada en los derechos individuales, el estado de derecho y el libre mercado."
+                    },
+                    calcScore: (p) => {
+                        // High market maturity, low clan cohesion, high transparency, horizontal law
+                        let score = (p.marketMaturity * 0.4) + ((100 - p.clanCohesion) * 0.3) + (p.transparency * 0.15) + ((100 - p.heredity) * 0.15);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "人間は合理的で自律的な主体であり、自らの利益を追求する権利を持つと捉える。",
+                            en: "Views humans as rational, autonomous agents with inherent rights to self-determination.",
+                            zh: "将人视为具有理性和自主性的主体，拥有追求自身利益的固有权利。",
+                            ko: "인간을 합리적이고 자율적인 주체로 보며, 자신의 이익을 추구할 권리를 가진다고 인식.",
+                            fr: "Conçoit l'être humain comme un agent rationnel et autonome ayant des droits inhérents.",
+                            es: "Considera al ser humano como un agente racional y autónomo con derechos inherentes."
+                        },
+                        elem2: {
+                            ja: "個人権の不可侵、自由、寛容、多様性の承認、個人の選択の尊重。",
+                            en: "Individual liberty, inviolable rights, tolerance, pluralism, and voluntary exchange.",
+                            zh: "个人自由、不可侵犯的权利、宽容、多元主义与自愿交易。",
+                            ko: "개인의 자유, 불가침의 권리, 관용, 다원주의 및 자발적 교환.",
+                            fr: "Liberté individuelle, droits inviolables, tolérance, pluralisme et échange volontaire.",
+                            es: "Libertad individual, derechos inviolables, tolerancia y pluralismo."
+                        },
+                        elem3: {
+                            ja: "多様な生き方が保証され、法の支配と自由市場によって秩序が形成される開放的社会。",
+                            en: "An open society governed by the rule of law, protected property, and dynamic markets.",
+                            zh: "基于法治、产权保护与自由市场的开放型多元社会。",
+                            ko: "법의 지배, 소유권 보호, 자유 시장에 의해 운영되는 개방적 사회.",
+                            fr: "Une société ouverte régie par l'état de droit et la liberté contractuelle.",
+                            es: "Una sociedad abierta gobernada por el estado de derecho y la libertad contractual."
+                        },
+                        elem4: {
+                            ja: "漸進的改革、憲法による権力制限、司法による人権擁護、市場メカニズムの活用。",
+                            en: "Constitutional checks and balances, judicial protection of rights, and market solutions.",
+                            zh: "宪政制衡、司法保护与市场机制的渐进式改革。",
+                            ko: "입헌적 견제와 균형, 사법적 권리 보호 및 시장 기전 활용.",
+                            fr: "Reforme constitutionnelle, protection judiciaire et mécanismes de marché.",
+                            es: "Reforma constitucional, protección judicial y mecanismos de mercado."
+                        },
+                        elem5: {
+                            ja: "【味方】自由を重んじる市民、法治擁護者 【敵】専制君主、全体主義者、過度の規制者。",
+                            en: "[Friends] Free citizens, constitutionalists. [Foes] Tyrants, totalitarians, monopolists.",
+                            zh: "【盟友】自由公民、宪政倡导者 【敌人】专制者、极权主义者、过度干预者。",
+                            ko: "[동지] 자유 시민, 입헌주의자 [적] 전제 군주, 전체주의자, 과도한 규제자.",
+                            fr: "[Amis] Citoyens libres, constitutionnalistes. [Ennemis] Tyrans, totalitaires.",
+                            es: "[Amigos] Ciudadanos libres, constitucionalistas. [Enemigos] Tiranos, totalitarios."
+                        },
+                        elem6: {
+                            ja: "自然権思想、社会契約説、個人の自律と効率的資源配分の両立による正当化。",
+                            en: "Natural rights theory, social contract, and economic efficiency through autonomy.",
+                            zh: "自然权利论、社会契约论以及个人自主与资源配置效率的结合。",
+                            ko: "자연권 이론, 사회계약설, 개인의 자율과 경제적 효율성의 결합.",
+                            fr: "Théorie des droits naturels, contrat social et efficacité économique.",
+                            es: "Teoría de derechos naturales, contrato social y eficiencia económica."
+                        }
+                    }
+                },
+                {
+                    id: "statism",
+                    cat: "catPolitics",
+                    title: { ja: "国家主義", en: "Statism", zh: "国家主义", ko: "국가주의", fr: "Étatisme", es: "Estatismo" },
+                    summary: {
+                        ja: "国家を社会の中心軸とし、秩序・治水・安全保障のために集権的権力と規制を優先する思想。",
+                        en: "Doctrine prioritizing state authority, centralization, and public control over individual action.",
+                        zh: "将国家置于社会核心，优先保障秩序、集权与公共控制的思想。",
+                        ko: "국가를 사회의 중심축으로 보고 질서와 안보를 위해 중앙집권적 권력을 우선시하는 사상.",
+                        fr: "Doctrine accordant la priorité à l'autorité de l’État et à la centralisation.",
+                        es: "Doctrina que prioriza la autoridad estatal y la centralización."
+                    },
+                    calcScore: (p) => {
+                        // High transparency, high irrigation, high territory, high external threat, high clan cohesion
+                        let score = (p.transparency * 0.3) + (p.irrigation * 0.3) + (p.externalThreat * 0.25) + (p.territory * 0.15);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "社会は脆弱であり、強力な統一的指導力がなければ無秩序と外部の脅威に屈するという認識。",
+                            en: "Views society as fragile and prone to chaos unless unified by strong central state authority.",
+                            zh: "认为社会是脆弱的，缺乏强有力的统一领导将陷入混乱与外敌侵略。",
+                            ko: "사회는 취약하며 강력한 중앙 권력이 없으면 혼란과 외부 위협에 굴복한다는 인식.",
+                            fr: "Considère la société comme fragile, nécessitant une autorité centrale forte pour maintenir l'ordre.",
+                            es: "Considera que la sociedad requiere de una autoridad central fuerte para mantener el orden."
+                        },
+                        elem2: {
+                            ja: "国家の統合、集団的秩序、治安維持、最高権力への服従、公共の利益。",
+                            en: "National unity, collective order, public security, duty, and state sovereignty.",
+                            zh: "国家统一、集体秩序、治安维持、对最高权力的服从与公共利益。",
+                            ko: "국가적 통합, 집단적 질서, 치안 유지, 최고 권력에 대한 복종.",
+                            fr: "Unité nationale, ordre collectif, sécurité publique et souveraineté étatique.",
+                            es: "Unidad nacional, orden colectivo, seguridad pública y soberanía del Estado."
+                        },
+                        elem3: {
+                            ja: "官僚制と垂直的法体系によって管理され、外部の脅威や災害に揺るがない堅牢な国家。",
+                            en: "A robust, highly centralized state managed by a unified bureaucracy and vertical law.",
+                            zh: "由统一官僚机构与垂直法律体系管理的坚固集中型国家。",
+                            ko: "관료제와 수직적 법 체계로 관리되는 강력한 중앙집권적 국가.",
+                            fr: "Un État centralisé et bureaucratisé assurant la stabilité totale.",
+                            es: "Un Estado centralizado y burocratizado que garantiza estabilidad total."
+                        },
+                        elem4: {
+                            ja: "行政規制、計画的資源配分、国家事業の直接動員、反対派の強力な統制。",
+                            en: "Administrative decree, state economic planning, public mobilization, and regulation.",
+                            zh: "行政指令、计划资源分配、国家工程动员与严厉管制。",
+                            ko: "행정적 규제, 계획적 자원 배분, 국가 사업의 동원 및 강력한 통제.",
+                            fr: "Décrets administratifs, planification centrale et mobilisation des ressources.",
+                            es: "Decretos administrativos, planificación central y mobilización estatal."
+                        },
+                        elem5: {
+                            ja: "【味方】国家忠誠者、官僚、軍・治安機関 【敵】無政府主義者、非国民、外部の侵略者。",
+                            en: "[Friends] Loyal citizens, bureaucrats, military. [Foes] Anarchists, traitors, foreign enemies.",
+                            zh: "【盟友】效忠者、官僚、军警机构 【敌人】无政府主义者、叛国者、外部侵略者。",
+                            ko: "[동지] 국가 충성파, 관료, 군·경찰 [적] 아나키스트, 비국민, 외세.",
+                            fr: "[Amis] Citoyens loyaux, fonctionnaires, armée. [Ennemis] Anarchistes, traîtres.",
+                            es: "[Amigos] Ciudadanos leales, burocracia, ejército. [Enemigos] Anarquistas, traidores."
+                        },
+                        elem6: {
+                            ja: "大規模インフラ・治安供給の実績、国家的危機への対処能力、主権の絶対性。",
+                            en: "Provision of public safety, infrastructure delivery, and national survival imperative.",
+                            zh: "提供水利治安等公共品的能力、应对国家危机的必要性与主权绝对性。",
+                            ko: "대규모 인프라 및 치안 공급, 국가적 위기 대응 능력, 주권의 절대성.",
+                            fr: "Capacité à fournir des infrastructures, la sécurité et la survie de la nation.",
+                            es: "Suministro de infraestructura pública, seguridad y supervivencia nacional."
+                        }
+                    }
+                },
+                {
+                    id: "socialism",
+                    cat: "catPolitics",
+                    title: { ja: "社会主義", en: "Socialism", zh: "社会主义", ko: "사회주의", fr: "Socialisme", es: "Socialismo" },
+                    summary: {
+                        ja: "生産手段の社会的共有や公的規制を通じ、経済的平等と格差の解消を図る思想。",
+                        en: "Economic and political doctrine advocating social ownership and democratic control of production.",
+                        zh: "倡导通过生产资料公有制或公共调控来实现经济平等的思想。",
+                        ko: "생산수단의 사회적 소유와 공적 조정을 통해 경제적 평등과 격차 해소를 도모하는 사상.",
+                        fr: "Doctrine prônant la propriété collective ou publique des moyens de production.",
+                        es: "Doctrina que aboga por la propiedad social de los medios de producción."
+                    },
+                    calcScore: (p) => {
+                        // High inequality, high industrialization, moderate-high state role
+                        let score = (p.inequality * 0.45) + (p.industrialization * 0.35) + (p.clanCohesion * 0.2);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "資本主義的自由市場は必然的に階級対立と深刻な貧富の格差、搾取を生むという認識。",
+                            en: "Perceives market capitalism as inherently generating inequality, exploitation, and class division.",
+                            zh: "认为资本主义市场必然导致严重的阶级分化、剥削与贫富差距。",
+                            ko: "자본주의 시장은 필연적으로 계급 갈등과 심각한 빈부 격차, 착취를 낳는다는 인식.",
+                            fr: "Considère le capitalisme comme générant intrinsèquement des inégalités et l'exploitation.",
+                            es: "Ve el capitalismo de mercado como generador de desigualdad y explotación."
+                        },
+                        elem2: {
+                            ja: "経済的平等、社会的公正、労働者の連帯、公共福祉、コミュニティの共同性。",
+                            en: "Economic equality, social justice, worker solidarity, welfare, and collective wellbeing.",
+                            zh: "经济平等、社会公正、工人阶级团结、公共福利与集体福祉。",
+                            ko: "경제적 평등, 사회적 공정, 노동자의 연대, 공공 복지, 공동체성.",
+                            fr: "Égalité économique, justice sociale, solidarité ouvrière et bien-être collectif.",
+                            es: "Igualdad económica, justicia social, solidaridad laboral y bienestar común."
+                        },
+                        elem3: {
+                            ja: "富と生産手段が社会全体のために運用され、すべての人が生活の保障を受ける平等社会。",
+                            en: "A society where wealth and production serve the public good, eliminating severe poverty.",
+                            zh: "财富与生产资料为全社会服务、消除严重贫困的平等社会。",
+                            ko: "부와 생산수단이 사회 전체를 위해 운용되어 빈곤이 해소된 평등 사회.",
+                            fr: "Une société où la richesse est distribuée de manière équitable et solidaire.",
+                            es: "Una sociedad donde la riqueza se distribuye de manera justa."
+                        },
+                        elem4: {
+                            ja: "生産手段の国有化・公有化、累進課税、社会保障制度の拡充、労働組合運動。",
+                            en: "Public ownership of major industries, progressive taxation, strong welfare system, labor unions.",
+                            zh: "公有制、累进税制、完善的社会保障与工会力量。",
+                            ko: "생산수단의 공유화, 누진세, 사회보장제도의 확충, 노동조합 운동.",
+                            fr: "Nationalisation des industries clés, redistribution fiscale et protection sociale.",
+                            es: "Propiedad pública de industrias clave, redistribución fiscal y welfare."
+                        },
+                        elem5: {
+                            ja: "【味方】労働者、無産階級、社会改革家 【敵】大資本家、地主、新自由主義者。",
+                            en: "[Friends] Workers, working class, social reformers. [Foes] Bourgeoisie, oligarchs, neoliberal elites.",
+                            zh: "【盟友】工人阶级、无产者、社会改革家 【敌人】大资本家、地主、新自由主义精英。",
+                            ko:[동지] 노동자, 무산계급, 사회 개혁가 [적] 대자본가, 지주, 신자유주의자.",
+                            fr: "[Amis] Travailleurs, classe ouvrière, réformateurs. [Ennemis] Grand capital, oligarques.",
+                            es: "[Amigos] Trabajadores, clase obrera. [Enemigos] Grandes capitalistas, oligarcas."
+                        },
+                        elem6: {
+                            ja: "人間としての尊厳の補償、搾取からの解放、歴史的必然としての社会的平等。",
+                            en: "Moral obligation to eliminate poverty, human dignity, and collective solidarity.",
+                            zh: "保障基本人类尊严、消除剥削以及实现最终社会公正的道德必然性。",
+                            ko: "인간 존엄성 보장, 착취로부터의 해방, 역사적 당위로서의 사회적 평등.",
+                            fr: "Obligation morale d'éliminer la pauvreté et d'assurer la dignité humaine.",
+                            es: "Obligación moral de erradicar la pobreza y garantizar la dignidad humana."
+                        }
+                    }
+                },
+                {
+                    id: "capitalism",
+                    cat: "catEconomy",
+                    title: { ja: "資本主義", en: "Capitalism", zh: "资本主义", ko: "자본주의", fr: "Capitalisme", es: "Capitalismo" },
+                    summary: {
+                        ja: "私有財産権、資本の蓄積、価格機構（見えざる手）による資源配分を基礎とする経済体系。",
+                        en: "Economic system based on private property, capital accumulation, and market-driven prices.",
+                        zh: "基于私有产权、资本积累与市场价格机制的经济体系。",
+                        ko: "사적 소유권, 자본 축적, 가격 기구에 의한 자원 배분을 기초로 하는 경제 체제.",
+                        fr: "Système économique fondé sur la propriété privée, la libre concurrence et l'accumulation du capital.",
+                        es: "Sistema económico basado en la propiedad privada y la libre competencia."
+                    },
+                    calcScore: (p) => {
+                        let score = (p.marketMaturity * 0.5) + (p.industrialization * 0.35) + ((100 - p.transparency) * 0.15);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "個人の利己的欲望とイノベーションが社会全体の富と技術革新を駆動するという見方。",
+                            en: "Views self-interest, competition, and entrepreneurial innovation as the engines of prosperity.",
+                            zh: "认为个人追求利益与企业家创新是推动社会财富与技术进步的引擎。",
+                            ko: "개인의 이기심과 혁신이 사회 전체의 부와 기술 발전을 이끈다는 시각.",
+                            fr: "Voit l'intérêt personnel et la concurrence comme les moteurs de la prospérité.",
+                            es: "Ve el interés propio y la competencia como motores de la prosperidad."
+                        },
+                        elem2: {
+                            ja: "私的所有権の絶対性、契約の自由、競争、イノベーション、資本蓄積。",
+                            en: "Private property rights, freedom of contract, market competition, and profit incentive.",
+                            zh: "私有产权神圣不可侵犯、契约自由、市场竞争与利润激励。",
+                            ko: "사적 소유권의 절대성, 계약의 자유, 시장 경쟁, 이윤 동기.",
+                            fr: "Propriété privée, liberté contractuelle, libre concurrence et profit.",
+                            es: "Propiedad privada, libertad contractual y competencia."
+                        },
+                        elem3: {
+                            ja: "活発な市場取引とイノベーションにより、物質的豊かさと技術革新が継続する世界。",
+                            en: "A dynamic economic ecosystem driving technological progress and material abundance.",
+                            zh: "通过活跃的交易与创新，不断创造物质财富与技术突破的动态体系。",
+                            ko: "활발한 시장 거래와 혁신을 통해 물질적 풍요와 기술 혁신이 지속되는 사회.",
+                            fr: "Un système dynamique générant progrès technique et abondance matérielle.",
+                            es: "Un sistema dinámico que genera progreso técnico y abundancia."
+                        },
+                        elem4: {
+                            ja: "価格メカニズム、金融・株式市場、企業起業家精神、規制緩和。",
+                            en: "Price mechanism, capital markets, entrepreneurship, and protection of investor rights.",
+                            zh: "价格机制、资本市场、创业精神与对投资者权益的保护。",
+                            ko: "가격 기구, 금융 시장, 기업가 정신, 규제 완화.",
+                            fr: "Mécanisme des prix, marchés financiers, entrepreneuriat.",
+                            es: "Mecanismo de precios, mercados financieros y emprendimiento."
+                        },
+                        elem5: {
+                            ja: "【味方】起業家、投資家、自由市場支持者 【敵】統制派官僚、共產主義者、保護主義者。",
+                            en: "[Friends] Entrepreneurs, investors, market advocates. [Foes] Bureaucratic planners, communists.",
+                            zh: "【盟友】企业家、投资者、自由市场倡导者 【敌人】管制型官僚、共产主义者、保护主义者。",
+                            ko: "[동지] 기업가, 투자자, 자유시장 지지자 [적] 통제파 관료, 공산주의자, 보호주의자.",
+                            fr: "[Amis] Entrepreneurs, investisseurs. [Ennemis] Planificateurs, communistes.",
+                            es: "[Amigos] Emprendedores, inversionistas. [Enemigos] Planificadores, comunistas."
+                        },
+                        elem6: {
+                            ja: "資源配分の効率性、生産力飛躍の実績、個人の経済的自由の実現。",
+                            en: "Efficiency of resource allocation, proven capacity for growth, and economic freedom.",
+                            zh: "资源配置的最高效率、经济增长的宏大历史成就与个人经济自由。",
+                            ko: "자원 배분의 효율성, 눈부신 경제 성장 실적, 경제적 자유 실현.",
+                            fr: "Efficacité de l'allocation des ressources et création de richesse.",
+                            es: "Eficiencia en la asignación de recursos y creación de riqueza."
+                        }
+                    }
+                },
+                {
+                    id: "totalitarianism",
+                    cat: "catPolitics",
+                    title: { ja: "全体主義", en: "Totalitarianism", zh: "极权主义", ko: "전체주의", fr: "Totalitarisme", es: "Totalitarismo" },
+                    summary: {
+                        ja: "個人を全面的に国家・党の単一イデオロギーに依存・従属させ、社会の全領域を統制する思想。",
+                        en: "System of government that is centralized and dictatorial and requires complete subservience.",
+                        zh: "要求个人彻底服从国家或党派单一意识形态，控制社会一切领域的体制。",
+                        ko: "개인을 국가나 단일 이데올로기에 완전히 종속시키고 사회 전 영역을 통제하는 사상.",
+                        fr: "Régime politique admettant une seule idéologie et contrôlant toute la société.",
+                        es: "Régimen que somete todas las esferas de la vida al control del Estado."
+                    },
+                    calcScore: (p) => {
+                        // High crisis, high external threat, high transparency (state control), high centralization
+                        let score = (p.externalThreat * 0.4) + (p.inequality * 0.25) + (p.transparency * 0.2) + (p.heredity * 0.15);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "社会は存亡の危機にあり、内部の裏切りや外部の敵を根绝するために絶対的統制が必要だという危機観。",
+                            en: "Perceives society under existential threat, requiring absolute control to purge internal and external foes.",
+                            zh: "认为社会处于生死存亡的危机之中，必须通过绝对控制清除内外敌人。",
+                            ko: "사회는 존망의 위기에 처해 있으며, 내·외부의 적을 제거하기 위해 절대적 통제가 필요하다는 시각.",
+                            fr: "Perçoit la société en menace existentielle, exigeant un contrôle absolu pour purifier la nation.",
+                            es: "Percibe a la sociedad en amenaza existencial, exigiendo un control absoluto."
+                        },
+                        elem2: {
+                            ja: "無条件の服従、絶対的統合、敵への殲滅、個人の消滅、指導者への神格的崇拝。",
+                            en: "Absolute obedience, total unity, elimination of dissent, devotion to the Supreme Leader.",
+                            zh: "无条件服从、绝对统一、消灭异见、个人服从整体以及对领袖的崇拜。",
+                            ko: "무조건적 복종, 절대적 통합, 이견의 elimination, 최고 지도자 숭배.",
+                            fr: "Obéissance absolue, unité totale, élimination de la dissidence, culte du chef.",
+                            es: "Obediencia absoluta, unidad total, eliminación de la disidencia."
+                        },
+                        elem3: {
+                            ja: "プライベートな領域が消滅し、すべての国民が単一の目的のもとに完全動員された有機体社会。",
+                            en: "A fully mobilized society where private sphere is abolished and all sub-entities serve the Party.",
+                            zh: "私人领域彻底消失、全体国民在单一目标下被完全动员的有机体社会。",
+                            ko: "사적 영역이 소멸하고 모든 국민이 단일 목적 하에 완벽히 동원된 유기체적 사회.",
+                            fr: "Une société entièrement mobilisée où la sphère privée n'existe plus.",
+                            es: "Una sociedad completamente movilizada sin esfera privada."
+                        },
+                        elem4: {
+                            ja: "秘密警察、監視網、メディアの完全独占、強制収容、集団的プロパガンダ。",
+                            en: "Mass surveillance, secret police, complete media censorship, ideology indoctrination, terror.",
+                            zh: "密集监视、秘密警察、彻底控制媒体、思想洗脑与恐怖镇压。",
+                            ko: "밀착 감시, 비밀경찰, 언론의 완전 독점, 사상 교육, 공포 정치.",
+                            fr: "Surveillance de masse, police secrète, censure totale et propagande.",
+                            es: "Vigilancia masiva, policía secreta, censura total y propaganda."
+                        },
+                        elem5: {
+                            ja: "【味方】党員、忠実な信奉者 【敵】異端者、反乱分子、外部の敵対国家、少数派集団。",
+                            en: "[Friends] Party loyalists, true believers. [Foes] Dissidents, traitors, foreign saboteurs, minorities.",
+                            zh: "【盟友】狂热党员、忠诚追随者 【敌人】异见人士、叛徒、敌对国家、异端少数派。",
+                            ko: "[동지] 당원, 열성 신봉자 [적] 이탈자, 반대파, 외세, 소수자 집단.",
+                            fr: "[Amis] Membres du Parti, fidèles. [Ennemis] Dissidents, traîtres, minorités.",
+                            es: "[Amigos] Leales al partido. [Enemigos] Disidentes, traidores, minorías."
+                        },
+                        elem6: {
+                            ja: "歴史的使命の成就、民族・階級の純血・生存、圧倒的危機からの救済論理。",
+                            en: "Fulfillment of supreme historical mission and national survival under ultimate threat.",
+                            zh: "实现至高无上的历史使命、保护民族/阶级生存及从灭顶之灾中救赎的逻辑。",
+                            ko: "지고의 역사적 사명 완수, 민족·계급의 생존, 위기로부터의 구원 논리.",
+                            fr: "Accomplissement d'une mission historique suprême et survie nationale.",
+                            es: "Cumplimiento de una misión histórica suprema y supervivencia nacional."
+                        }
+                    }
+                },
+                {
+                    id: "neoliberalism",
+                    cat: "catEconomy",
+                    title: { ja: "新自由主義", en: "Neoliberalism", zh: "新自由主义", ko: "신자유주의", fr: "Néolibéralisme", es: "Neoliberalismo" },
+                    summary: {
+                        ja: "市場メカニズムの全面化、民営化、規制緩和、グローバル化を推進し、国家の最小化を狙う思想。",
+                        en: "Policy model emphasizing free market competition, deregulation, privatization, and globalization.",
+                        zh: "倡导自由市场化、私有化、去管税化与全球化，主张全面削减国家干预的思想。",
+                        ko: "시장 기구의 전면화, 민영화, 규제 완화, 세계화를 추진하여 국가 역할을 최소화하는 사상.",
+                        fr: "Ideologie prônant la déréglementation, la privatisation et le libre-échange mondial.",
+                        es: "Modelo que enfatiza el libre mercado, la desregulación, privatización y globalización."
+                    },
+                    calcScore: (p) => {
+                        // High market maturity, high industrialization, low clan cohesion, low state intervention
+                        let score = (p.marketMaturity * 0.5) + (p.industrialization * 0.3) + ((100 - p.clanCohesion) * 0.2);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "市場は最良のインフォーメーション処理システムであり、国家の介入は歪みしか生まないという認識。",
+                            en: "Perceives the market as an optimal information processing engine; state intervention causes inefficiency.",
+                            zh: "认为市场是最佳的信息处理机制，而国家干预只会带来低效与腐败。",
+                            ko: "시장은 최적의 정보 처리 시스템이며, 국가의 개입은 비효율만을 초래한다는 시각.",
+                            fr: "Voit le marché comme le processeur d'information parfait; l'État ne produit que des distorsions.",
+                            es: "Ve al mercado como el procesador de información óptimo; la intervención estatal causa ineficiencia."
+                        },
+                        elem2: {
+                            ja: "自己責任、自由競争、効率性、民営化、規制撤廃、グローバルな資本の移動。",
+                            en: "Individual responsibility, hyper-competition, market efficiency, deregulation, financialization.",
+                            zh: "个人自负盈亏、自由竞争、效率至上、去监管化与资本全球流动。",
+                            ko: "자기 책임, 자유 경쟁, 효율성, 민영화, 규제 철폐, 자본의 자유로운 이동.",
+                            fr: "Responsabilité individuelle, compétition, efficacité du marché, privatisation.",
+                            es: "Responsabilidad individual, libre competencia, eficiencia y privatización."
+                        },
+                        elem3: {
+                            ja: "国境を越えた資本とサービスが自由に流通し、すべての人間が自己の投資家となる世界。",
+                            en: "A seamless global market where individuals act as self-entrepreneurs of human capital.",
+                            zh: "资本与服务跨国自由流动、每个人都成为自身人力资本经营者的无缝全球市场。",
+                            ko: "국경을 넘나드는 자본과 서비스가 자유롭게 유통되며, 개인이 스스로의 경영자가 되는 세상.",
+                            fr: "Un marché mondial sans entraves où chacun est entrepreneur de sa propre vie.",
+                            es: "Un mercado global sin fronteras donde cada individuo es un emprendedor."
+                        },
+                        elem4: {
+                            ja: "公共サービスの民営化、労働市場の柔軟化、減税、自由貿易協定 (FTA)。",
+                            en: "Privatization of public services, labor flexibility, tax cuts, global trade agreements.",
+                            zh: "公共服务私有化、劳动力市场弹性化、减税与自由贸易协定。",
+                            ko: "공공서비스 민영화, 노동 시장 유연화, 감세, 자유무역협정.",
+                            fr: "Privatisation des services publics, flexibilité du travail et baisse des impôts.",
+                            es: "Privatización de servicios públicos, flexibilización laboral y reducción de impuestos."
+                        },
+                        elem5: {
+                            ja: "【味方】グローバル企業、投資家、メカノクラート 【敵】保護主義者、労働組合、規制派官僚。",
+                            en: "[Friends] Multinational corps, technocrats, global investors. [Foes] Protectionists, trade unions.",
+                            zh: "【盟友】跨国企业、技术官僚、全球投资者 【敌人】保护主义者、工会、干预型官僚。",
+                            ko: "[동지] 글로벌 기업, 투자자, 테크노크라트 [적] 보호주의자, 노동조합, 규제파 관료.",
+                            fr: "[Amis] Multinationales, technocrates. [Ennemis] Syndicats, protectionnistes.",
+                            es: "[Amigos] Multinacionales, tecnócratas. [Enemigos] Sindicatos, proteccionistas."
+                        },
+                        elem6: {
+                            ja: "競争による最適な価格発見、グローバルなイノベーションの加速、個人選択の多様化。",
+                            en: "Optimal price discovery through competition, economic dynamism, and global consumer choice.",
+                            zh: "通过竞争实现最优价格发现、加速全球创新与极大化消费者选择。",
+                            ko: "경쟁을 통한 최적의 가격 발견, 글로벌 혁신의 가속, 소비자 선택의 극대화.",
+                            fr: "Optimisation des prix par la concurrence et dynamisme économique mondial.",
+                            es: "Optimización de precios por competencia y dinamismo económico global."
+                        }
+                    }
+                },
+                {
+                    id: "anarchism",
+                    cat: "catPolitics",
+                    title: { ja: "無政府主義 (アナーキズム)", en: "Anarchism", zh: "无政府主义", ko: "아나키즘", fr: "Anarchisme", es: "Anarquismo" },
+                    summary: {
+                        ja: "国家、警察、強制機構などの一切の権力・支配構造を否定し、自発的協同を掲げる思想。",
+                        en: "Political philosophy skeptical of authority and rejecting all involuntary, coercive forms of hierarchy.",
+                        zh: "反对国家、警察与一切强制性等级权力，主张基于自愿与互助的无统治社会。",
+                        ko: "국가, 경찰, 강제 기구 등 일체의 권력·지배 구조를 부정하고 자발적 협동을 제창하는 사상.",
+                        fr: "Philosophie politique rejetant toute forme de pouvoir coercitif et d'autorité centrale.",
+                        es: "Filosofía política que rechaza cualquier forma de autoridad coercitiva o jerarquía."
+                    },
+                    calcScore: (p) => {
+                        // High inequality, low state cohesion, weak clan, low heredity, high diversity
+                        let score = (p.inequality * 0.4) + ((100 - p.transparency) * 0.3) + ((100 - p.territory) * 0.15) + (p.diversity * 0.15);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "国家や統治機構は本質的に強制と暴力を伴う不当な支配者であり、人民の自由を抑圧しているという認識。",
+                            en: "Perceives the state and hierarchies as inherently violent institutions that repress natural human freedom.",
+                            zh: "认为国家与一切层级权威本质上是施加强迫与压迫的不正当统治机构。",
+                            ko: "국가와 통치 기구는 본질적으로 강제와 폭력을 동반한 부당한 지배 장치라는 인식.",
+                            fr: "Voit l'État et la hiérarchie comme des institutions intrinsèquement violentes et oppressives.",
+                            es: "Considera al Estado y las jerarquías como instituciones inherentemente opresivas."
+                        },
+                        elem2: {
+                            ja: "絶対的自律、自主管理、相互扶助、権威の否定、ボランタリーな協力。",
+                            en: "Absolute individual autonomy, mutual aid, direct action, anti-authoritarianism, self-organization.",
+                            zh: "绝对自主、互助合作、直接行动、反权威主义与自组织。",
+                            ko: "절대적 자율, 상호 부조, 직접 행동, 반권위주의, 자율적 조직화.",
+                            fr: "Autonomie absolue, entraide, action directe et rejet de l'autorité.",
+                            es: "Autonomía absoluta, apoyo mutuo, acción directa y rechazo a la autoridad."
+                        },
+                        elem3: {
+                            ja: "国家や警察の存在しない、自発的な評議会やコミュニティが横につながる自由な社会。",
+                            en: "A stateless society of federated, self-governing communities working together voluntarily.",
+                            zh: "没有国家与警察、由自发地方委员会与自治社区横向联合的自由社会。",
+                            ko: "국가나 경찰이 존재하지 않는 자발적 자치 공동체들의 연대 사회.",
+                            fr: "Une société sans État composée de communautés autogérées et fédérées.",
+                            es: "Una sociedad sin Estado formada por comunidades autogestionadas."
+                        },
+                        elem4: {
+                            ja: "直接行動、ゼネスト、自主管理運動、国家的インフラからの離脱、無権威組織化。",
+                            en: "Direct action, general strikes, civil disobedience, network-based decentralization.",
+                            zh: "直接行动、罢工、不合作运动、脱离国家控制与非层级网络化。",
+                            ko: "직접 행동, 총파업, 시민 불복종, 국가 구조로부터의 탈피.",
+                            fr: "Action directe, grève générale, désobéissance civile et décentralisation.",
+                            es: "Acción directa, huelga general, desobediencia civil y descentralización."
+                        },
+                        elem5: {
+                            ja: "【味方】草の根コミュニティ、自主管理労働者 【敵】国家権力、警察、裁判所、大企業階級。",
+                            en: "[Friends] Grassroots collectives, autonomous workers. [Foes] Politicians, police, courts, CEOs.",
+                            zh: "【盟友】草根集体、自治劳动者 【敌人】国家官僚、警察、法官、大企业精英。",
+                            ko: "[동지] 풀뿌리 자치 공동체, 자치 노동자 [적] 국가 권력, 경찰, 법원, 대기업.",
+                            fr: "[Amis] Collectifs autogérés, travailleurs. [Ennemis] Politiciens, police, juges, patrons.",
+                            es: "[Amigos] Colectivos autónomos. [Enemigos] Políticos, policía, jueces, élites corporativas."
+                        },
+                        elem6: {
+                            ja: "強制なき協同の倫理的優越性、人間の生来の善性と協調性。",
+                            en: "Inherent human capacity for voluntary cooperation without violent state coercion.",
+                            zh: "无需暴力国家镇压的人类自发合作倾向与道德优越性。",
+                            ko: "강제 없는 자발적 협동의 윤리적 우월성과 인간의 선한 협조성.",
+                            fr: "Capacité naturelle de l'être humain à coopérer sans coercition étatique.",
+                            es: "Capacidad natural del ser humano para cooperar sin coerción."
+                        }
+                    }
+                },
+                {
+                    id: "conservatism",
+                    cat: "catPolitics",
+                    title: { ja: "保守主義", en: "Conservatism", zh: "保守主义", ko: "보수주의", fr: "Conservatisme", es: "Conservadurismo" },
+                    summary: {
+                        ja: "歴史的伝統、慣習、宗教、秩序の継承を重視し、急進的・理論主導の社会変革に懐疑的な思想。",
+                        en: "Political doctrine favoring traditional institutions, custom, accumulated wisdom, and gradual change.",
+                        zh: "重视传统、习俗、宗教与秩序传承，对急进与抽象理论主导的变革持怀疑态度的思想。",
+                        ko: "역사적 전통, 관습, 질서의 계승을 중시하고 급진적 변혁에 회의적인 사상.",
+                        fr: "Philosophie politique valorisant la tradition, l'ordre établi et le changement prudent.",
+                        es: "Doctrina que favorece las instituciones tradicionales y el cambio gradual."
+                    },
+                    calcScore: (p) => {
+                        let score = (p.clanCohesion * 0.4) + (p.heredity * 0.35) + ((100 - p.industrialization) * 0.25);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "人間の理性には限界があり、長年の歴史の試練を耐えてきた慣習と制度こそが最も信頼できるという認識。",
+                            en: "Human reason is flawed; historical customs and established traditions embody collective wisdom.",
+                            zh: "人类理性是有局限的，历经岁月检验的传统习俗与制度远比抽象理论可靠。",
+                            ko: "인간의 이성에는 한계가 있으며, 오랜 역사를 견뎌낸 관습과 제도만이 가장 신뢰할 수 있다는 인식.",
+                            fr: "La raison humaine est limitée; les traditions accumulées contiennent la sagesse collective.",
+                            es: "La razón humana es limitada; las tradiciones contienen la sabiduría acumulada."
+                        },
+                        elem2: {
+                            ja: "伝統の継承、社会秩序、家族の保護、慣習法の尊重、急進改革への懐疑。",
+                            en: "Preservation of tradition, social stability, family, customary law, and organic community.",
+                            zh: "传承传统、维持社会秩序、保护家庭、尊重习惯法与批判急进主义。",
+                            ko: "전통 계승, 사회 질서 유지, 가족 보호, 관습법 존중, 급진적 변혁 방지.",
+                            fr: "Préservation des traditions, stabilité sociale, famille et communauté organique.",
+                            es: "Preservación de la tradición, estabilidad social, familia y orden."
+                        },
+                        elem3: {
+                            ja: "世代を超えた契約によって結ばれ、秩序と道徳的価値が維持される有機的社会。",
+                            en: "An organic society bound across generations, respecting moral order and historical continuity.",
+                            zh: "跨世代契约紧密相连、道德与历史秩序得以延续的有机社会。",
+                            ko: "세대 간의 계약으로 연결되어 질서와 도덕적 가치가 지속되는 유기적 사회.",
+                            fr: "Une société organique liée à travers les générations, préservant l'ordre moral.",
+                            es: "Una sociedad orgánica intergeneracional que respeta el orden moral."
+                        },
+                        elem4: {
+                            ja: "漸進的改良、中間共同体（家族・教会・地域）の強化、法的慣習の順守。",
+                            en: "Prudent, incremental reform; strengthening intermediate bodies (family, church, local communities).",
+                            zh: "审慎的渐进改良、强化中间共同体（家庭、教会、地方社区）与遵循习惯法。",
+                            ko: "점진적 개혁, 중간 공동체(가족, 교회, 지역)의 강화, 법적 관습 준수.",
+                            fr: "Réformes prudentes et renforcement des institutions intermédiaires (famille, église).",
+                            es: "Reformas prudentes y fortalecimiento de instituciones intermedias."
+                        },
+                        elem5: {
+                            ja: "【味方】伝統的コミュニティ、宗教指導者、家族 【敵】急進革命家、空想的空理空論家。",
+                            en: "[Friends] Traditional communities, religious institutions. [Foes] Radical revolutionaries, ideologues.",
+                            zh: "【盟友】传统社区、宗教团体、阶层精英 【敌人】急进革命者、空想理论家。",
+                            ko: "[동지] 전통적 공동체, 종교 지도자, 가족 [적] 급진 혁명가, 이론 만능주의자.",
+                            fr: "[Amis] Communautés traditionnelles, institutions religieuses. [Ennemis] Révolutionnaires radicaux.",
+                            es: "[Amigos] Comunidades tradicionales, instituciones religiosas. [Enemigos] Revolucionarios radicales."
+                        },
+                        elem6: {
+                            ja: "歴史の試練を耐え抜いた「蓄積された叡智」への信頼と、社会崩壊を防ぐ現実的効用。",
+                            en: "Wisdom of generations, proven historic stability, and protection against total social collapse.",
+                            zh: "世代积累的经验智慧、维持现实社会稳定的功能与防止陷入再版混乱的防线。",
+                            ko: "역사를 통해 검증된 지혜에 대한 신뢰와 사회 붕괴를 막는 현실적 유용성.",
+                            fr: "Sagesse accumulée par les générations et protection contre le chaos social.",
+                            es: "Sabiduría acumulada por generaciones y protección contra el caos."
+                        }
+                    }
+                },
+                {
+                    id: "individualism",
+                    cat: "catEthics",
+                    title: { ja: "個人主義", en: "Individualism", zh: "个人主义", ko: "개인주의", fr: "Individualisme", es: "Individualismo" },
+                    summary: {
+                        ja: "集団や国家よりも個人の価値、自己決定、自由を最上位に置く倫理・社会観。",
+                        en: "Moral stance emphasizing the worth of the individual, self-reliance, and personal independence.",
+                        zh: "将个人的价值、自主决定与自由置于集体与国家之上的伦理观。",
+                        ko: "집단이나 국가보다 개인의 가치, 자기 결정, 자유를 최우선으로 두는 윤리·사회관.",
+                        fr: "Conception éthique plaçant l'individu et son autonomie au-dessus des collectifs.",
+                        es: "Posture moral que prioriza el valor y la autonomía del individuo sobre el grupo."
+                    },
+                    calcScore: (p) => {
+                        let score = ((100 - p.clanCohesion) * 0.45) + (p.marketMaturity * 0.35) + ((100 - p.heredity) * 0.2);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "すべての人は独立した存在であり、他者の意図や集団の都合に道具として従属すべきではないという主張。",
+                            en: "Every human is an end in themselves, not a tool to be used for collective or state goals.",
+                            zh: "每个人都是独立的目标自身，绝不应成为集体或国家目标的工具。",
+                            ko: "모든 인간은 독립된 존재이며, 타인이나 집단의 도구로 종속되어서는 안 된다는 주장.",
+                            fr: "Chaque personne est une fin en soi, et non un moyen au service d'un collectif.",
+                            es: "Cada ser humano es un fin en sí mismo, no un medio para el colectivo."
+                        },
+                        elem2: {
+                            ja: "自己決定権、プライバシー、自立、自己責任、個性の開花。",
+                            en: "Self-determination, privacy, personal responsibility, self-reliance, authentic living.",
+                            zh: "自我决定、个人隐私、独立自负、自我实现与个性张扬。",
+                            ko: "자기 결정권, 사생활 보호, 자립, 자기 책임, 개성의 발현.",
+                            fr: "Autodétermination, vie privée, responsabilité personnelle et épanouissement.",
+                            es: "Autodeterminación, privacidad, responsabilidad personal y autorrealización."
+                        },
+                        elem3: {
+                            ja: "個々人が強制されることなく自らの選択で人生の目的を追求できる開かれた社会。",
+                            en: "A society of autonomous individuals free to define their own path without group pressure.",
+                            zh: "个人不受同质化压迫、能够自由选择人生道路的开放多元社会。",
+                            ko: "개인이 통제받지 않고 자발적 선택으로 삶을 디자인할 수 있는 사회.",
+                            fr: "Une société d'individus autonomes libres de choisir leur propre chemin.",
+                            es: "Una sociedad de individuos autónomos libres de elegir su camino."
+                        },
+                        elem4: {
+                            ja: "基本的人権の保障、契約の尊重、強制的集団主義への抵抗、プライバシー保護法。",
+                            en: "Protection of civil rights, contractual freedom, resistance to mandatory group obedience.",
+                            zh: "保障基本人权、契约自由、抵制强迫性集体同化与立法保护隐私。",
+                            ko: "기본적 인권의 보장, 계약의 존중, 강제적 집단주의에 대한 저항.",
+                            fr: "Garantie des droits civils, respect des contrats et défense de la vie privée.",
+                            es: "Garantía de derechos civiles, libertad contractual y privacidad."
+                        },
+                        elem5: {
+                            ja: "【味方】独立心のある個人、自由思想家 【敵】同調圧力をかける集団、権威主義的組織。",
+                            en: "[Friends] Independent thinkers, free individuals. [Foes] Conformist pressure groups, collectivists.",
+                            zh: "【盟友】具有独立思考能力的人、自由主义思想者 【敌人】从众压力施加者、集权极权组织。",
+                            ko: "[동지] 독립적인 개인, 자유 사상가 [적] 동조 압력을 가하는 집단, 권위주의 조직.",
+                            fr: "[Amis] Penseurs indépendants. [Ennemis] Collectivistes, partisans du conformisme.",
+                            es: "[Amigos] Pensadores independientes. [Enemigos] Colectivistas, colectivos conformistas."
+                        },
+                        elem6: {
+                            ja: "個人の尊厳という固有の道徳的価値と、自己決定がもたらす個人の幸福感。",
+                            en: "Intrinsic moral dignity of human agency and self-ownership.",
+                            zh: "人类主体性与自我所有权具有不可置疑的固有道德尊严。",
+                            ko: "개인의 존엄성이라는 도덕적 가치와 스스로 삶을 선택할 때 얻는 행복.",
+                            fr: "Dignité morale intrinsèque de l'agent humain et propriété de soi.",
+                            es: "Dignidad moral intrínseca del agente humano y propiedad de uno mismo."
+                        }
+                    }
+                },
+                {
+                    id: "collectivism",
+                    cat: "catEthics",
+                    title: { ja: "集団主義", en: "Collectivism", zh: "集体主义", ko: "집단주의", fr: "Collectivisme", es: "Colectivismo" },
+                    summary: {
+                        ja: "個人よりも集団（氏族・民族・国家・地域）の利益や結束を優先する倫理・社会観。",
+                        en: "Value system prioritizing group cohesion, collective goals, and shared solidarity over the individual.",
+                        zh: "强调将集体（宗族、民族、国家或社区）的利益与凝聚力置于个人之上的价值体系。",
+                        ko: "개인보다 집단(씨족, 민족, 국가, 지역)의 이익과 결속을 우선시하는 윤리관.",
+                        fr: "Système de valeurs privilégiant la cohésion du groupe et les objectifs collectifs.",
+                        es: "Sistema de valores que prioriza la cohesión del grupo sobre el individuo."
+                    },
+                    calcScore: (p) => {
+                        let score = (p.clanCohesion * 0.45) + (p.transparency * 0.3) + (p.externalThreat * 0.25);
+                        return Math.max(0, Math.min(100, score));
+                    },
+                    elements: {
+                        elem1: {
+                            ja: "人間は一人では存在し得ず、共同体の一員としてのみ真の意義と安全を得られるという認識。",
+                            en: "Humans only find security and identity as embedded members of a larger community.",
+                            zh: "人无法孤立生存，只有作为有机共同体的一部分才能获得安全与生命的意义。",
+                            ko: "인간은 홀로 존재할 수 없으며 공동체의 일원일 때 비로소 진정한 정체성과 안전을 얻는다는 시각.",
+                            fr: "L'individu n'existe vraiment qu'à travers son intégration dans la communauté.",
+                            es: "El individuo sólo encuentra significado e identidad como parte del grupo."
+                        },
+                        elem2: {
+                            ja: "集団の結束、調和、自己犠牲、相互扶助、共同体への忠誠。",
+                            en: "Group harmony, loyalty, mutual responsibility, self-sacrifice for the common good.",
+                            zh: "集体和谐、忠诚、共同责任、为了公共利益的自我奉献与互助。",
+                            ko: "집단의 결속, 조화, 자기희생, 상호 부조, 공동체에 대한 충성.",
+                            fr: "Harmonie du groupe, loyauté, responsabilité partagée et don de soi.",
+                            es: "Armonía grupal, lealtad, responsabilidad compartida y sacrificio por el grupo."
+                        },
+                        elem3: {
+                            ja: "構成員が固い絆で結ばれ、助け合い、共通の目標に向かって歩む強い共同体社会。",
+                            en: "A tightly knit community where members share mutual duties and work for collective survival.",
+                            zh: "成员间有着紧密纽带、互帮互助、朝着共同目标迈进的强凝聚力社会。",
+                            ko: "구성원이 긴밀한 유대로 연결되어 상부상조하고 공동 목적을 향해 나아가는 사회.",
+                            fr: "Une communauté soudée où tous œuvrent pour le bien commun et la survie collective.",
+                            es: "Una comunidad unida donde todos trabajan por el bien común."
+                        },
+                        elem4: {
+                            ja: "伝統的儀礼、集団行動の推奨、共有資源の管理、利己的振る舞いへの罰則。",
+                            en: "Shared rituals, collective decision-making, communal resource management, social sanction.",
+                            zh: "集体仪式、共同决策、公有资源管理以及对排他利己行为的社会惩戒。",
+                            ko: "공동 의식, 집단적 의사결정, 공유 자원 관리, 이기적 행동에 대한 제재.",
+                            fr: "Rituels collectifs, gestion commune des ressources et sanctions du conformisme.",
+                            es: "Rituales colectivos, gestión común de recursos y sanciones al egoísmo."
+                        },
+                        elem5: {
+                            ja: "【味方】共同体の仲間、氏族、忠実な構成員 【敵】勝手な個人主義者、裏切り者、外来の異分子。",
+                            en: "[Friends] Fellow clan members, comrades. [Foes] Selfish individualists, defectors, outsiders.",
+                            zh: "【盟友】氏族宗亲、公社成员 【敌人】自私的个人主义者、叛徒、外来异类。",
+                            ko: "[동지] 공동체 구성원, 씨족 동포 [적] 이기적인 개인주의자, 배신자, 외래 이방인.",
+                            fr: "[Amis] Membres du groupe, camarades. [Ennemis] Individualistes égoïstes, traîtres.",
+                            es: "[Amigos] Miembros del grupo. [Enemigos] Individualistas egoístas, traidores."
+                        },
+                        elem6: {
+                            ja: "集団の生存なくして個人の生存なしという生存上の絶対的必要性と連帯の道徳。",
+                            en: "Individual survival depends entirely on the survival and strength of the group.",
+                            zh: "没有集体的生存就绝没有个人的生存——这一生存上的必然性与道德要求。",
+                            ko: "집단의 생존 없이 개인의 생존은 없다는 절대적 사명감과 연대의 윤리.",
+                            fr: "Principe selon lequel la survie individuelle dépend de la force du groupe.",
+                            es: "La supervivencia del individuo depende completamente de la fuerza del grupo."
+                        }
+                    }
+                }
+            ];
+
+            // --- 3. HISTORICAL PRESETS ---
+            const PRESETS = {
+                ancientHydraulic: {
+                    transparency: 90,
+                    irrigation: 95,
+                    territory: 85,
+                    clanCohesion: 80,
+                    heredity: 80,
+                    diversity: 25,
+                    industrialization: 10,
+                    marketMaturity: 20,
+                    externalThreat: 70,
+                    inequality: 50
+                },
+                medievalMaritime: {
+                    transparency: 25,
+                    irrigation: 10,
+                    territory: 20,
+                    clanCohesion: 20,
+                    heredity: 30,
+                    diversity: 65,
+                    industrialization: 25,
+                    marketMaturity: 85,
+                    externalThreat: 35,
+                    inequality: 35
+                },
+                industrialRevolution: {
+                    transparency: 55,
+                    irrigation: 30,
+                    territory: 60,
+                    clanCohesion: 35,
+                    heredity: 45,
+                    diversity: 40,
+                    industrialization: 85,
+                    marketMaturity: 80,
+                    externalThreat: 40,
+                    inequality: 85
+                },
+                postCrisisRegime: {
+                    transparency: 80,
+                    irrigation: 60,
+                    territory: 75,
+                    clanCohesion: 70,
+                    heredity: 60,
+                    diversity: 50,
+                    industrialization: 60,
+                    marketMaturity: 30,
+                    externalThreat: 95,
+                    inequality: 90
+                },
+                hyperNeoliberal: {
+                    transparency: 30,
+                    irrigation: 15,
+                    territory: 40,
+                    clanCohesion: 15,
+                    heredity: 20,
+                    diversity: 80,
+                    industrialization: 95,
+                    marketMaturity: 95,
+                    externalThreat: 20,
+                    inequality: 75
+                }
+            };
+
+            // --- 4. STATE MANAGEMENT & DOM ELEMENTS ---
+            const state = {
+                params: {
+                    transparency: 50,
+                    irrigation: 40,
+                    territory: 50,
+                    clanCohesion: 50,
+                    heredity: 35,
+                    diversity: 40,
+                    industrialization: 50,
+                    marketMaturity: 50,
+                    externalThreat: 30,
+                    inequality: 40
+                },
+                calculated: {
+                    statistScore: 50,
+                    marketScore: 50,
+                    lawVerticalScore: 50,
+                    propertyRightsScore: 50,
+                    centralizationScore: 50,
+                    ideologyScores: []
+                },
+                selectedIdeology: null,
+                animationFrameId: null
+            };
+
+            // --- 5. INITIALIZATION & EVENT LISTENERS ---
+            document.addEventListener('DOMContentLoaded', () => {
+                try {
+                    bindEvents();
+                    updateLanguage(currentLang);
+                    calculateSimulation();
+                    initFlowCanvas();
+                } catch (e) {
+                    console.error("Initialization error:", e);
+                }
+            });
+
+            function bindEvents() {
+                // Parameter Slider Events
+                const paramIds = [
+                    'transparency', 'irrigation', 'territory', 'clanCohesion',
+                    'heredity', 'diversity', 'industrialization', 'marketMaturity',
+                    'externalThreat', 'inequality'
+                ];
+
+                paramIds.forEach(id => {
+                    const slider = document.getElementById(`param_${id}`);
+                    const valDisplay = document.getElementById(`val_${id}`);
+                    if (slider) {
+                        slider.addEventListener('input', (e) => {
+                            const val = parseInt(e.target.value, 10);
+                            state.params[id] = val;
+                            if (valDisplay) valDisplay.textContent = val;
+                            calculateSimulation();
+                        });
+                    }
+                });
+
+                // Preset selector
+                const presetSelect = document.getElementById('presetSelect');
+                if (presetSelect) {
+                    presetSelect.addEventListener('change', (e) => {
+                        const presetKey = e.target.value;
+                        if (PRESETS[presetKey]) {
+                            applyPreset(PRESETS[presetKey]);
+                        }
+                    });
+                }
+
+                // Reset button
+                const resetBtn = document.getElementById('resetParamsBtn');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', () => {
+                        applyPreset({
+                            transparency: 50, irrigation: 40, territory: 50,
+                            clanCohesion: 50, heredity: 35, diversity: 40,
+                            industrialization: 50, marketMaturity: 50,
+                            externalThreat: 30, inequality: 40
+                        });
+                        presetSelect.value = "";
+                    });
+                }
+
+                // Language Selector
+                const langSelect = document.getElementById('langSelect');
+                if (langSelect) {
+                    langSelect.addEventListener('change', (e) => {
+                        currentLang = e.target.value;
+                        updateLanguage(currentLang);
+                    });
+                }
+
+                // Modal close events
+                const closeModalBtn = document.getElementById('closeModalBtn');
+                const closeModalBtn2 = document.getElementById('closeModalBtn2');
+                const modal = document.getElementById('ideologyModal');
+
+                [closeModalBtn, closeModalBtn2].forEach(btn => {
+                    if (btn) {
+                        btn.addEventListener('click', () => {
+                            if (modal) modal.classList.add('hidden');
+                        });
+                    }
+                });
+
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.classList.add('hidden');
+                    });
+                }
+
+                // Window Resize Handler for Canvas
+                window.addEventListener('resize', () => {
+                    renderRadarChart();
+                    renderFlowChart();
+                });
+            }
+
+            function applyPreset(presetObj) {
+                Object.keys(presetObj).forEach(key => {
+                    state.params[key] = presetObj[key];
+                    const slider = document.getElementById(`param_${key}`);
+                    const valDisplay = document.getElementById(`val_${key}`);
+                    if (slider) slider.value = presetObj[key];
+                    if (valDisplay) valDisplay.textContent = presetObj[key];
+                });
+                calculateSimulation();
+            }
+
+            // --- 6. SIMULATION CALCULATOR ENGINE ---
+            function calculateSimulation() {
+                const p = state.params;
+
+                // G. Roland Theory Core Calculations:
+                // Statist System Score (High Transparency + High Irrigation + High Territory + Strong Unilineal Clans)
+                let statist = (p.transparency * 0.35) + (p.irrigation * 0.35) + (p.territory * 0.15) + (p.clanCohesion * 0.15);
+
+                // Market System Score (Low Transparency + Maritime/Network City-States + Weak Clans/Bilateral + High Market Maturity)
+                let market = ((100 - p.transparency) * 0.25) + ((100 - p.territory) * 0.2) + ((100 - p.clanCohesion) * 0.2) + (p.marketMaturity * 0.35);
+
+                // Normalize Statist vs Market
+                let totalSys = statist + market || 1;
+                let statistPct = Math.round((statist / totalSys) * 100);
+                let marketPct = 100 - statistPct;
+
+                state.calculated.statistScore = statistPct;
+                state.calculated.marketScore = marketPct;
+
+                // Legal Architecture: Vertical Law vs Horizontal Law
+                let verticalLaw = Math.round((statistPct * 0.6) + (p.heredity * 0.25) + (p.externalThreat * 0.15));
+                state.calculated.lawVerticalScore = verticalLaw;
+
+                // Property Rights Protection
+                let propertyProtection = Math.round((marketPct * 0.55) + (p.marketMaturity * 0.3) + ((100 - p.heredity) * 0.15));
+                state.calculated.propertyRightsScore = propertyProtection;
+
+                // Centralization Score
+                let centralization = Math.round((statistPct * 0.5) + (p.externalThreat * 0.3) + (p.territory * 0.2));
+                state.calculated.centralizationScore = centralization;
+
+                // Ideology Match Scores Calculation
+                let scoredIdeologies = IDEOLOGY_DB.map(ideo => {
+                    let score = ideo.calcScore(p);
+                    return {
+                        ...ideo,
+                        score: Math.round(score)
+                    };
+                }).sort((a, b) => b.score - a.score);
+
+                state.calculated.ideologyScores = scoredIdeologies;
+
+                // Update UI Visuals
+                renderDashboard();
+            }
+
+            // --- 7. UI RENDERING & DASHBOARD UPDATES ---
+            function renderDashboard() {
+                const calc = state.calculated;
+                const dict = I18N[currentLang] || I18N.ja;
+
+                // 1. Statist vs Market Meters
+                const statistBar = document.getElementById('statistBar');
+                const marketBar = document.getElementById('marketBar');
+                if (statistBar && marketBar) {
+                    statistBar.style.width = `${calc.statistScore}%`;
+                    marketBar.style.width = `${calc.marketScore}%`;
+                }
+
+                // System Type Badge
+                const badge = document.getElementById('systemTypeBadge');
+                if (badge) {
+                    if (calc.statistScore > 58) {
+                        badge.textContent = dict.statistBadge;
+                        badge.className = "px-3 py-1 text-xs font-bold rounded-full bg-blue-900/60 text-blue-300 border border-blue-500/40";
+                    } else if (calc.marketScore > 58) {
+                        badge.textContent = dict.marketBadge;
+                        badge.className = "px-3 py-1 text-xs font-bold rounded-full bg-amber-900/60 text-amber-300 border border-amber-500/40";
+                    } else {
+                        badge.textContent = dict.balancedBadge;
+                        badge.className = "px-3 py-1 text-xs font-bold rounded-full bg-purple-900/60 text-purple-300 border border-purple-500/40";
+                    }
+                }
+
+                // 2. Metrics Sub-Bars
+                const lawBar = document.getElementById('lawBar');
+                const lawVal = document.getElementById('lawTypeVal');
+                if (lawBar && lawVal) {
+                    lawBar.style.width = `${calc.lawVerticalScore}%`;
+                    lawVal.textContent = `${calc.lawVerticalScore}% (${calc.lawVerticalScore > 50 ? dict.lawVertical : dict.lawHorizontal})`;
+                }
+
+                const propBar = document.getElementById('propBar');
+                const propVal = document.getElementById('propVal');
+                if (propBar && propVal) {
+                    propBar.style.width = `${calc.propertyRightsScore}%`;
+                    propVal.textContent = `${calc.propertyRightsScore}%`;
+                }
+
+                const centBar = document.getElementById('centBar');
+                const centVal = document.getElementById('centVal');
+                if (centBar && centVal) {
+                    centBar.style.width = `${calc.centralizationScore}%`;
+                    centVal.textContent = `${calc.centralizationScore}%`;
+                }
+
+                // 3. Render Canvas Radar
+                renderRadarChart();
+
+                // 4. Ideology Cards Ranking
+                renderIdeologyCards();
+
+                // 5. Causal Flowchart Canvas
+                renderFlowChart();
+            }
+
+            // --- RADAR CANVAS DRAWING ---
+            function renderRadarChart() {
+                const canvas = document.getElementById('radarCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                const centerX = w / 2;
+                const centerY = h / 2 + 5;
+                const radius = 55;
+
+                const calc = state.calculated;
+                const metrics = [
+                    { label: "集権度", val: calc.centralizationScore / 100 },
+                    { label: "所有権", val: calc.propertyRightsScore / 100 },
+                    { label: "市場性", val: calc.marketScore / 100 },
+                    { label: "国家性", val: calc.statistScore / 100 },
+                    { label: "垂直法", val: calc.lawVerticalScore / 100 }
+                ];
+
+                const numAxes = metrics.length;
+                const angleStep = (Math.PI * 2) / numAxes;
+
+                // Draw background web (3 rings)
+                ctx.strokeStyle = "rgba(75, 85, 99, 0.4)";
+                ctx.lineWidth = 1;
+                for (let level = 1; level <= 3; level++) {
+                    let r = (radius / 3) * level;
+                    ctx.beginPath();
+                    for (let i = 0; i < numAxes; i++) {
+                        let angle = i * angleStep - Math.PI / 2;
+                        let x = centerX + r * Math.cos(angle);
+                        let y = centerY + r * Math.sin(angle);
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+
+                // Draw axes
+                for (let i = 0; i < numAxes; i++) {
+                    let angle = i * angleStep - Math.PI / 2;
+                    let x = centerX + radius * Math.cos(angle);
+                    let y = centerY + radius * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+
+                // Draw data polygon
+                ctx.beginPath();
+                for (let i = 0; i < numAxes; i++) {
+                    let angle = i * angleStep - Math.PI / 2;
+                    let r = radius * metrics[i].val;
+                    let x = centerX + r * Math.cos(angle);
+                    let y = centerY + r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = "rgba(59, 130, 246, 0.35)";
+                ctx.fill();
+                ctx.strokeStyle = "#3B82F6";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Points & Labels
+                ctx.fillStyle = "#E5E7EB";
+                ctx.font = "9px Inter, sans-serif";
+                ctx.textAlign = "center";
+                for (let i = 0; i < numAxes; i++) {
+                    let angle = i * angleStep - Math.PI / 2;
+                    let r = radius * metrics[i].val;
+                    let x = centerX + r * Math.cos(angle);
+                    let y = centerY + r * Math.sin(angle);
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = "#60A5FA";
+                    ctx.fill();
+
+                    // Text position
+                    let labelR = radius + 12;
+                    let lx = centerX + labelR * Math.cos(angle);
+                    let ly = centerY + labelR * Math.sin(angle);
+                    ctx.fillStyle = "#9CA3AF";
+                    ctx.fillText(metrics[i].label, lx, ly + 3);
+                }
+            }
+
+            // --- IDEOLOGY CARDS RENDERER ---
+            function renderIdeologyCards() {
+                const container = document.getElementById('ideologyContainer');
+                if (!container) return;
+
+                container.innerHTML = '';
+                const dict = I18N[currentLang] || I18N.ja;
+                const topList = state.calculated.ideologyScores.slice(0, 4); // Top 4
+
+                topList.forEach((item, idx) => {
+                    const card = document.createElement('div');
+                    card.className = "bg-gray-900/80 hover:bg-gray-800/90 border border-gray-800 hover:border-blue-500/50 p-4 rounded-xl transition duration-200 cursor-pointer flex flex-col justify-between space-y-3 group";
+
+                    const titleStr = item.title[currentLang] || item.title.ja;
+                    const summaryStr = item.summary[currentLang] || item.summary.ja;
+                    const catLabel = dict[item.cat] || item.cat;
+
+                    card.innerHTML = `
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-start gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-blue-900/70 border border-blue-500/40 text-blue-300 font-mono text-xs flex items-center justify-center font-bold">
+                                        #${idx + 1}
+                                    </span>
+                                    <h3 class="academic-header text-base font-bold text-gray-100 group-hover:text-blue-400 transition">
+                                        ${titleStr}
+                                    </h3>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] rounded bg-gray-800 text-gray-400 border border-gray-700">
+                                    ${catLabel}
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                                ${summaryStr}
+                            </p>
+                        </div>
+
+                        <div class="space-y-1.5 pt-2 border-t border-gray-800/60">
+                            <div class="flex justify-between text-[11px] font-mono">
+                                <span class="text-gray-400">適応シェア (Dominance)</span>
+                                <span class="text-blue-400 font-bold">${item.score}%</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-all duration-300" style="width: ${item.score}%"></div>
+                            </div>
+                            <div class="text-right text-[10px] text-blue-400 font-medium group-hover:underline pt-1">
+                                ${dict.detailBtn}
+                            </div>
+                        </div>
+                    `;
+
+                    card.addEventListener('click', () => {
+                        openIdeologyModal(item);
+                    });
+
+                    container.appendChild(card);
+                });
+            }
+
+            // --- 6-ELEMENT MODAL OPENER ---
+            function openIdeologyModal(item) {
+                const modal = document.getElementById('ideologyModal');
+                if (!modal) return;
+
+                const dict = I18N[currentLang] || I18N.ja;
+                state.selectedIdeology = item;
+
+                document.getElementById('modalTitle').textContent = item.title[currentLang] || item.title.ja;
+                document.getElementById('modalCategoryBadge').textContent = dict[item.cat] || item.cat;
+                document.getElementById('modalSummary').textContent = item.summary[currentLang] || item.summary.ja;
+
+                // Populate 6 Elements
+                for (let i = 1; i <= 6; i++) {
+                    const key = `elem${i}`;
+                    const el = document.getElementById(`modalElem${i}`);
+                    if (el && item.elements && item.elements[key]) {
+                        el.textContent = item.elements[key][currentLang] || item.elements[key].ja;
+                    }
+                }
+
+                modal.classList.remove('hidden');
+            }
+
+            // --- FLOWCHART CANVAS ANIMATION ---
+            function renderFlowChart() {
+                const canvas = document.getElementById('flowCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                const dict = I18N[currentLang] || I18N.ja;
+                const calc = state.calculated;
+                const topIdeo = calc.ideologyScores[0] ? (calc.ideologyScores[0].title[currentLang] || calc.ideologyScores[0].title.ja) : "Dominant Ideology";
+
+                const nodes = [
+                    { id: 1, title: dict.groupGeo || "環境条件", sub: `透明度: ${state.params.transparency}%`, x: 70, y: 100, color: "#3B82F6" },
+                    { id: 2, title: "制度体制", sub: calc.statistScore > 50 ? "国家主義優先" : "市場システム優先", x: 250, y: 100, color: "#8B5CF6" },
+                    { id: 3, title: "法・所有権", sub: calc.lawVerticalScore > 50 ? "垂直官僚法" : "水平契約法", x: 450, y: 100, color: "#10B981" },
+                    { id: 4, title: "創発思想", sub: topIdeo, x: 650, y: 100, color: "#F59E0B" }
+                ];
+
+                // Draw Connecting Animated Arrows
+                for (let i = 0; i < nodes.length - 1; i++) {
+                    let n1 = nodes[i];
+                    let n2 = nodes[i + 1];
+
+                    ctx.beginPath();
+                    ctx.moveTo(n1.x + 50, n1.y);
+                    ctx.lineTo(n2.x - 50, n2.y);
+                    ctx.strokeStyle = "rgba(75, 85, 99, 0.6)";
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Arrowhead
+                    ctx.beginPath();
+                    ctx.arc(n2.x - 50, n2.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = n2.color;
+                    ctx.fill();
+                }
+
+                // Draw Nodes
+                nodes.forEach(node => {
+                    // Box shadow
+                    ctx.fillStyle = "rgba(17, 24, 39, 0.9)";
+                    ctx.beginPath();
+                    ctx.roundRect(node.x - 55, node.y - 35, 110, 70, 8);
+                    ctx.fill();
+                    ctx.strokeStyle = node.color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Text
+                    ctx.fillStyle = "#F3F4F6";
+                    ctx.font = "bold 11px Inter, sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(node.title, node.x, node.y - 10);
+
+                    ctx.fillStyle = "#9CA3AF";
+                    ctx.font = "10px Inter, sans-serif";
+                    ctx.fillText(node.sub, node.x, node.y + 12);
+                });
+            }
+
+            // --- 8. MULTI-LANGUAGE DYNAMIC UPDATER ---
+            function updateLanguage(lang) {
+                const dict = I18N[lang] || I18N.ja;
+
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (dict[key]) {
+                        el.textContent = dict[key];
+                    }
+                });
+
+                // Re-render components with localized strings
+                calculateSimulation();
+
+                // If modal is open, refresh modal text
+                if (state.selectedIdeology && !document.getElementById('ideologyModal').classList.contains('hidden')) {
+                    openIdeologyModal(state.selectedIdeology);
+                }
+            }
+
+        })();
+    </script>
+</body>
+</html>
